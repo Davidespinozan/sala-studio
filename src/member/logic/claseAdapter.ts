@@ -105,6 +105,12 @@ interface ToClaseInput {
   cuposReservados: number;
 }
 
+/** Construye una Clase desde un recurso + slot + cupos.
+ *  Usado por ClaseDetalle cuando se navega desde un ID compuesto. */
+export function claseFromSlot(input: ToClaseInput): Clase {
+  return toClase(input);
+}
+
 function toClase(input: ToClaseInput): Clase {
   const slotFin = new Date(input.slotInicio.getTime() + input.duracionMinutos * 60_000);
   const slotISO = input.slotInicio.toISOString();

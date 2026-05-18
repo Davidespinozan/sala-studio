@@ -14,6 +14,7 @@ const Perfil = lazy(() => import('./pages/Perfil'));
 const MiQR = lazy(() => import('./pages/MiQR'));
 const Estudios = lazy(() => import('./pages/Estudios'));
 const EstudioDetalle = lazy(() => import('./pages/EstudioDetalle'));
+const ClaseDetalle = lazy(() => import('./pages/ClaseDetalle'));
 
 function mensajeStatus(status: string): string {
   if (status === 'suspendido')
@@ -83,6 +84,7 @@ export default function MemberLayout() {
           <Route path="/reservar" element={<Reservar />} />
           <Route path="/estudios" element={<Estudios />} />
           <Route path="/estudios/:slug" element={<EstudioDetalle />} />
+          <Route path="/clase/:id" element={<ClaseDetalle />} />
           <Route path="/historial" element={<Historial />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/qr/:reservaId" element={<MiQR />} />
