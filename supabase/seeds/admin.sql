@@ -13,7 +13,7 @@ WITH tenant AS (
   SELECT id FROM tenants WHERE slug = 'sala-demo'
 )
 INSERT INTO usuarios (
-  auth_user_id,
+  auth_id,
   tenant_id,
   nombre,
   email,

@@ -6,8 +6,7 @@ INSERT INTO tenants (
   slug,
   nombre,
   config,
-  branding,
-  activo
+  branding
 ) VALUES (
   gen_random_uuid(),
   'sala-demo',
@@ -41,7 +40,6 @@ INSERT INTO tenants (
     'color_primary', '#e5b829',
     'color_accent', '#0a0a0a',
     'color_bg', '#0a0a0a'
-  ),
-  true
+  )
 )
 ON CONFLICT (slug) DO NOTHING;
