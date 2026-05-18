@@ -1,0 +1,39 @@
+:root {
+  /* Base (heredado de propuesta STRYV) */
+  --ek-cream:        #F5F1E8;
+  --ek-cream-warm:   #EFEAD8;
+  --ek-cream-deep:   #E8E1CC;
+
+  /* Principal */
+  --ek-black:        #0A0A0A;
+  --ek-black-soft:   #1A1A1A;
+  --ek-ink-muted:    rgba(10, 10, 10, 0.62);
+  --ek-line:         rgba(10, 10, 10, 0.08);
+  --ek-line-strong:  rgba(10, 10, 10, 0.16);
+
+  /* Acento */
+  --ek-mustard:      #D4A93C;
+  --ek-mustard-deep: #8C6E1F;  /* WCAG AA sobre cream */
+
+  /* Funcionales (estados UI) */
+  --ek-success:      #2E7D5B;
+  --ek-danger:       #B23A3A;
+  --ek-warning:      #C68A1E;
+  --ek-info:         #2C5F8E;
+
+  /* Sombras (tinte negro neutro) */
+  --ek-shadow:        0 2px 12px rgba(10, 10, 10, 0.06);
+  --ek-shadow-md:     0 4px 24px rgba(10, 10, 10, 0.10);
+  --ek-shadow-strong: 0 8px 40px rgba(10, 10, 10, 0.14);
+
+  /* Tipografía */
+  --ek-font-sans: 'Geist', system-ui, sans-serif;
+  --ek-font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
+
+  /* Radios */
+  --ek-radius-sm:  8px;
+  --ek-radius:    12px;
+  --ek-radius-lg: 18px;
+  --ek-radius-xl: 24px;
+  --ek-radius-pill: 999px;
+}

@@ -1,0 +1,14 @@
+# E2E smoke tests contra producción.
+# Se implementa en Fase 6 con cron diario + push a main + workflow_dispatch.
+# Placeholder por ahora.
+
+name: E2E Smokes
+
+on:
+  workflow_dispatch:
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "placeholder — implementar en Fase 6"
