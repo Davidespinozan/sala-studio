@@ -1894,6 +1894,18 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     }
   }
 
+  /* ============================================================================
+     ADMIN AGENDA (S3c Eje 2) — desktop grid / mobile lista toggle
+     ============================================================================ */
+
+  .adm-agenda-desktop { display: none; }
+  .adm-agenda-mobile  { display: block; }
+
+  @media (min-width: 900px) {
+    .adm-agenda-desktop { display: block; }
+    .adm-agenda-mobile  { display: none; }
+  }
+
   /* 4. Item activo del sidebar con halo lateral salvia */
   .adm-sidebar-item--active {
     box-shadow: inset 0 0 0 1px rgba(61, 107, 82, 0.12);
