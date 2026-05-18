@@ -358,6 +358,50 @@ export default function Recursos() {
   );
 }
 
+/** Indicador compacto de días de operación: 7 dots Lun-Dom.
+ *  Día con bloques → salvia sólido. Día sin bloques → border-only muted. */
+function DiasIndicator({ bloques }: { bloques: BloqueHorario[] }) {
+  const diasActivos = new Set(bloques.map((b) => b.dia));
+  const totalBloques = bloques.length;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', gap: '3px' }}>
+        {DIAS.map((dia) => {
+          const activo = diasActivos.has(dia.key);
+          return (
+            <span
+              key={dia.key}
+              title={`${dia.label}${activo ? '' : ' (cerrado)'}`}
+              style={{
+                width: '14px',
+                height: '14px',
+                borderRadius: '4px',
+                background: activo ? 'var(--sala-primary)' : 'transparent',
+                border: `1px solid ${activo ? 'var(--sala-primary)' : 'var(--sala-border-strong)'}`,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '8px',
+                fontWeight: 700,
+                color: activo ? 'var(--sala-text-on-primary)' : 'var(--sala-text-tertiary)',
+                letterSpacing: 0
+              }}
+            >
+              {dia.label.charAt(0)}
+            </span>
+          );
+        })}
+      </div>
+      {totalBloques > 0 && (
+        <span style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
+          {totalBloques} {totalBloques === 1 ? 'bloque' : 'bloques'}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function FotoThumb({ url, alt }: { url: string | null; alt: string }) {
   return (
     <div
@@ -416,6 +460,7 @@ function RecursoRow({
   const equipo = (r.equipo_incluido ?? []).slice(0, 3).join(', ');
   const equipoMas = (r.equipo_incluido?.length ?? 0) > 3 ? '…' : '';
   const contenido = (r.tipo_contenido ?? []).join(' / ');
+  const horariosBloques = parseHorarios(r.horarios);
 
   return (
     <div
@@ -429,23 +474,26 @@ function RecursoRow({
         }
       }}
       style={{
-        background: 'var(--ek-bg-soft)',
-        border: '0.5px solid var(--ek-line)',
+        background: 'var(--sala-surface)',
+        border: '1px solid var(--sala-border)',
         borderRadius: '16px',
         padding: '14px',
         display: 'flex',
         alignItems: 'center',
         gap: '16px',
         cursor: 'pointer',
-        transition: 'background 0.18s ease, border-color 0.18s ease'
+        transition: 'background 0.18s ease, border-color 0.18s ease, transform 0.12s ease',
+        boxShadow: '0 1px 3px rgba(26, 31, 28, 0.04)'
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'var(--ek-mustard-soft)';
-        e.currentTarget.style.borderColor = 'var(--ek-mustard-dim)';
+        e.currentTarget.style.background = 'var(--sala-primary-light)';
+        e.currentTarget.style.borderColor = 'var(--sala-primary)';
+        e.currentTarget.style.transform = 'translateY(-1px)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'var(--ek-bg-soft)';
-        e.currentTarget.style.borderColor = 'var(--ek-line)';
+        e.currentTarget.style.background = 'var(--sala-surface)';
+        e.currentTarget.style.borderColor = 'var(--sala-border)';
+        e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
       <FotoThumb url={r.foto_url} alt={r.nombre} />
@@ -456,31 +504,32 @@ function RecursoRow({
             fontSize: '18px',
             fontWeight: 600,
             margin: 0,
-            marginBottom: '4px',
-            color: 'var(--ek-ink)',
+            marginBottom: '6px',
+            color: 'var(--sala-text-primary)',
             letterSpacing: '-0.02em'
           }}
         >
           {r.nombre}
         </h3>
         {contenido && (
-          <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '2px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '2px' }}>
             {contenido}
           </p>
         )}
-        <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '2px' }}>
+        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '2px' }}>
           Capacidad: {r.capacidad_personas ?? '—'}
           {r.capacidad_personas ? ' personas' : ''}
         </p>
-        <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '2px' }}>
+        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '4px' }}>
           Plan: {r.tiers_permitidos.join(', ') || '—'}
         </p>
+        <DiasIndicator bloques={horariosBloques} />
         {equipo && (
           <p
             style={{
               fontSize: '12px',
-              color: 'var(--ek-ink-faint)',
-              margin: 0,
+              color: 'var(--sala-text-tertiary)',
+              margin: '4px 0 0',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'
@@ -612,6 +661,12 @@ function EditarRecursoModal({
   async function handleSave() {
     setSaving(true);
     setError(null);
+
+    if (horariosTienenError(horarios)) {
+      setError('Hay horarios inválidos. Revisá las marcas en rojo (fin debe ser mayor a inicio, sin solapamientos).');
+      setSaving(false);
+      return;
+    }
 
     if (esCreacion) {
       if (!nombre.trim()) {
@@ -839,6 +894,22 @@ function EditarRecursoModal({
   );
 }
 
+/** Devuelve true si algún bloque tiene fin <= inicio o overlaps dentro del mismo día. */
+export function horariosTienenError(value: BloqueHorario[]): boolean {
+  for (const dia of DIAS) {
+    const bloques = value
+      .filter((b) => b.dia === dia.key)
+      .sort((a, b) => a.inicio.localeCompare(b.inicio));
+    for (let i = 0; i < bloques.length; i++) {
+      const b = bloques[i];
+      if (b.fin <= b.inicio) return true;
+      // overlap con siguiente?
+      if (i + 1 < bloques.length && bloques[i + 1].inicio < b.fin) return true;
+    }
+  }
+  return false;
+}
+
 function HorariosEditor({
   value,
   onChange
@@ -846,19 +917,47 @@ function HorariosEditor({
   value: BloqueHorario[];
   onChange: (v: BloqueHorario[]) => void;
 }) {
-  const getBloqueDia = (diaKey: string) => value.find((b) => b.dia === diaKey);
+  const bloquesDia = (diaKey: string) =>
+    value
+      .map((b, i) => ({ b, i }))
+      .filter(({ b }) => b.dia === diaKey)
+      .sort((a, b) => a.b.inicio.localeCompare(b.b.inicio));
 
-  const toggleDia = (diaKey: string) => {
-    const existe = getBloqueDia(diaKey);
-    if (existe) {
-      onChange(value.filter((b) => b.dia !== diaKey));
+  const setActivo = (diaKey: string, activo: boolean) => {
+    if (activo) {
+      if (bloquesDia(diaKey).length === 0) {
+        onChange([...value, { dia: diaKey, inicio: '09:00', fin: '12:00' }]);
+      }
     } else {
-      onChange([...value, { dia: diaKey, inicio: '09:00', fin: '22:00' }]);
+      onChange(value.filter((b) => b.dia !== diaKey));
     }
   };
 
-  const updateDia = (diaKey: string, campo: 'inicio' | 'fin', val: string) => {
-    onChange(value.map((b) => (b.dia === diaKey ? { ...b, [campo]: val } : b)));
+  const agregarBloque = (diaKey: string) => {
+    const bloques = bloquesDia(diaKey).map(({ b }) => b);
+    // Sugerir un bloque después del último, o uno default
+    const ultimo = bloques[bloques.length - 1];
+    const inicio = ultimo?.fin ?? '17:00';
+    const finDefault = inicio < '20:00' ? '20:00' : '22:00';
+    onChange([...value, { dia: diaKey, inicio, fin: finDefault }]);
+  };
+
+  const eliminarBloque = (originalIdx: number) => {
+    onChange(value.filter((_, i) => i !== originalIdx));
+  };
+
+  const updateBloque = (originalIdx: number, campo: 'inicio' | 'fin', val: string) => {
+    onChange(value.map((b, i) => (i === originalIdx ? { ...b, [campo]: val } : b)));
+  };
+
+  const tieneOverlap = (diaKey: string, originalIdx: number, inicio: string, fin: string) => {
+    return value.some(
+      (b, i) =>
+        i !== originalIdx &&
+        b.dia === diaKey &&
+        inicio < b.fin &&
+        fin > b.inicio
+    );
   };
 
   return (
@@ -866,85 +965,171 @@ function HorariosEditor({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px',
+        gap: '10px',
         padding: '16px',
-        background: 'var(--ek-bg-soft)',
-        borderRadius: 'var(--ek-r-md)',
-        border: '0.5px solid var(--ek-line)'
+        background: 'var(--sala-bg)',
+        borderRadius: '14px',
+        border: '1px solid var(--sala-border)'
       }}
     >
       {DIAS.map((dia) => {
-        const bloque = getBloqueDia(dia.key);
-        const abierto = !!bloque;
+        const bloques = bloquesDia(dia.key);
+        const activo = bloques.length > 0;
 
         return (
           <div
             key={dia.key}
             style={{
-              display: 'grid',
-              gridTemplateColumns: '110px 1fr 1fr 90px',
-              gap: '12px',
-              alignItems: 'center',
-              padding: '10px 12px',
-              background: abierto ? 'var(--ek-bg-elevated)' : 'transparent',
-              borderRadius: 'var(--ek-r-sm)',
-              transition: 'background 0.18s ease'
+              padding: '12px 14px',
+              background: activo ? 'var(--sala-primary-light)' : 'var(--sala-surface)',
+              borderRadius: '12px',
+              border: `1px solid ${activo ? 'rgba(61, 107, 82, 0.20)' : 'var(--sala-border)'}`,
+              transition: 'background 0.18s ease, border-color 0.18s ease'
             }}
           >
-            <span
-              style={{
-                fontFamily: 'var(--ek-font-display)',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: abierto ? 'var(--ek-ink)' : 'var(--ek-ink-faint)'
-              }}
-            >
-              {dia.label}
-            </span>
-
-            {abierto && bloque ? (
-              <>
-                <input
-                  type="time"
-                  className="ek-input"
-                  value={bloque.inicio}
-                  onChange={(e) => updateDia(dia.key, 'inicio', e.target.value)}
-                  style={{ fontSize: '13px', padding: '8px 10px' }}
-                />
-                <input
-                  type="time"
-                  className="ek-input"
-                  value={bloque.fin}
-                  onChange={(e) => updateDia(dia.key, 'fin', e.target.value)}
-                  style={{ fontSize: '13px', padding: '8px 10px' }}
-                />
-              </>
-            ) : (
-              <span
+            {/* Header del día */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label
                 style={{
-                  gridColumn: '2 / 4',
-                  fontSize: '12px',
-                  color: 'var(--ek-ink-faint)',
-                  fontStyle: 'italic'
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: 'pointer',
+                  flex: 1
                 }}
               >
-                Cerrado
-              </span>
-            )}
+                <input
+                  type="checkbox"
+                  checked={activo}
+                  onChange={(e) => setActivo(dia.key, e.target.checked)}
+                  style={{ width: '18px', height: '18px', accentColor: 'var(--sala-primary)', cursor: 'pointer' }}
+                />
+                <span
+                  style={{
+                    fontFamily: 'var(--ek-font-display)',
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    color: activo ? 'var(--sala-text-primary)' : 'var(--sala-text-tertiary)'
+                  }}
+                >
+                  {dia.label}
+                </span>
+                {!activo && (
+                  <span style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', fontStyle: 'italic' }}>
+                    Cerrado
+                  </span>
+                )}
+              </label>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => toggleDia(dia.key)}
-              className="ek-icon-btn"
-              style={{
-                padding: '6px 10px',
-                fontSize: '11px',
-                color: abierto ? 'var(--ek-danger)' : 'var(--ek-mustard)',
-                width: '100%'
-              }}
-            >
-              {abierto ? 'Cerrar' : 'Abrir'}
-            </button>
+            {/* Bloques del día */}
+            {activo && (
+              <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {bloques.map(({ b, i: originalIdx }) => {
+                  const invalidRango = b.fin <= b.inicio;
+                  const invalidOverlap = tieneOverlap(dia.key, originalIdx, b.inicio, b.fin);
+                  const invalid = invalidRango || invalidOverlap;
+                  return (
+                    <div
+                      key={originalIdx}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 16px 1fr 40px',
+                        gap: '8px',
+                        alignItems: 'center',
+                        padding: '6px 8px',
+                        background: 'var(--sala-surface)',
+                        border: `1px solid ${invalid ? 'var(--sala-accent)' : 'var(--sala-border)'}`,
+                        borderRadius: '10px'
+                      }}
+                    >
+                      <input
+                        type="time"
+                        value={b.inicio}
+                        onChange={(e) => updateBloque(originalIdx, 'inicio', e.target.value)}
+                        style={{
+                          fontSize: '13px',
+                          padding: '8px 10px',
+                          border: 'none',
+                          background: 'transparent',
+                          color: 'var(--sala-text-primary)',
+                          fontFamily: 'var(--ek-font-mono)',
+                          fontVariantNumeric: 'tabular-nums'
+                        }}
+                      />
+                      <span style={{ color: 'var(--sala-text-tertiary)', textAlign: 'center', fontSize: '12px' }}>
+                        —
+                      </span>
+                      <input
+                        type="time"
+                        value={b.fin}
+                        onChange={(e) => updateBloque(originalIdx, 'fin', e.target.value)}
+                        style={{
+                          fontSize: '13px',
+                          padding: '8px 10px',
+                          border: 'none',
+                          background: 'transparent',
+                          color: 'var(--sala-text-primary)',
+                          fontFamily: 'var(--ek-font-mono)',
+                          fontVariantNumeric: 'tabular-nums'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => eliminarBloque(originalIdx)}
+                        aria-label="Eliminar bloque"
+                        title="Eliminar bloque"
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--sala-text-tertiary)',
+                          fontSize: '16px',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          padding: '6px',
+                          borderRadius: '6px',
+                          transition: 'color 0.18s ease'
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--sala-accent)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--sala-text-tertiary)')}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
+
+                {/* Mensajes de validación */}
+                {bloques.some(
+                  ({ b, i }) =>
+                    b.fin <= b.inicio || tieneOverlap(dia.key, i, b.inicio, b.fin)
+                ) && (
+                  <p style={{ fontSize: '11px', color: 'var(--sala-accent)', margin: '2px 0 0', fontWeight: 600 }}>
+                    Hay bloques inválidos (fin debe ser mayor a inicio, sin solapamientos).
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => agregarBloque(dia.key)}
+                  style={{
+                    alignSelf: 'flex-start',
+                    background: 'transparent',
+                    color: 'var(--sala-primary)',
+                    border: '1px dashed var(--sala-primary)',
+                    borderRadius: '999px',
+                    padding: '6px 14px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    marginTop: '4px'
+                  }}
+                >
+                  + Agregar bloque
+                </button>
+              </div>
+            )}
           </div>
         );
       })}
