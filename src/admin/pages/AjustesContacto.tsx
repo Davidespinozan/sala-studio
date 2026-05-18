@@ -155,7 +155,7 @@ export default function AjustesContacto() {
 
     const { error } = await saveTopLevel(patch);
     if (error) {
-      toast.error(`No se pudo guardar: ${error}`);
+      toast.error('No pudimos guardar la configuración de contacto. Probá de nuevo.');
       return;
     }
     setOriginalJson(currentJson);

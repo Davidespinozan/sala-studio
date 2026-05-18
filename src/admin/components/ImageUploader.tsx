@@ -63,7 +63,7 @@ export default function ImageUploader({
       setPreviewUrl(publicUrl);
       onUploaded(publicUrl);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error al subir imagen';
+      const msg = err instanceof Error ? err.message : 'No pudimos subir la imagen. Probá con otra.';
       setError(msg);
       onError?.(msg);
     } finally {

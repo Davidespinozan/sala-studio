@@ -195,7 +195,7 @@ export default function AjustesLanding() {
     };
     const { error } = await saveTopLevel({ landing: payload });
     if (error) {
-      toast.error(`No se pudo guardar: ${error}`);
+      toast.error('No pudimos guardar los cambios. Probá de nuevo.');
       return;
     }
     setOriginal(draft);

@@ -134,7 +134,7 @@ export default function Recursos() {
     const { error } = await insertRecurso(payload);
     setDuplicandoId(null);
     if (error) {
-      toast.error(`No se pudo duplicar: ${error}`);
+      toast.error('No pudimos duplicar la sala. Probá de nuevo.');
       return;
     }
     toast.success('Sala duplicada.');
@@ -215,9 +215,48 @@ export default function Recursos() {
         <>
           <div className="adm-stack">
             {activos.length === 0 ? (
-              <p className="ek-body-faint" style={{ padding: '20px 0' }}>
-                No hay salas activas. Click en &quot;+ Nueva sala&quot; para crear la primera.
-              </p>
+              <div
+                style={{
+                  padding: '48px 20px',
+                  textAlign: 'center',
+                  background: 'var(--sala-surface)',
+                  border: '1px solid var(--sala-border)',
+                  borderRadius: '14px'
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    letterSpacing: '0.18em',
+                    textTransform: 'uppercase',
+                    color: 'var(--sala-text-tertiary)',
+                    margin: 0,
+                    marginBottom: '8px'
+                  }}
+                >
+                  Sin salas todavía
+                </p>
+                <h3
+                  style={{
+                    fontFamily: 'var(--ek-font-display)',
+                    fontSize: '18px',
+                    fontWeight: 600,
+                    letterSpacing: '-0.02em',
+                    color: 'var(--sala-text-primary)',
+                    margin: 0,
+                    marginBottom: '14px'
+                  }}
+                >
+                  Todavía no creaste salas.
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '20px' }}>
+                  Agregá la primera para empezar a programar clases.
+                </p>
+                <button onClick={() => setModal({ mode: 'create' })} className="ek-cta">
+                  + Nueva sala
+                </button>
+              </div>
             ) : (
               activos.map((r) => (
                 <RecursoRow
@@ -1031,7 +1070,7 @@ function MultiSelectTiers({
     >
       {options.length === 0 ? (
         <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)' }}>
-          No hay planes configurados.
+          Todavía no hay planes. Creá uno en "Planes" para asociarlo a esta sala.
         </p>
       ) : (
         options.map((opt) => {

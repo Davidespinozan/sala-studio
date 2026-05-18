@@ -117,8 +117,8 @@ function SeccionHoy({
         {total} {total === 1 ? 'reserva hoy' : 'reservas hoy'}
       </p>
       {total === 0 ? (
-        <p className="ek-body-faint" style={{ marginBottom: '0' }}>
-          No hay reservas para hoy.
+        <p style={{ marginBottom: '0', fontSize: '14px', color: 'var(--sala-text-secondary)' }}>
+          Día tranquilo. Mirá la <Link to="/admin/calendario" style={{ color: 'var(--sala-primary)', fontWeight: 600 }}>agenda completa →</Link>
         </p>
       ) : (
         <>
@@ -193,7 +193,7 @@ function SeccionHoy({
                       {
                         label: 'Ver detalle',
                         icon: '👁',
-                        onClick: () => toast.info('Detalle de reserva: pendiente Sprint Reservas.')
+                        onClick: () => toast.info('Para ver el detalle completo, andá a la pantalla de Reservas.')
                       },
                       {
                         label: 'Cancelar reserva',
@@ -472,7 +472,7 @@ function SeccionDinero() {
           type="button"
           disabled
           onClick={() =>
-            toast.info('Sprint Stripe pendiente. Se implementa próximamente.')
+            toast.info('Conexión con Stripe próximamente. Quedate atento.')
           }
           className="ek-cta ek-cta--secondary"
           style={{ padding: '10px 18px', fontSize: '12px', opacity: 0.6, cursor: 'not-allowed' }}

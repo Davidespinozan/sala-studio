@@ -55,7 +55,7 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
       });
       setSubmitting(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error creando usuario');
+      setError(err instanceof Error ? err.message : 'No pudimos crear el usuario. Probá de nuevo.');
       setSubmitting(false);
       setNeedsAdminConfirm(false);
     }

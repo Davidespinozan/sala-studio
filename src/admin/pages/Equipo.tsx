@@ -57,7 +57,7 @@ export default function Equipo() {
 
     if (error) {
       console.error('[Equipo]', error);
-      toast.error('No se pudo cargar el equipo.');
+      toast.error('No pudimos cargar el equipo. Probá recargar la página.');
       setIsLoading(false);
       return;
     }
@@ -104,7 +104,7 @@ export default function Equipo() {
     if (!revoke || revoke.status !== 'ready') return;
     const { error } = await revokeTeamMember(revoke.usuario.id);
     if (error) {
-      toast.error(`No se pudo revocar: ${error}`);
+      toast.error('No pudimos revocar el acceso. Probá de nuevo.');
       return;
     }
     toast.success(`Acceso revocado para ${capitalizar(revoke.usuario.nombre) || revoke.usuario.email}.`);
@@ -165,9 +165,48 @@ export default function Equipo() {
           )}
 
           {admins.length === 0 && recepcionistas.length === 0 && (
-            <p className="ek-body-faint" style={{ padding: '20px 0' }}>
-              Sin personas con acceso todavía. Click en &quot;+ Crear acceso&quot; para empezar.
-            </p>
+            <div
+              style={{
+                padding: '48px 20px',
+                textAlign: 'center',
+                background: 'var(--sala-surface)',
+                border: '1px solid var(--sala-border)',
+                borderRadius: '14px'
+              }}
+            >
+              <p
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  color: 'var(--sala-text-tertiary)',
+                  margin: 0,
+                  marginBottom: '8px'
+                }}
+              >
+                Sin equipo todavía
+              </p>
+              <h3
+                style={{
+                  fontFamily: 'var(--ek-font-display)',
+                  fontSize: '18px',
+                  fontWeight: 600,
+                  letterSpacing: '-0.02em',
+                  color: 'var(--sala-text-primary)',
+                  margin: 0,
+                  marginBottom: '14px'
+                }}
+              >
+                Sos el único con acceso al sistema.
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '20px' }}>
+                Invitá recepcionistas u otros admins para gestionar el día a día.
+              </p>
+              <button onClick={() => setShowCrearAcceso(true)} className="ek-cta">
+                + Crear acceso
+              </button>
+            </div>
           )}
         </div>
       )}

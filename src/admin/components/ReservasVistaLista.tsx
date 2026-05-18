@@ -319,8 +319,21 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
 
       {!isLoading && reservas.length === 0 ? (
         <div className="ek-card" style={{ padding: '40px 20px', textAlign: 'center' }}>
-          <p className="ek-body-faint" style={{ margin: 0, marginBottom: '12px' }}>
-            No hay reservas que coincidan con los filtros.
+          <p
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: 'var(--sala-text-tertiary)',
+              margin: 0,
+              marginBottom: '8px'
+            }}
+          >
+            Sin coincidencias
+          </p>
+          <p style={{ fontSize: '14px', color: 'var(--sala-text-primary)', margin: 0, marginBottom: '16px' }}>
+            No hay reservas en este rango con esos filtros.
           </p>
           <button
             type="button"

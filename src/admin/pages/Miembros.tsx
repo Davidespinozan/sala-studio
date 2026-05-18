@@ -59,7 +59,7 @@ export default function Miembros() {
       {isLoading ? (
         <p className="adm-body">Cargando…</p>
       ) : miembros.length === 0 ? (
-        <p className="adm-body">Sin resultados.</p>
+        <EmptyMiembros search={search} status={status} onClear={() => { setSearch(''); setStatus(''); }} onNuevo={() => setShowNuevo(true)} />
       ) : (
         <div className="adm-table-wrapper">
           <table className="adm-table">
@@ -105,6 +105,70 @@ export default function Miembros() {
             setShowNuevo(false);
           }}
         />
+      )}
+    </div>
+  );
+}
+
+function EmptyMiembros({
+  search,
+  status,
+  onClear,
+  onNuevo
+}: {
+  search: string;
+  status: string;
+  onClear: () => void;
+  onNuevo: () => void;
+}) {
+  const tieneFiltros = !!search || !!status;
+  return (
+    <div
+      style={{
+        padding: '48px 20px',
+        textAlign: 'center',
+        background: 'var(--sala-surface)',
+        border: '1px solid var(--sala-border)',
+        borderRadius: '14px'
+      }}
+    >
+      <p
+        style={{
+          fontSize: '11px',
+          fontWeight: 700,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          color: 'var(--sala-text-tertiary)',
+          margin: 0,
+          marginBottom: '8px'
+        }}
+      >
+        {tieneFiltros ? 'Sin coincidencias' : 'Sin miembros todavía'}
+      </p>
+      <h2
+        style={{
+          fontFamily: 'var(--ek-font-display)',
+          fontSize: '18px',
+          fontWeight: 600,
+          letterSpacing: '-0.02em',
+          color: 'var(--sala-text-primary)',
+          margin: 0,
+          marginBottom: '14px'
+        }}
+      >
+        {tieneFiltros
+          ? 'No encontramos miembros con esos filtros.'
+          : 'Tu base de miembros está vacía.'}
+      </h2>
+      <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '20px' }}>
+        {tieneFiltros
+          ? 'Probá cambiar la búsqueda o el status.'
+          : 'Invitá al primero y empezá a llenar tu gimnasio.'}
+      </p>
+      {tieneFiltros ? (
+        <button onClick={onClear} className="ek-cta ek-cta--secondary">Limpiar filtros</button>
+      ) : (
+        <button onClick={onNuevo} className="ek-cta">+ Nuevo miembro</button>
       )}
     </div>
   );

@@ -146,7 +146,7 @@ export default function MiembroDetalle() {
       <section className="adm-section">
         <h2 className="ek-h3">Reservas ({reservas.length})</h2>
         {reservas.length === 0 ? (
-          <p className="adm-body">Sin reservas.</p>
+          <p className="adm-body">Este miembro todavía no reservó ninguna clase.</p>
         ) : (
           <div className="adm-table-wrapper">
             <table className="adm-table">
@@ -214,7 +214,7 @@ function CambiarRolControl({ usuarioId, rolActual, onChanged }: {
       await onChanged();
       setNeedsConfirm(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error cambiando rol');
+      setError(e instanceof Error ? e.message : 'No pudimos cambiar el rol. Probá de nuevo.');
     }
     setSaving(false);
   }
@@ -284,7 +284,7 @@ function AvatarUploadControl({ usuarioId, avatarUrl, onChanged }: {
 
       await onChanged();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error subiendo foto');
+      setError(e instanceof Error ? e.message : 'No pudimos subir la foto. Probá con otra imagen.');
     }
     setUploading(false);
   }
@@ -349,7 +349,7 @@ function EditarDatosForm({ miembro, onSaved }: {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error guardando');
+      setError(e instanceof Error ? e.message : 'No pudimos guardar los cambios. Probá de nuevo.');
     }
     setSaving(false);
   }
@@ -407,7 +407,7 @@ function ResetPasswordControl({ email }: { email: string }) {
       if (error) throw error;
       setSent(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error enviando');
+      setError(e instanceof Error ? e.message : 'No pudimos enviar el email. Probá de nuevo.');
     }
     setSending(false);
   }
@@ -454,7 +454,7 @@ function NotasControl({ usuarioId, notasIniciales, onSaved }: {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error guardando');
+      setError(e instanceof Error ? e.message : 'No pudimos guardar los cambios. Probá de nuevo.');
     }
     setSaving(false);
   }

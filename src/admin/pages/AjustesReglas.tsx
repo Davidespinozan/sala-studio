@@ -122,7 +122,7 @@ export default function AjustesReglas() {
 
     const { error } = await saveTopLevel(patch);
     if (error) {
-      toast.error(`No se pudo guardar: ${error}`);
+      toast.error('No pudimos guardar las reglas. Probá de nuevo.');
       return;
     }
     setOriginalJson(JSON.stringify(draft));

@@ -176,9 +176,48 @@ export default function Tiers() {
         <>
           <div className="adm-stack">
             {activos.length === 0 ? (
-              <p className="ek-body-faint" style={{ padding: '20px 0' }}>
-                No hay planes activos. Click en &quot;+ Nuevo plan&quot; para crear el primero.
-              </p>
+              <div
+                style={{
+                  padding: '48px 20px',
+                  textAlign: 'center',
+                  background: 'var(--sala-surface)',
+                  border: '1px solid var(--sala-border)',
+                  borderRadius: '14px'
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    letterSpacing: '0.18em',
+                    textTransform: 'uppercase',
+                    color: 'var(--sala-text-tertiary)',
+                    margin: 0,
+                    marginBottom: '8px'
+                  }}
+                >
+                  Sin planes todavía
+                </p>
+                <h3
+                  style={{
+                    fontFamily: 'var(--ek-font-display)',
+                    fontSize: '18px',
+                    fontWeight: 600,
+                    letterSpacing: '-0.02em',
+                    color: 'var(--sala-text-primary)',
+                    margin: 0,
+                    marginBottom: '14px'
+                  }}
+                >
+                  No tenés planes definidos.
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '20px' }}>
+                  Creá uno para empezar a cobrar membresías.
+                </p>
+                <button onClick={() => setModal({ mode: 'create' })} className="ek-cta">
+                  + Nuevo plan
+                </button>
+              </div>
             ) : (
               activos.map((t) => (
                 <TierRow
@@ -778,7 +817,7 @@ function BeneficiosEditor({
     >
       {value.length === 0 && (
         <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', fontStyle: 'italic' }}>
-          Sin beneficios. Agrega el primero abajo.
+          Sin beneficios. Agregá el primero abajo.
         </p>
       )}
 

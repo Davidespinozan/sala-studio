@@ -71,7 +71,7 @@ export default function CambiarRolModal({
 
     const res = await adminUpdateRole({ usuario_id: usuarioId, rol: nuevoRol });
     if (!res.success) {
-      setError('No se pudo actualizar el rol.');
+      setError('No pudimos actualizar el rol. Probá de nuevo.');
       setSubmitting(false);
       return;
     }
