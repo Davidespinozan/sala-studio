@@ -448,18 +448,42 @@ export default function Landing() {
                   className="ek-card"
                   style={{
                     padding: '32px',
+                    position: 'relative',
                     ...(esPro && {
-                      borderColor: 'var(--ek-mustard)',
+                      borderColor: 'var(--sala-primary)',
+                      borderWidth: '2px',
+                      background: 'linear-gradient(180deg, var(--sala-primary-light) 0%, var(--sala-surface) 60%)',
                       boxShadow:
-                        '0 0 0 1px var(--ek-mustard-dim), 0 20px 60px rgba(61, 107, 82, 0.08)'
+                        '0 0 0 1px var(--sala-primary), 0 20px 40px rgba(61, 107, 82, 0.18)',
+                      transform: 'translateY(-4px)'
                     })
                   }}
                 >
+                  {esPro && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '-12px',
+                        left: '32px',
+                        background: 'var(--sala-primary)',
+                        color: 'var(--sala-text-on-primary)',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        letterSpacing: '0.18em',
+                        textTransform: 'uppercase',
+                        padding: '6px 14px',
+                        borderRadius: '999px',
+                        boxShadow: '0 4px 12px rgba(61, 107, 82, 0.32)'
+                      }}
+                    >
+                      ★ Recomendada
+                    </span>
+                  )}
                   <p
                     className={esPro ? 'ek-eyebrow ek-eyebrow--mustard' : 'ek-eyebrow'}
                     style={{ marginBottom: '12px' }}
                   >
-                    {esPro ? '★ PRO · RECOMENDADA' : tier.nombre.toUpperCase()}
+                    {esPro ? 'PLAN PRO' : tier.nombre.toUpperCase()}
                   </p>
                   <p style={{
                     fontFamily: 'var(--ek-font-display)',

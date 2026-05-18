@@ -283,7 +283,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     background: rgba(250, 250, 247, 0.85);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 0.5px solid var(--ek-line);
+    border-bottom: 1px solid var(--sala-border-strong);
     padding: 14px 0;
   }
 
@@ -1338,8 +1338,9 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
       display: block;
       width: 240px;
       flex-shrink: 0;
-      border-right: 0.5px solid var(--ek-line);
+      border-right: 1px solid var(--sala-border-strong);
       background: var(--sala-surface);
+      box-shadow: 2px 0 12px rgba(26, 31, 28, 0.04);
       position: sticky;
       top: 0;
       height: 100vh;
@@ -1479,7 +1480,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    border-bottom: 0.5px solid var(--ek-line);
+    border-bottom: 1px solid var(--sala-border-strong);
     background: rgba(250, 250, 247, 0.85);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -1822,10 +1823,75 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
   .ek-card:hover {
-    border-color: rgba(61, 107, 82, 0.30);
+    border-color: rgba(61, 107, 82, 0.45);
     box-shadow:
-      0 4px 12px rgba(26, 31, 28, 0.06),
-      0 0 24px rgba(61, 107, 82, 0.06);
+      0 4px 16px rgba(26, 31, 28, 0.08),
+      0 0 24px rgba(61, 107, 82, 0.10);
+  }
+
+  /* ============================================================================
+     ADMIN HERO (S3c Eje 1)
+     ============================================================================
+     Wrapper para títulos top-of-page en admin pages. Gradient suave salvia +
+     banda lateral. Da definición sin requerir nuevos componentes.
+     ============================================================================ */
+
+  .adm-hero {
+    position: relative;
+    background: linear-gradient(135deg, var(--sala-surface) 0%, var(--sala-primary-light) 100%);
+    border: 1px solid var(--sala-border);
+    border-radius: 20px;
+    padding: 28px 32px;
+    padding-left: 36px;
+    margin-bottom: 32px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(26, 31, 28, 0.04);
+  }
+
+  .adm-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 4px;
+    background: var(--sala-primary);
+    border-radius: 20px 0 0 20px;
+  }
+
+  .adm-hero-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--sala-primary);
+    margin: 0;
+    margin-bottom: 8px;
+  }
+
+  .adm-hero-title {
+    font-family: var(--ek-font-display);
+    font-size: clamp(28px, 5vw, 40px);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin: 0;
+    margin-bottom: 6px;
+    color: var(--sala-text-primary);
+  }
+
+  .adm-hero-subtitle {
+    font-size: 14px;
+    color: var(--sala-text-secondary);
+    margin: 0;
+  }
+
+  @media (max-width: 640px) {
+    .adm-hero {
+      padding: 22px 24px;
+      padding-left: 28px;
+      border-radius: 16px;
+    }
   }
 
   /* 4. Item activo del sidebar con halo lateral salvia */

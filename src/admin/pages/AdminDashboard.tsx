@@ -53,22 +53,13 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <h1
-        style={{
-          fontFamily: 'var(--ek-font-display)',
-          fontSize: 'clamp(32px, 5vw, 48px)',
-          fontWeight: 700,
-          letterSpacing: '-0.03em',
-          lineHeight: 1.05,
-          margin: 0,
-          marginBottom: '6px'
-        }}
-      >
-        Hoy en SALA
-      </h1>
-      <p style={{ fontSize: '14px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '36px' }}>
-        {saludo.texto}{nombre ? `, ${nombre}` : ''} {saludo.emoji}
-      </p>
+      <div className="adm-hero">
+        <p className="adm-hero-eyebrow">Panel de control</p>
+        <h1 className="adm-hero-title">Hoy en SALA</h1>
+        <p className="adm-hero-subtitle">
+          {saludo.texto}{nombre ? `, ${nombre}` : ''} {saludo.emoji}
+        </p>
+      </div>
 
       <SeccionHoy data={data} onCancelar={setCancelar} />
       <SeccionTuMes data={data} />
