@@ -97,7 +97,7 @@ export default function MiQR() {
 
         <div className="ek-stack-md">
           <p className="ek-eyebrow ek-eyebrow--mustard">TU QR DE ACCESO</p>
-          <h1 className="ek-display-md">{reserva?.recurso?.nombre ?? 'Estudio'}</h1>
+          <h1 className="ek-display-md">{reserva?.recurso?.nombre ?? 'Sala'}</h1>
           <p className="ek-body-muted">
             {new Date(reserva.slot_inicio).toLocaleDateString('es-MX', {
               weekday: 'long', day: 'numeric', month: 'long'
@@ -130,12 +130,12 @@ export default function MiQR() {
         <div className="ek-card">
           <p className="ek-eyebrow" style={{ marginBottom: '8px' }}>INSTRUCCIONES</p>
           <p className="ek-body-muted">
-            Muestra este código al llegar a SALA. La recepción lo escanea
+            Mostrá este código al llegar a SALA. La recepción lo escanea
             para confirmar tu entrada.
             {expiresAt && (
               <>
                 <br /><br />
-                Válido hasta las {formatHora(expiresAt)} del día de tu sesión.
+                Válido hasta las {formatHora(expiresAt)} del día de tu clase.
               </>
             )}
           </p>

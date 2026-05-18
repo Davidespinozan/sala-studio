@@ -132,7 +132,7 @@ export async function canHardDeleteRecurso(
   if (count > 0) {
     return {
       canDelete: false,
-      reason: `Hay ${count} reserva(s) vinculadas a este estudio. No se puede eliminar permanentemente.`,
+      reason: `Hay ${count} reserva(s) vinculadas a esta sala. No se puede eliminar permanentemente.`,
       count
     };
   }
@@ -285,7 +285,7 @@ export async function cancelarReserva(
     .single();
 
   if (fetchError || !reserva) {
-    return { error: 'Reserva no encontrada.' };
+    return { error: 'No encontramos la reserva.' };
   }
 
   const { error: cancelError } = await supabase
@@ -312,7 +312,7 @@ export async function cancelarReserva(
     });
 
     const recursoNombre = (reserva as unknown as { recurso?: { nombre?: string } | null })
-      ?.recurso?.nombre ?? 'el estudio';
+      ?.recurso?.nombre ?? 'la sala';
 
     const usuarioId = (reserva as unknown as { usuario?: { id?: string } }).usuario?.id
       ?? reserva.usuario_id;
@@ -322,7 +322,7 @@ export async function cancelarReserva(
       usuario_id: usuarioId,
       tipo: 'reserva_cancelada',
       titulo: 'Tu reserva fue cancelada',
-      mensaje: `Tu reserva en ${recursoNombre} para ${fecha} fue cancelada por administración. Motivo: ${motivo}`,
+      mensaje: `Tu clase en ${recursoNombre} para ${fecha} fue cancelada por administración. Motivo: ${motivo}`,
       metadata: {
         reserva_id: reservaId,
         recurso_nombre: recursoNombre,

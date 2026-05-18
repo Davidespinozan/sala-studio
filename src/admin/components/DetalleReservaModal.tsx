@@ -97,7 +97,7 @@ export default function DetalleReservaModal({ reservaId, onClose, onCancelar }: 
       .then(({ data: row, error }) => {
         if (!mounted) return;
         if (error || !row) {
-          toast.error(`No se pudo cargar la reserva: ${error?.message ?? 'no encontrada'}`);
+          toast.error('No pudimos cargar la reserva. Probá de nuevo.');
           onClose();
           return;
         }

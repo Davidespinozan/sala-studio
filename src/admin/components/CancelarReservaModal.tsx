@@ -60,7 +60,7 @@ export default function CancelarReservaModal({ reserva, onClose, onCancelled }: 
   const typedOk = typed === 'CANCELAR';
   const canSubmit = motivoOk && typedOk && !submitting;
 
-  const mensajeWhatsapp = `Hola ${primerNombre(reserva.usuario_nombre)}, te aviso que tuvimos que cancelar tu reserva del ${fechaFmt} en ${reserva.recurso_nombre}. Motivo: ${motivo || '[escribe el motivo arriba]'}. Disculpa las molestias, podés reservar otra fecha desde la app.`;
+  const mensajeWhatsapp = `Hola ${primerNombre(reserva.usuario_nombre)}, te aviso que tuvimos que cancelar tu clase del ${fechaFmt} en ${reserva.recurso_nombre}. Motivo: ${motivo || '[escribe el motivo arriba]'}. Disculpá las molestias, podés reservar otra fecha desde la app.`;
 
   async function handleCopy() {
     try {
@@ -69,7 +69,7 @@ export default function CancelarReservaModal({ reserva, onClose, onCancelled }: 
       toast.success('Mensaje copiado.');
       setTimeout(() => setCopiado(false), 2000);
     } catch {
-      toast.error('No se pudo copiar.');
+      toast.error('No pudimos copiar el mensaje.');
     }
   }
 
@@ -88,7 +88,7 @@ export default function CancelarReservaModal({ reserva, onClose, onCancelled }: 
 
     if (err) {
       setError(err);
-      toast.error(`No se pudo cancelar: ${err}`);
+      toast.error('No pudimos cancelar la reserva. Probá de nuevo.');
       setSubmitting(false);
       return;
     }
@@ -174,7 +174,7 @@ export default function CancelarReservaModal({ reserva, onClose, onCancelled }: 
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
             className="ek-input"
-            placeholder="Ej. Mantenimiento del estudio"
+            placeholder="Ej. Mantenimiento de la sala"
             required
             minLength={5}
             disabled={submitting}

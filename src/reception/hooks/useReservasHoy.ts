@@ -70,13 +70,13 @@ export async function checkInManual(reservaId: string, motivo?: string) {
 
 function translateError(code: string, fallback: string): string {
   const map: Record<string, string> = {
-    RESERVA_NO_EXISTE: 'Reserva no encontrada',
+    RESERVA_NO_EXISTE: 'No encontramos esa reserva',
     YA_CHECK_IN: 'Este miembro ya hizo check-in',
-    RESERVA_CANCELADA: 'Reserva cancelada',
-    RESERVA_NO_SHOW: 'Reserva marcada como inasistencia',
-    DEMASIADO_TEMPRANO: 'Es muy temprano para el check-in',
+    RESERVA_CANCELADA: 'Esta reserva está cancelada',
+    RESERVA_NO_SHOW: 'Esta reserva quedó marcada como inasistencia',
+    DEMASIADO_TEMPRANO: 'Todavía es muy temprano para el check-in',
     DEMASIADO_TARDE: 'El check-in ya cerró',
-    NO_AUTORIZADO: 'No autorizado'
+    NO_AUTORIZADO: 'No tenés permiso para hacer esta acción'
   };
   return map[code] ?? fallback.replace(code + ':', '').trim();
 }

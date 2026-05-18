@@ -134,16 +134,16 @@ export default function Reservar() {
   }
 
   if (loadingRecursos) {
-    return <div className="ek-container"><p className="ek-body">Cargando estudios…</p></div>;
+    return <div className="ek-container"><p className="ek-body">Cargando salas…</p></div>;
   }
 
   if (recursos.length === 0) {
     return (
       <div className="ek-container">
         <div className="ek-stack-lg">
-          <p className="ek-eyebrow">SIN ESTUDIOS DISPONIBLES</p>
+          <p className="ek-eyebrow">SIN SALAS DISPONIBLES</p>
           <p className="ek-body">
-            No hay estudios activos en este momento. Contacta al administrador.
+            No hay salas activas en este momento. Contactá al administrador.
           </p>
         </div>
       </div>
@@ -155,12 +155,12 @@ export default function Reservar() {
       <div className="ek-stack-xl">
         <div className="ek-stack-md">
           <p className="ek-eyebrow">RESERVAR</p>
-          <h1 className="ek-h2">Elige tu sesión</h1>
+          <h1 className="ek-h2">Elegí tu clase</h1>
         </div>
 
         {/* Selector de recurso */}
         <div className="ek-stack-sm">
-          <label className="ek-label">Estudio</label>
+          <label className="ek-label">Sala</label>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {recursos.map((r) => {
               const activo = recursoSel?.id === r.id;
@@ -171,7 +171,7 @@ export default function Reservar() {
                   key={r.id}
                   onClick={() => {
                     if (!accesible) {
-                      toast.warning('Tu plan no incluye este estudio. Ve a Estudios para más info.');
+                      toast.warning('Tu plan no incluye esta sala. Andá a Salas para más info.');
                       return;
                     }
                     setRecursoSel(r);
@@ -257,7 +257,7 @@ export default function Reservar() {
             <p className="ek-body-muted">Cargando horarios…</p>
           ) : slots.length === 0 ? (
             <p className="ek-body-muted">
-              El estudio no opera este día.
+              Esta sala no opera este día.
             </p>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(72px, 1fr))', gap: '8px' }}>
@@ -350,7 +350,7 @@ export default function Reservar() {
                     </button>
                   </div>
                   <p className="ek-helper-text">
-                    Total de personas en la grabación: {1 + invitados}
+                    Total de personas en la clase: {1 + invitados}
                   </p>
                 </div>
               )}

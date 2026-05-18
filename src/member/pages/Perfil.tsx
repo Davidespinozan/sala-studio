@@ -211,7 +211,7 @@ export default function Perfil() {
                       letterSpacing: '-0.02em',
                       margin: 0
                     }}>
-                      {r.recurso?.nombre ?? 'Estudio'}
+                      {r.recurso?.nombre ?? 'Sala'}
                     </p>
                     <p className="ek-body-faint" style={{ marginTop: '2px' }}>
                       {formatearFecha(r.slot_inicio)}

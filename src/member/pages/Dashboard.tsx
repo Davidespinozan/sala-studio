@@ -100,7 +100,7 @@ export default function Dashboard() {
 
   const ahora = new Date();
   const bloqueado = usuario?.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > ahora;
-  const nombreFormat = capitalizarNombre(usuario?.nombre) || 'creador';
+  const nombreFormat = capitalizarNombre(usuario?.nombre) || 'miembro';
   const proximaReserva = proximasReservas[0];
 
   return (
@@ -123,7 +123,7 @@ export default function Dashboard() {
             </strong>.
           </p>
           <p className="ek-body-faint" style={{ marginTop: '8px' }}>
-            Esto puede deberse a una inasistencia o suspensión. Contactá a SALA si tienes dudas.
+            Esto puede deberse a una inasistencia o suspensión. Contactá a SALA si tenés dudas.
           </p>
         </div>
       )}
@@ -136,14 +136,14 @@ export default function Dashboard() {
         </h1>
       </div>
 
-      {/* Próxima sesión (hero) o empty state */}
+      {/* Próxima clase (hero) o empty state */}
       {proximaReserva ? (
         <div className="ek-card--hero" style={{ marginBottom: '24px' }}>
           <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '14px' }}>
-            PRÓXIMA SESIÓN
+            PRÓXIMA CLASE
           </p>
           <h2 className="ek-display-lg" style={{ marginBottom: '6px' }}>
-            {proximaReserva.recurso?.nombre ?? 'Estudio'}
+            {proximaReserva.recurso?.nombre ?? 'Sala'}
           </h2>
           <p className="ek-body-muted" style={{ marginBottom: '14px' }}>
             {formatearFecha(proximaReserva.slot_inicio)}
@@ -162,10 +162,10 @@ export default function Dashboard() {
       ) : (
         <div className="ek-card" style={{ marginBottom: '24px', textAlign: 'center' }}>
           <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>
-            SIN SESIONES AGENDADAS
+            SIN CLASES AGENDADAS
           </p>
           <p className="ek-body" style={{ marginBottom: '20px' }}>
-            Reserva tu próxima grabación.
+            Reservá tu próxima clase.
           </p>
           <Link to="/app/reservar" className="ek-cta">
             Reservar ahora
@@ -188,7 +188,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Estudios disponibles */}
+      {/* Salas disponibles */}
       <div style={{ marginBottom: '16px' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '8px' }}>EXPLORAR</p>
         <div style={{
@@ -196,7 +196,7 @@ export default function Dashboard() {
           justifyContent: 'space-between',
           alignItems: 'baseline'
         }}>
-          <h2 className="ek-display-md">Estudios</h2>
+          <h2 className="ek-display-md">Salas</h2>
           <Link
             to="/app/reservar"
             style={{

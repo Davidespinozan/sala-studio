@@ -48,9 +48,9 @@ export default function EstudioDetalle() {
     return (
       <div className="ek-container">
         <div className="ek-empty">
-          <p className="ek-empty-title">Estudio no encontrado</p>
+          <p className="ek-empty-title">No encontramos esta sala</p>
           <Link to="/app/estudios" className="ek-cta" style={{ marginTop: '16px' }}>
-            Ver todos los estudios
+            Ver todas las salas
           </Link>
         </div>
       </div>
@@ -112,7 +112,7 @@ export default function EstudioDetalle() {
 
       {/* Header */}
       <div style={{ marginBottom: '24px' }}>
-        <p className="ek-eyebrow" style={{ marginBottom: '8px' }}>ESTUDIO</p>
+        <p className="ek-eyebrow" style={{ marginBottom: '8px' }}>SALA</p>
         <h1 style={{
           fontFamily: 'var(--ek-font-display)',
           fontSize: 'clamp(32px, 8vw, 48px)',
@@ -204,7 +204,7 @@ export default function EstudioDetalle() {
             className="ek-cta ek-cta--full"
             style={{ minHeight: '52px', fontSize: '15px' }}
           >
-            Reservar este estudio →
+            Reservar clase →
           </Link>
         ) : (
           <div className="ek-card" style={{
@@ -216,10 +216,10 @@ export default function EstudioDetalle() {
               PLAN PRO REQUERIDO
             </p>
             <p className="ek-body" style={{ marginBottom: '14px' }}>
-              Tu plan actual no incluye acceso a este estudio.
+              Tu plan actual no incluye acceso a esta sala.
             </p>
             <Link to="/app/perfil" className="ek-cta">
-              Ver mi plan
+              Ver mi membresía
             </Link>
           </div>
         )}

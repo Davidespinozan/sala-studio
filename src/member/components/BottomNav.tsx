@@ -6,7 +6,7 @@ export function BottomNav() {
     <nav className="ek-bottom-nav">
       <div className="ek-bottom-nav-inner">
         <NavItem to="/app" end icon={<Home size={22} className="ek-bottom-nav-icon" />} label="Inicio" />
-        <NavItem to="/app/estudios" icon={<LayoutGrid size={22} className="ek-bottom-nav-icon" />} label="Estudios" />
+        <NavItem to="/app/estudios" icon={<LayoutGrid size={22} className="ek-bottom-nav-icon" />} label="Salas" />
         <NavItem to="/app/reservar" icon={<Calendar size={22} className="ek-bottom-nav-icon" />} label="Reservar" />
         <NavItem to="/app/perfil" icon={<User size={22} className="ek-bottom-nav-icon" />} label="Perfil" />
       </div>

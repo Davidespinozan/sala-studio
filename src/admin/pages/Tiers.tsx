@@ -74,7 +74,7 @@ export default function Tiers() {
 
     setDuplicandoId(null);
     if (error) {
-      toast.error(`No se pudo duplicar: ${error}`);
+      toast.error('No pudimos duplicar el plan. Probá de nuevo.');
       return;
     }
     toast.success('Plan duplicado.');
@@ -95,11 +95,11 @@ export default function Tiers() {
     if (!archivar || archivar.status !== 'ready' || archivar.activeMembers > 0) return;
     const { error } = await archiveRecord('tiers', archivar.tier.id);
     if (error) {
-      toast.error(`No se pudo eliminar: ${error}`);
+      toast.error('No pudimos eliminar el plan. Probá de nuevo.');
       return;
     }
     setArchivar(null);
-    toast.success('Plan eliminado. Lo encuentras en "Ver eliminados".');
+    toast.success('Plan eliminado. Lo encontrás en "Ver eliminados".');
     await refetch();
   }
 
@@ -108,7 +108,7 @@ export default function Tiers() {
     const { error } = await restoreRecord('tiers', t.id);
     setRestaurandoId(null);
     if (error) {
-      toast.error(`No se pudo recuperar: ${error}`);
+      toast.error('No pudimos recuperar el plan. Probá de nuevo.');
       return;
     }
     toast.success('Plan recuperado.');
@@ -129,7 +129,7 @@ export default function Tiers() {
     if (!borrarPerm || borrarPerm.status !== 'ready') return;
     const { error } = await hardDeleteRecord('tiers', borrarPerm.tier.id);
     if (error) {
-      toast.error(`No se pudo eliminar permanentemente: ${error.message}`);
+      toast.error('No pudimos eliminarlo permanentemente. Probá de nuevo.');
       return;
     }
     setBorrarPerm(null);
@@ -145,7 +145,7 @@ export default function Tiers() {
     if (archivar.activeMembers > 0) {
       return `${archivar.activeMembers} miembro(s) activo(s) tienen este plan. Migralos a otro plan antes de eliminar este.`;
     }
-    return 'Este plan se moverá a Eliminados: deja de aparecer en signup y landing. Los miembros existentes con este plan no se afectan. Lo puedes recuperar después.';
+    return 'Este plan se moverá a Eliminados: deja de aparecer en signup y landing. Los miembros existentes con este plan no se afectan. Lo podés recuperar después.';
   })();
 
   return (
@@ -166,7 +166,7 @@ export default function Tiers() {
           )}
         </div>
         <button onClick={() => setModal({ mode: 'create' })} className="ek-cta">
-          + Nueva membresía
+          + Nuevo plan
         </button>
       </div>
 
@@ -177,7 +177,7 @@ export default function Tiers() {
           <div className="adm-stack">
             {activos.length === 0 ? (
               <p className="ek-body-faint" style={{ padding: '20px 0' }}>
-                No hay planes activos. Click en &quot;+ Nueva membresía&quot; para crear el primero.
+                No hay planes activos. Click en &quot;+ Nuevo plan&quot; para crear el primero.
               </p>
             ) : (
               activos.map((t) => (
@@ -560,7 +560,7 @@ function EditarTierModal({
         return;
       }
       if (existingSlugs.includes(slug)) {
-        setError(`Ya existe un tier con slug "${slug}". Usá otro.`);
+        setError(`Ya existe un plan con slug "${slug}". Usá otro.`);
         setSaving(false);
         return;
       }
@@ -620,7 +620,7 @@ function EditarTierModal({
     <div className="adm-modal-backdrop" onClick={() => !saving && onClose()}>
       <div className="adm-modal" onClick={(e) => e.stopPropagation()}>
         <p className="ek-eyebrow ek-eyebrow--mustard">
-          {esCreacion ? 'NUEVA MEMBRESÍA' : 'EDITAR PLAN'}
+          {esCreacion ? 'NUEVO PLAN' : 'EDITAR PLAN'}
         </p>
         <h3 className="ek-h3" style={{ marginBottom: '1rem' }}>
           {nombre || (esCreacion ? 'Sin nombre' : tier!.nombre)}
@@ -648,7 +648,7 @@ function EditarTierModal({
               {!slugFormatValido
                 ? 'Solo minúsculas, números y guiones.'
                 : slugChocaConOtro
-                ? `Ya existe un tier con slug "${slug}".`
+                ? `Ya existe un plan con slug "${slug}".`
                 : 'Identificador único, NO editable después. Usado en URLs y en BD.'}
             </p>
           </div>
@@ -689,7 +689,7 @@ function EditarTierModal({
         </div>
 
         <div className="ek-form-field" style={{ marginTop: '16px' }}>
-          <label className="ek-label">Máximo de invitados por sesión</label>
+          <label className="ek-label">Máximo de invitados por clase</label>
           <input
             type="number"
             min={0}
@@ -699,7 +699,7 @@ function EditarTierModal({
             className="ek-input"
           />
           <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
-            Cantidad de invitados adicionales que el miembro puede traer a cada sesión (no
+            Cantidad de invitados adicionales que el miembro puede traer a cada clase (no
             incluye al titular). El RPC de reservas valida este número.
           </p>
         </div>
@@ -708,7 +708,7 @@ function EditarTierModal({
           <label className="ek-label">Beneficios del plan</label>
           <BeneficiosEditor value={beneficios} onChange={setBeneficios} />
           <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
-            Lista de beneficios que se muestran al miembro en la landing y signup.
+            Lista de beneficios que se muestran al miembro en la landing y al hacer signup.
           </p>
         </div>
 
@@ -853,7 +853,7 @@ function BeneficiosEditor({
       >
         <input
           type="text"
-          placeholder="Ej: Acceso a TODOS los estudios"
+          placeholder="Ej: Acceso a TODAS las salas"
           value={nuevo}
           onChange={(e) => setNuevo(e.target.value)}
           onKeyDown={(e) => {

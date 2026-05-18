@@ -100,7 +100,7 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, errorMes
       <div className="rec-detail-divider" />
 
       <div className="rec-detail-grid">
-        <Cell label="ESTUDIO" value={recurso.nombre} />
+        <Cell label="SALA" value={recurso.nombre} />
         <Cell label="HORA" value={`${hora(reserva.slot_inicio)} – ${hora(reserva.slot_fin)}`} />
         <Cell label="DURACIÓN" value={`${reserva.duracion_min} min`} />
         <Cell label="FOLIO" value={reserva.folio} mono />

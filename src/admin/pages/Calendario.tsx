@@ -252,7 +252,7 @@ function VistaCalendario({
 
       <div className="adm-cal-legend">
         <p style={{ fontSize: '0.75rem', color: 'var(--ek-ink-muted)' }}>
-          Total recursos: {recursos.length} · Reservas en rango: {reservas.length}
+          Total salas: {recursos.length} · Reservas en rango: {reservas.length}
         </p>
       </div>
     </>

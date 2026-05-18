@@ -217,7 +217,7 @@ export default function Landing() {
           margin: 0,
           marginBottom: '48px'
         }}>
-          De la idea al contenido.<br />
+          De cero a tu primera clase.<br />
           <span style={{ color: 'var(--ek-mustard)' }}>En tres pasos.</span>
         </h2>
 
@@ -229,18 +229,18 @@ export default function Landing() {
           {[
             {
               n: '01',
-              title: 'Reserva tu sesión',
-              body: 'Elige estudio, fecha y horario desde la app. Sin llamadas, sin esperas. 24 horas de anticipación mínima.'
+              title: 'Elegí tu plan',
+              body: 'Pickeá la membresía que va con tu ritmo. Sin permanencia mínima rara, sin letra chica. Cancelás cuando quieras pasado el commitment.'
             },
             {
               n: '02',
-              title: 'Llega y graba',
-              body: 'Equipo profesional ya montado. Cámaras, micrófonos, iluminación. Tú llegas con tu contenido en la cabeza.'
+              title: 'Reservá desde la app',
+              body: 'Elegí sala, día y horario en segundos. Sin llamadas, sin esperar. Hasta 30 días de anticipación.'
             },
             {
               n: '03',
-              title: 'Recibe tu material',
-              body: 'Te entregamos los archivos limpios después de cada sesión. Tú decides cómo editarlo y publicarlo.'
+              title: 'Llegá y entrená',
+              body: 'Mostrá tu QR en recepción y listo. Las salas ya están montadas con todo el equipo. Solo traés tus ganas.'
             }
           ].map((paso) => (
             <div key={paso.n} className="ek-card">
@@ -275,7 +275,7 @@ export default function Landing() {
           ESTUDIOS
           ============================================================ */}
       <section style={{ padding: '80px 0' }}>
-        <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>NUESTROS ESPACIOS</p>
+        <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>NUESTRAS SALAS</p>
         <h2 style={{
           fontFamily: 'var(--ek-font-display)',
           fontSize: 'clamp(36px, 6vw, 56px)',
@@ -284,11 +284,11 @@ export default function Landing() {
           margin: 0,
           marginBottom: '16px'
         }}>
-          Tres estudios.<br />
-          <span style={{ color: 'var(--ek-mustard)' }}>Tres personalidades.</span>
+          Varias disciplinas.<br />
+          <span style={{ color: 'var(--ek-mustard)' }}>Un solo lugar.</span>
         </h2>
         <p className="ek-body-muted" style={{ marginBottom: '40px', maxWidth: '600px' }}>
-          Cada uno diseñado para un tipo de contenido. Elige el que va con tu visión.
+          Cada sala diseñada para una disciplina distinta. Elegí la que va con vos.
         </p>
 
         {estudiosLoading ? (
@@ -477,8 +477,8 @@ export default function Landing() {
                   <p className="ek-body-muted" style={{ marginTop: '8px', marginBottom: '24px' }}>
                     {tier.descripcion ??
                       (esPro
-                        ? 'Para creadores serios. Acceso completo.'
-                        : 'Para empezar. Acceso a los estudios básicos.')}
+                        ? 'Para los que entrenan en serio. Acceso completo.'
+                        : 'Para arrancar. Acceso a las salas básicas.')}
                   </p>
                   <ul
                     style={{
@@ -541,23 +541,23 @@ export default function Landing() {
           {[
             {
               q: '¿Qué incluye la membresía?',
-              a: 'Acceso a los estudios según tu plan, todo el equipo profesional ya montado (cámaras, micrófonos, iluminación), espacio para invitados y reservas vía app.'
+              a: 'Acceso a las salas según tu plan, todo el equipo ya montado (colchonetas, mancuernas, bicicletas, lo que aplique según la disciplina), posibilidad de traer invitados y reservas vía app.'
             },
             {
-              q: '¿Puedo cancelar cuándo quiera?',
-              a: 'El compromiso mínimo es de 6 meses. Después puedes cancelar con 30 días de anticipación. Sin penalidades por cancelación pasado el commitment.'
+              q: '¿Puedo cancelar cuando quiera?',
+              a: 'El compromiso mínimo es de 6 meses. Después podés cancelar con 30 días de anticipación. Sin penalidades pasado el commitment.'
             },
             {
-              q: '¿Qué pasa si no llego a mi reserva?',
-              a: 'Las inasistencias bloquean tu cuenta por 1 semana automáticamente. Pero si avisas con anticipación, puedes cancelar sin penalidad.'
+              q: '¿Qué pasa si no llego a mi clase?',
+              a: 'Las inasistencias bloquean tu cuenta por 1 semana automáticamente. Pero si avisás con anticipación, podés cancelar sin penalidad.'
             },
             {
               q: '¿Necesito traer mi propio equipo?',
-              a: 'No. Cada estudio tiene su equipo profesional completo. Solo traes tu contenido y tu disco duro para llevarte el material.'
+              a: 'No. Cada sala tiene lo necesario para su disciplina. Solo traés ropa cómoda y una botella de agua.'
             },
             {
               q: '¿Puedo invitar gente?',
-              a: 'Sí. Básica permite hasta 2 invitados por sesión, Pro hasta 4. Para producciones más grandes en Black, contáctanos.'
+              a: 'Sí. Básica permite hasta 2 invitados por clase, Pro hasta 4. Para grupos más grandes, contactanos.'
             },
             {
               q: '¿Cómo me cobran?',

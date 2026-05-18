@@ -137,7 +137,7 @@ export default function Recursos() {
       toast.error(`No se pudo duplicar: ${error}`);
       return;
     }
-    toast.success('Estudio duplicado.');
+    toast.success('Sala duplicada.');
     await refetch();
   }
 
@@ -145,11 +145,11 @@ export default function Recursos() {
     if (!archivando) return;
     const { error } = await archiveRecord('recursos', archivando.id);
     if (error) {
-      toast.error(`No se pudo eliminar: ${error}`);
+      toast.error('No pudimos eliminarla. Probá de nuevo.');
       return;
     }
     setArchivando(null);
-    toast.success('Estudio eliminado. Lo encuentras en "Ver eliminados".');
+    toast.success('Sala eliminada. La encontrás en "Ver eliminadas".');
     await refetch();
   }
 
@@ -158,10 +158,10 @@ export default function Recursos() {
     const { error } = await restoreRecord('recursos', r.id);
     setRestaurandoId(null);
     if (error) {
-      toast.error(`No se pudo recuperar: ${error}`);
+      toast.error('No pudimos recuperarla. Probá de nuevo.');
       return;
     }
-    toast.success('Estudio recuperado.');
+    toast.success('Sala recuperada.');
     await refetch();
   }
 
@@ -179,11 +179,11 @@ export default function Recursos() {
     if (!borrarPerm || borrarPerm.status !== 'ready') return;
     const { error } = await hardDeleteRecord('recursos', borrarPerm.recurso.id);
     if (error) {
-      toast.error(`No se pudo eliminar permanentemente: ${error.message}`);
+      toast.error('No pudimos eliminarla permanentemente. Probá de nuevo.');
       return;
     }
     setBorrarPerm(null);
-    toast.success('Estudio eliminado permanentemente.');
+    toast.success('Sala eliminada permanentemente.');
     await refetch();
   }
 
@@ -194,18 +194,18 @@ export default function Recursos() {
         style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}
       >
         <div>
-          <p className="ek-eyebrow">ESTUDIOS</p>
+          <p className="ek-eyebrow">SALAS</p>
           <h1 className="ek-h2">Tus espacios reservables</h1>
           {!isLoading && (
             <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '4px' }}>
-              {activos.length} {activos.length === 1 ? 'activo' : 'activos'}
+              {activos.length} {activos.length === 1 ? 'activa' : 'activas'}
               {' · '}
-              {archivados.length} {archivados.length === 1 ? 'eliminado' : 'eliminados'}
+              {archivados.length} {archivados.length === 1 ? 'eliminada' : 'eliminadas'}
             </p>
           )}
         </div>
         <button onClick={() => setModal({ mode: 'create' })} className="ek-cta">
-          + Nuevo estudio
+          + Nueva sala
         </button>
       </div>
 
@@ -216,7 +216,7 @@ export default function Recursos() {
           <div className="adm-stack">
             {activos.length === 0 ? (
               <p className="ek-body-faint" style={{ padding: '20px 0' }}>
-                No hay estudios activos. Click en &quot;+ Nuevo estudio&quot; para crear el primero.
+                No hay salas activas. Click en &quot;+ Nueva sala&quot; para crear la primera.
               </p>
             ) : (
               activos.map((r) => (
@@ -245,7 +245,7 @@ export default function Recursos() {
                   marginBottom: '12px'
                 }}
               >
-                {mostrarArchivados ? '▾' : '▸'} Ver eliminados ({archivados.length})
+                {mostrarArchivados ? '▾' : '▸'} Ver eliminadas ({archivados.length})
               </button>
 
               {mostrarArchivados && (
@@ -291,7 +291,7 @@ export default function Recursos() {
       <ConfirmDialog
         isOpen={archivando !== null}
         title={archivando ? `¿Eliminar “${archivando.nombre}”?` : ''}
-        description="Este estudio se moverá a Eliminados: deja de aparecer en la landing y no se podrá reservar, pero las reservas históricas se conservan. Lo puedes recuperar después."
+        description="Esta sala se moverá a Eliminadas: deja de aparecer en la landing y no se podrá reservar, pero las reservas históricas se conservan. La puedes recuperar después."
         confirmLabel="Eliminar"
         variant="warning"
         onConfirm={handleArchivar}
@@ -306,7 +306,7 @@ export default function Recursos() {
             ? 'Verificando reservas vinculadas…'
             : borrarPerm?.status === 'blocked'
             ? borrarPerm.reason
-            : 'Esta acción NO se puede deshacer. El estudio será borrado permanentemente de la base de datos.'
+            : 'Esta acción NO se puede deshacer. La sala será borrada permanentemente de la base de datos.'
         }
         confirmLabel="Eliminar permanentemente"
         variant="danger"
@@ -643,7 +643,7 @@ function EditarRecursoModal({
     <div className="adm-modal-backdrop" onClick={() => !saving && onClose()}>
       <div className="adm-modal" onClick={(e) => e.stopPropagation()}>
         <p className="ek-eyebrow ek-eyebrow--mustard">
-          {esCreacion ? 'NUEVO ESTUDIO' : 'EDITAR ESTUDIO'}
+          {esCreacion ? 'NUEVA SALA' : 'EDITAR SALA'}
         </p>
         <h3 className="ek-h3" style={{ marginBottom: '1rem' }}>
           {nombre || 'Sin nombre'}
@@ -655,7 +655,7 @@ function EditarRecursoModal({
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             className="ek-input"
-            placeholder="Ej: Estudio 1"
+            placeholder="Ej: Sala Yoga"
           />
         </label>
 
@@ -669,7 +669,7 @@ function EditarRecursoModal({
                 setSlugTocado(true);
               }}
               className="ek-input"
-              placeholder="estudio-1"
+              placeholder="sala-yoga"
               pattern="[a-z0-9-]+"
             />
             <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
@@ -688,14 +688,14 @@ function EditarRecursoModal({
         </label>
 
         <div className="ek-form-field">
-          <label className="ek-label">Planes con acceso a este estudio</label>
+          <label className="ek-label">Planes con acceso a esta sala</label>
           <MultiSelectTiers
             options={tiersDisponibles}
             value={tiersPermitidos}
             onChange={setTiersPermitidos}
           />
           <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
-            Solo los miembros con estos planes podrán reservar este estudio.
+            Solo los miembros con estos planes podrán reservar esta sala.
           </p>
         </div>
 
@@ -703,8 +703,8 @@ function EditarRecursoModal({
           <Toggle
             checked={activo}
             onChange={setActivo}
-            label="Estudio activo"
-            description="Si está inactivo, no aparece en la lista de reservables del miembro."
+            label="Sala activa"
+            description="Si está inactiva, no aparece en la lista de reservables del miembro."
           />
         </div>
 
@@ -712,7 +712,7 @@ function EditarRecursoModal({
           <label className="ek-label">Horarios de operación</label>
           <HorariosEditor value={horarios} onChange={setHorarios} />
           <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
-            Define los días y horas en que este estudio puede reservarse.
+            Define los días y horas en que esta sala puede reservarse.
           </p>
         </div>
 
@@ -722,7 +722,7 @@ function EditarRecursoModal({
             pathPrefix={`${tenant.slug}/${photoSlug}`}
             currentUrl={fotoUrl || null}
             onUploaded={setFotoUrl}
-            label="Foto del estudio"
+            label="Foto de la sala"
             helperText="JPG, PNG o WEBP. Máx 5MB. Aspecto 16:10 recomendado."
           />
         </div>
@@ -744,14 +744,14 @@ function EditarRecursoModal({
         </div>
 
         <div className="ek-form-field" style={{ marginTop: '16px' }}>
-          <label className="ek-label">Tipos de contenido recomendados</label>
+          <label className="ek-label">Tipos de clase recomendados</label>
           <ListaEditable
             value={tipoContenido}
             onChange={setTipoContenido}
-            placeholder="Ej: Podcast, Video, Entrevistas..."
+            placeholder="Ej: Yoga, Spinning, Crossfit..."
           />
           <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
-            Tags que ayudan a los miembros a elegir el estudio adecuado.
+            Tags que ayudan a los miembros a elegir la sala adecuada.
           </p>
         </div>
 
@@ -760,7 +760,7 @@ function EditarRecursoModal({
           <ListaEditable
             value={equipoIncluido}
             onChange={setEquipoIncluido}
-            placeholder="Ej: Cámara Sony A7 IV..."
+            placeholder="Ej: Colchonetas, mancuernas..."
           />
         </div>
 

@@ -146,7 +146,7 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
     const { data, error } = await query;
     if (error) {
       console.error('[ReservasVistaLista]', error);
-      toast.error('No se pudieron cargar las reservas.');
+      toast.error('No pudimos cargar las reservas. Probá de nuevo.');
       setIsLoading(false);
       return;
     }
@@ -246,7 +246,7 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
             />
           </div>
           <div className="ek-form-field">
-            <label className="ek-label">Estudio</label>
+            <label className="ek-label">Sala</label>
             <select
               value={recursoId}
               onChange={(e) => setRecursoId(e.target.value)}
@@ -358,7 +358,7 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
             >
               <span>Fecha</span>
               <span>Hora</span>
-              <span>Estudio</span>
+              <span>Sala</span>
               <span>Miembro</span>
               <span>Plan</span>
               <span>Estado</span>

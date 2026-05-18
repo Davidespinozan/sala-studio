@@ -91,13 +91,13 @@ export default function MiembroDetalle() {
             </select>
           </label>
           <label className="ek-label">
-            Tier
+            Plan
             <select
               value={draft.membresia_tier}
               onChange={(e) => setDraft((d) => ({ ...d, membresia_tier: e.target.value }))}
               className="ek-input"
             >
-              <option value="">— sin tier —</option>
+              <option value="">— sin plan —</option>
               <option value="basica">basica</option>
               <option value="pro">pro</option>
             </select>
@@ -133,8 +133,8 @@ export default function MiembroDetalle() {
       <section className="adm-section">
         <h2 className="ek-h3">Notas operativas</h2>
         <p className="adm-body" style={{ marginBottom: '0.5rem' }}>
-          Visible para recepción al hacer check-in. Útil para preferencias,
-          equipo solicitado, observaciones del miembro.
+          Visible para recepción al hacer check-in. Útil para condiciones físicas,
+          preferencias o recordatorios sobre el miembro.
         </p>
         <NotasControl
           usuarioId={miembro.id}
@@ -151,7 +151,7 @@ export default function MiembroDetalle() {
           <div className="adm-table-wrapper">
             <table className="adm-table">
               <thead>
-                <tr><th>Folio</th><th>Fecha</th><th>Estudio</th><th>Status</th></tr>
+                <tr><th>Folio</th><th>Fecha</th><th>Sala</th><th>Status</th></tr>
               </thead>
               <tbody>
                 {reservas.map((r) => (
@@ -466,7 +466,7 @@ function NotasControl({ usuarioId, notasIniciales, onSaved }: {
         onChange={(e) => setNotas(e.target.value)}
         maxLength={500}
         rows={4}
-        placeholder="Ej. Suele grabar podcasts largos. Prefiere micrófono Shure. Acompañado de 1 editor."
+        placeholder="Ej. Lesión en rodilla derecha. Evitar saltos. Prefiere clases de mañana."
         className="ek-input"
       />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

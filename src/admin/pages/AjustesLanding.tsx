@@ -241,7 +241,7 @@ export default function AjustesLanding() {
             value={draft.hero.titulo}
             onChange={(e) => setDraft({ ...draft, hero: { ...draft.hero, titulo: e.target.value } })}
             className="ek-input"
-            placeholder="Tu estudio. Tu contenido."
+            placeholder="Tu sala. Tu ritmo."
           />
         </FormField>
 
