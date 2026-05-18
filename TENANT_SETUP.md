@@ -1,4 +1,4 @@
-# Cómo onboardear un tenant nuevo en EKKO
+# Cómo onboardear un tenant nuevo en SALA
 
 > Checklist operativo para activar un cliente nuevo. Asume que
 > ya hubo venta y firma de contrato.
@@ -233,7 +233,7 @@ Aplicá la migración `20260517200000_landing_cms_phase1.sql` o
 hacé `UPDATE tenants SET config = config || ...` con los bloques
 del Paso 1.
 
-### "El miembro no puede reservar — EKKO_TIER_NO_PERMITIDO"
+### "El miembro no puede reservar — TIER_NO_PERMITIDO"
 
 `recursos.tiers_permitidos` no incluye el `membresia_tier` del
 usuario. Ajustar en `/admin/recursos`.

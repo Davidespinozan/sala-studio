@@ -2,7 +2,7 @@
 -- RESERVAS
 -- ============================================================================
 -- Cada reserva es 1 slot de tiempo en 1 recurso por 1 miembro.
--- Para EKKO (recurso individual, cupos=1): UNIQUE (tenant, recurso, slot_inicio).
+-- Para SALA (recurso individual, cupos=1): UNIQUE (tenant, recurso, slot_inicio).
 -- Para yoga/cycling (sala grupal, cupos=N): N filas con mismo slot_inicio.
 -- ============================================================================
 

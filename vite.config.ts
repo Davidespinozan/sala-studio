@@ -18,9 +18,9 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
         manifest: {
-          name: 'EKKO Studio',
-          short_name: 'EKKO',
-          description: 'Tu espacio para crear contenido profesional',
+          name: 'SALA Studio',
+          short_name: 'SALA',
+          description: 'Reserva clases, gestiona membresías, opera tu gimnasio',
           theme_color: '#0A0A0A',
           background_color: '#F5F1E8',
           display: 'standalone',

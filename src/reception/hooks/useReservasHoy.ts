@@ -62,7 +62,7 @@ export async function checkInManual(reservaId: string, motivo?: string) {
   });
 
   if (error) {
-    const code = error.message.match(/EKKO_[A-Z_]+/)?.[0] ?? 'EKKO_ERROR';
+    const code = error.message.match(/_[A-Z_]+/)?.[0] ?? 'ERROR';
     throw new Error(translateError(code, error.message));
   }
   return data;
@@ -70,13 +70,13 @@ export async function checkInManual(reservaId: string, motivo?: string) {
 
 function translateError(code: string, fallback: string): string {
   const map: Record<string, string> = {
-    EKKO_RESERVA_NO_EXISTE: 'Reserva no encontrada',
-    EKKO_YA_CHECK_IN: 'Este miembro ya hizo check-in',
-    EKKO_RESERVA_CANCELADA: 'Reserva cancelada',
-    EKKO_RESERVA_NO_SHOW: 'Reserva marcada como inasistencia',
-    EKKO_DEMASIADO_TEMPRANO: 'Es muy temprano para el check-in',
-    EKKO_DEMASIADO_TARDE: 'El check-in ya cerró',
-    EKKO_NO_AUTORIZADO: 'No autorizado'
+    RESERVA_NO_EXISTE: 'Reserva no encontrada',
+    YA_CHECK_IN: 'Este miembro ya hizo check-in',
+    RESERVA_CANCELADA: 'Reserva cancelada',
+    RESERVA_NO_SHOW: 'Reserva marcada como inasistencia',
+    DEMASIADO_TEMPRANO: 'Es muy temprano para el check-in',
+    DEMASIADO_TARDE: 'El check-in ya cerró',
+    NO_AUTORIZADO: 'No autorizado'
   };
   return map[code] ?? fallback.replace(code + ':', '').trim();
 }

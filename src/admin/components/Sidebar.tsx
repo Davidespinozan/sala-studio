@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
 
-const SIDEBAR_COLLAPSED_KEY = 'ekko-admin-sidebar-collapsed';
+const SIDEBAR_COLLAPSED_KEY = 'sala-admin-sidebar-collapsed';
 const VER_COMO_LABEL = 'VER COMO…';
 
 function readCollapsed(): Set<string> {
@@ -240,7 +240,7 @@ export function Sidebar({ onNavigate }: Props = {}) {
       : typeof branding.logo_url === 'string'
         ? (branding.logo_url as string)
         : null;
-  const brandShort = (tenant.nombre || 'EKKO').split(/\s+/)[0];
+  const brandShort = (tenant.nombre || 'SALA').split(/\s+/)[0];
 
   const nombreFormat =
     usuario?.nombre

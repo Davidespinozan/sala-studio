@@ -88,7 +88,7 @@ export default function Scanner() {
                 color: 'var(--ek-mustard)'
               }}
             >
-              EKKO Studio
+              SALA Studio
             </p>
           </div>
 

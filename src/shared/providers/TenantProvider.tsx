@@ -21,30 +21,30 @@ const TenantContext = createContext<TenantContextValue>({
  * Resuelve el tenant actual y lo expone vía context.
  *
  * Estrategia de resolución (en orden):
- * 1. Subdominio: app.ekko.studio → slug 'ekko'
+ * 1. Subdominio: app.sala.studio → slug 'sala-demo'
  *                pilates-noria.sala.app → slug 'pilates-noria'
- * 2. Fallback en desarrollo: slug 'ekko' (siempre el primer tenant)
+ * 2. Fallback en desarrollo: slug 'sala-demo' (siempre el primer tenant)
  *
  * Para SaaS multi-tenant en producción, el subdominio decide.
  */
 function resolveTenantSlug(): string {
-  if (typeof window === 'undefined') return 'ekko';
+  if (typeof window === 'undefined') return 'sala-demo';
 
   const host = window.location.hostname;
 
-  // localhost / 127.0.0.1 / preview deploys → default ekko
+  // localhost / 127.0.0.1 / preview deploys → default sala-demo
   if (host === 'localhost' || host.startsWith('127.') || host.endsWith('.netlify.app')) {
-    return 'ekko';
+    return 'sala-demo';
   }
 
-  // app.ekko.studio → ekko
+  // app.sala.studio → sala-demo
   // pilates-noria.sala.app → pilates-noria
   const parts = host.split('.');
   if (parts.length >= 2) {
     return parts[0] === 'app' && parts.length >= 3 ? parts[1] : parts[0];
   }
 
-  return 'ekko';
+  return 'sala-demo';
 }
 
 interface TenantProviderProps {
@@ -87,7 +87,7 @@ export function TenantProvider({ children }: TenantProviderProps) {
         setIsLoading(false);
 
         // Branding tokens dinámicos están desactivados en Sprint C1.
-        // EKKO usa paleta fija "Mostaza Ink" definida en CSS global.
+        // SALA usa paleta fija "Mostaza Ink" definida en CSS global.
         //
         // Para activar multi-paleta dinámica en Sprint D:
         // 1. Mapear branding.color_primary → --ek-mustard

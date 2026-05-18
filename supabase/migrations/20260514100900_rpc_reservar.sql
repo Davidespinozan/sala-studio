@@ -12,7 +12,7 @@
 --   7. Slot no ocupado (UNIQUE index protege la race condition)
 --   8. INSERT con folio autogenerado
 --
--- Errores se devuelven como RAISE EXCEPTION con prefijo 'EKKO_'
+-- Errores se devuelven como RAISE EXCEPTION con prefijo '_'
 -- para que el cliente los traduzca a mensajes user-friendly.
 -- ============================================================================
 
@@ -50,18 +50,18 @@ BEGIN
   v_rol := get_my_rol();
 
   IF v_user_id IS NULL OR v_tenant_id IS NULL THEN
-    RAISE EXCEPTION 'EKKO_NO_AUTH: Usuario no autenticado';
+    RAISE EXCEPTION 'NO_AUTH: Usuario no autenticado';
   END IF;
 
   SELECT * INTO v_usuario FROM usuarios WHERE id = v_user_id;
 
   -- 1. Validar usuario activo y no bloqueado
   IF v_usuario.status NOT IN ('activo') THEN
-    RAISE EXCEPTION 'EKKO_USUARIO_INACTIVO: Tu membresía no está activa';
+    RAISE EXCEPTION 'USUARIO_INACTIVO: Tu membresía no está activa';
   END IF;
 
   IF v_usuario.bloqueado_hasta IS NOT NULL AND v_usuario.bloqueado_hasta > v_now THEN
-    RAISE EXCEPTION 'EKKO_USUARIO_BLOQUEADO: Estás bloqueado hasta %', v_usuario.bloqueado_hasta;
+    RAISE EXCEPTION 'USUARIO_BLOQUEADO: Estás bloqueado hasta %', v_usuario.bloqueado_hasta;
   END IF;
 
   -- 2. Validar recurso
@@ -69,13 +69,13 @@ BEGIN
   WHERE id = p_recurso_id AND tenant_id = v_tenant_id AND activo = true;
 
   IF v_recurso IS NULL THEN
-    RAISE EXCEPTION 'EKKO_RECURSO_NO_EXISTE: El recurso no existe o no está disponible';
+    RAISE EXCEPTION 'RECURSO_NO_EXISTE: El recurso no existe o no está disponible';
   END IF;
 
   -- 3. Validar tier permite este recurso
   IF v_usuario.membresia_tier IS NOT NULL THEN
     IF NOT (v_usuario.membresia_tier = ANY (v_recurso.tiers_permitidos)) THEN
-      RAISE EXCEPTION 'EKKO_TIER_NO_PERMITE: Tu plan no incluye acceso a este recurso';
+      RAISE EXCEPTION 'TIER_NO_PERMITE: Tu plan no incluye acceso a este recurso';
     END IF;
   END IF;
 
@@ -103,12 +103,12 @@ BEGIN
 
   -- 5. Validar anticipación
   IF p_slot_inicio < v_now + (v_anticipacion_min_horas || ' hours')::interval THEN
-    RAISE EXCEPTION 'EKKO_ANTICIPACION_INSUFICIENTE: Necesitas reservar con al menos % horas de anticipación',
+    RAISE EXCEPTION 'ANTICIPACION_INSUFICIENTE: Necesitas reservar con al menos % horas de anticipación',
       v_anticipacion_min_horas;
   END IF;
 
   IF p_slot_inicio > v_now + (v_anticipacion_max_dias || ' days')::interval THEN
-    RAISE EXCEPTION 'EKKO_ANTICIPACION_EXCESIVA: No puedes reservar con más de % días de anticipación',
+    RAISE EXCEPTION 'ANTICIPACION_EXCESIVA: No puedes reservar con más de % días de anticipación',
       v_anticipacion_max_dias;
   END IF;
 
@@ -125,7 +125,7 @@ BEGIN
       );
 
     IF FOUND THEN
-      RAISE EXCEPTION 'EKKO_CONTINUAS_NO_PERMITIDAS: No puedes reservar horas consecutivas';
+      RAISE EXCEPTION 'CONTINUAS_NO_PERMITIDAS: No puedes reservar horas consecutivas';
     END IF;
   END IF;
 
@@ -148,7 +148,7 @@ BEGIN
 
 EXCEPTION
   WHEN unique_violation THEN
-    RAISE EXCEPTION 'EKKO_SLOT_OCUPADO: Este horario ya fue reservado por otro miembro';
+    RAISE EXCEPTION 'SLOT_OCUPADO: Este horario ya fue reservado por otro miembro';
 END;
 $$;
 
@@ -175,26 +175,26 @@ DECLARE
 BEGIN
   v_user_id := get_my_user_id();
   IF v_user_id IS NULL THEN
-    RAISE EXCEPTION 'EKKO_NO_AUTH';
+    RAISE EXCEPTION 'NO_AUTH';
   END IF;
 
   SELECT * INTO v_reserva FROM reservas WHERE id = p_reserva_id;
 
   IF v_reserva IS NULL THEN
-    RAISE EXCEPTION 'EKKO_RESERVA_NO_EXISTE';
+    RAISE EXCEPTION 'RESERVA_NO_EXISTE';
   END IF;
 
   -- Solo el dueño o admin del tenant puede cancelar
   IF v_reserva.usuario_id != v_user_id AND NOT is_admin() THEN
-    RAISE EXCEPTION 'EKKO_NO_AUTORIZADO: No puedes cancelar esta reserva';
+    RAISE EXCEPTION 'NO_AUTORIZADO: No puedes cancelar esta reserva';
   END IF;
 
   IF v_reserva.status != 'confirmada' THEN
-    RAISE EXCEPTION 'EKKO_RESERVA_NO_CANCELABLE: La reserva no está confirmada';
+    RAISE EXCEPTION 'RESERVA_NO_CANCELABLE: La reserva no está confirmada';
   END IF;
 
   IF v_reserva.slot_inicio < now() THEN
-    RAISE EXCEPTION 'EKKO_RESERVA_PASADA: No puedes cancelar una reserva que ya pasó';
+    RAISE EXCEPTION 'RESERVA_PASADA: No puedes cancelar una reserva que ya pasó';
   END IF;
 
   UPDATE reservas

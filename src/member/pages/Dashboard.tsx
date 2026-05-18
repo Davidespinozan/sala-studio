@@ -123,7 +123,7 @@ export default function Dashboard() {
             </strong>.
           </p>
           <p className="ek-body-faint" style={{ marginTop: '8px' }}>
-            Esto puede deberse a una inasistencia o suspensión. Contactá a EKKO si tienes dudas.
+            Esto puede deberse a una inasistencia o suspensión. Contactá a SALA si tienes dudas.
           </p>
         </div>
       )}

@@ -1,4 +1,4 @@
-# Decisiones arquitectónicas — EKKO Studio
+# Decisiones arquitectónicas — SALA Studio
 
 ## D-001: Multi-tenant desde día 1
 
@@ -6,10 +6,10 @@
 para reglas de negocio variables, la UI tiene componentes intercambiables por
 `tenant.vertical`.
 
-**Razón**: EKKO es el primer tenant del producto SaaS SALA (vendible a estudios
-de yoga, pilates, gym, cycling, crossfit). Construir single-tenant ahora y
-refactorizar después cuesta 3x; el costo de arrancar multi-tenant es 15-20%
-extra en Fase 1.
+**Razón**: SALA Studio es producto SaaS desde el día 1 (vendible a estudios
+de yoga, pilates, gym, cycling, crossfit). El primer tenant operacional será
+`sala-demo`. Construir single-tenant ahora y refactorizar después cuesta 3x;
+el costo de arrancar multi-tenant es 15-20% extra en Fase 1.
 
 **Trade-off aceptado**: complejidad inicial mayor, RLS más estricto, RPCs
 más generales.
@@ -30,7 +30,7 @@ cliente Supabase, tipos, deploys.
 `duracion_default_min`, `cupos_por_recurso`. Los RPCs leen este config.
 
 **Razón**: agregar un vertical nuevo (yoga/pilates) NO requiere tocar código de
-backend, solo crear un tenant con su config. Cero `if (tenant.slug === 'ekko')`.
+backend, solo crear un tenant con su config. Cero `if (tenant.slug === 'sala-demo')`.
 
 ## D-004: Toda llamada externa pasa por Netlify Functions
 
@@ -39,7 +39,7 @@ en el cliente. Cada llamada externa pasa por una función serverless que valida
 auth Supabase y hace el request server-side.
 
 **Razón**: lección directa de HSC (§15 de su dossier): API key en cliente es
-bomba de costo y seguridad. EKKO no repite ese error.
+bomba de costo y seguridad. SALA no repite ese error.
 
 ## D-005: Mobile-first hardening copiado completo de HSC
 
@@ -77,7 +77,7 @@ encuentra el cliente, no el equipo. Costo: una tarde de setup.
 ## D-009: CSS namespaced + Tailwind para utilities
 
 **Decisión**: tokens y componentes-firma en CSS custom (`.ek-*`, `tokens.css`,
-`reset.css`, `ekko.css`). Tailwind solo para utilities mobile (`h-dvh`,
+`reset.css`, `sala.css`). Tailwind solo para utilities mobile (`h-dvh`,
 safe-area-spacing, breakpoints, flexbox helpers).
 
 **Razón**: Tailwind puro lleva a clases gigantes ilegibles para CTAs/cards

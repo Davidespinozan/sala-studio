@@ -73,7 +73,7 @@ CREATE POLICY "Estudios admin delete"
 -- ============================================================================
 -- Policies públicas de lectura en recursos y tiers para anon
 -- La landing pública (sin auth) necesita leer recursos activos y tiers
--- activos. Hardcoded al tenant 'ekko' por ahora; cuando haya multi-tenant
+-- activos. Hardcoded al tenant 'sala-demo' por ahora; cuando haya multi-tenant
 -- real, este filtro debe venir del slug en URL/subdomain.
 -- ============================================================================
 
@@ -83,7 +83,7 @@ CREATE POLICY "Recursos públicos activos lectura"
   TO anon
   USING (
     activo = true
-    AND tenant_id IN (SELECT id FROM tenants WHERE slug = 'ekko')
+    AND tenant_id IN (SELECT id FROM tenants WHERE slug = 'sala-demo')
   );
 
 DROP POLICY IF EXISTS "Tiers públicos activos lectura" ON tiers;
@@ -92,5 +92,5 @@ CREATE POLICY "Tiers públicos activos lectura"
   TO anon
   USING (
     activo = true
-    AND tenant_id IN (SELECT id FROM tenants WHERE slug = 'ekko')
+    AND tenant_id IN (SELECT id FROM tenants WHERE slug = 'sala-demo')
   );

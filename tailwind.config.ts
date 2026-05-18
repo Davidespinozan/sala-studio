@@ -8,7 +8,7 @@ export default {
         xs: '475px'
       },
       colors: {
-        // EKKO tokens accesibles desde Tailwind (también en CSS vars)
+        // SALA tokens accesibles desde Tailwind (también en CSS vars)
         'ek-cream': '#F5F1E8',
         'ek-cream-warm': '#EFEAD8',
         'ek-cream-deep': '#E8E1CC',

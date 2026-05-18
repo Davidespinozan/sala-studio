@@ -10,7 +10,7 @@ import { initSentry } from '@shared/lib/sentry';
 import './styles/tailwind.css';
 import './styles/tokens.css';
 import './styles/reset.css';
-import './styles/ekko.css';
+import './styles/sala.css';
 
 initSentry();
 

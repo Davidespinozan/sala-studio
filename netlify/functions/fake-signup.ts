@@ -16,7 +16,7 @@ import { createClient } from '@supabase/supabase-js';
  * Crea cuenta de prueba con pago simulado:
  * - auth.admin.createUser (email confirmado automáticamente)
  * - El trigger on_auth_user_created inserta fila en `usuarios`
- * - UPDATE para setear tier, status='activo', tenant=ekko, notas_admin
+ * - UPDATE para setear tier, status='activo', tenant=sala-demo, notas_admin
  * - Log en payment_events con stripe_event_type='fake_signup'
  *
  * Cuando se integre Stripe real, esta función se reemplaza por el webhook
@@ -59,11 +59,11 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // 1. Obtener tenant 'ekko'
+    // 1. Obtener tenant 'sala-demo'
     const { data: tenant, error: tenantError } = await supabaseAdmin
       .from('tenants')
       .select('id')
-      .eq('slug', 'ekko')
+      .eq('slug', 'sala-demo')
       .single();
 
     if (tenantError || !tenant) {
@@ -98,7 +98,7 @@ export const handler: Handler = async (event) => {
       email,
       password,
       email_confirm: true,
-      user_metadata: { nombre, tenant_slug: 'ekko' }
+      user_metadata: { nombre, tenant_slug: 'sala-demo' }
     });
 
     if (authError || !authData.user) {

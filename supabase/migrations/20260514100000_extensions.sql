@@ -1,4 +1,4 @@
--- Extensiones necesarias para el schema EKKO/SALA
+-- Extensiones necesarias para el schema SALA/SALA
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";       -- gen_random_uuid
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";        -- búsqueda por texto en admin

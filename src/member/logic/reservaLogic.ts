@@ -221,22 +221,22 @@ export function formatHora(d: Date): string {
  * Traduce errores del RPC reservar_recurso_atomic a mensajes user-friendly.
  */
 export function traducirErrorRPC(message: string): string {
-  if (message.includes('EKKO_USUARIO_INACTIVO')) return 'Tu membresía no está activa. Contacta al administrador.';
-  if (message.includes('EKKO_USUARIO_BLOQUEADO')) return 'Tu cuenta tiene una restricción activa.';
-  if (message.includes('EKKO_RECURSO_NO_EXISTE')) return 'El estudio no está disponible.';
-  if (message.includes('EKKO_RECURSO_INACTIVO')) return 'Este estudio no está disponible.';
-  if (message.includes('EKKO_TIER_NO_PERMITIDO')) return 'Tu plan no tiene acceso a este estudio.';
-  if (message.includes('EKKO_TIER_NO_PERMITE')) return 'Tu plan no incluye acceso a este estudio.';
-  if (message.includes('EKKO_INVITADOS_EXCEDEN')) return 'Tu plan no permite tantos invitados.';
-  if (message.includes('EKKO_INVITADOS_INVALIDOS')) return 'Número de invitados inválido.';
-  if (message.includes('EKKO_ANTICIPACION_INSUFICIENTE')) return 'Necesitas reservar con más anticipación.';
-  if (message.includes('EKKO_ANTICIPACION_EXCESIVA')) return 'No puedes reservar tan lejos en el futuro.';
-  if (message.includes('EKKO_CONTINUAS_NO_PERMITIDAS')) return 'No puedes reservar horas consecutivas.';
-  if (message.includes('EKKO_CONTINUA')) return 'No puedes reservar horas consecutivas.';
-  if (message.includes('EKKO_SLOT_OCUPADO')) return 'Este horario acaba de ser tomado por otro miembro. Elige otro.';
-  if (message.includes('EKKO_RESERVA_NO_EXISTE')) return 'La reserva no existe.';
-  if (message.includes('EKKO_NO_AUTORIZADO')) return 'No puedes hacer esta acción.';
-  if (message.includes('EKKO_RESERVA_NO_CANCELABLE')) return 'Esta reserva no se puede cancelar.';
-  if (message.includes('EKKO_RESERVA_PASADA')) return 'No puedes cancelar una reserva que ya pasó.';
+  if (message.includes('USUARIO_INACTIVO')) return 'Tu membresía no está activa. Contacta al administrador.';
+  if (message.includes('USUARIO_BLOQUEADO')) return 'Tu cuenta tiene una restricción activa.';
+  if (message.includes('RECURSO_NO_EXISTE')) return 'El estudio no está disponible.';
+  if (message.includes('RECURSO_INACTIVO')) return 'Este estudio no está disponible.';
+  if (message.includes('TIER_NO_PERMITIDO')) return 'Tu plan no tiene acceso a este estudio.';
+  if (message.includes('TIER_NO_PERMITE')) return 'Tu plan no incluye acceso a este estudio.';
+  if (message.includes('INVITADOS_EXCEDEN')) return 'Tu plan no permite tantos invitados.';
+  if (message.includes('INVITADOS_INVALIDOS')) return 'Número de invitados inválido.';
+  if (message.includes('ANTICIPACION_INSUFICIENTE')) return 'Necesitas reservar con más anticipación.';
+  if (message.includes('ANTICIPACION_EXCESIVA')) return 'No puedes reservar tan lejos en el futuro.';
+  if (message.includes('CONTINUAS_NO_PERMITIDAS')) return 'No puedes reservar horas consecutivas.';
+  if (message.includes('CONTINUA')) return 'No puedes reservar horas consecutivas.';
+  if (message.includes('SLOT_OCUPADO')) return 'Este horario acaba de ser tomado por otro miembro. Elige otro.';
+  if (message.includes('RESERVA_NO_EXISTE')) return 'La reserva no existe.';
+  if (message.includes('NO_AUTORIZADO')) return 'No puedes hacer esta acción.';
+  if (message.includes('RESERVA_NO_CANCELABLE')) return 'Esta reserva no se puede cancelar.';
+  if (message.includes('RESERVA_PASADA')) return 'No puedes cancelar una reserva que ya pasó.';
   return message;
 }

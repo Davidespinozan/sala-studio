@@ -51,7 +51,7 @@ export default function Login() {
             letterSpacing: '-0.04em',
             color: 'var(--ek-mustard)',
             margin: 0
-          }}>EKKO</h1>
+          }}>SALA</h1>
           <p className="ek-eyebrow" style={{ marginTop: '6px' }}>STUDIO</p>
         </div>
 

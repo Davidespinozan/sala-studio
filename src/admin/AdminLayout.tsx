@@ -86,7 +86,7 @@ export default function AdminLayout() {
                 color: 'var(--ek-mustard)'
               }}
             >
-              EKKO
+              SALA
             </span>
             <span className="ek-eyebrow" style={{ fontSize: '9px' }}>ADMIN</span>
           </div>

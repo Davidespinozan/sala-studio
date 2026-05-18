@@ -49,9 +49,9 @@ export default function Footer() {
   const { footer } = useLandingConfig();
   const tenant = useTenant();
 
-  // Brand text: primer token del nombre del tenant (ej. "EKKO Studio" → "EKKO").
-  // Si está vacío, fallback a "EKKO" para no romper visualmente.
-  const brandShort = (tenant.nombre || 'EKKO').split(/\s+/)[0];
+  // Brand text: primer token del nombre del tenant (ej. "SALA Studio" → "SALA").
+  // Si está vacío, fallback a "SALA" para no romper visualmente.
+  const brandShort = (tenant.nombre || 'SALA').split(/\s+/)[0];
 
   const branding = (tenant.branding ?? {}) as Record<string, unknown>;
   const logoUrl =
@@ -201,7 +201,7 @@ export default function Footer() {
           letterSpacing: '0.04em'
         }}
       >
-        © {new Date().getFullYear()} {tenant.nombre || 'EKKO Studio'}. {footer.copyright}
+        © {new Date().getFullYear()} {tenant.nombre || 'SALA Studio'}. {footer.copyright}
       </p>
     </footer>
   );

@@ -2,7 +2,7 @@
 -- TIERS (planes de membresía configurables por tenant)
 -- ============================================================================
 -- Define los planes que cada tenant ofrece.
--- EKKO: Básica $800, Pro $1,200
+-- SALA: Básica $800, Pro $1,200
 -- Pilates: Mensual ilimitado $1,500, 8 clases $1,200, etc.
 -- ============================================================================
 
@@ -60,18 +60,18 @@ CREATE TRIGGER tiers_set_updated_at
 
 ALTER TABLE tiers ENABLE ROW LEVEL SECURITY;
 
--- Seed: 2 tiers de EKKO
+-- Seed: 2 tiers de SALA
 DO $$
 DECLARE
-  ekko_tenant_id uuid;
+  sala_tenant_id uuid;
 BEGIN
-  SELECT id INTO ekko_tenant_id FROM tenants WHERE slug = 'ekko';
-  IF ekko_tenant_id IS NULL THEN RETURN; END IF;
+  SELECT id INTO sala_tenant_id FROM tenants WHERE slug = 'sala-demo';
+  IF sala_tenant_id IS NULL THEN RETURN; END IF;
 
   INSERT INTO tiers (tenant_id, slug, nombre, descripcion, precio_centavos, moneda, periodo, beneficios, reglas, orden)
   VALUES
     (
-      ekko_tenant_id, 'basica', 'Básica',
+      sala_tenant_id, 'basica', 'Básica',
       'Acceso diario al estudio. Para creadores que están empezando.',
       80000, 'MXN', 'mensual',
       '[
@@ -90,7 +90,7 @@ BEGIN
       1
     ),
     (
-      ekko_tenant_id, 'pro', 'Pro',
+      sala_tenant_id, 'pro', 'Pro',
       'Para creadores que producen contenido constante y necesitan más.',
       120000, 'MXN', 'mensual',
       '[

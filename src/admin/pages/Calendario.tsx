@@ -8,7 +8,7 @@ import CancelarReservaModal, {
 import ReservasVistaLista from '../components/ReservasVistaLista';
 
 type Vista = 'calendario' | 'lista';
-const STORAGE_KEY = 'ekko-admin-reservas-vista';
+const STORAGE_KEY = 'sala-admin-reservas-vista';
 
 function readVista(): Vista {
   if (typeof localStorage === 'undefined') return 'calendario';

@@ -1,13 +1,13 @@
-# EKKO Studio — Arquitectura del Kernel SaaS
+# SALA Studio — Arquitectura del Kernel SaaS
 
 > Este documento captura las decisiones arquitectónicas del producto
-> replicable que se está construyendo a partir de EKKO Studio.
+> replicable que se está construyendo a partir de SALA Studio.
 > El kernel es lo que se va a extraer cuando vendamos a clientes
-> más allá de Cravia.
+> más allá de SALA Demo.
 
 ## Filosofía
 
-EKKO es un **SaaS multi-tenant** desde el día 1. Cravia es el
+SALA es un **SaaS multi-tenant** desde el día 1. SALA Demo es el
 primer cliente, no el único. Cada decisión técnica considera:
 
 1. ¿Esto va a ser igual para todos los tenants? → al kernel
@@ -57,7 +57,7 @@ defaults explícitos. Ejemplos:
 - `useLandingConfig` → bloque landing + contacto
 - `parseBeneficios` (en Landing.tsx + Tiers.tsx) → arrays string
 
-Los defaults del hook son **strings vacíos** (no textos EKKO
+Los defaults del hook son **strings vacíos** (no textos SALA
 específicos). El kernel no debe asumir nombre de cliente. Los textos
 reales vienen de la migración SQL del tenant inicial.
 
@@ -69,7 +69,7 @@ El hook tiene defaults vacíos para que un tenant nuevo no rompa.
 
 ### Componentes desacoplados de identidad
 
-Componentes como Footer NO deben hardcodear "EKKO" ni "Cravia".
+Componentes como Footer NO deben hardcodear "SALA" ni "SALA Demo".
 Todo viene de `useTenant()` (nombre, slug) o `useLandingConfig()`.
 
 ## Pendientes para producto replicable
@@ -103,7 +103,7 @@ Todo viene de `useTenant()` (nombre, slug) o `useLandingConfig()`.
 
 ## Anti-patrones (NO hacer)
 
-1. **NO hardcodear "EKKO", "Cravia", "Culiacán"** en componentes.
+1. **NO hardcodear "SALA", "SALA Demo", "Culiacán"** en componentes.
    Todo viene del tenant config.
 
 2. **NO hardcodear textos de UI** que vayan a variar por tenant.
@@ -185,7 +185,7 @@ nombre para diferenciación visual inmediata.
 ## Patrón Admin Profesional (Sprint D-Admin)
 
 ### Filosofía
-El admin de EKKO no es un form-builder genérico. Es producto diseñado
+El admin de SALA no es un form-builder genérico. Es producto diseñado
 para dueños de negocio no técnicos. Cada pantalla responde a un caso
 de uso real, no a un schema de BD.
 
@@ -341,7 +341,7 @@ bottom-right con auto-dismiss + manual close.
 ## Separación Miembros vs Equipo (Sprint Equipo)
 
 ### Filosofía
-El admin de EKKO separa dos tipos de usuarios:
+El admin de SALA separa dos tipos de usuarios:
 1. **Miembros**: clientes pagadores. CRUD frecuente, bajo riesgo.
 2. **Equipo**: staff con acceso al sistema (admins, recepcionistas).
    CRUD raro, alto riesgo (IAM).

@@ -82,7 +82,7 @@ export const handler: Handler = async (event) => {
       password: body.password,
       email_confirm: true,
       user_metadata: {
-        tenant_slug: 'ekko', // el trigger lo usa, pero el INSERT manual de abajo lo sobrescribe
+        tenant_slug: 'sala-demo', // el trigger lo usa, pero el INSERT manual de abajo lo sobrescribe
         nombre: body.nombre.trim(),
         telefono: body.telefono?.trim() || null
       }

@@ -16,11 +16,11 @@ SET config = config
   || jsonb_build_object(
     'contacto', jsonb_build_object(
       'whatsapp_e164', '5216671234567',
-      'whatsapp_mensaje_default', 'Hola, me interesa saber más sobre EKKO Studio.'
+      'whatsapp_mensaje_default', 'Hola, me interesa saber más sobre SALA Studio.'
     ),
     'landing', jsonb_build_object(
       'hero', jsonb_build_object(
-        'eyebrow', 'EKKO STUDIO · CULIACÁN',
+        'eyebrow', 'SALA STUDIO · CULIACÁN',
         'titulo', 'Tu estudio. Tu contenido.',
         'titulo_accent', 'Sin límites.',
         'subtitulo', 'La plataforma para creadores que quieren grabar, crear y crecer al siguiente nivel. Equipo profesional, espacios diseñados y horas ilimitadas según tu membresía.',
@@ -47,7 +47,7 @@ SET config = config
       )
     )
   )
-WHERE slug = 'ekko';
+WHERE slug = 'sala-demo';
 
 COMMENT ON COLUMN tenants.config IS
   'jsonb config por tenant. Bloques: reserva, penalizaciones, membresia, acceso, ui, contacto, landing.';

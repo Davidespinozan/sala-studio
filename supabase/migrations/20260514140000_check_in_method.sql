@@ -41,45 +41,45 @@ BEGIN
   v_rol := get_my_rol();
 
   IF v_user_id IS NULL OR v_tenant_id IS NULL THEN
-    RAISE EXCEPTION 'EKKO_NO_AUTH: Usuario no autenticado';
+    RAISE EXCEPTION 'NO_AUTH: Usuario no autenticado';
   END IF;
 
   IF v_rol NOT IN ('admin', 'recepcionista') THEN
-    RAISE EXCEPTION 'EKKO_NO_AUTORIZADO: Solo admin o recepcionista pueden hacer check-in';
+    RAISE EXCEPTION 'NO_AUTORIZADO: Solo admin o recepcionista pueden hacer check-in';
   END IF;
 
   SELECT * INTO v_reserva FROM reservas WHERE id = p_reserva_id;
 
   IF v_reserva IS NULL THEN
-    RAISE EXCEPTION 'EKKO_RESERVA_NO_EXISTE: La reserva no existe';
+    RAISE EXCEPTION 'RESERVA_NO_EXISTE: La reserva no existe';
   END IF;
 
   IF v_reserva.tenant_id != v_tenant_id THEN
-    RAISE EXCEPTION 'EKKO_TENANT_DIFERENTE: Esta reserva pertenece a otro tenant';
+    RAISE EXCEPTION 'TENANT_DIFERENTE: Esta reserva pertenece a otro tenant';
   END IF;
 
   IF v_reserva.status = 'completada' THEN
-    RAISE EXCEPTION 'EKKO_YA_CHECK_IN: Este miembro ya hizo check-in (% UTC)', v_reserva.check_in_at;
+    RAISE EXCEPTION 'YA_CHECK_IN: Este miembro ya hizo check-in (% UTC)', v_reserva.check_in_at;
   END IF;
 
   IF v_reserva.status = 'cancelada' THEN
-    RAISE EXCEPTION 'EKKO_RESERVA_CANCELADA: Esta reserva fue cancelada';
+    RAISE EXCEPTION 'RESERVA_CANCELADA: Esta reserva fue cancelada';
   END IF;
 
   IF v_reserva.status = 'no_show' THEN
-    RAISE EXCEPTION 'EKKO_RESERVA_NO_SHOW: Esta reserva fue marcada como inasistencia';
+    RAISE EXCEPTION 'RESERVA_NO_SHOW: Esta reserva fue marcada como inasistencia';
   END IF;
 
   v_ventana_inicio := v_reserva.slot_inicio - interval '15 minutes';
   v_ventana_fin := v_reserva.slot_fin + interval '30 minutes';
 
   IF v_now < v_ventana_inicio THEN
-    RAISE EXCEPTION 'EKKO_DEMASIADO_TEMPRANO: El check-in abre 15 min antes del horario (a las %)',
+    RAISE EXCEPTION 'DEMASIADO_TEMPRANO: El check-in abre 15 min antes del horario (a las %)',
       to_char(v_ventana_inicio, 'HH24:MI');
   END IF;
 
   IF v_now > v_ventana_fin THEN
-    RAISE EXCEPTION 'EKKO_DEMASIADO_TARDE: El check-in cerró a las %',
+    RAISE EXCEPTION 'DEMASIADO_TARDE: El check-in cerró a las %',
       to_char(v_ventana_fin, 'HH24:MI');
   END IF;
 
@@ -140,33 +140,33 @@ BEGIN
   v_rol := get_my_rol();
 
   IF v_user_id IS NULL OR v_tenant_id IS NULL THEN
-    RAISE EXCEPTION 'EKKO_NO_AUTH: Usuario no autenticado';
+    RAISE EXCEPTION 'NO_AUTH: Usuario no autenticado';
   END IF;
 
   IF v_rol NOT IN ('admin', 'recepcionista') THEN
-    RAISE EXCEPTION 'EKKO_NO_AUTORIZADO: Solo admin o recepcionista pueden hacer check-in';
+    RAISE EXCEPTION 'NO_AUTORIZADO: Solo admin o recepcionista pueden hacer check-in';
   END IF;
 
   SELECT * INTO v_reserva FROM reservas WHERE id = p_reserva_id;
 
   IF v_reserva IS NULL THEN
-    RAISE EXCEPTION 'EKKO_RESERVA_NO_EXISTE: La reserva no existe';
+    RAISE EXCEPTION 'RESERVA_NO_EXISTE: La reserva no existe';
   END IF;
 
   IF v_reserva.tenant_id != v_tenant_id THEN
-    RAISE EXCEPTION 'EKKO_TENANT_DIFERENTE: Esta reserva pertenece a otro tenant';
+    RAISE EXCEPTION 'TENANT_DIFERENTE: Esta reserva pertenece a otro tenant';
   END IF;
 
   IF v_reserva.status = 'completada' THEN
-    RAISE EXCEPTION 'EKKO_YA_CHECK_IN: Este miembro ya hizo check-in (% UTC)', v_reserva.check_in_at;
+    RAISE EXCEPTION 'YA_CHECK_IN: Este miembro ya hizo check-in (% UTC)', v_reserva.check_in_at;
   END IF;
 
   IF v_reserva.status = 'cancelada' THEN
-    RAISE EXCEPTION 'EKKO_RESERVA_CANCELADA: Esta reserva fue cancelada';
+    RAISE EXCEPTION 'RESERVA_CANCELADA: Esta reserva fue cancelada';
   END IF;
 
   IF v_reserva.status = 'no_show' THEN
-    RAISE EXCEPTION 'EKKO_RESERVA_NO_SHOW: Esta reserva fue marcada como inasistencia';
+    RAISE EXCEPTION 'RESERVA_NO_SHOW: Esta reserva fue marcada como inasistencia';
   END IF;
 
   -- Ventana más permisiva en manual: 30 min antes y 1h después
@@ -175,12 +175,12 @@ BEGIN
   v_ventana_fin := v_reserva.slot_fin + interval '60 minutes';
 
   IF v_now < v_ventana_inicio THEN
-    RAISE EXCEPTION 'EKKO_DEMASIADO_TEMPRANO: El check-in manual abre 30 min antes (a las %)',
+    RAISE EXCEPTION 'DEMASIADO_TEMPRANO: El check-in manual abre 30 min antes (a las %)',
       to_char(v_ventana_inicio, 'HH24:MI');
   END IF;
 
   IF v_now > v_ventana_fin THEN
-    RAISE EXCEPTION 'EKKO_DEMASIADO_TARDE: El check-in manual cerró a las %',
+    RAISE EXCEPTION 'DEMASIADO_TARDE: El check-in manual cerró a las %',
       to_char(v_ventana_fin, 'HH24:MI');
   END IF;
 

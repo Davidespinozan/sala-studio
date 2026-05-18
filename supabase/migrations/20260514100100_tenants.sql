@@ -1,14 +1,14 @@
 -- ============================================================================
 -- TENANTS
 -- ============================================================================
--- Cada tenant es un negocio (un EKKO, un estudio de pilates, un crossfit box).
+-- Cada tenant es un negocio (un SALA, un estudio de pilates, un crossfit box).
 -- TODA tabla operativa lleva tenant_id que apunta aquí.
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS tenants (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug text UNIQUE NOT NULL,                    -- 'ekko', 'pilates-noria', 'crossfit-x'
-  nombre text NOT NULL,                          -- 'EKKO Studio', 'Pilates La Noria'
+  slug text UNIQUE NOT NULL,                    -- 'sala-demo', 'pilates-noria', 'crossfit-x'
+  nombre text NOT NULL,                          -- 'SALA Studio', 'Pilates La Noria'
   vertical text NOT NULL DEFAULT 'studio_creadores',
     -- 'studio_creadores' | 'yoga_pilates' | 'gym_libre' | 'cycling' | 'crossfit'
 
@@ -58,10 +58,10 @@ CREATE TABLE IF NOT EXISTS tenants (
     -- }
 
   -- Dominios
-  dominio_principal text,                       -- 'ekko.studio'
-  dominio_app text,                              -- 'app.ekko.studio'
+  dominio_principal text,                       -- 'sala.studio'
+  dominio_app text,                              -- 'app.sala.studio'
 
-  -- Stripe Connect (para SALA multi-tenant; EKKO usa cuenta directa)
+  -- Stripe Connect (para SALA multi-tenant; SALA usa cuenta directa)
   stripe_account_id text,                       -- 'acct_...' (Connect en futuro)
   stripe_subscription_product_id text,           -- 'prod_...' producto base
 
@@ -94,14 +94,14 @@ CREATE TRIGGER tenants_set_updated_at
   EXECUTE FUNCTION set_updated_at();
 
 -- ============================================================================
--- Seed: EKKO como primer tenant
+-- Seed: SALA como primer tenant
 -- ============================================================================
 
 INSERT INTO tenants (
   slug, nombre, vertical, branding, config, dominio_principal, dominio_app
 ) VALUES (
-  'ekko',
-  'EKKO Studio',
+  'sala-demo',
+  'SALA Studio',
   'studio_creadores',
   jsonb_build_object(
     'logo_url', null,
@@ -140,8 +140,8 @@ INSERT INTO tenants (
       'etiqueta_sesion', 'Sesión'
     )
   ),
-  'ekko.studio',
-  'app.ekko.studio'
+  'sala.studio',
+  'app.sala.studio'
 )
 ON CONFLICT (slug) DO NOTHING;
 

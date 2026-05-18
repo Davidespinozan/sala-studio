@@ -232,7 +232,7 @@ export default function AjustesLanding() {
             value={draft.hero.eyebrow}
             onChange={(e) => setDraft({ ...draft, hero: { ...draft.hero, eyebrow: e.target.value } })}
             className="ek-input"
-            placeholder="EKKO STUDIO · CULIACÁN"
+            placeholder="SALA STUDIO · CULIACÁN"
           />
         </FormField>
 
@@ -386,7 +386,7 @@ export default function AjustesLanding() {
               setDraft({ ...draft, footer: { ...draft.footer, email: e.target.value } })
             }
             className="ek-input"
-            placeholder="contacto@ekkostudio.com"
+            placeholder="contacto@salastudio.com"
           />
         </FormField>
       </Section>

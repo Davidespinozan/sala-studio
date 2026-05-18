@@ -19,7 +19,7 @@ export default function Miembros() {
       >
         <div>
           <p className="ek-eyebrow">MIEMBROS</p>
-          <h1 className="ek-h2">Tus clientes en EKKO</h1>
+          <h1 className="ek-h2">Tus clientes en SALA</h1>
           {!isLoading && (
             <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '4px' }}>
               {miembros.length}{' '}

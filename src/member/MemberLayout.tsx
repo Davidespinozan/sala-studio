@@ -71,7 +71,7 @@ export default function MemberLayout() {
               fontWeight: 700,
               letterSpacing: '-0.04em',
               color: 'var(--ek-mustard)'
-            }}>EKKO</span>
+            }}>SALA</span>
             <span className="ek-eyebrow" style={{ paddingTop: '4px' }}>STUDIO</span>
           </Link>
         </div>

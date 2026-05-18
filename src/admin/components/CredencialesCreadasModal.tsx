@@ -17,7 +17,7 @@ function buildCredencialesText(c: CredencialesCreadas): string {
   // URL del admin: usa origin actual + /admin (cubre prod, staging, localhost).
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   return [
-    'EKKO Studio — Acceso al sistema',
+    'SALA Studio — Acceso al sistema',
     '',
     `Nombre: ${c.nombre}`,
     `Email: ${c.email}`,

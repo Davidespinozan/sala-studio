@@ -52,7 +52,7 @@ export const handler: Handler = async (event) => {
     if (!payload) {
       return ok({
         success: false,
-        error: 'EKKO_QR_INVALIDO',
+        error: 'QR_INVALIDO',
         message: 'QR inválido o firma incorrecta'
       });
     }
@@ -61,7 +61,7 @@ export const handler: Handler = async (event) => {
     if (payload.exp < now) {
       return ok({
         success: false,
-        error: 'EKKO_QR_EXPIRADO',
+        error: 'QR_EXPIRADO',
         message: 'Este QR ya expiró'
       });
     }
@@ -77,9 +77,9 @@ export const handler: Handler = async (event) => {
     });
 
     if (error) {
-      // Traducir errores EKKO_*
+      // Traducir errores generic
       const msg = error.message || '';
-      const errorCode = msg.match(/EKKO_[A-Z_]+/)?.[0] ?? 'EKKO_ERROR_DESCONOCIDO';
+      const errorCode = msg.match(/_[A-Z_]+/)?.[0] ?? 'ERROR_DESCONOCIDO';
       return ok({
         success: false,
         error: errorCode,
@@ -140,16 +140,16 @@ async function hmacSHA256(data: string, secret: string): Promise<string> {
 
 function translateError(code: string, fallback: string): string {
   const map: Record<string, string> = {
-    EKKO_RESERVA_NO_EXISTE: 'Reserva no encontrada',
-    EKKO_TENANT_DIFERENTE: 'Esta reserva no es de este tenant',
-    EKKO_YA_CHECK_IN: 'Este miembro ya hizo check-in',
-    EKKO_RESERVA_CANCELADA: 'Reserva cancelada',
-    EKKO_RESERVA_NO_SHOW: 'Reserva marcada como inasistencia',
-    EKKO_DEMASIADO_TEMPRANO: 'Es muy temprano para el check-in',
-    EKKO_DEMASIADO_TARDE: 'El check-in ya cerró',
-    EKKO_NO_AUTORIZADO: 'No autorizado',
-    EKKO_QR_INVALIDO: 'QR inválido',
-    EKKO_QR_EXPIRADO: 'QR expirado'
+    RESERVA_NO_EXISTE: 'Reserva no encontrada',
+    TENANT_DIFERENTE: 'Esta reserva no es de este tenant',
+    YA_CHECK_IN: 'Este miembro ya hizo check-in',
+    RESERVA_CANCELADA: 'Reserva cancelada',
+    RESERVA_NO_SHOW: 'Reserva marcada como inasistencia',
+    DEMASIADO_TEMPRANO: 'Es muy temprano para el check-in',
+    DEMASIADO_TARDE: 'El check-in ya cerró',
+    NO_AUTORIZADO: 'No autorizado',
+    QR_INVALIDO: 'QR inválido',
+    QR_EXPIRADO: 'QR expirado'
   };
   return map[code] ?? fallback.replace(code + ':', '').trim() ?? fallback;
 }

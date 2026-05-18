@@ -1,6 +1,8 @@
 {
-  "name": "ekko-studio",
+  "name": "sala-studio",
   "version": "0.1.0",
+  "description": "SALA Studio — SaaS para gimnasios y studios de clases",
+  "author": "STRYV",
   "private": true,
   "type": "module",
   "scripts": {

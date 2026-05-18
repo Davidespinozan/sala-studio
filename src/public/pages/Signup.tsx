@@ -191,7 +191,7 @@ export default function Signup() {
         marginBottom: '32px',
         display: 'inline-block'
       }}>
-        ← Volver a EKKO
+        ← Volver a SALA
       </Link>
 
       {/* Plan resumen */}

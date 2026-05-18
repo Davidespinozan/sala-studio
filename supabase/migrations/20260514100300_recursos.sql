@@ -2,7 +2,7 @@
 -- RECURSOS
 -- ============================================================================
 -- Espacios físicos reservables del tenant.
--- EKKO: 3 estudios (Estudio 1, Estudio 2, Black)
+-- SALA: 3 estudios (Estudio 1, Estudio 2, Black)
 -- Yoga: 1 sala con N cupos
 -- Cycling: N bicis numeradas en 1 sala
 -- ============================================================================
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS recursos (
     CHECK (tipo IN ('estudio_individual', 'sala_grupal', 'maquina', 'bici', 'pase_libre')),
 
   -- Capacidad
-  cupos integer NOT NULL DEFAULT 1,             -- 1 para EKKO, 20-30 para yoga/cycling
+  cupos integer NOT NULL DEFAULT 1,             -- 1 para SALA, 20-30 para yoga/cycling
 
   -- Disponibilidad
   -- horarios jsonb: array de bloques semanales
@@ -59,16 +59,16 @@ CREATE TRIGGER recursos_set_updated_at
 
 ALTER TABLE recursos ENABLE ROW LEVEL SECURITY;
 
--- Seed: 3 estudios de EKKO
+-- Seed: 3 estudios de SALA
 DO $$
 DECLARE
-  ekko_tenant_id uuid;
+  sala_tenant_id uuid;
   horarios_default jsonb;
 BEGIN
-  SELECT id INTO ekko_tenant_id FROM tenants WHERE slug = 'ekko';
+  SELECT id INTO sala_tenant_id FROM tenants WHERE slug = 'sala-demo';
 
-  IF ekko_tenant_id IS NULL THEN
-    RAISE NOTICE 'Tenant ekko no existe; saltando seed de recursos';
+  IF sala_tenant_id IS NULL THEN
+    RAISE NOTICE 'Tenant sala-demo no existe; saltando seed de recursos';
     RETURN;
   END IF;
 
@@ -84,8 +84,8 @@ BEGIN
 
   INSERT INTO recursos (tenant_id, slug, nombre, tipo, cupos, horarios, tiers_permitidos, orden)
   VALUES
-    (ekko_tenant_id, 'estudio-1', 'Estudio 1', 'estudio_individual', 1, horarios_default, ARRAY['basica', 'pro'], 1),
-    (ekko_tenant_id, 'estudio-2', 'Estudio 2', 'estudio_individual', 1, horarios_default, ARRAY['basica', 'pro'], 2),
-    (ekko_tenant_id, 'black',     'Black',     'estudio_individual', 1, horarios_default, ARRAY['pro'],          3)
+    (sala_tenant_id, 'estudio-1', 'Estudio 1', 'estudio_individual', 1, horarios_default, ARRAY['basica', 'pro'], 1),
+    (sala_tenant_id, 'estudio-2', 'Estudio 2', 'estudio_individual', 1, horarios_default, ARRAY['basica', 'pro'], 2),
+    (sala_tenant_id, 'black',     'Black',     'estudio_individual', 1, horarios_default, ARRAY['pro'],          3)
   ON CONFLICT (tenant_id, slug) DO NOTHING;
 END $$;

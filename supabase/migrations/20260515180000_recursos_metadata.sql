@@ -20,7 +20,7 @@ COMMENT ON COLUMN recursos.capacidad_personas IS
 COMMENT ON COLUMN recursos.foto_url IS
   'URL pública de la foto principal del estudio (Supabase Storage).';
 
--- Seed para los 3 estudios existentes en tenant 'ekko'
+-- Seed para los 3 estudios existentes en tenant 'sala-demo'
 UPDATE recursos
 SET
   equipo_incluido = ARRAY[
@@ -34,7 +34,7 @@ SET
   estilo_visual = 'Iluminación cálida, fondo neutro madera, atmósfera profesional pero accesible.',
   capacidad_personas = 3
 WHERE slug = 'estudio-1'
-  AND tenant_id = (SELECT id FROM tenants WHERE slug = 'ekko');
+  AND tenant_id = (SELECT id FROM tenants WHERE slug = 'sala-demo');
 
 UPDATE recursos
 SET
@@ -49,7 +49,7 @@ SET
   estilo_visual = 'Espacio versátil con fondo intercambiable, ideal para contenido educativo y reviews.',
   capacidad_personas = 3
 WHERE slug = 'estudio-2'
-  AND tenant_id = (SELECT id FROM tenants WHERE slug = 'ekko');
+  AND tenant_id = (SELECT id FROM tenants WHERE slug = 'sala-demo');
 
 -- NOTA: el slug real del tercer estudio es 'black' (no 'estudio-black'),
 -- según la migración 003_recursos.sql que hizo el seed inicial.
@@ -67,4 +67,4 @@ SET
   estilo_visual = 'Estudio premium con estética cinematográfica. Iluminación dramática controlable. Diseñado para producciones de alto nivel.',
   capacidad_personas = 5
 WHERE slug = 'black'
-  AND tenant_id = (SELECT id FROM tenants WHERE slug = 'ekko');
+  AND tenant_id = (SELECT id FROM tenants WHERE slug = 'sala-demo');

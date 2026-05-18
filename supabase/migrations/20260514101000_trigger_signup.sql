@@ -2,9 +2,9 @@
 -- TRIGGER: on_auth_user_created
 -- ============================================================================
 -- Cuando se crea un usuario en auth.users (signup), crea su fila en usuarios
--- como 'miembro' del tenant que corresponde al subdominio (por ahora, ekko).
+-- como 'miembro' del tenant que corresponde al subdominio (por ahora, sala-demo).
 --
--- IMPORTANTE: el trigger asume signup desde la PWA de EKKO. Para SaaS
+-- IMPORTANTE: el trigger asume signup desde la PWA de SALA. Para SaaS
 -- multi-tenant, el tenant se resolverá del request metadata (raw_user_meta_data)
 -- que el cliente envía al hacer signUp.
 -- ============================================================================
@@ -21,17 +21,17 @@ DECLARE
   v_nombre text;
   v_telefono text;
 BEGIN
-  -- Resolver tenant desde metadata o default a 'ekko'
+  -- Resolver tenant desde metadata o default a 'sala-demo'
   v_tenant_slug := COALESCE(
     NEW.raw_user_meta_data->>'tenant_slug',
-    'ekko'
+    'sala-demo'
   );
 
   SELECT id INTO v_tenant_id FROM tenants WHERE slug = v_tenant_slug;
 
   IF v_tenant_id IS NULL THEN
-    RAISE NOTICE 'Tenant % no existe, usando ekko como fallback', v_tenant_slug;
-    SELECT id INTO v_tenant_id FROM tenants WHERE slug = 'ekko';
+    RAISE NOTICE 'Tenant % no existe, usando sala-demo como fallback', v_tenant_slug;
+    SELECT id INTO v_tenant_id FROM tenants WHERE slug = 'sala-demo';
   END IF;
 
   v_nombre := NEW.raw_user_meta_data->>'nombre';

@@ -107,7 +107,7 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
           <p className="ek-eyebrow" style={{ color: 'var(--ek-danger)' }}>CONFIRMAR PROMOCIÓN A ADMIN</p>
           <h3 className="ek-h3">Esta persona tendrá acceso total</h3>
           <p style={{ color: 'var(--ek-ink-muted)', fontSize: '0.9375rem' }}>
-            <strong>{nombre}</strong> ({email}) podrá ver y modificar TODO en EKKO:
+            <strong>{nombre}</strong> ({email}) podrá ver y modificar TODO en SALA:
             crear/eliminar usuarios, cambiar precios, ver datos privados, cancelar reservas, etc.
             <br /><br />
             ¿Estás seguro?

@@ -1,4 +1,4 @@
-# Deployment — EKKO Studio
+# Deployment — SALA Studio
 
 Placeholder. Se completa en Fase 0.5 cuando hagamos el primer deploy.
 
@@ -20,4 +20,4 @@ Para desarrollo, recomendado dejar OFF mientras se construyen las features.
 4. **Redirect URLs**: agregar `http://localhost:5173/**`
 
 Cuando deploy a producción, actualizar Site URL y Redirect URLs al
-dominio real (`https://ekko.studio` o el que se use).
+dominio real (`https://sala.studio` o el que se use).

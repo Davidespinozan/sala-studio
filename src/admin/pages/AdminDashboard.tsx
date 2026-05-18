@@ -64,7 +64,7 @@ export default function AdminDashboard() {
           marginBottom: '6px'
         }}
       >
-        Hoy en EKKO
+        Hoy en SALA
       </h1>
       <p style={{ fontSize: '14px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '36px' }}>
         {saludo.texto}{nombre ? `, ${nombre}` : ''} {saludo.emoji}

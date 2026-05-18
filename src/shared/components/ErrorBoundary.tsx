@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
             Algo salió mal
           </h1>
           <p style={{ color: 'var(--ek-ink-muted)', marginBottom: '1.5rem', maxWidth: '32rem' }}>
-            Ocurrió un error inesperado. El equipo de EKKO ya fue notificado.
+            Ocurrió un error inesperado. El equipo de SALA ya fue notificado.
           </p>
           <button
             onClick={() => window.location.reload()}
