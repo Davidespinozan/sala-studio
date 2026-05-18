@@ -1,5 +1,10 @@
 -- Tenant inicial demo para SALA Studio
 -- Idempotente: usa ON CONFLICT en `slug` para no duplicar si ya existe.
+--
+-- Estructura del JSON alineada con la migración landing_cms_phase1
+-- (claves esperadas por el CMS: hero.eyebrow/titulo/titulo_accent/cta_texto/cta_link,
+--  cta_final.eyebrow/titulo/cta_texto, footer.tagline/copyright/direccion/email/redes,
+--  contacto.whatsapp_e164/whatsapp_mensaje_default).
 
 INSERT INTO tenants (
   id,
@@ -14,22 +19,35 @@ INSERT INTO tenants (
   jsonb_build_object(
     'landing', jsonb_build_object(
       'hero', jsonb_build_object(
-        'titulo', 'Reserva tu próxima clase',
-        'subtitulo', 'Yoga, Spinning, Crossfit y más en SALA Demo',
-        'cta_text', 'Empieza ahora'
+        'eyebrow', 'SALA DEMO · GIMNASIO',
+        'titulo', 'Reserva tu próxima clase.',
+        'titulo_accent', 'Sin esperas.',
+        'subtitulo', 'Yoga, Spinning, Crossfit y más en SALA Demo. Equipo profesional, horarios flexibles y reserva en segundos.',
+        'cta_texto', 'Empieza ahora →',
+        'cta_link', '#membresias'
       ),
       'cta_final', jsonb_build_object(
-        'titulo', '¿Listo para empezar?',
-        'subtitulo', 'Reserva tu primera clase gratis',
-        'cta_text', 'Crear cuenta'
+        'eyebrow', 'DEMO · GIMNASIO',
+        'titulo', '¿Listo para entrenar?',
+        'subtitulo', 'Reserva tu primera clase gratis. Te mostramos las instalaciones y te ayudamos a elegir tu membresía.',
+        'cta_texto', 'Crear cuenta →'
       ),
       'footer', jsonb_build_object(
-        'copy', '© SALA Demo. Todos los derechos reservados.'
+        'tagline', 'DEMO · GIMNASIO',
+        'copyright', '© SALA Demo. Todos los derechos reservados.',
+        'direccion', NULL,
+        'email', 'demo@sala-studio.com',
+        'redes', jsonb_build_object(
+          'instagram', NULL,
+          'tiktok', NULL,
+          'youtube', NULL,
+          'facebook', NULL
+        )
       )
     ),
     'contacto', jsonb_build_object(
       'whatsapp_e164', '+521234567890',
-      'email', 'demo@sala-studio.com'
+      'whatsapp_mensaje_default', 'Hola, me interesa saber más sobre SALA Demo.'
     )
   ),
   jsonb_build_object(
