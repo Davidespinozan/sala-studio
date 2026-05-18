@@ -16,7 +16,9 @@ import { diaNombre, combinarFechaHora, type HorarioBloque } from './reservaLogic
 // Mocks centralizados — TODO S4: reemplazar por datos reales de tabla `clases`
 // ---------------------------------------------------------------------------
 
-const CUPO_MAX_MOCK = 20;
+// TODO S4: reemplazar por `recurso.cupo_max` real por sala (Yoga 20, Spinning 25,
+// Funcional 15). Valor temporal 8 para que 8 mocks + admin saturen clases de demo.
+const CUPO_MAX_MOCK = 8;
 const MOCK_INSTRUCTORES = ['María', 'Carlos', 'Sofía', 'Diego', 'Lucía', 'Pablo'];
 
 // ---------------------------------------------------------------------------
