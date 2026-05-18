@@ -1,12 +1,16 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { useMiembroDetalle, updateMiembro, adminUpdateRole } from '../hooks/useAdminData';
+import { useMiembroDetalle, updateMiembro, adminUpdateRole, adminDeleteUser } from '../hooks/useAdminData';
 import { supabase } from '@shared/lib/supabase';
+import { useToast } from '@shared/hooks/useToast';
 import { formatHora } from '@member/logic/reservaLogic';
+import ConfirmDialog from '../components/ConfirmDialog';
 import type { Database } from '@shared/types/database';
 
 export default function MiembroDetalle() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const toast = useToast();
   const { miembro, reservas, isLoading, refetch } = useMiembroDetalle(id);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -14,6 +18,8 @@ export default function MiembroDetalle() {
     status: '',
     membresia_tier: ''
   });
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (miembro) {
@@ -37,6 +43,20 @@ export default function MiembroDetalle() {
       await refetch();
     }
     setSaving(false);
+  }
+
+  async function handleDelete() {
+    if (!miembro) return;
+    setDeleting(true);
+    const { data, error: err } = await adminDeleteUser({ usuarioId: miembro.id });
+    setDeleting(false);
+    if (err) {
+      toast.error(err.error);
+      setShowDelete(false);
+      return;
+    }
+    toast.success(`${data.email} eliminado. El email queda liberado para re-uso.`);
+    navigate('/admin/miembros');
   }
 
   return (
@@ -171,6 +191,65 @@ export default function MiembroDetalle() {
           </div>
         )}
       </section>
+
+      <section
+        style={{
+          marginTop: '3rem',
+          padding: '20px 24px',
+          background: 'var(--sala-error-bg)',
+          border: '1px solid rgba(196, 74, 53, 0.30)',
+          borderRadius: '14px'
+        }}
+      >
+        <p
+          style={{
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'var(--sala-error)',
+            margin: 0,
+            marginBottom: '8px'
+          }}
+        >
+          Zona peligrosa
+        </p>
+        <p style={{ fontSize: '14px', color: 'var(--sala-text-primary)', margin: 0, marginBottom: '6px', lineHeight: 1.5 }}>
+          Eliminar al miembro libera el email <strong>{miembro.email}</strong> para re-uso inmediato. La acción es permanente.
+        </p>
+        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '16px', lineHeight: 1.5 }}>
+          Si el miembro tiene reservas en historial, vas a tener que cancelarlas primero o usar <strong>Suspender</strong> arriba (status="cancelado") en su lugar.
+        </p>
+        <button
+          type="button"
+          onClick={() => setShowDelete(true)}
+          style={{
+            background: 'var(--sala-error)',
+            color: 'var(--sala-text-on-accent)',
+            border: '1px solid var(--sala-error)',
+            borderRadius: '10px',
+            padding: '10px 18px',
+            minHeight: '40px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: 'inherit'
+          }}
+        >
+          Eliminar definitivamente
+        </button>
+      </section>
+
+      <ConfirmDialog
+        isOpen={showDelete}
+        title={`¿Eliminar a ${miembro.nombre ?? miembro.email}?`}
+        description={`Esta acción es permanente. El email "${miembro.email}" queda liberado para re-uso. Escribí ELIMINAR para confirmar.`}
+        confirmLabel={deleting ? 'Eliminando…' : 'Eliminar definitivamente'}
+        variant="danger"
+        requireTypedConfirmation="ELIMINAR"
+        onConfirm={handleDelete}
+        onCancel={() => !deleting && setShowDelete(false)}
+      />
     </div>
   );
 }

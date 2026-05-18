@@ -535,3 +535,50 @@ export async function adminUpdateRole(params: {
 }) {
   return backendPost<{ success: boolean }>('admin-update-role', params);
 }
+
+/** Hard delete real vía auth.admin.deleteUser (libera el email para re-uso).
+ *
+ *  Devuelve envelope `{ data, error }` (no usa backendPost para poder
+ *  exponer el body del 409 con `reservas_count` y orientar al admin a usar
+ *  "Revocar acceso" en lugar de eliminar.
+ *
+ *  Errores comunes:
+ *   - 403 último admin / auto-delete / cross-tenant
+ *   - 409 tiene reservas en historial (con reservas_count)
+ *   - 400 usuarioId inválido
+ */
+export interface AdminDeleteError {
+  status: number;
+  error: string;
+  reservas_count?: number;
+}
+
+export async function adminDeleteUser(params: { usuarioId: string }): Promise<
+  | { data: { success: true; email: string }; error: null }
+  | { data: null; error: AdminDeleteError }
+> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+
+  const res = await fetch('/.netlify/functions/admin-delete-user', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(params)
+  });
+
+  const body = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    return {
+      data: null,
+      error: {
+        status: res.status,
+        error: (body as { error?: string }).error ?? `Error HTTP ${res.status}`,
+        reservas_count: (body as { reservas_count?: number }).reservas_count
+      }
+    };
+  }
+
+  return { data: body as { success: true; email: string }, error: null };
+}

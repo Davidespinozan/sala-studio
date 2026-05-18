@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@shared/lib/supabase';
-import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
+import { adminCreateUser } from '../hooks/useAdminData';
 
 type Rol = 'admin' | 'recepcionista';
 
@@ -19,7 +18,6 @@ interface Props {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function CrearAccesoModal({ onClose, onSuccess }: Props) {
-  const tenant = useTenant();
   const toast = useToast();
 
   const [nombre, setNombre] = useState('');
@@ -60,48 +58,24 @@ export default function CrearAccesoModal({ onClose, onSuccess }: Props) {
     setError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Sesión expirada. Iniciá sesión nuevamente.');
-      }
-
-      const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-      if (!url) {
-        throw new Error('VITE_SUPABASE_URL no configurada.');
-      }
-
       const emailNorm = email.trim().toLowerCase();
       const nombreNorm = nombre.trim();
 
-      const response = await fetch(`${url}/functions/v1/create-team-member`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          email: emailNorm,
-          password,
-          nombre: nombreNorm,
-          rol,
-          tenant_id: tenant.id
-        })
+      // Usa Netlify Function admin-create-user (no la Edge Function fantasma
+      // create-team-member que vivía rota en el dashboard de Supabase).
+      // tenant_id NO se manda — la function lo extrae del admin caller para
+      // evitar exploits cross-tenant.
+      await adminCreateUser({
+        email: emailNorm,
+        password,
+        nombre: nombreNorm,
+        rol
       });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        const msg =
-          response.status === 409
-            ? 'Ya existe un usuario con este email en el tenant.'
-            : (result?.error as string) || `Error creando acceso (HTTP ${response.status})`;
-        throw new Error(msg);
-      }
 
       onSuccess({ nombre: nombreNorm, email: emailNorm, password });
       onClose();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      const msg = err instanceof Error ? err.message : 'No pudimos crear el acceso. Probá de nuevo.';
       setError(msg);
       toast.error(msg);
     } finally {

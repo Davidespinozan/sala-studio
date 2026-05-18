@@ -4,6 +4,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
 import { canModifyTeamMember, revokeTeamMember } from '../lib/crudHelpers';
+import { adminDeleteUser } from '../hooks/useAdminData';
 import CardMenuDropdown from '../components/CardMenuDropdown';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CrearAccesoModal, { type CredencialesCreadas } from '../components/CrearAccesoModal';
@@ -43,6 +44,8 @@ export default function Equipo() {
   const [credencialesCreadas, setCredencialesCreadas] = useState<CredencialesCreadas | null>(null);
   const [cambioRol, setCambioRol] = useState<{ usuario: Usuario; rol: RolStaff } | null>(null);
   const [revoke, setRevoke] = useState<RevokeState>(null);
+  const [eliminar, setEliminar] = useState<Usuario | null>(null);
+  const [eliminando, setEliminando] = useState(false);
 
   const refetch = useCallback(async () => {
     setIsLoading(true);
@@ -112,6 +115,21 @@ export default function Equipo() {
     await refetch();
   }
 
+  async function handleEliminar() {
+    if (!eliminar) return;
+    setEliminando(true);
+    const { data, error } = await adminDeleteUser({ usuarioId: eliminar.id });
+    setEliminando(false);
+    if (error) {
+      toast.error(error.error);
+      setEliminar(null);
+      return;
+    }
+    toast.success(`${data.email} eliminado. El email queda liberado para re-uso.`);
+    setEliminar(null);
+    await refetch();
+  }
+
   return (
     <div className="adm-page">
       <div
@@ -145,6 +163,7 @@ export default function Equipo() {
                   currentUserId={currentUser?.id}
                   onCambiarRol={() => setCambioRol({ usuario: u, rol: 'admin' })}
                   onRevoke={() => startRevoke(u)}
+                  onEliminar={() => setEliminar(u)}
                 />
               ))}
             </Section>
@@ -159,6 +178,7 @@ export default function Equipo() {
                   currentUserId={currentUser?.id}
                   onCambiarRol={() => setCambioRol({ usuario: u, rol: 'recepcionista' })}
                   onRevoke={() => startRevoke(u)}
+                  onEliminar={() => setEliminar(u)}
                 />
               ))}
             </Section>
@@ -249,7 +269,7 @@ export default function Equipo() {
             ? 'Verificando permisos…'
             : revoke?.status === 'blocked'
             ? revoke.reason ?? 'No se puede revocar.'
-            : 'No podrá entrar al sistema. Sus datos quedan en BD para auditoría. Puedes restaurar el acceso después.'
+            : 'No podrá entrar al sistema. Sus datos quedan en BD para auditoría. Podés restaurar el acceso después.'
         }
         confirmLabel="Revocar acceso"
         variant={revoke?.status === 'blocked' ? 'danger' : 'warning'}
@@ -257,6 +277,21 @@ export default function Equipo() {
         requireTypedConfirmation={revoke?.status === 'ready' ? 'REVOCAR' : undefined}
         onConfirm={handleRevoke}
         onCancel={() => setRevoke(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={eliminar !== null}
+        title={eliminar ? `¿Eliminar definitivamente a ${capitalizar(eliminar.nombre) || eliminar.email}?` : ''}
+        description={
+          eliminar
+            ? `Acción permanente. El email "${eliminar.email}" queda liberado para re-uso inmediato. Si tiene reservas en historial, vas a tener que cancelarlas o usar "Revocar acceso" en lugar. Escribí ELIMINAR para confirmar.`
+            : ''
+        }
+        confirmLabel={eliminando ? 'Eliminando…' : 'Eliminar definitivamente'}
+        variant="danger"
+        requireTypedConfirmation="ELIMINAR"
+        onConfirm={handleEliminar}
+        onCancel={() => !eliminando && setEliminar(null)}
       />
     </div>
   );
@@ -280,12 +315,14 @@ function PersonaCard({
   usuario: u,
   currentUserId,
   onCambiarRol,
-  onRevoke
+  onRevoke,
+  onEliminar
 }: {
   usuario: Usuario;
   currentUserId: string | undefined;
   onCambiarRol: () => void;
   onRevoke: () => void;
+  onEliminar: () => void;
 }) {
   const esYo = u.id === currentUserId;
   const nombre = capitalizar(u.nombre) || u.email;
@@ -343,7 +380,10 @@ function PersonaCard({
       <CardMenuDropdown
         items={[
           { label: 'Cambiar rol', icon: '🔄', onClick: onCambiarRol },
-          { label: 'Revocar acceso', icon: '🚫', onClick: onRevoke, danger: true, divider: true }
+          { label: 'Revocar acceso', icon: '🚫', onClick: onRevoke, danger: true, divider: true },
+          ...(esYo ? [] : [
+            { label: 'Eliminar definitivamente', icon: '⚠️', onClick: onEliminar, danger: true }
+          ])
         ]}
       />
     </div>
