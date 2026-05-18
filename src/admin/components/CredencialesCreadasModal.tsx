@@ -23,7 +23,7 @@ function buildCredencialesText(c: CredencialesCreadas): string {
     `Email: ${c.email}`,
     `Contraseña: ${c.password}`,
     '',
-    `Inicia sesión en: ${origin}/login`
+    `Iniciá sesión en: ${origin}/login`
   ].join('\n');
 }
 
@@ -56,7 +56,7 @@ export default function CredencialesCreadasModal({ isOpen, credenciales, onClose
       toast.success('Credenciales copiadas al portapapeles.');
       setTimeout(() => setCopiado(false), 2000);
     } catch {
-      toast.error('No se pudo copiar al portapapeles. Copia manualmente.');
+      toast.error('No pudimos copiar al portapapeles. Copialas manualmente.');
     }
   }
 
@@ -109,10 +109,10 @@ export default function CredencialesCreadasModal({ isOpen, credenciales, onClose
             marginBottom: '8px'
           }}
         >
-          Comparte estas credenciales con la persona
+          Compartí estas credenciales con la persona
         </h3>
         <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '20px' }}>
-          Cópialas ahora — por seguridad no podrás volver a ver la contraseña.
+          Copialas ahora — por seguridad no vas a poder volver a ver la contraseña.
         </p>
 
         <div

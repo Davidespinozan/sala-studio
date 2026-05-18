@@ -64,7 +64,7 @@ export default function CambiarRolModal({
     }
 
     if (usuarioId === currentUser.id) {
-      setError('No puedes cambiar tu propio rol. Pídele a otro admin que lo haga.');
+      setError('No podés cambiar tu propio rol. Pedile a otro admin que lo haga.');
       setSubmitting(false);
       return;
     }

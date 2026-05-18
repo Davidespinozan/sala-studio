@@ -119,7 +119,7 @@ describe('canModifyTeamMember', () => {
       'tenant-1'
     );
     expect(result.canModify).toBe(false);
-    expect(result.reason).toContain('modificarte a ti mismo');
+    expect(result.reason).toMatch(/modificarte/i);
     expect(supabase.rpc).not.toHaveBeenCalled();
   });
 

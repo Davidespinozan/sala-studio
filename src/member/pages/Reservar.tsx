@@ -266,7 +266,7 @@ export default function Reservar() {
                   ? undefined
                   : slot.razon === 'pasado' ? 'Ya pasó'
                   : slot.razon === 'ocupado' ? 'Ya reservado'
-                  : slot.razon === 'continuo' ? 'No puedes reservar continuas'
+                  : slot.razon === 'continuo' ? 'No podés reservar continuas'
                   : slot.razon === 'anticipacion_insuficiente' ? 'Anticipación insuficiente'
                   : 'No disponible';
 

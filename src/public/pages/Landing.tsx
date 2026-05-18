@@ -534,7 +534,7 @@ export default function Landing() {
           margin: 0,
           marginBottom: '48px'
         }}>
-          Lo que probablemente quieres saber.
+          Lo que probablemente querés saber.
         </h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

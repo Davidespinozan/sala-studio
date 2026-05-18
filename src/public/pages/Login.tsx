@@ -29,7 +29,7 @@ export default function Login() {
       // El useRoleRedirect del PublicLayout mueve al área correcta según rol.
       navigate('/', { replace: true });
     } catch (err) {
-      setError('Error inesperado. Intenta de nuevo.');
+      setError('Error inesperado. Intentá de nuevo.');
       setIsSubmitting(false);
     }
   }
@@ -107,10 +107,10 @@ function traducirError(message: string): string {
     return 'Email o contraseña incorrectos';
   }
   if (message.includes('Email not confirmed')) {
-    return 'Necesitas confirmar tu email primero';
+    return 'Necesitás confirmar tu email primero';
   }
   if (message.includes('Too many requests')) {
-    return 'Demasiados intentos. Espera unos minutos.';
+    return 'Demasiados intentos. Esperá unos minutos.';
   }
   return message;
 }

@@ -100,7 +100,7 @@ export default function Dashboard() {
 
   const ahora = new Date();
   const bloqueado = usuario?.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > ahora;
-  const nombreFormat = capitalizarNombre(usuario?.nombre) || 'miembro';
+  const nombreFormat = capitalizarNombre(usuario?.nombre);
   const proximaReserva = proximasReservas[0];
 
   return (
@@ -132,7 +132,7 @@ export default function Dashboard() {
       <div style={{ marginBottom: '28px' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>BIENVENIDA</p>
         <h1 className="ek-display-xl">
-          Hola, {nombreFormat}.
+          {nombreFormat ? `Hola, ${nombreFormat}.` : 'Hola.'}
         </h1>
       </div>
 

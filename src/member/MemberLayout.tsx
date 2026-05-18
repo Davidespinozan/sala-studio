@@ -17,13 +17,13 @@ const EstudioDetalle = lazy(() => import('./pages/EstudioDetalle'));
 
 function mensajeStatus(status: string): string {
   if (status === 'suspendido')
-    return 'Tu cuenta ha sido suspendida. Contacta al administrador para más información.';
-  if (status === 'cancelado') return 'Tu cuenta ha sido cancelada.';
+    return 'Tu cuenta fue suspendida. Contactá al administrador para más información.';
+  if (status === 'cancelado') return 'Tu cuenta fue cancelada.';
   if (status === 'pendiente_onboarding')
-    return 'Tu cuenta aún no completa el onboarding. Contacta al administrador.';
+    return 'Tu cuenta aún no completa el onboarding. Contactá al administrador.';
   if (status === 'pendiente_pago')
-    return 'Tu cuenta está pendiente de pago. Contacta al administrador.';
-  return 'Tu cuenta no está activa. Contacta al administrador.';
+    return 'Tu cuenta está pendiente de pago. Contactá al administrador.';
+  return 'Tu cuenta no está activa. Contactá al administrador.';
 }
 
 export default function MemberLayout() {

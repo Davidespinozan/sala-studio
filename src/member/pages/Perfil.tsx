@@ -194,7 +194,7 @@ export default function Perfil() {
           <h2 className="ek-display-md" style={{ marginBottom: '16px' }}>Reservas pasadas</h2>
 
           {reservas.length === 0 ? (
-            <p className="ek-body-muted">Aún no tienes sesiones completadas.</p>
+            <p className="ek-body-muted">Aún no tenés sesiones completadas.</p>
           ) : (
             <div className="ek-stack-sm">
               {reservas.map((r) => (

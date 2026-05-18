@@ -79,11 +79,11 @@ export default function AjustesMarca() {
 
     setIsSaving(false);
     if (error) {
-      toast.error(`No se pudo guardar: ${error.message}`);
+      toast.error('No pudimos guardar los cambios. Probá de nuevo.');
       return;
     }
     setOriginalJson(JSON.stringify(draft));
-    toast.success('Marca actualizada. Recarga para ver los cambios en sidebar.');
+    toast.success('Marca actualizada. Recargá para ver los cambios en sidebar.');
   }
 
   return (

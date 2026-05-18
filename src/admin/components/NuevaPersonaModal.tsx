@@ -66,7 +66,7 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
       <div className="adm-modal-backdrop" onClick={async () => { await onCreated(); }}>
         <div className="adm-modal" onClick={(e) => e.stopPropagation()}>
           <p className="ek-eyebrow" style={{ color: 'var(--ek-success)' }}>CUENTA CREADA</p>
-          <h3 className="ek-h3">Comparte estas credenciales</h3>
+          <h3 className="ek-h3">Compartí estas credenciales</h3>
 
           <p style={{ color: 'var(--ek-ink-muted)', fontSize: '0.9375rem' }}>
             Cuenta lista para usar. Envíalas por WhatsApp o en persona.

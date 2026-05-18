@@ -62,7 +62,7 @@ export default function CrearAccesoModal({ onClose, onSuccess }: Props) {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+        throw new Error('Sesión expirada. Iniciá sesión nuevamente.');
       }
 
       const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -225,7 +225,7 @@ export default function CrearAccesoModal({ onClose, onSuccess }: Props) {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="ek-input"
-            placeholder="Repite la contraseña"
+            placeholder="Repetí la contraseña"
             required
             disabled={submitting}
             autoComplete="new-password"

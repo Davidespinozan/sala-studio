@@ -154,13 +154,13 @@ export default function Signup() {
       });
 
       if (loginError) {
-        throw new Error('Cuenta creada pero error al iniciar sesión. Inicia sesión manualmente.');
+        throw new Error('Cuenta creada pero error al iniciar sesión. Iniciá sesión manualmente.');
       }
 
       navigate('/app');
     } catch (err) {
       console.error('[Signup]', err);
-      setError(err instanceof Error ? err.message : 'Error inesperado. Intenta de nuevo.');
+      setError(err instanceof Error ? err.message : 'Error inesperado. Intentá de nuevo.');
       setIsProcessing(false);
     }
   }
@@ -378,7 +378,7 @@ export default function Signup() {
           textAlign: 'center',
           marginTop: '12px'
         }}>
-          ¿Ya tienes cuenta? <Link to="/login" style={{ color: 'var(--ek-mustard)' }}>Iniciar sesión</Link>
+          ¿Ya tenés cuenta? <Link to="/login" style={{ color: 'var(--ek-mustard)' }}>Iniciar sesión</Link>
         </p>
       </form>
     </div>

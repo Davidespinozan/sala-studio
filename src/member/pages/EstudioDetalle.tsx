@@ -204,7 +204,7 @@ export default function EstudioDetalle() {
             className="ek-cta ek-cta--full"
             style={{ minHeight: '52px', fontSize: '15px' }}
           >
-            Reservar clase →
+            Reservar →
           </Link>
         ) : (
           <div className="ek-card" style={{

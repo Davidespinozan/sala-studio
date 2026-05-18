@@ -291,7 +291,7 @@ export default function Recursos() {
       <ConfirmDialog
         isOpen={archivando !== null}
         title={archivando ? `¿Eliminar “${archivando.nombre}”?` : ''}
-        description="Esta sala se moverá a Eliminadas: deja de aparecer en la landing y no se podrá reservar, pero las reservas históricas se conservan. La puedes recuperar después."
+        description="Esta sala se moverá a Eliminadas: deja de aparecer en la landing y no se podrá reservar, pero las reservas históricas se conservan. La podés recuperar después."
         confirmLabel="Eliminar"
         variant="warning"
         onConfirm={handleArchivar}

@@ -222,7 +222,7 @@ export async function canModifyTeamMember(
   if (targetUserId === currentUserId) {
     return {
       canModify: false,
-      reason: 'No puedes modificarte a ti mismo. Pídele a otro admin que lo haga.'
+      reason: 'No podés modificarte a vos mismo. Pedile a otro admin que lo haga.'
     };
   }
 
@@ -312,17 +312,21 @@ export async function cancelarReserva(
     });
 
     const recursoNombre = (reserva as unknown as { recurso?: { nombre?: string } | null })
-      ?.recurso?.nombre ?? 'la sala';
+      ?.recurso?.nombre ?? null;
 
     const usuarioId = (reserva as unknown as { usuario?: { id?: string } }).usuario?.id
       ?? reserva.usuario_id;
+
+    const mensaje = recursoNombre
+      ? `Tu clase en ${recursoNombre} del ${fecha} fue cancelada por administración. Motivo: ${motivo}`
+      : `Tu clase del ${fecha} fue cancelada por administración. Motivo: ${motivo}`;
 
     await supabase.from('notificaciones').insert({
       tenant_id: reserva.tenant_id,
       usuario_id: usuarioId,
       tipo: 'reserva_cancelada',
       titulo: 'Tu reserva fue cancelada',
-      mensaje: `Tu clase en ${recursoNombre} para ${fecha} fue cancelada por administración. Motivo: ${motivo}`,
+      mensaje,
       metadata: {
         reserva_id: reservaId,
         recurso_nombre: recursoNombre,
