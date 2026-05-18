@@ -21,6 +21,14 @@
 SET TIME ZONE 'America/Mexico_City';
 
 -- =============================================================================
+-- 0. Schema fix: drop EKKO-era unique constraint (1 reserva = 1 slot privado)
+-- =============================================================================
+-- Para modelo gym (N personas por clase en mismo slot), este constraint sobra.
+-- Migración propia: supabase/migrations/20260518100000_drop_unique_slot_constraint.sql
+-- TODO S4: re-agregar como trigger condicional sobre clases.cupo_max.
+DROP INDEX IF EXISTS reservas_unique_slot_per_recurso;
+
+-- =============================================================================
 -- 1. Pre-flight check
 -- =============================================================================
 DO $$
