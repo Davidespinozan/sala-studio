@@ -69,7 +69,7 @@ export default function CredencialesCreadasModal({ isOpen, credenciales, onClose
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0, 0, 0, 0.85)',
+        background: 'rgba(26, 31, 28, 0.55)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         zIndex: 110,

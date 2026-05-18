@@ -47,7 +47,7 @@ export default function EstudioModal({ estudio, onClose }: Props) {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0, 0, 0, 0.85)',
+        background: 'rgba(26, 31, 28, 0.55)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         zIndex: 100,
@@ -84,7 +84,7 @@ export default function EstudioModal({ estudio, onClose }: Props) {
             height: '36px',
             borderRadius: '50%',
             border: '0.5px solid var(--ek-line)',
-            background: 'rgba(10, 10, 10, 0.7)',
+            background: 'rgba(250, 250, 247, 0.85)',
             backdropFilter: 'blur(20px)',
             color: 'var(--ek-ink)',
             cursor: 'pointer',

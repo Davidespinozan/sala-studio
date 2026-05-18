@@ -154,7 +154,7 @@ export default function Landing() {
           right: '-200px',
           width: '500px',
           height: '500px',
-          background: 'radial-gradient(circle, rgba(229, 184, 41, 0.12), transparent 70%)',
+          background: 'radial-gradient(circle, rgba(61, 107, 82, 0.12), transparent 70%)',
           borderRadius: '50%',
           pointerEvents: 'none'
         }} />
@@ -451,7 +451,7 @@ export default function Landing() {
                     ...(esPro && {
                       borderColor: 'var(--ek-mustard)',
                       boxShadow:
-                        '0 0 0 1px var(--ek-mustard-dim), 0 20px 60px rgba(229, 184, 41, 0.08)'
+                        '0 0 0 1px var(--ek-mustard-dim), 0 20px 60px rgba(61, 107, 82, 0.08)'
                     })
                   }}
                 >
@@ -609,7 +609,7 @@ export default function Landing() {
             right: '-100px',
             width: '300px',
             height: '300px',
-            background: 'radial-gradient(circle, rgba(229, 184, 41, 0.1), transparent 70%)',
+            background: 'radial-gradient(circle, rgba(61, 107, 82, 0.1), transparent 70%)',
             borderRadius: '50%',
             pointerEvents: 'none'
           }} />

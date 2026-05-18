@@ -107,7 +107,7 @@ export default function Dashboard() {
     <div className="ek-container">
       {bloqueado && (
         <div className="ek-card ek-card--md" style={{
-          borderColor: 'rgba(226, 85, 85, 0.3)',
+          borderColor: 'rgba(196, 74, 53, 0.3)',
           background: 'var(--ek-danger-soft)',
           marginBottom: '24px'
         }}>

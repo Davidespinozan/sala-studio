@@ -27,27 +27,27 @@ const DEFAULT_DURATION: Record<ToastVariant, number> = {
 
 const VARIANT_STYLES: Record<ToastVariant, { bg: string; border: string; color: string; icon: string }> = {
   success: {
-    bg: 'rgba(34, 197, 94, 0.15)',
-    border: 'rgb(34, 197, 94)',
-    color: 'rgb(74, 222, 128)',
+    bg: 'var(--sala-success-bg)',
+    border: 'var(--sala-success)',
+    color: 'var(--sala-success)',
     icon: '✓'
   },
   error: {
-    bg: 'rgba(239, 68, 68, 0.15)',
-    border: 'rgb(239, 68, 68)',
-    color: 'rgb(248, 113, 113)',
+    bg: 'var(--sala-error-bg)',
+    border: 'var(--sala-error)',
+    color: 'var(--sala-error)',
     icon: '✕'
   },
   warning: {
-    bg: 'var(--ek-mustard-soft)',
-    border: 'var(--ek-mustard)',
-    color: 'var(--ek-mustard)',
+    bg: 'var(--sala-warning-bg)',
+    border: 'var(--sala-warning)',
+    color: 'var(--sala-warning)',
     icon: '⚠'
   },
   info: {
-    bg: 'rgba(59, 130, 246, 0.15)',
-    border: 'rgb(59, 130, 246)',
-    color: 'rgb(96, 165, 250)',
+    bg: 'var(--sala-primary-light)',
+    border: 'var(--sala-primary)',
+    color: 'var(--sala-primary)',
     icon: 'ℹ'
   }
 };
@@ -131,9 +131,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 color: style.color,
                 fontSize: '13px',
                 lineHeight: 1.4,
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+                boxShadow: '0 8px 24px rgba(26, 31, 28, 0.12)',
                 animation: 'ek-toast-slide 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
             >

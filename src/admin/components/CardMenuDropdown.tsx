@@ -50,10 +50,10 @@ export default function CardMenuDropdown({ items }: Props) {
               top: 'calc(100% + 4px)',
               right: 0,
               minWidth: '220px',
-              background: 'var(--ek-bg-soft)',
+              background: 'var(--sala-surface)',
               border: '0.5px solid var(--ek-line)',
               borderRadius: '12px',
-              boxShadow: '0 12px 32px rgba(0, 0, 0, 0.5)',
+              boxShadow: '0 12px 32px rgba(26, 31, 28, 0.16)',
               padding: '6px',
               zIndex: 50,
               animation: 'ek-fade-in 0.12s ease'

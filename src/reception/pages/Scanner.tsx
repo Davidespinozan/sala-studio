@@ -128,7 +128,7 @@ export default function Scanner() {
           color: 'var(--ek-bg)',
           border: 'none',
           boxShadow:
-            '0 8px 32px rgba(229, 184, 41, 0.35), 0 4px 12px rgba(0, 0, 0, 0.4)',
+            '0 8px 32px rgba(61, 107, 82, 0.35), 0 4px 12px rgba(0, 0, 0, 0.4)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -139,12 +139,12 @@ export default function Scanner() {
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'scale(1.05)';
           e.currentTarget.style.boxShadow =
-            '0 12px 40px rgba(229, 184, 41, 0.45), 0 6px 16px rgba(0, 0, 0, 0.5)';
+            '0 12px 40px rgba(61, 107, 82, 0.45), 0 6px 16px rgba(0, 0, 0, 0.5)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'scale(1)';
           e.currentTarget.style.boxShadow =
-            '0 8px 32px rgba(229, 184, 41, 0.35), 0 4px 12px rgba(0, 0, 0, 0.4)';
+            '0 8px 32px rgba(61, 107, 82, 0.35), 0 4px 12px rgba(0, 0, 0, 0.4)';
         }}
       >
         <svg

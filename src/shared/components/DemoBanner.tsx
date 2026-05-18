@@ -37,17 +37,15 @@ export function DemoBanner({ vista }: DemoBannerProps) {
         position: 'sticky',
         top: 0,
         zIndex: 80,
-        background: 'var(--ek-mustard)',
-        color: 'var(--ek-bg)',
+        background: 'var(--sala-primary)',
+        color: 'var(--sala-text-on-primary)',
         padding: '10px 16px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: '16px',
-        borderBottom: '0.5px solid var(--ek-mustard-dim)',
-        fontWeight: 500,
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)'
+        borderBottom: '0.5px solid var(--sala-primary-hover)',
+        fontWeight: 500
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
@@ -60,9 +58,9 @@ export function DemoBanner({ vista }: DemoBannerProps) {
         type="button"
         onClick={handleVolver}
         style={{
-          background: 'rgba(10, 10, 10, 0.1)',
-          color: 'var(--ek-bg)',
-          border: '0.5px solid rgba(10, 10, 10, 0.3)',
+          background: 'rgba(255, 255, 255, 0.18)',
+          color: 'var(--sala-text-on-primary)',
+          border: '0.5px solid rgba(255, 255, 255, 0.4)',
           borderRadius: 'var(--ek-r-sm)',
           padding: '6px 12px',
           fontSize: '12px',

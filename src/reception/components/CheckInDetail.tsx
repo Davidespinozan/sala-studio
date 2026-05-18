@@ -60,14 +60,14 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, errorMes
       <div className="rec-detail rec-detail--error">
         <p className="rec-detail-eyebrow">⚠ NO PUEDE ENTRAR</p>
         <p className="rec-detail-error-message">{errorMessage ?? 'QR no válido'}</p>
-        <p style={{ color: 'rgba(245,241,232,0.6)', fontSize: '0.875rem', marginTop: '1rem' }}>
+        <p style={{ color: 'var(--sala-text-secondary)', fontSize: '0.875rem', marginTop: '1rem' }}>
           Si necesitás anular o aclarar, avisá a admin.
         </p>
         <div className="rec-detail-footer">
           <button onClick={onClose} className="ek-cta ek-cta--full">
             Entendido
           </button>
-          <p style={{ fontSize: '0.75rem', color: 'rgba(245,241,232,0.4)', marginTop: '0.5rem' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--sala-text-tertiary)', marginTop: '0.5rem' }}>
             Cierra en {secondsLeft}s
           </p>
         </div>
@@ -82,7 +82,7 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, errorMes
   });
 
   const tierLabel = miembro.membresia_tier === 'pro' ? '★ PRO' : miembro.membresia_tier === 'basica' ? 'BÁSICA' : 'SIN PLAN';
-  const tierColor = miembro.membresia_tier === 'pro' ? 'var(--ek-mustard)' : 'rgba(245,241,232,0.7)';
+  const tierColor = miembro.membresia_tier === 'pro' ? 'var(--sala-primary)' : 'var(--sala-text-secondary)';
 
   return (
     <div className="rec-detail rec-detail--success">
@@ -129,7 +129,7 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, errorMes
         <button onClick={onClose} className="ek-cta ek-cta--full">
           Listo
         </button>
-        <p style={{ fontSize: '0.75rem', color: 'rgba(245,241,232,0.4)', marginTop: '0.5rem' }}>
+        <p style={{ fontSize: '0.75rem', color: 'var(--sala-text-tertiary)', marginTop: '0.5rem' }}>
           Cierra en {secondsLeft}s
         </p>
       </div>
@@ -145,7 +145,7 @@ function Cell({ label, value, mono, color }: { label: string; value: string; mon
         className="rec-detail-value"
         style={{
           fontFamily: mono ? 'var(--ek-font-mono)' : 'inherit',
-          color: color ?? 'var(--ek-cream)'
+          color: color ?? 'var(--ek-ink)'
         }}
       >
         {value}

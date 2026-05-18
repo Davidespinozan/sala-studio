@@ -338,7 +338,7 @@ export default function Signup() {
 
         {error && (
           <div style={{
-            background: 'rgba(226, 85, 85, 0.1)',
+            background: 'var(--sala-error-bg)',
             border: '0.5px solid var(--ek-danger)',
             borderRadius: 'var(--ek-r-sm)',
             padding: '12px 16px',

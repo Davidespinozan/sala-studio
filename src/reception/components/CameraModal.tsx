@@ -69,8 +69,8 @@ export function CameraModal({ onClose, onScan }: Props) {
         <div className="rec-camera-wrap">
           {cameraError ? (
             <div className="rec-camera-error">
-              <p className="ek-h3" style={{ color: 'var(--ek-cream)' }}>Sin cámara</p>
-              <p style={{ color: 'rgba(245,241,232,0.7)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+              <p className="ek-h3" style={{ color: '#FFFFFF' }}>Sin cámara</p>
+              <p style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
                 {cameraError}
               </p>
             </div>

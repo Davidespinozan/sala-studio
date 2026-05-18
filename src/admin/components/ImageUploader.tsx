@@ -119,7 +119,7 @@ export default function ImageUploader({
                 width: '32px',
                 height: '32px',
                 padding: 0,
-                background: 'rgba(10, 10, 10, 0.85)',
+                background: 'rgba(26, 31, 28, 0.85)',
                 fontSize: '16px'
               }}
               aria-label="Quitar imagen"
