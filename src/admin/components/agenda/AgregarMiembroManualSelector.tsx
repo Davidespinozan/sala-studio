@@ -75,7 +75,16 @@ export function AgregarMiembroManualSelector({
       toast.error(msg);
       return;
     }
-    toast.success(`${m.nombre ?? m.email} agregado a la clase.`);
+    // Toast contextual según anticipación al inicio de la clase
+    const nombre = m.nombre ?? m.email;
+    const minutosHastaClase = (clase.slotInicio.getTime() - Date.now()) / 60000;
+    if (minutosHastaClase < 0) {
+      toast.info(`Inscribiste a ${nombre} en una clase que ya comenzó.`);
+    } else if (minutosHastaClase < 15) {
+      toast.info(`Inscribiste a ${nombre} en una clase que arranca en menos de 15 minutos.`);
+    } else {
+      toast.success(`${nombre} agregado a la clase.`);
+    }
     setQuery('');
     setResultados([]);
     onAdded();

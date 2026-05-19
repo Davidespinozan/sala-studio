@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
 import CardMenuDropdown from './CardMenuDropdown';
+import ConfirmDialog from './ConfirmDialog';
+import { marcarAsistenciaAdmin, marcarNoShowAdmin } from '@admin/hooks/useInscritosDeClase';
 import type { Database } from '@shared/types/database';
 
 type Recurso = Pick<Database['public']['Tables']['recursos']['Row'], 'id' | 'nombre'>;
@@ -64,6 +67,7 @@ interface Props {
 export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancelar }: Props) {
   const tenant = useTenant();
   const toast = useToast();
+  const { usuario: currentUser } = useAuth();
 
   const hoy = useMemo(() => {
     const d = new Date();
@@ -191,6 +195,39 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
   useEffect(() => {
     void cargarReservas();
   }, [cargarReservas, refreshTick]);
+
+  // ---------------------------------------------------------------------------
+  // Acciones rápidas: marcar asistencia / no-show (S3c Eje 5)
+  // ---------------------------------------------------------------------------
+  const [noShowTarget, setNoShowTarget] = useState<ReservaListada | null>(null);
+  const [actioning, setActioning] = useState(false);
+
+  async function handleMarcarAsistencia(r: ReservaListada) {
+    if (!currentUser) return;
+    setActioning(true);
+    const { error } = await marcarAsistenciaAdmin(r.id, currentUser.id);
+    setActioning(false);
+    if (error) {
+      toast.error('No pudimos marcar la asistencia. Probá de nuevo.');
+      return;
+    }
+    toast.success(`Asistencia confirmada para ${r.usuario_nombre}`);
+    await cargarReservas();
+  }
+
+  async function handleConfirmNoShow() {
+    if (!noShowTarget) return;
+    setActioning(true);
+    const { error } = await marcarNoShowAdmin(noShowTarget.id);
+    setActioning(false);
+    if (error) {
+      toast.error('No pudimos marcar la inasistencia. Probá de nuevo.');
+      return;
+    }
+    toast.success(`Marcado no-show: ${noShowTarget.usuario_nombre}`);
+    setNoShowTarget(null);
+    await cargarReservas();
+  }
 
   function limpiarFiltros() {
     setDesde(isoDate(hoy));
@@ -381,7 +418,10 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
               <ReservaRow
                 key={r.id}
                 reserva={r}
+                actioning={actioning}
                 onVerDetalle={() => onVerDetalle(r.id)}
+                onMarcarAsistencia={() => handleMarcarAsistencia(r)}
+                onMarcarNoShow={() => setNoShowTarget(r)}
                 onCancelar={() =>
                   onCancelar({
                     id: r.id,
@@ -394,6 +434,20 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
               />
             ))}
           </div>
+
+          <ConfirmDialog
+            isOpen={!!noShowTarget}
+            variant="warning"
+            title="¿Marcar como no-show?"
+            description={
+              noShowTarget
+                ? `${noShowTarget.usuario_nombre} no asistió a la clase. Esta acción se registra en su historial.`
+                : ''
+            }
+            confirmLabel="Sí, marcar no-show"
+            onConfirm={handleConfirmNoShow}
+            onCancel={() => !actioning && setNoShowTarget(null)}
+          />
 
           {totalPaginas > 1 && (
             <div
@@ -436,17 +490,27 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
 
 function ReservaRow({
   reserva,
+  actioning,
   onVerDetalle,
+  onMarcarAsistencia,
+  onMarcarNoShow,
   onCancelar
 }: {
   reserva: ReservaListada;
+  actioning: boolean;
   onVerDetalle: () => void;
+  onMarcarAsistencia: () => void;
+  onMarcarNoShow: () => void;
   onCancelar: () => void;
 }) {
   const fecha = new Date(reserva.slot_inicio);
-  const esFutura = fecha.getTime() > Date.now();
+  const ahora = Date.now();
+  const esFutura = fecha.getTime() > ahora;
+  const yaPaso = fecha.getTime() <= ahora;
   const esConfirmada = reserva.status === 'confirmada';
   const puedeCancelar = esFutura && esConfirmada;
+  const puedeMarcarAsistencia = esConfirmada && yaPaso;
+  const puedeMarcarNoShow = esConfirmada && yaPaso;
   const estado = ESTADOS_LABEL[reserva.status] ?? {
     texto: reserva.status,
     color: 'var(--ek-ink-muted)'
@@ -512,6 +576,27 @@ function ReservaRow({
       <CardMenuDropdown
         items={[
           { label: 'Ver detalle', icon: '👁', onClick: onVerDetalle },
+          ...(puedeMarcarAsistencia
+            ? [
+                {
+                  label: 'Marcar asistencia',
+                  icon: '✓',
+                  onClick: onMarcarAsistencia,
+                  disabled: actioning,
+                  divider: true
+                }
+              ]
+            : []),
+          ...(puedeMarcarNoShow
+            ? [
+                {
+                  label: 'Marcar no-show',
+                  icon: '⚠',
+                  onClick: onMarcarNoShow,
+                  disabled: actioning
+                }
+              ]
+            : []),
           ...(puedeCancelar
             ? [
                 {

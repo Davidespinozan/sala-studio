@@ -1,12 +1,21 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useMiembros } from '../hooks/useAdminData';
 import { NuevaPersonaModal } from '../components/NuevaPersonaModal';
+import CardMenuDropdown from '../components/CardMenuDropdown';
+import { CambiarPlanModal } from '../components/miembro/CambiarPlanModal';
+import { BloquearAccesoModal } from '../components/miembro/BloquearAccesoModal';
+import type { Database } from '@shared/types/database';
+
+type MiembroLista = Database['public']['Tables']['usuarios']['Row'];
 
 export default function Miembros() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<string>('');
   const [showNuevo, setShowNuevo] = useState(false);
+  const [cambiarPlanFor, setCambiarPlanFor] = useState<MiembroLista | null>(null);
+  const [bloquearFor, setBloquearFor] = useState<MiembroLista | null>(null);
   // Fijamos rol='miembro' para excluir staff (admins, recepcionistas).
   // El equipo se gestiona desde /admin/equipo (Sprint Equipo).
   const { miembros, isLoading, refetch } = useMiembros({ search, status, rol: 'miembro' });
@@ -74,24 +83,46 @@ export default function Miembros() {
               </tr>
             </thead>
             <tbody>
-              {miembros.map((m) => (
-                <tr key={m.id}>
-                  <td>{m.nombre ?? '—'}</td>
-                  <td style={{ color: 'var(--ek-ink-muted)' }}>{m.email}</td>
-                  <td>{m.membresia_tier ?? '—'}</td>
-                  <td>
-                    <StatusBadge status={m.status} />
-                  </td>
-                  <td style={{ fontSize: '0.8125rem', color: 'var(--ek-ink-muted)' }}>
-                    {new Date(m.created_at).toLocaleDateString('es-MX')}
-                  </td>
-                  <td>
-                    <Link to={`/admin/miembros/${m.id}`} className="adm-link">
-                      Ver →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {miembros.map((m) => {
+                const estaBloqueado =
+                  !!m.bloqueado_hasta && new Date(m.bloqueado_hasta) > new Date();
+                return (
+                  <tr key={m.id}>
+                    <td>{m.nombre ?? '—'}</td>
+                    <td style={{ color: 'var(--ek-ink-muted)' }}>{m.email}</td>
+                    <td>{m.membresia_tier ?? '—'}</td>
+                    <td>
+                      <StatusBadge status={m.status} />
+                    </td>
+                    <td style={{ fontSize: '0.8125rem', color: 'var(--ek-ink-muted)' }}>
+                      {new Date(m.created_at).toLocaleDateString('es-MX')}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <CardMenuDropdown
+                        items={[
+                          {
+                            label: 'Ver perfil',
+                            icon: '👤',
+                            onClick: () => navigate(`/admin/miembros/${m.id}`)
+                          },
+                          {
+                            label: 'Cambiar plan',
+                            icon: '💳',
+                            onClick: () => setCambiarPlanFor(m),
+                            divider: true
+                          },
+                          {
+                            label: estaBloqueado ? 'Desbloquear acceso' : 'Bloquear acceso',
+                            icon: estaBloqueado ? '🔓' : '🔒',
+                            onClick: () => setBloquearFor(m),
+                            danger: !estaBloqueado
+                          }
+                        ]}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -103,6 +134,34 @@ export default function Miembros() {
           onCreated={async () => {
             await refetch();
             setShowNuevo(false);
+          }}
+        />
+      )}
+
+      {cambiarPlanFor && (
+        <CambiarPlanModal
+          usuarioId={cambiarPlanFor.id}
+          nombreMiembro={cambiarPlanFor.nombre ?? cambiarPlanFor.email}
+          tierActualSlug={cambiarPlanFor.membresia_tier}
+          onClose={() => setCambiarPlanFor(null)}
+          onSaved={async () => {
+            await refetch();
+          }}
+        />
+      )}
+
+      {bloquearFor && (
+        <BloquearAccesoModal
+          usuarioId={bloquearFor.id}
+          nombreMiembro={bloquearFor.nombre ?? bloquearFor.email}
+          bloqueadoHasta={
+            bloquearFor.bloqueado_hasta && new Date(bloquearFor.bloqueado_hasta) > new Date()
+              ? new Date(bloquearFor.bloqueado_hasta)
+              : null
+          }
+          onClose={() => setBloquearFor(null)}
+          onSaved={async () => {
+            await refetch();
           }}
         />
       )}

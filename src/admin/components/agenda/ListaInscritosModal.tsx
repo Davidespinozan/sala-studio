@@ -11,6 +11,7 @@ import {
   type InscritoAdmin
 } from '@admin/hooks/useInscritosDeClase';
 import CardMenuDropdown from '../CardMenuDropdown';
+import ConfirmDialog from '../ConfirmDialog';
 import { AgregarMiembroManualSelector } from './AgregarMiembroManualSelector';
 
 interface Props {
@@ -28,6 +29,9 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
   );
   const [showAgregar, setShowAgregar] = useState(false);
   const [actioningId, setActioningId] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<
+    { kind: 'noShow' | 'cancelar'; inscrito: InscritoAdmin } | null
+  >(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -65,29 +69,37 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
     await refetch();
   }
 
-  async function handleNoShow(r: InscritoAdmin) {
-    if (!confirm(`Marcar a ${r.nombre} como no-show?`)) return;
-    setActioningId(r.reservaId);
-    const { error } = await marcarNoShowAdmin(r.reservaId);
-    setActioningId(null);
-    if (error) {
-      toast.error('No pudimos marcar la inasistencia. Probá de nuevo.');
-      return;
-    }
-    toast.success(`${r.nombre}: marcado como no-show.`);
-    await refetch();
+  function handleNoShow(r: InscritoAdmin) {
+    setConfirmTarget({ kind: 'noShow', inscrito: r });
   }
 
-  async function handleCancelar(r: InscritoAdmin) {
-    if (!confirm(`Cancelar la reserva de ${r.nombre}? Esto libera el cupo.`)) return;
-    setActioningId(r.reservaId);
-    const { error } = await cancelarReservaAdminQuick(r.reservaId);
+  function handleCancelar(r: InscritoAdmin) {
+    setConfirmTarget({ kind: 'cancelar', inscrito: r });
+  }
+
+  async function ejecutarConfirmTarget() {
+    if (!confirmTarget) return;
+    const { kind, inscrito } = confirmTarget;
+    setActioningId(inscrito.reservaId);
+    const { error } =
+      kind === 'noShow'
+        ? await marcarNoShowAdmin(inscrito.reservaId)
+        : await cancelarReservaAdminQuick(inscrito.reservaId);
     setActioningId(null);
+    setConfirmTarget(null);
     if (error) {
-      toast.error('No pudimos cancelar la reserva. Probá de nuevo.');
+      toast.error(
+        kind === 'noShow'
+          ? 'No pudimos marcar la inasistencia. Probá de nuevo.'
+          : 'No pudimos cancelar la reserva. Probá de nuevo.'
+      );
       return;
     }
-    toast.success(`${r.nombre}: reserva cancelada.`);
+    toast.success(
+      kind === 'noShow'
+        ? `${inscrito.nombre}: marcado como no-show.`
+        : `${inscrito.nombre}: reserva cancelada.`
+    );
     await refetch();
   }
 
@@ -287,6 +299,28 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
           Cerrar
         </button>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!confirmTarget}
+        variant={confirmTarget?.kind === 'cancelar' ? 'danger' : 'warning'}
+        title={
+          confirmTarget?.kind === 'cancelar'
+            ? `¿Cancelar la reserva de ${confirmTarget.inscrito.nombre}?`
+            : '¿Marcar como no-show?'
+        }
+        description={
+          confirmTarget?.kind === 'cancelar'
+            ? 'El cupo se libera automáticamente.'
+            : confirmTarget
+              ? `${confirmTarget.inscrito.nombre} no asistió. Esta acción se registra en historial.`
+              : ''
+        }
+        confirmLabel={
+          confirmTarget?.kind === 'cancelar' ? 'Sí, cancelar reserva' : 'Sí, marcar no-show'
+        }
+        onConfirm={ejecutarConfirmTarget}
+        onCancel={() => actioningId === null && setConfirmTarget(null)}
+      />
     </div>
   );
 }

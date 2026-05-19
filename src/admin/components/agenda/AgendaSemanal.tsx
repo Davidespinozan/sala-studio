@@ -36,16 +36,28 @@ export function AgendaSemanal({ clases, inicioSemana, onClickClase, onClickSlotV
 
   const hoyISO = formatDateISO(new Date());
 
+  // Wrapper con overflow horizontal + sombra lateral indicadora cuando hay scroll.
+  // En viewports estrechos (900-1100px) el grid no se aplasta: cada día mantiene
+  // ~130px mínimo y el contenedor scrollea horizontalmente.
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '56px repeat(7, 1fr)',
-        gap: '4px',
-        background: 'var(--sala-bg)',
-        padding: '8px 0'
-      }}
-    >
+    <div className="adm-agenda-scroll" style={{ position: 'relative' }}>
+      <div
+        style={{
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          paddingRight: '12px'
+        }}
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '56px repeat(7, minmax(130px, 1fr))',
+            gap: '4px',
+            background: 'var(--sala-bg)',
+            padding: '8px 0',
+            minWidth: '966px'
+          }}
+        >
       {/* Header: corner vacío + 7 day headers */}
       <div />
       {dias.map((d) => {
@@ -183,8 +195,24 @@ export function AgendaSemanal({ clases, inicioSemana, onClickClase, onClickSlotV
               </div>
             );
           })}
-        </Fragment>
-      ))}
+          </Fragment>
+        ))}
+        </div>
+      </div>
+      {/* Sombra lateral indicadora de scroll horizontal (visible en 900-1100px) */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: '24px',
+          pointerEvents: 'none',
+          background:
+            'linear-gradient(to left, rgba(26, 31, 28, 0.08), rgba(26, 31, 28, 0))'
+        }}
+      />
     </div>
   );
 }
