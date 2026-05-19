@@ -12,33 +12,96 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
+      clases: {
+        Row: {
+          cancelada_at: string | null
+          cancelada_motivo: string | null
+          created_at: string
+          cupo_max: number
+          descripcion: string | null
+          disciplina: string | null
+          duracion_minutos: number
+          fecha: string
+          hora_inicio: string
+          id: string
+          instructor_id: string | null
+          instructor_nombre_mock: string | null
+          nombre: string
+          origen: string
+          recurso_id: string
+          serie_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          cancelada_at?: string | null
+          cancelada_motivo?: string | null
+          created_at?: string
+          cupo_max: number
+          descripcion?: string | null
+          disciplina?: string | null
+          duracion_minutos?: number
+          fecha: string
+          hora_inicio: string
+          id?: string
+          instructor_id?: string | null
+          instructor_nombre_mock?: string | null
+          nombre: string
+          origen?: string
+          recurso_id: string
+          serie_id?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          cancelada_at?: string | null
+          cancelada_motivo?: string | null
+          created_at?: string
+          cupo_max?: number
+          descripcion?: string | null
+          disciplina?: string | null
+          duracion_minutos?: number
+          fecha?: string
+          hora_inicio?: string
+          id?: string
+          instructor_id?: string | null
+          instructor_nombre_mock?: string | null
+          nombre?: string
+          origen?: string
+          recurso_id?: string
+          serie_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clases_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clases_recurso_id_fkey"
+            columns: ["recurso_id"]
+            isOneToOne: false
+            referencedRelation: "recursos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       membresias: {
         Row: {
           cancelada_at: string | null
@@ -259,6 +322,7 @@ export type Database = {
           activo: boolean
           capacidad_personas: number | null
           created_at: string
+          cupo_max_default: number
           cupos: number
           descripcion: string | null
           equipo_incluido: string[] | null
@@ -281,6 +345,7 @@ export type Database = {
           activo?: boolean
           capacidad_personas?: number | null
           created_at?: string
+          cupo_max_default?: number
           cupos?: number
           descripcion?: string | null
           equipo_incluido?: string[] | null
@@ -303,6 +368,7 @@ export type Database = {
           activo?: boolean
           capacidad_personas?: number | null
           created_at?: string
+          cupo_max_default?: number
           cupos?: number
           descripcion?: string | null
           equipo_incluido?: string[] | null
@@ -340,6 +406,7 @@ export type Database = {
           check_in_at: string | null
           check_in_by: string | null
           check_in_method: string | null
+          clase_id: string | null
           created_at: string
           duracion_min: number
           folio: string
@@ -363,6 +430,7 @@ export type Database = {
           check_in_at?: string | null
           check_in_by?: string | null
           check_in_method?: string | null
+          clase_id?: string | null
           created_at?: string
           duracion_min: number
           folio: string
@@ -386,6 +454,7 @@ export type Database = {
           check_in_at?: string | null
           check_in_by?: string | null
           check_in_method?: string | null
+          clase_id?: string | null
           created_at?: string
           duracion_min?: number
           folio?: string
@@ -414,6 +483,13 @@ export type Database = {
             columns: ["check_in_by"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_clase_id_fkey"
+            columns: ["clase_id"]
+            isOneToOne: false
+            referencedRelation: "clases"
             referencedColumns: ["id"]
           },
           {
@@ -651,6 +727,7 @@ export type Database = {
           check_in_at: string | null
           check_in_by: string | null
           check_in_method: string | null
+          clase_id: string | null
           created_at: string
           duracion_min: number
           folio: string
@@ -716,6 +793,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      generar_clases_recurrentes: {
+        Args: { p_dias_forward?: number; p_tenant_id: string }
+        Returns: Json
       }
       get_my_rol: { Args: never; Returns: string }
       get_my_tenant_id: { Args: never; Returns: string }
@@ -864,10 +945,8 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
 } as const
+

@@ -30,6 +30,7 @@ function makeRecurso(overrides: Partial<Recurso> = {}): Recurso {
     descripcion: null,
     tipo: 'estudio_individual',
     cupos: 1,
+    cupo_max_default: 12,
     horarios: [
       { dia: 'lunes', inicio: '09:00', fin: '12:00' },
       { dia: 'lunes', inicio: '14:00', fin: '18:00' }
