@@ -57,7 +57,7 @@ export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) 
       return;
     }
 
-    const filas = (clasesRaw ?? []) as unknown as JoinedClaseRow[];
+    const filas = (clasesRaw ?? []) as JoinedClaseRow[];
     if (filas.length === 0) {
       setClases([]);
       setIsLoading(false);

@@ -805,6 +805,10 @@ export type Database = {
       is_recepcionista: { Args: never; Returns: boolean }
       marcar_no_shows: { Args: never; Returns: Json }
       max_invitados_por_tier: { Args: { p_tier: string }; Returns: number }
+      reservar_clase_atomic: {
+        Args: { p_clase_id: string; p_invitados?: number; p_notas?: string }
+        Returns: Json
+      }
       reservar_recurso_atomic: {
         Args: {
           p_duracion_min: number
@@ -949,4 +953,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

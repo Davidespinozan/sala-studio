@@ -51,7 +51,7 @@ function useProximaReserva(usuarioId: string | undefined) {
         .limit(1);
       if (!mounted) return;
 
-      const r = ((data ?? [])[0] as unknown as ReservaConClase) ?? null;
+      const r = ((data ?? [])[0] as ReservaConClase | undefined) ?? null;
       setReserva(r);
 
       if (r?.clase) {
@@ -110,7 +110,7 @@ function useClasesDeHoy(tenantId: string) {
 
       if (!mounted) return;
 
-      const filas = (clasesRes.data ?? []) as unknown as ClaseConRecurso[];
+      const filas = (clasesRes.data ?? []) as ClaseConRecurso[];
       const claseIds = filas.map((c) => c.id);
 
       const [cuposRes, misRes] = claseIds.length === 0
