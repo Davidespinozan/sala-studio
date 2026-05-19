@@ -40,6 +40,7 @@ export default function Agenda() {
 
   const [claseSel, setClaseSel] = useState<Clase | null>(null);
   const [slotVacioSel, setSlotVacioSel] = useState<{ fecha: Date; hora: number } | null>(null);
+  const [crearClaseOpen, setCrearClaseOpen] = useState(false);
 
   const recursosActivos = recursos.filter((r) => r.activo);
 
@@ -99,6 +100,18 @@ export default function Agenda() {
         <p className="adm-hero-subtitle">
           Todas las salas, en una sola vista. Click en una clase para gestionar inscritos.
         </p>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+        <button
+          type="button"
+          onClick={() => setCrearClaseOpen(true)}
+          disabled={recursosActivos.length === 0}
+          className="ek-cta"
+          style={{ padding: '10px 18px', fontSize: '13px' }}
+        >
+          + Nueva clase
+        </button>
       </div>
 
       {/* Controles: semana + sala filter */}
@@ -288,11 +301,15 @@ export default function Agenda() {
         />
       )}
 
-      {slotVacioSel && (
+      {(slotVacioSel || crearClaseOpen) && (
         <CrearClaseManualModal
-          fecha={slotVacioSel.fecha}
-          hora={slotVacioSel.hora}
-          onClose={() => setSlotVacioSel(null)}
+          recursos={recursosActivos}
+          prefill={slotVacioSel}
+          onClose={() => {
+            setSlotVacioSel(null);
+            setCrearClaseOpen(false);
+          }}
+          onCreated={() => setRefreshTick((t) => t + 1)}
         />
       )}
     </div>
