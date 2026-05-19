@@ -259,7 +259,6 @@ export default function MiembroDetalle() {
               {bloqueadoHasta && (
                 <Info label="Bloqueado hasta" value={bloqueadoHasta.toLocaleString('es-MX')} />
               )}
-              <Info label="No-shows" value={miembro.no_shows_count} />
             </div>
           </FieldGroup>
         </div>

@@ -76,9 +76,35 @@ export function CambiarPlanModal({
         >
           {nombreMiembro}
         </h3>
-        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '20px' }}>
+        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '16px' }}>
           Elegí el plan que querés asignar. El cambio aplica inmediatamente.
         </p>
+
+        <div
+          role="note"
+          style={{
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'flex-start',
+            padding: '12px 14px',
+            background: 'var(--sala-warning-bg)',
+            border: '1px solid rgba(196, 132, 53, 0.28)',
+            borderRadius: '10px',
+            marginBottom: '20px'
+          }}
+        >
+          <span aria-hidden="true" style={{ fontSize: '16px', lineHeight: 1.2 }}>⚠️</span>
+          <p
+            style={{
+              fontSize: '12.5px',
+              lineHeight: 1.45,
+              color: 'var(--sala-text-primary)',
+              margin: 0
+            }}
+          >
+            Cambiar plan solo actualiza el plan referencial del miembro. Los pagos y vencimientos no se ven afectados. La gestión completa de cobros llegará con la integración de Stripe Subscriptions (S7a).
+          </p>
+        </div>
 
         {isLoading ? (
           <p style={{ fontSize: '13px', color: 'var(--sala-text-tertiary)' }}>
@@ -178,9 +204,19 @@ export function CambiarPlanModal({
             className="ek-cta"
             style={{ flex: 1 }}
           >
-            {saving ? 'Guardando…' : 'Guardar cambio'}
+            {saving ? 'Guardando…' : 'Confirmar cambio de plan'}
           </button>
         </div>
+        <p
+          style={{
+            fontSize: '11.5px',
+            color: 'var(--sala-text-tertiary)',
+            margin: '10px 0 0',
+            textAlign: 'center'
+          }}
+        >
+          Esto no genera cobros ni pagos.
+        </p>
       </div>
     </div>
   );
