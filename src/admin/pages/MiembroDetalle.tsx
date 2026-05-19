@@ -222,6 +222,17 @@ export default function MiembroDetalle() {
             <EditarDatosForm miembro={miembro} onSaved={refetch} />
           </FieldGroup>
 
+          <FieldGroup title="Estado de la cuenta">
+            <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 8px' }}>
+              El miembro debe estar <strong>Activo</strong> para poder reservar clases.
+            </p>
+            <CambiarEstadoControl
+              usuarioId={miembro.id}
+              statusActual={miembro.status}
+              onChanged={refetch}
+            />
+          </FieldGroup>
+
           <FieldGroup title="Foto">
             <AvatarUploadControl
               usuarioId={miembro.id}
@@ -440,6 +451,82 @@ function RolBadge({ rol }: { rol: string }) {
     >
       {rol}
     </code>
+  );
+}
+
+const ESTADO_OPCIONES: { value: string; label: string }[] = [
+  { value: 'pendiente_onboarding', label: 'Pendiente onboarding' },
+  { value: 'pendiente_pago', label: 'Pendiente pago' },
+  { value: 'activo', label: 'Activo' },
+  { value: 'suspendido', label: 'Suspendido' },
+  { value: 'cancelado', label: 'Cancelado' }
+];
+
+function CambiarEstadoControl({
+  usuarioId,
+  statusActual,
+  onChanged
+}: {
+  usuarioId: string;
+  statusActual: string;
+  onChanged: () => Promise<void>;
+}) {
+  const [nuevoStatus, setNuevoStatus] = useState(statusActual);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave() {
+    if (nuevoStatus === statusActual) return;
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    try {
+      const { error } = await supabase
+        .from('usuarios')
+        .update({ status: nuevoStatus })
+        .eq('id', usuarioId);
+      if (error) throw error;
+      await onChanged();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No pudimos cambiar el estado. Probá de nuevo.');
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div className="adm-form-row" style={{ marginTop: '0.5rem' }}>
+      <label className="ek-label" style={{ flex: 1 }}>
+        Estado
+        <select
+          value={nuevoStatus}
+          onChange={(e) => setNuevoStatus(e.target.value)}
+          className="ek-input"
+        >
+          {ESTADO_OPCIONES.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button
+        onClick={handleSave}
+        disabled={saving || nuevoStatus === statusActual}
+        className="ek-cta"
+        style={{ alignSelf: 'flex-end' }}
+      >
+        {saving ? '…' : 'Cambiar estado'}
+      </button>
+      {saved && (
+        <span style={{ color: 'var(--sala-success)', fontSize: '0.8125rem', flexBasis: '100%', marginTop: '0.5rem' }}>
+          ✓ Estado actualizado
+        </span>
+      )}
+      {error && <p className="ek-error-text">{error}</p>}
+    </div>
   );
 }
 

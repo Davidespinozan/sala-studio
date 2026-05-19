@@ -110,6 +110,10 @@ function useClasesDeHoy(tenantId: string) {
 
       if (!mounted) return;
 
+      if (clasesRes.error) {
+        console.error('[Dashboard:clases]', clasesRes.error, { fechaISO, tenantId });
+      }
+
       const filas = (clasesRes.data ?? []) as ClaseConRecurso[];
       const claseIds = filas.map((c) => c.id);
 

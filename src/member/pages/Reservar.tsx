@@ -100,6 +100,10 @@ export default function Reservar() {
 
       if (!mounted) return;
 
+      if (clasesRes.error) {
+        console.error('[Reservar:clases]', clasesRes.error, { fechaSel, tenantId: tenant.id });
+      }
+
       const filas = (clasesRes.data ?? []) as ClaseConRecurso[];
       const claseIds = filas.map((c) => c.id);
 
