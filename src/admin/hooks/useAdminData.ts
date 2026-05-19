@@ -143,6 +143,7 @@ export async function updateRecurso(
     | 'activo'
     | 'orden'
     | 'cupos'
+    | 'cupo_max_default'
     | 'foto_url'
     | 'capacidad_personas'
     | 'tipo_contenido'

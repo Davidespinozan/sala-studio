@@ -645,6 +645,9 @@ function EditarRecursoModal({
   const [capacidadPersonas, setCapacidadPersonas] = useState<number>(
     recurso?.capacidad_personas ?? 0
   );
+  const [cupoMaxDefault, setCupoMaxDefault] = useState<number>(
+    recurso?.cupo_max_default ?? 12
+  );
   const [tipoContenido, setTipoContenido] = useState<string[]>(recurso?.tipo_contenido ?? []);
   const [equipoIncluido, setEquipoIncluido] = useState<string[]>(recurso?.equipo_incluido ?? []);
   const [estiloVisual, setEstiloVisual] = useState<string>(recurso?.estilo_visual ?? '');
@@ -664,6 +667,12 @@ function EditarRecursoModal({
 
     if (horariosTienenError(horarios)) {
       setError('Hay horarios inválidos. Revisá las marcas en rojo (fin debe ser mayor a inicio, sin solapamientos).');
+      setSaving(false);
+      return;
+    }
+
+    if (!Number.isInteger(cupoMaxDefault) || cupoMaxDefault < 1) {
+      setError('El cupo máximo por clase debe ser un número entero de al menos 1.');
       setSaving(false);
       return;
     }
@@ -688,6 +697,7 @@ function EditarRecursoModal({
         descripcion: descripcion || null,
         tipo: 'estudio_individual',
         cupos: 1,
+        cupo_max_default: cupoMaxDefault,
         activo,
         tiers_permitidos: tiersPermitidos,
         horarios: horarios as never,
@@ -714,6 +724,7 @@ function EditarRecursoModal({
       activo,
       tiers_permitidos: tiersPermitidos,
       horarios: horarios as never,
+      cupo_max_default: cupoMaxDefault,
       foto_url: fotoUrl || null,
       capacidad_personas: capacidadPersonas || null,
       tipo_contenido: tipoContenido,
@@ -834,6 +845,23 @@ function EditarRecursoModal({
           />
           <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
             Capacidad máxima total (titular + invitados).
+          </p>
+        </div>
+
+        <div className="ek-form-field" style={{ marginTop: '16px' }}>
+          <label className="ek-label">Cupo máximo por clase</label>
+          <input
+            type="number"
+            min={1}
+            step={1}
+            value={cupoMaxDefault || ''}
+            onChange={(e) => setCupoMaxDefault(parseInt(e.target.value, 10) || 0)}
+            className="ek-input"
+            placeholder="12"
+          />
+          <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
+            Cuántas personas caben en cada clase de esta sala. Aplica a clases futuras.
+            Para cambiar una clase específica, editala desde la Agenda.
           </p>
         </div>
 
