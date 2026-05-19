@@ -517,8 +517,7 @@ function RecursoRow({
           </p>
         )}
         <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '2px' }}>
-          Capacidad: {r.capacidad_personas ?? '—'}
-          {r.capacidad_personas ? ' personas' : ''}
+          Cupo: {r.cupo_max_default} por clase
         </p>
         <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '4px' }}>
           Plan: {r.tiers_permitidos.join(', ') || '—'}
@@ -642,9 +641,6 @@ function EditarRecursoModal({
     parseHorarios(recurso?.horarios)
   );
   const [fotoUrl, setFotoUrl] = useState<string>(recurso?.foto_url ?? '');
-  const [capacidadPersonas, setCapacidadPersonas] = useState<number>(
-    recurso?.capacidad_personas ?? 0
-  );
   const [cupoMaxDefault, setCupoMaxDefault] = useState<number>(
     recurso?.cupo_max_default ?? 12
   );
@@ -702,7 +698,6 @@ function EditarRecursoModal({
         tiers_permitidos: tiersPermitidos,
         horarios: horarios as never,
         foto_url: fotoUrl || null,
-        capacidad_personas: capacidadPersonas || null,
         tipo_contenido: tipoContenido,
         equipo_incluido: equipoIncluido,
         estilo_visual: estiloVisual || null
@@ -726,7 +721,6 @@ function EditarRecursoModal({
       horarios: horarios as never,
       cupo_max_default: cupoMaxDefault,
       foto_url: fotoUrl || null,
-      capacidad_personas: capacidadPersonas || null,
       tipo_contenido: tipoContenido,
       equipo_incluido: equipoIncluido,
       estilo_visual: estiloVisual || null
@@ -830,22 +824,6 @@ function EditarRecursoModal({
             label="Foto de la sala"
             helperText="JPG, PNG o WEBP. Máx 5MB. Aspecto 16:10 recomendado."
           />
-        </div>
-
-        <div className="ek-form-field" style={{ marginTop: '16px' }}>
-          <label className="ek-label">Capacidad (personas)</label>
-          <input
-            type="number"
-            min={1}
-            max={20}
-            value={capacidadPersonas || ''}
-            onChange={(e) => setCapacidadPersonas(parseInt(e.target.value) || 0)}
-            className="ek-input"
-            placeholder="Ej: 3"
-          />
-          <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
-            Capacidad máxima total (titular + invitados).
-          </p>
         </div>
 
         <div className="ek-form-field" style={{ marginTop: '16px' }}>
