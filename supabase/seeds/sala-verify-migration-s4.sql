@@ -36,7 +36,7 @@ DECLARE
   v_reservas_via_manual integer;
   v_duplicados integer;
   v_errores integer := 0;
-  r record;
+  v_row record;
 BEGIN
   SELECT id INTO v_tenant_id FROM tenants WHERE slug = 'sala-demo';
   IF v_tenant_id IS NULL THEN
@@ -144,7 +144,7 @@ BEGIN
   -- ─── Reporte: clases por sala ───
   RAISE NOTICE '';
   RAISE NOTICE '─── Distribución de clases por sala ───';
-  FOR r IN
+  FOR v_row IN
     SELECT rec.nombre, count(c.id) AS total
     FROM recursos rec
     LEFT JOIN clases c ON c.recurso_id = rec.id AND c.tenant_id = v_tenant_id
@@ -152,7 +152,7 @@ BEGIN
     GROUP BY rec.nombre
     ORDER BY rec.nombre
   LOOP
-    RAISE NOTICE '    %: %', rpad(r.nombre, 24, ' '), r.total;
+    RAISE NOTICE '    %: %', rpad(v_row.nombre, 24, ' '), v_row.total;
   END LOOP;
 
   -- ─── Cierre ───
