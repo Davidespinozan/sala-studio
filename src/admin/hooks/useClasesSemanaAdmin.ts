@@ -37,11 +37,12 @@ export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) 
     const fechaInicioISO = ymd(inicio);
     const fechaFinISO = ymd(fin);
 
+    // S4.3: incluye canceladas para mostrarlas con estilo apagado en la grilla.
     let claseQuery = supabase
       .from('clases')
       .select('*, recurso:recursos(id, nombre, foto_url, tiers_permitidos)')
       .eq('tenant_id', tenant.id)
-      .eq('status', 'programada')
+      .in('status', ['programada', 'cancelada'])
       .gte('fecha', fechaInicioISO)
       .lt('fecha', fechaFinISO)
       .order('fecha', { ascending: true })

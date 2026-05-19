@@ -37,6 +37,10 @@ export interface Clase {
   salaNombre?: string;
   /** Tier slugs permitidos (vienen del recurso). */
   tiersPermitidos?: string[];
+  /** Estado de la clase: 'programada' | 'cancelada' | 'completada'. */
+  status: string;
+  /** Timestamp ISO de cancelación, si la clase fue cancelada. */
+  canceladaAt: string | null;
   // Datos brutos para navegación / acciones
   recursoId: string;
   slotInicio: Date;
@@ -92,6 +96,8 @@ export function claseFromRow({ row, cuposReservados, recurso }: ClaseFromRowInpu
     imagenUrl: recurso.foto_url ?? undefined,
     salaNombre: recurso.nombre,
     tiersPermitidos: recurso.tiers_permitidos,
+    status: row.status,
+    canceladaAt: row.cancelada_at,
     recursoId: row.recurso_id,
     slotInicio,
     slotFin

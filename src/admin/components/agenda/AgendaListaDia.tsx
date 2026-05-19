@@ -85,6 +85,7 @@ export function AgendaListaDia({
 }
 
 function ClaseRowAdminMobile({ clase, onClick }: { clase: Clase; onClick: () => void }) {
+  const esCancelada = clase.status === 'cancelada';
   const estado = estadoCupos(clase);
   const llena = estado === 'llena';
   const pocos = estado === 'pocos';
@@ -103,13 +104,15 @@ function ClaseRowAdminMobile({ clase, onClick }: { clase: Clase; onClick: () => 
         gridTemplateColumns: '76px 1fr auto',
         gap: '14px',
         padding: '16px 18px',
-        background: 'var(--sala-surface)',
+        background: esCancelada ? 'var(--sala-bg)' : 'var(--sala-surface)',
         border: '1px solid var(--sala-border)',
-        borderLeft: pocos
-          ? '3px solid var(--sala-accent)'
-          : llena
-            ? '3px solid var(--sala-text-tertiary)'
-            : '3px solid var(--sala-primary)',
+        borderLeft: esCancelada
+          ? '3px solid var(--sala-text-tertiary)'
+          : pocos
+            ? '3px solid var(--sala-accent)'
+            : llena
+              ? '3px solid var(--sala-text-tertiary)'
+              : '3px solid var(--sala-primary)',
         borderRadius: '14px',
         cursor: 'pointer',
         textAlign: 'left',
@@ -151,12 +154,12 @@ function ClaseRowAdminMobile({ clase, onClick }: { clase: Clase; onClick: () => 
             fontWeight: 700,
             letterSpacing: '0.12em',
             textTransform: 'uppercase',
-            color: 'var(--sala-primary)',
+            color: esCancelada ? 'var(--sala-text-tertiary)' : 'var(--sala-primary)',
             margin: 0,
             marginBottom: '2px'
           }}
         >
-          {clase.disciplina}
+          {esCancelada ? 'Cancelada' : clase.disciplina}
         </p>
         <p
           style={{
@@ -167,7 +170,9 @@ function ClaseRowAdminMobile({ clase, onClick }: { clase: Clase; onClick: () => 
             margin: 0,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            textDecoration: esCancelada ? 'line-through' : 'none',
+            opacity: esCancelada ? 0.6 : 1
           }}
         >
           {clase.nombre}

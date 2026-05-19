@@ -23,6 +23,7 @@ export function ClaseRow({
   onCancelar
 }: Props) {
   const navigate = useNavigate();
+  const esCancelada = clase.status === 'cancelada';
   const estado = estadoCupos(clase);
   const llena = estado === 'llena';
   const pocos = estado === 'pocos';
@@ -51,13 +52,15 @@ export function ClaseRow({
         gridTemplateColumns: '76px 1fr',
         gap: '14px',
         padding: '16px 18px',
-        background: 'var(--sala-surface)',
+        background: esCancelada ? 'var(--sala-bg)' : 'var(--sala-surface)',
         border: '1px solid var(--sala-border)',
-        borderLeft: yaReservada
-          ? '3px solid var(--sala-primary)'
-          : pocos
-            ? '3px solid var(--sala-accent)'
-            : '1px solid var(--sala-border)',
+        borderLeft: esCancelada
+          ? '3px solid var(--sala-text-tertiary)'
+          : yaReservada
+            ? '3px solid var(--sala-primary)'
+            : pocos
+              ? '3px solid var(--sala-accent)'
+              : '1px solid var(--sala-border)',
         borderRadius: '14px',
         cursor: 'pointer',
         transition: 'border-color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease',
@@ -143,7 +146,9 @@ export function ClaseRow({
               margin: 0,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              textDecoration: esCancelada ? 'line-through' : 'none',
+              opacity: esCancelada ? 0.6 : 1
             }}
           >
             {clase.nombre}
@@ -174,6 +179,7 @@ export function ClaseRow({
             <CupoBar clase={clase} size="md" />
           </div>
           <ActionButton
+            cancelada={esCancelada}
             yaReservada={yaReservada}
             puedeReservar={puedeReservar}
             llena={llena}
@@ -189,6 +195,7 @@ export function ClaseRow({
 }
 
 function ActionButton({
+  cancelada,
   yaReservada,
   puedeReservar,
   llena,
@@ -197,6 +204,7 @@ function ActionButton({
   onReservar,
   onCancelar
 }: {
+  cancelada: boolean;
   yaReservada: boolean;
   puedeReservar: boolean;
   llena: boolean;
@@ -217,6 +225,24 @@ function ActionButton({
     whiteSpace: 'nowrap',
     transition: 'background 0.18s ease, border-color 0.18s ease, color 0.18s ease'
   };
+
+  if (cancelada) {
+    return (
+      <button
+        type="button"
+        disabled
+        style={{
+          ...baseStyle,
+          background: 'var(--sala-bg)',
+          color: 'var(--sala-text-tertiary)',
+          borderColor: 'var(--sala-border)',
+          cursor: 'not-allowed'
+        }}
+      >
+        Clase cancelada
+      </button>
+    );
+  }
 
   if (yaReservada) {
     return (

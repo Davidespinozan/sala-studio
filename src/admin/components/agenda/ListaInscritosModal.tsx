@@ -10,25 +10,35 @@ import {
   cancelarReservaAdminQuick,
   type InscritoAdmin
 } from '@admin/hooks/useInscritosDeClase';
+import { useEditarCancelarClase } from '@admin/hooks/useEditarCancelarClase';
 import CardMenuDropdown from '../CardMenuDropdown';
 import ConfirmDialog from '../ConfirmDialog';
 import { AgregarMiembroManualSelector } from './AgregarMiembroManualSelector';
+import { EditarClaseModal } from './EditarClaseModal';
 
 interface Props {
   clase: Clase;
   onClose: () => void;
 }
 
-/** Modal admin: lista de inscritos a una clase + acciones por reserva. */
+/** Modal admin: lista de inscritos a una clase + acciones por reserva.
+ *  S4.3: agrega editar y cancelar la clase puntual. */
 export function ListaInscritosModal({ clase, onClose }: Props) {
   const { usuario: currentUser } = useAuth();
   const toast = useToast();
-  const { inscritos, isLoading, refetch } = useInscritosDeClase(clase.id);
+  // claseActual: copia local que se actualiza si el admin edita la clase.
+  const [claseActual, setClaseActual] = useState<Clase>(clase);
+  const { inscritos, isLoading, refetch } = useInscritosDeClase(claseActual.id);
+  const { cancelarClase, cancelling } = useEditarCancelarClase(claseActual.id);
   const [showAgregar, setShowAgregar] = useState(false);
+  const [showEditar, setShowEditar] = useState(false);
+  const [showCancelarClase, setShowCancelarClase] = useState(false);
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<
     { kind: 'noShow' | 'cancelar'; inscrito: InscritoAdmin } | null
   >(null);
+
+  const esCancelada = claseActual.status === 'cancelada';
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -48,8 +58,8 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
     (i) => i.status === 'confirmada' || i.status === 'completada'
   );
   const cuposReservados = inscritosActivos.length;
-  const cuposLibres = Math.max(0, clase.cupoMax - cuposReservados);
-  const estado = estadoCupos({ ...clase, cuposReservados } as Clase);
+  const cuposLibres = Math.max(0, claseActual.cupoMax - cuposReservados);
+  const estado = estadoCupos({ ...claseActual, cuposReservados } as Clase);
   const llena = estado === 'llena';
   const pocos = estado === 'pocos';
 
@@ -100,7 +110,18 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
     await refetch();
   }
 
-  const fechaFmt = clase.slotInicio.toLocaleDateString('es-MX', {
+  async function handleCancelarClase() {
+    const { error } = await cancelarClase();
+    if (error) {
+      toast.error('No pudimos cancelar la clase. Probá de nuevo.');
+      return;
+    }
+    toast.success('Clase cancelada');
+    setShowCancelarClase(false);
+    onClose();
+  }
+
+  const fechaFmt = claseActual.slotInicio.toLocaleDateString('es-MX', {
     weekday: 'long',
     day: 'numeric',
     month: 'long'
@@ -122,45 +143,100 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
         <div className="ek-modal-handle" />
 
         {/* Header */}
-        <div style={{ marginBottom: '14px' }}>
-          <p
-            style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.16em',
-              textTransform: 'uppercase',
-              color: 'var(--sala-primary)',
-              margin: 0,
-              marginBottom: '4px'
-            }}
-          >
-            {clase.disciplina}
-          </p>
-          <h3
-            style={{
-              fontFamily: 'var(--ek-font-display)',
-              fontSize: '20px',
-              fontWeight: 600,
-              letterSpacing: '-0.02em',
-              color: 'var(--sala-text-primary)',
-              margin: 0,
-              marginBottom: '4px'
-            }}
-          >
-            {clase.nombre}
-          </h3>
-          <p
-            style={{
-              fontSize: '13px',
-              color: 'var(--sala-text-secondary)',
-              margin: 0,
-              fontVariantNumeric: 'tabular-nums',
-              textTransform: 'capitalize'
-            }}
-          >
-            {fechaFmt} · {formatHora(clase.slotInicio)} · {clase.duracionMinutos} min
-          </p>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '12px',
+            marginBottom: '14px'
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <p
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+                color: 'var(--sala-primary)',
+                margin: 0,
+                marginBottom: '4px'
+              }}
+            >
+              {claseActual.disciplina}
+            </p>
+            <h3
+              style={{
+                fontFamily: 'var(--ek-font-display)',
+                fontSize: '20px',
+                fontWeight: 600,
+                letterSpacing: '-0.02em',
+                color: 'var(--sala-text-primary)',
+                margin: 0,
+                marginBottom: '4px',
+                textDecoration: esCancelada ? 'line-through' : 'none',
+                opacity: esCancelada ? 0.6 : 1
+              }}
+            >
+              {claseActual.nombre}
+            </h3>
+            <p
+              style={{
+                fontSize: '13px',
+                color: 'var(--sala-text-secondary)',
+                margin: 0,
+                fontVariantNumeric: 'tabular-nums',
+                textTransform: 'capitalize'
+              }}
+            >
+              {fechaFmt} · {formatHora(claseActual.slotInicio)} · {claseActual.duracionMinutos} min
+            </p>
+          </div>
+          {!esCancelada && (
+            <button
+              type="button"
+              onClick={() => setShowEditar(true)}
+              className="ek-icon-btn"
+              style={{ width: 'auto', padding: '8px 14px', fontSize: '12px', flexShrink: 0 }}
+            >
+              ✏️ Editar
+            </button>
+          )}
         </div>
+
+        {/* Banner clase cancelada */}
+        {esCancelada && (
+          <div
+            style={{
+              background: 'var(--sala-error-bg)',
+              border: '1px solid rgba(196, 74, 53, 0.30)',
+              borderRadius: '12px',
+              padding: '12px 14px',
+              marginBottom: '16px'
+            }}
+          >
+            <p
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+                color: 'var(--sala-error)',
+                margin: 0,
+                marginBottom: '4px'
+              }}
+            >
+              Clase cancelada
+            </p>
+            <p style={{ fontSize: '13px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
+              {claseActual.canceladaAt
+                ? `Cancelada el ${new Date(claseActual.canceladaAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}. `
+                : ''}
+              Los inscritos siguen registrados pero no asistirán.
+            </p>
+          </div>
+        )}
 
         {/* Indicador de cupos */}
         <div
@@ -186,7 +262,7 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
               letterSpacing: '-0.02em'
             }}
           >
-            {llena ? 'Clase llena' : `${cuposReservados}/${clase.cupoMax} reservados`}
+            {llena ? 'Clase llena' : `${cuposReservados}/${claseActual.cupoMax} reservados`}
           </p>
           {!llena && (
             <p style={{ fontSize: '13px', color: cupoColor, margin: 0, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
@@ -252,39 +328,41 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
           </div>
         )}
 
-        {/* Footer: agregar manual */}
-        {showAgregar ? (
-          <AgregarMiembroManualSelector
-            clase={clase}
-            excludeUsuarioIds={inscritosActivos.map((i) => i.usuarioId)}
-            onAdded={async () => {
-              await refetch();
-              setShowAgregar(false);
-            }}
-            onClose={() => setShowAgregar(false)}
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowAgregar(true)}
-            disabled={llena}
-            title={llena ? 'La clase está llena' : 'Agregar miembro manualmente'}
-            style={{
-              width: '100%',
-              padding: '12px',
-              minHeight: '44px',
-              background: 'transparent',
-              color: llena ? 'var(--sala-text-tertiary)' : 'var(--sala-primary)',
-              border: `1px dashed ${llena ? 'var(--sala-border)' : 'var(--sala-primary)'}`,
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: llena ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit'
-            }}
-          >
-            + Agregar miembro manualmente
-          </button>
+        {/* Footer: agregar manual (oculto si la clase está cancelada) */}
+        {!esCancelada && (
+          showAgregar ? (
+            <AgregarMiembroManualSelector
+              clase={claseActual}
+              excludeUsuarioIds={inscritosActivos.map((i) => i.usuarioId)}
+              onAdded={async () => {
+                await refetch();
+                setShowAgregar(false);
+              }}
+              onClose={() => setShowAgregar(false)}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAgregar(true)}
+              disabled={llena}
+              title={llena ? 'La clase está llena' : 'Agregar miembro manualmente'}
+              style={{
+                width: '100%',
+                padding: '12px',
+                minHeight: '44px',
+                background: 'transparent',
+                color: llena ? 'var(--sala-text-tertiary)' : 'var(--sala-primary)',
+                border: `1px dashed ${llena ? 'var(--sala-border)' : 'var(--sala-primary)'}`,
+                borderRadius: '12px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: llena ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit'
+              }}
+            >
+              + Agregar miembro manualmente
+            </button>
+          )
         )}
 
         <button
@@ -295,7 +373,60 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
         >
           Cerrar
         </button>
+
+        {/* Cancelar clase — separado, destructivo, solo si no está ya cancelada */}
+        {!esCancelada && (
+          <button
+            type="button"
+            onClick={() => setShowCancelarClase(true)}
+            style={{
+              width: '100%',
+              marginTop: '10px',
+              padding: '10px 16px',
+              minHeight: '40px',
+              background: 'transparent',
+              color: 'var(--sala-error)',
+              border: '1px solid var(--sala-error)',
+              borderRadius: '12px',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit'
+            }}
+          >
+            Cancelar clase
+          </button>
+        )}
       </div>
+
+      {showEditar && (
+        <EditarClaseModal
+          clase={claseActual}
+          inscritosActivos={cuposReservados}
+          onClose={() => setShowEditar(false)}
+          onSaved={async (patch) => {
+            setClaseActual((c) => ({
+              ...c,
+              nombre: patch.nombre,
+              descripcion: patch.descripcion ?? undefined,
+              cupoMax: patch.cupo_max,
+              duracionMinutos: patch.duracion_minutos
+            }));
+            await refetch();
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        isOpen={showCancelarClase}
+        variant="danger"
+        title="¿Cancelar esta clase?"
+        description={`Se cancelará la clase del ${fechaFmt} a las ${formatHora(claseActual.slotInicio)}. Los ${cuposReservados} inscritos verán el cambio cuando abran la app. Esta acción no se puede deshacer.`}
+        confirmLabel={cancelling ? 'Cancelando…' : 'Sí, cancelar clase'}
+        cancelLabel="Volver"
+        onConfirm={handleCancelarClase}
+        onCancel={() => !cancelling && setShowCancelarClase(false)}
+      />
 
       <ConfirmDialog
         isOpen={!!confirmTarget}

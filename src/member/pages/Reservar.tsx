@@ -90,12 +90,13 @@ export default function Reservar() {
     setLoadingDia(true);
 
     async function load() {
+      // S4.3: incluye canceladas para mostrarlas apagadas (transparencia al miembro).
       const clasesRes = await supabase
         .from('clases')
         .select('*, recurso:recursos(id, nombre, foto_url, tiers_permitidos)')
         .eq('tenant_id', tenant.id)
         .eq('fecha', fechaSel)
-        .eq('status', 'programada')
+        .in('status', ['programada', 'cancelada'])
         .order('hora_inicio', { ascending: true });
 
       if (!mounted) return;

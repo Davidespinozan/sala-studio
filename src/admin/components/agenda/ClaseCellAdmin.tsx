@@ -8,9 +8,61 @@ interface Props {
 
 /** Celda compacta para la grilla semanal admin. */
 export function ClaseCellAdmin({ clase, onClick }: Props) {
+  const esCancelada = clase.status === 'cancelada';
   const estado = estadoCupos(clase);
   const llena = estado === 'llena';
   const pocos = estado === 'pocos';
+
+  // Clase cancelada: celda apagada, tachada, sigue clickeable para ver inscritos.
+  if (esCancelada) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        style={{
+          width: '100%',
+          background: 'var(--sala-bg)',
+          border: '1px solid var(--sala-border)',
+          borderLeft: '3px solid var(--sala-text-tertiary)',
+          borderRadius: '8px',
+          padding: '6px 8px',
+          textAlign: 'left',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          display: 'block',
+          minWidth: 0
+        }}
+      >
+        <span
+          style={{
+            fontSize: '9px',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--sala-text-tertiary)',
+            display: 'block',
+            marginBottom: '2px'
+          }}
+        >
+          Cancelada
+        </span>
+        <span
+          style={{
+            fontSize: '11px',
+            fontWeight: 600,
+            color: 'var(--sala-text-tertiary)',
+            fontVariantNumeric: 'tabular-nums',
+            fontFamily: 'var(--ek-font-display)',
+            display: 'block',
+            textDecoration: 'line-through',
+            opacity: 0.6
+          }}
+        >
+          {formatHora(clase.slotInicio)}
+        </span>
+      </button>
+    );
+  }
 
   const borderLeftColor = llena
     ? 'var(--sala-text-tertiary)'

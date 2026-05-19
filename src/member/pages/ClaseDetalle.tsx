@@ -310,6 +310,7 @@ export default function ClaseDetalle() {
   const estado = estadoCupos(clase);
   const llena = estado === 'llena';
   const pocos = estado === 'pocos';
+  const esCancelada = clase.status === 'cancelada';
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: '180px' }}>
@@ -329,6 +330,37 @@ export default function ClaseDetalle() {
           padding: '24px 20px 0'
         }}
       >
+        {/* Banner: clase cancelada */}
+        {esCancelada && (
+          <div
+            style={{
+              background: 'var(--sala-error-bg)',
+              border: '1px solid rgba(196, 74, 53, 0.30)',
+              borderRadius: '14px',
+              padding: '14px 16px',
+              marginBottom: '20px'
+            }}
+          >
+            <p
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+                color: 'var(--sala-error)',
+                margin: 0,
+                marginBottom: '6px'
+              }}
+            >
+              Clase cancelada
+            </p>
+            <p style={{ fontSize: '14px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
+              Esta clase fue cancelada por el administrador.
+              {yaReservada && ' Tu reserva queda registrada pero la clase no se realizará.'}
+            </p>
+          </div>
+        )}
+
         {/* Header: eyebrow + título + meta */}
         <div style={{ marginBottom: '20px' }}>
           <p
@@ -526,6 +558,7 @@ export default function ClaseDetalle() {
       {/* Sticky CTA */}
       <StickyCTA>
         <StickyAction
+          cancelada={esCancelada}
           yaReservada={yaReservada}
           puedeAccederTier={puedeAccederTier}
           esFutura={esFutura}
@@ -533,6 +566,7 @@ export default function ClaseDetalle() {
           pocos={pocos}
           onReservar={handleReservar}
           onCancelar={() => setShowCancelModal(true)}
+          onVolver={handleBack}
         />
       </StickyCTA>
 
@@ -743,14 +777,17 @@ function StickyCTA({ children }: { children: React.ReactNode }) {
 }
 
 function StickyAction({
+  cancelada,
   yaReservada,
   puedeAccederTier,
   esFutura,
   llena,
   pocos,
   onReservar,
-  onCancelar
+  onCancelar,
+  onVolver
 }: {
+  cancelada: boolean;
   yaReservada: boolean;
   puedeAccederTier: boolean;
   esFutura: boolean;
@@ -758,6 +795,7 @@ function StickyAction({
   pocos: boolean;
   onReservar: () => void;
   onCancelar: () => void;
+  onVolver: () => void;
 }) {
   const baseFullCTA: React.CSSProperties = {
     width: '100%',
@@ -771,6 +809,23 @@ function StickyAction({
     fontFamily: 'inherit',
     transition: 'background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease'
   };
+
+  if (cancelada) {
+    return (
+      <button
+        type="button"
+        onClick={onVolver}
+        style={{
+          ...baseFullCTA,
+          background: 'var(--sala-primary)',
+          color: 'var(--sala-text-on-primary)',
+          borderColor: 'var(--sala-primary)'
+        }}
+      >
+        Volver
+      </button>
+    );
+  }
 
   if (yaReservada) {
     return (

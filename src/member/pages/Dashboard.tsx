@@ -100,12 +100,13 @@ function useClasesDeHoy(tenantId: string) {
     async function load() {
       const fechaISO = formatDateISO(new Date());
 
+      // S4.3: incluye canceladas para mostrarlas apagadas (transparencia al miembro).
       const clasesRes = await supabase
         .from('clases')
         .select('*, recurso:recursos(id, nombre, foto_url, tiers_permitidos)')
         .eq('tenant_id', tenantId)
         .eq('fecha', fechaISO)
-        .eq('status', 'programada')
+        .in('status', ['programada', 'cancelada'])
         .order('hora_inicio', { ascending: true });
 
       if (!mounted) return;

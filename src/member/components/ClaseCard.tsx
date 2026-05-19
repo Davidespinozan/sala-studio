@@ -10,6 +10,7 @@ interface Props {
 
 /** Card pequeña para scroll horizontal en Home ("Clases de hoy"). */
 export function ClaseCard({ clase, ya_reservada }: Props) {
+  const esCancelada = clase.status === 'cancelada';
   const estado = estadoCupos(clase);
   const llena = estado === 'llena';
   const pocos = estado === 'pocos';
@@ -21,8 +22,8 @@ export function ClaseCard({ clase, ya_reservada }: Props) {
       style={{
         flexShrink: 0,
         width: '180px',
-        background: 'var(--sala-surface)',
-        border: `1px solid ${pocos ? 'var(--sala-accent-light)' : 'var(--sala-border)'}`,
+        background: esCancelada ? 'var(--sala-bg)' : 'var(--sala-surface)',
+        border: `1px solid ${pocos && !esCancelada ? 'var(--sala-accent-light)' : 'var(--sala-border)'}`,
         borderRadius: '16px',
         padding: '16px',
         display: 'flex',
@@ -30,7 +31,7 @@ export function ClaseCard({ clase, ya_reservada }: Props) {
         gap: '8px',
         textDecoration: 'none',
         color: 'var(--sala-text-primary)',
-        opacity: llena ? 0.55 : 1,
+        opacity: esCancelada ? 0.6 : llena ? 0.55 : 1,
         boxShadow: '0 1px 3px rgba(26, 31, 28, 0.04)',
         transition: 'border-color 0.18s ease, transform 0.18s ease'
       }}
@@ -82,22 +83,26 @@ export function ClaseCard({ clase, ya_reservada }: Props) {
           margin: 0,
           marginTop: 'auto',
           fontVariantNumeric: 'tabular-nums',
-          color: llena
+          color: esCancelada
             ? 'var(--sala-text-tertiary)'
-            : pocos
-              ? 'var(--sala-accent)'
-              : ya_reservada
-                ? 'var(--sala-primary)'
-                : 'var(--sala-text-secondary)'
+            : llena
+              ? 'var(--sala-text-tertiary)'
+              : pocos
+                ? 'var(--sala-accent)'
+                : ya_reservada
+                  ? 'var(--sala-primary)'
+                  : 'var(--sala-text-secondary)'
         }}
       >
-        {llena
-          ? 'Llena'
-          : ya_reservada
-            ? 'Reservaste ✓'
-            : pocos
-              ? `¡${clase.cupoMax - clase.cuposReservados} lugares!`
-              : `${clase.cuposReservados}/${clase.cupoMax} cupos`}
+        {esCancelada
+          ? 'Cancelada'
+          : llena
+            ? 'Llena'
+            : ya_reservada
+              ? 'Reservaste ✓'
+              : pocos
+                ? `¡${clase.cupoMax - clase.cuposReservados} lugares!`
+                : `${clase.cuposReservados}/${clase.cupoMax} cupos`}
       </p>
     </Link>
   );
