@@ -1,48 +1,137 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { useMiembroDetalle, updateMiembro, adminUpdateRole, adminDeleteUser } from '../hooks/useAdminData';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  useMiembroDetalle,
+  useTiersAdmin,
+  adminUpdateRole,
+  adminDeleteUser
+} from '../hooks/useAdminData';
+import { useMiembroKPIs } from '../hooks/useMiembroKPIs';
 import { supabase } from '@shared/lib/supabase';
 import { useToast } from '@shared/hooks/useToast';
-import { formatHora } from '@member/logic/reservaLogic';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { MiembroHero } from '../components/miembro/MiembroHero';
+import { MiembroKPIs } from '../components/miembro/MiembroKPIs';
+import {
+  MiembroProximasReservas,
+  type ReservaListItem
+} from '../components/miembro/MiembroProximasReservas';
+import {
+  MiembroHistorial,
+  type HistorialItem
+} from '../components/miembro/MiembroHistorial';
+import { MiembroNotasInternas } from '../components/miembro/MiembroNotasInternas';
+import { CambiarPlanModal } from '../components/miembro/CambiarPlanModal';
+import { BloquearAccesoModal } from '../components/miembro/BloquearAccesoModal';
 import type { Database } from '@shared/types/database';
+
+type Recurso = Pick<Database['public']['Tables']['recursos']['Row'], 'nombre'>;
 
 export default function MiembroDetalle() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const toast = useToast();
   const { miembro, reservas, isLoading, refetch } = useMiembroDetalle(id);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState<{ status: string; membresia_tier: string }>({
-    status: '',
-    membresia_tier: ''
-  });
+  const { tiers } = useTiersAdmin();
+  const { kpis, isLoading: loadingKpis, refetch: refetchKpis } = useMiembroKPIs(id);
+
+  // Membresía activa para "vence en X días"
+  const [periodoFin, setPeriodoFin] = useState<Date | null>(null);
+  useEffect(() => {
+    if (!id) return;
+    let mounted = true;
+    void (async () => {
+      const { data } = await supabase
+        .from('membresias')
+        .select('periodo_actual_fin')
+        .eq('usuario_id', id)
+        .eq('status', 'activa')
+        .order('periodo_actual_fin', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!mounted) return;
+      const fin = (data?.periodo_actual_fin as string | undefined) ?? null;
+      setPeriodoFin(fin ? new Date(fin) : null);
+    })();
+    return () => { mounted = false; };
+  }, [id, miembro]);
+
+  const [showCambiarPlan, setShowCambiarPlan] = useState(false);
+  const [showBloquear, setShowBloquear] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    if (miembro) {
-      setDraft({ status: miembro.status, membresia_tier: miembro.membresia_tier ?? '' });
-    }
-  }, [miembro]);
+  // Particionar reservas: futuras (próximas 5 confirmadas) + historial (últimos 30 días)
+  const ahora = Date.now();
+  const hace30Dias = ahora - 30 * 24 * 60 * 60 * 1000;
+  type ReservaJoined = (typeof reservas)[number];
+
+  const proximasReservas = useMemo<ReservaListItem[]>(
+    () =>
+      (reservas as ReservaJoined[])
+        .filter(
+          (r) =>
+            r.status === 'confirmada' &&
+            new Date(r.slot_inicio).getTime() >= ahora
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.slot_inicio).getTime() - new Date(b.slot_inicio).getTime()
+        )
+        .slice(0, 5)
+        .map((r) => ({
+          id: r.id,
+          slot_inicio: r.slot_inicio,
+          recurso_nombre: (r.recurso as Recurso | null)?.nombre ?? '—',
+          status: r.status
+        })),
+    [reservas, ahora]
+  );
+
+  const historialItems = useMemo<HistorialItem[]>(
+    () =>
+      (reservas as ReservaJoined[])
+        .filter((r) => {
+          const ms = new Date(r.slot_inicio).getTime();
+          const isHistoricStatus =
+            r.status === 'completada' ||
+            r.status === 'no_show' ||
+            r.status === 'cancelada' ||
+            r.status === 'cancelada_admin';
+          return isHistoricStatus && ms >= hace30Dias && ms < ahora;
+        })
+        .sort(
+          (a, b) =>
+            new Date(b.slot_inicio).getTime() - new Date(a.slot_inicio).getTime()
+        )
+        .slice(0, 30)
+        .map((r) => ({
+          id: r.id,
+          slot_inicio: r.slot_inicio,
+          recurso_nombre: (r.recurso as Recurso | null)?.nombre ?? '—',
+          status: r.status as HistorialItem['status']
+        })),
+    [reservas, ahora, hace30Dias]
+  );
 
   if (isLoading) return <p className="adm-body">Cargando…</p>;
   if (!miembro) return <p className="adm-body">Miembro no encontrado.</p>;
 
-  async function handleSave() {
-    setSaving(true);
-    setError(null);
-    const { error: err } = await updateMiembro(miembro!.id, {
-      status: draft.status as any,
-      membresia_tier: draft.membresia_tier || null
-    });
-    if (err) {
-      setError(err);
-    } else {
-      await refetch();
-    }
-    setSaving(false);
+  const planNombre = miembro.membresia_tier
+    ? tiers.find((t) => t.slug === miembro.membresia_tier)?.nombre ?? null
+    : null;
+
+  const diasParaVencimiento = periodoFin
+    ? Math.ceil((periodoFin.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+    : null;
+
+  const bloqueadoHasta =
+    miembro.bloqueado_hasta && new Date(miembro.bloqueado_hasta) > new Date()
+      ? new Date(miembro.bloqueado_hasta)
+      : null;
+
+  async function handleAfterChange() {
+    await Promise.all([refetch(), refetchKpis()]);
   }
 
   async function handleDelete() {
@@ -61,140 +150,125 @@ export default function MiembroDetalle() {
 
   return (
     <div className="adm-page">
-      <Link to="/admin/miembros" className="adm-link">← Volver</Link>
+      <Link to="/admin/miembros" className="adm-link" style={{ marginBottom: '12px', display: 'inline-block' }}>
+        ← Volver a Miembros
+      </Link>
 
-      <div className="adm-page-header" style={{ marginTop: '1rem' }}>
-        <p className="ek-eyebrow">MIEMBRO</p>
-        <h1 className="ek-h2">{miembro.nombre ?? miembro.email}</h1>
-      </div>
+      <MiembroHero
+        miembro={miembro}
+        planNombre={planNombre}
+        diasParaVencimiento={diasParaVencimiento}
+        estaBloqueado={!!bloqueadoHasta}
+        onCambiarPlan={() => setShowCambiarPlan(true)}
+        onBloquearAcceso={() => setShowBloquear(true)}
+      />
 
-      <section className="adm-section">
-        <h2 className="ek-h3">Datos del miembro</h2>
-        <EditarDatosForm
-          miembro={miembro}
-          onSaved={refetch}
+      <MiembroKPIs kpis={kpis} isLoading={loadingKpis} />
+
+      <section style={{ marginBottom: '32px' }}>
+        <SectionHeading>Próximas reservas</SectionHeading>
+        <MiembroProximasReservas
+          reservas={proximasReservas}
+          onAfterCancel={handleAfterChange}
         />
       </section>
 
-      <section className="adm-section">
-        <h2 className="ek-h3">Información del sistema</h2>
-        <div className="adm-info-grid">
-          <Info label="Email" value={miembro.email} />
-          <Info label="Rol" value={miembro.rol} mono />
-          <Info label="Alta" value={new Date(miembro.created_at).toLocaleString('es-MX')} />
-          {miembro.commitment_ends_at && (
-            <Info label="Commitment hasta" value={new Date(miembro.commitment_ends_at).toLocaleDateString('es-MX')} />
-          )}
-          {miembro.bloqueado_hasta && new Date(miembro.bloqueado_hasta) > new Date() && (
-            <Info label="Bloqueado hasta" value={new Date(miembro.bloqueado_hasta).toLocaleString('es-MX')} />
-          )}
-          <Info label="No-shows" value={miembro.no_shows_count} />
-        </div>
-        <ResetPasswordControl email={miembro.email} />
+      <section style={{ marginBottom: '32px' }}>
+        <SectionHeading hint="Últimos 30 días">Historial de asistencia</SectionHeading>
+        <MiembroHistorial items={historialItems} />
       </section>
 
-      <section className="adm-section">
-        <h2 className="ek-h3">Acciones</h2>
-        <div className="adm-form-row">
-          <label className="ek-label">
-            Status
-            <select
-              value={draft.status}
-              onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))}
-              className="ek-input"
-            >
-              <option value="pendiente_onboarding">pendiente_onboarding</option>
-              <option value="pendiente_pago">pendiente_pago</option>
-              <option value="activo">activo</option>
-              <option value="suspendido">suspendido</option>
-              <option value="cancelado">cancelado</option>
-            </select>
-          </label>
-          <label className="ek-label">
-            Plan
-            <select
-              value={draft.membresia_tier}
-              onChange={(e) => setDraft((d) => ({ ...d, membresia_tier: e.target.value }))}
-              className="ek-input"
-            >
-              <option value="">— sin plan —</option>
-              <option value="basica">basica</option>
-              <option value="pro">pro</option>
-            </select>
-          </label>
-        </div>
-        {error && <p className="ek-error-text">{error}</p>}
-        <button onClick={handleSave} disabled={saving} className="ek-cta" style={{ marginTop: '1rem', alignSelf: 'flex-start' }}>
-          {saving ? 'Guardando…' : 'Guardar cambios'}
-        </button>
-      </section>
-
-      <section className="adm-section">
-        <h2 className="ek-h3">Rol</h2>
-        <p className="adm-body">
-          Rol actual: <RolBadge rol={miembro.rol} />
-        </p>
-        <CambiarRolControl
-          usuarioId={miembro.id}
-          rolActual={miembro.rol}
-          onChanged={refetch}
-        />
-      </section>
-
-      <section className="adm-section">
-        <h2 className="ek-h3">Foto del miembro</h2>
-        <AvatarUploadControl
-          usuarioId={miembro.id}
-          avatarUrl={miembro.avatar_url}
-          onChanged={refetch}
-        />
-      </section>
-
-      <section className="adm-section">
-        <h2 className="ek-h3">Notas operativas</h2>
-        <p className="adm-body" style={{ marginBottom: '0.5rem' }}>
-          Visible para recepción al hacer check-in. Útil para condiciones físicas,
-          preferencias o recordatorios sobre el miembro.
-        </p>
-        <NotasControl
+      <section style={{ marginBottom: '32px' }}>
+        <SectionHeading>Notas internas</SectionHeading>
+        <MiembroNotasInternas
           usuarioId={miembro.id}
           notasIniciales={(miembro as { notas_admin?: string | null }).notas_admin ?? null}
           onSaved={refetch}
         />
       </section>
 
-      <section className="adm-section">
-        <h2 className="ek-h3">Reservas ({reservas.length})</h2>
-        {reservas.length === 0 ? (
-          <p className="adm-body">Este miembro todavía no reservó ninguna clase.</p>
-        ) : (
-          <div className="adm-table-wrapper">
-            <table className="adm-table">
-              <thead>
-                <tr><th>Folio</th><th>Fecha</th><th>Sala</th><th>Status</th></tr>
-              </thead>
-              <tbody>
-                {reservas.map((r) => (
-                  <tr key={r.id}>
-                    <td><code style={{ fontFamily: 'var(--ek-font-mono)' }}>{r.folio}</code></td>
-                    <td>
-                      {new Date(r.slot_inicio).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
-                      {' · '}
-                      {formatHora(new Date(r.slot_inicio))}
-                    </td>
-                    <td>{r.recurso?.nombre ?? '—'}</td>
-                    <td><code style={{ fontFamily: 'var(--ek-font-mono)' }}>{r.status}</code></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      {/* Editar datos del miembro — colapsible */}
+      <details
+        style={{
+          background: 'var(--sala-surface)',
+          border: '1px solid var(--sala-border)',
+          borderRadius: '14px',
+          padding: '0',
+          marginBottom: '24px',
+          overflow: 'hidden'
+        }}
+      >
+        <summary
+          style={{
+            cursor: 'pointer',
+            padding: '14px 18px',
+            fontFamily: 'var(--ek-font-display)',
+            fontSize: '15px',
+            fontWeight: 600,
+            color: 'var(--sala-text-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            listStyle: 'none'
+          }}
+        >
+          <span>Editar datos del miembro</span>
+          <span style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', fontWeight: 500 }}>
+            (datos personales, foto, rol, contraseña)
+          </span>
+        </summary>
+        <div style={{ padding: '20px', borderTop: '1px solid var(--sala-border)', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <FieldGroup title="Datos personales">
+            <EditarDatosForm miembro={miembro} onSaved={refetch} />
+          </FieldGroup>
 
+          <FieldGroup title="Foto">
+            <AvatarUploadControl
+              usuarioId={miembro.id}
+              avatarUrl={miembro.avatar_url}
+              onChanged={refetch}
+            />
+          </FieldGroup>
+
+          <FieldGroup title="Rol">
+            <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 8px' }}>
+              Rol actual: <RolBadge rol={miembro.rol} />
+            </p>
+            <CambiarRolControl
+              usuarioId={miembro.id}
+              rolActual={miembro.rol}
+              onChanged={refetch}
+            />
+          </FieldGroup>
+
+          <FieldGroup title="Cuenta">
+            <ResetPasswordControl email={miembro.email} />
+          </FieldGroup>
+
+          <FieldGroup title="Información del sistema">
+            <div className="adm-info-grid">
+              <Info label="Email" value={miembro.email} />
+              <Info label="Rol" value={miembro.rol} mono />
+              <Info label="Alta" value={new Date(miembro.created_at).toLocaleString('es-MX')} />
+              {miembro.commitment_ends_at && (
+                <Info
+                  label="Commitment hasta"
+                  value={new Date(miembro.commitment_ends_at).toLocaleDateString('es-MX')}
+                />
+              )}
+              {bloqueadoHasta && (
+                <Info label="Bloqueado hasta" value={bloqueadoHasta.toLocaleString('es-MX')} />
+              )}
+              <Info label="No-shows" value={miembro.no_shows_count} />
+            </div>
+          </FieldGroup>
+        </div>
+      </details>
+
+      {/* Zona peligrosa (FIX02) */}
       <section
         style={{
-          marginTop: '3rem',
+          marginTop: '24px',
           padding: '20px 24px',
           background: 'var(--sala-error-bg)',
           border: '1px solid rgba(196, 74, 53, 0.30)',
@@ -218,7 +292,7 @@ export default function MiembroDetalle() {
           Eliminar al miembro libera el email <strong>{miembro.email}</strong> para re-uso inmediato. La acción es permanente.
         </p>
         <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '16px', lineHeight: 1.5 }}>
-          Si el miembro tiene reservas en historial, vas a tener que cancelarlas primero o usar <strong>Suspender</strong> arriba (status="cancelado") en su lugar.
+          Si el miembro tiene reservas en historial, vas a tener que cancelarlas primero o usar <strong>Suspender</strong> (status="cancelado") desde "Editar datos" en su lugar.
         </p>
         <button
           type="button"
@@ -240,6 +314,27 @@ export default function MiembroDetalle() {
         </button>
       </section>
 
+      {/* Modales */}
+      {showCambiarPlan && (
+        <CambiarPlanModal
+          usuarioId={miembro.id}
+          nombreMiembro={miembro.nombre ?? miembro.email}
+          tierActualSlug={miembro.membresia_tier}
+          onClose={() => setShowCambiarPlan(false)}
+          onSaved={handleAfterChange}
+        />
+      )}
+
+      {showBloquear && (
+        <BloquearAccesoModal
+          usuarioId={miembro.id}
+          nombreMiembro={miembro.nombre ?? miembro.email}
+          bloqueadoHasta={bloqueadoHasta}
+          onClose={() => setShowBloquear(false)}
+          onSaved={handleAfterChange}
+        />
+      )}
+
       <ConfirmDialog
         isOpen={showDelete}
         title={`¿Eliminar a ${miembro.nombre ?? miembro.email}?`}
@@ -250,6 +345,72 @@ export default function MiembroDetalle() {
         onConfirm={handleDelete}
         onCancel={() => !deleting && setShowDelete(false)}
       />
+    </div>
+  );
+}
+
+// ============================================================================
+// Helpers locales preservados (todos los edit-forms existentes)
+// ============================================================================
+
+function SectionHeading({ children, hint }: { children: React.ReactNode; hint?: string }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        marginBottom: '14px',
+        gap: '12px',
+        flexWrap: 'wrap'
+      }}
+    >
+      <h2
+        style={{
+          fontFamily: 'var(--ek-font-display)',
+          fontSize: '18px',
+          fontWeight: 600,
+          letterSpacing: '-0.02em',
+          color: 'var(--sala-text-primary)',
+          margin: 0
+        }}
+      >
+        {children}
+      </h2>
+      {hint && (
+        <span
+          style={{
+            fontSize: '11px',
+            color: 'var(--sala-text-tertiary)',
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase'
+          }}
+        >
+          {hint}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p
+        style={{
+          fontSize: '11px',
+          fontWeight: 700,
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          color: 'var(--sala-primary)',
+          margin: 0,
+          marginBottom: '10px'
+        }}
+      >
+        {title}
+      </p>
+      {children}
     </div>
   );
 }
@@ -266,15 +427,35 @@ function Info({ label, value, mono }: { label: string; value: React.ReactNode; m
 }
 
 function RolBadge({ rol }: { rol: string }) {
-  return <code style={{ fontFamily: 'var(--ek-font-mono)', background: 'var(--ek-cream-deep)', padding: '2px 8px', borderRadius: '4px' }}>{rol}</code>;
+  return (
+    <code
+      style={{
+        fontFamily: 'var(--ek-font-mono)',
+        background: 'var(--sala-bg)',
+        color: 'var(--sala-text-primary)',
+        padding: '2px 8px',
+        borderRadius: '4px',
+        fontSize: '12px',
+        border: '1px solid var(--sala-border)'
+      }}
+    >
+      {rol}
+    </code>
+  );
 }
 
-function CambiarRolControl({ usuarioId, rolActual, onChanged }: {
+function CambiarRolControl({
+  usuarioId,
+  rolActual,
+  onChanged
+}: {
   usuarioId: string;
   rolActual: string;
   onChanged: () => Promise<void>;
 }) {
-  const [nuevoRol, setNuevoRol] = useState<'miembro' | 'recepcionista' | 'staff' | 'admin'>(rolActual as any);
+  const [nuevoRol, setNuevoRol] = useState<'miembro' | 'recepcionista' | 'staff' | 'admin'>(
+    rolActual as 'miembro' | 'recepcionista' | 'staff' | 'admin'
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsConfirm, setNeedsConfirm] = useState(false);
@@ -285,7 +466,6 @@ function CambiarRolControl({ usuarioId, rolActual, onChanged }: {
       setNeedsConfirm(true);
       return;
     }
-
     setSaving(true);
     setError(null);
     try {
@@ -304,7 +484,7 @@ function CambiarRolControl({ usuarioId, rolActual, onChanged }: {
         Nuevo rol
         <select
           value={nuevoRol}
-          onChange={(e) => setNuevoRol(e.target.value as any)}
+          onChange={(e) => setNuevoRol(e.target.value as typeof nuevoRol)}
           className="ek-input"
         >
           <option value="miembro">Miembro</option>
@@ -323,7 +503,7 @@ function CambiarRolControl({ usuarioId, rolActual, onChanged }: {
       </button>
       {error && <p className="ek-error-text">{error}</p>}
       {needsConfirm && nuevoRol === 'admin' && (
-        <p style={{ fontSize: '0.8125rem', color: 'var(--ek-danger)', flexBasis: '100%', marginTop: '0.5rem' }}>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--sala-error)', flexBasis: '100%', marginTop: '0.5rem' }}>
           ⚠️ Promover a admin da acceso TOTAL al negocio. Click "Confirmar admin" para proceder.
         </p>
       )}
@@ -331,7 +511,11 @@ function CambiarRolControl({ usuarioId, rolActual, onChanged }: {
   );
 }
 
-function AvatarUploadControl({ usuarioId, avatarUrl, onChanged }: {
+function AvatarUploadControl({
+  usuarioId,
+  avatarUrl,
+  onChanged
+}: {
   usuarioId: string;
   avatarUrl: string | null;
   onChanged: () => Promise<void>;
@@ -345,22 +529,16 @@ function AvatarUploadControl({ usuarioId, avatarUrl, onChanged }: {
     try {
       const ext = file.name.split('.').pop() || 'jpg';
       const path = `${usuarioId}/${Date.now()}.${ext}`;
-
       const { error: uploadErr } = await supabase.storage
         .from('avatars')
         .upload(path, file, { cacheControl: '3600', upsert: false });
-
       if (uploadErr) throw uploadErr;
-
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
-
       const { error: updateErr } = await supabase
         .from('usuarios')
         .update({ avatar_url: publicUrl })
         .eq('id', usuarioId);
-
       if (updateErr) throw updateErr;
-
       await onChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No pudimos subir la foto. Probá con otra imagen.');
@@ -371,16 +549,32 @@ function AvatarUploadControl({ usuarioId, avatarUrl, onChanged }: {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
       {avatarUrl ? (
-        <img src={avatarUrl} alt="Avatar" style={{
-          width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover',
-          border: '1px solid var(--ek-line)'
-        }} />
+        <img
+          src={avatarUrl}
+          alt="Avatar"
+          style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            objectFit: 'cover',
+            border: '1px solid var(--sala-border-strong)'
+          }}
+        />
       ) : (
-        <div style={{
-          width: '80px', height: '80px', borderRadius: '50%',
-          background: 'var(--ek-cream-deep)', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', color: 'var(--ek-ink-muted)', fontSize: '0.875rem'
-        }}>
+        <div
+          style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            background: 'var(--sala-bg)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--sala-text-tertiary)',
+            fontSize: '0.875rem',
+            border: '1px dashed var(--sala-border-strong)'
+          }}
+        >
           Sin foto
         </div>
       )}
@@ -399,7 +593,10 @@ function AvatarUploadControl({ usuarioId, avatarUrl, onChanged }: {
   );
 }
 
-function EditarDatosForm({ miembro, onSaved }: {
+function EditarDatosForm({
+  miembro,
+  onSaved
+}: {
   miembro: Database['public']['Tables']['usuarios']['Row'];
   onSaved: () => Promise<void>;
 }) {
@@ -409,7 +606,8 @@ function EditarDatosForm({ miembro, onSaved }: {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isDirty = (nombre !== (miembro.nombre ?? '')) || (telefono !== (miembro.telefono ?? ''));
+  const isDirty =
+    nombre !== (miembro.nombre ?? '') || telefono !== (miembro.telefono ?? '');
 
   async function handleSave() {
     setSaving(true);
@@ -456,15 +654,11 @@ function EditarDatosForm({ miembro, onSaved }: {
         />
       </label>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.75rem', gridColumn: '1 / -1' }}>
-        <button
-          onClick={handleSave}
-          disabled={saving || !isDirty}
-          className="ek-cta"
-        >
+        <button onClick={handleSave} disabled={saving || !isDirty} className="ek-cta">
           {saving ? 'Guardando…' : 'Guardar cambios'}
         </button>
-        {saved && <span style={{ color: 'var(--ek-success)', fontSize: '0.875rem' }}>✓ Guardado</span>}
-        {error && <span style={{ color: 'var(--ek-danger)', fontSize: '0.875rem' }}>{error}</span>}
+        {saved && <span style={{ color: 'var(--sala-success)', fontSize: '0.875rem' }}>✓ Guardado</span>}
+        {error && <span style={{ color: 'var(--sala-error)', fontSize: '0.875rem' }}>{error}</span>}
       </div>
     </div>
   );
@@ -493,73 +687,18 @@ function ResetPasswordControl({ email }: { email: string }) {
 
   if (sent) {
     return (
-      <p style={{ marginTop: '1rem', fontSize: '0.875rem', color: 'var(--ek-success)' }}>
+      <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--sala-success)' }}>
         ✓ Email de recuperación enviado a {email}
       </p>
     );
   }
 
   return (
-    <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
       <button onClick={handleReset} disabled={sending} className="ek-cta ek-cta--secondary">
-        {sending ? 'Enviando…' : 'Enviar email de recuperación de contraseña'}
+        {sending ? 'Enviando…' : 'Enviar email de recuperación'}
       </button>
-      {error && <span style={{ color: 'var(--ek-danger)', fontSize: '0.875rem' }}>{error}</span>}
-    </div>
-  );
-}
-
-function NotasControl({ usuarioId, notasIniciales, onSaved }: {
-  usuarioId: string;
-  notasIniciales: string | null;
-  onSaved: () => Promise<void>;
-}) {
-  const [notas, setNotas] = useState(notasIniciales ?? '');
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSave() {
-    setSaving(true);
-    setError(null);
-    setSaved(false);
-    try {
-      const { error } = await supabase
-        .from('usuarios')
-        .update({ notas_admin: notas.trim() || null } as never)
-        .eq('id', usuarioId);
-      if (error) throw error;
-      await onSaved();
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos guardar los cambios. Probá de nuevo.');
-    }
-    setSaving(false);
-  }
-
-  return (
-    <div className="ek-stack-md">
-      <textarea
-        value={notas}
-        onChange={(e) => setNotas(e.target.value)}
-        maxLength={500}
-        rows={4}
-        placeholder="Ej. Lesión en rodilla derecha. Evitar saltos. Prefiere clases de mañana."
-        className="ek-input"
-      />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <p style={{ fontSize: '0.75rem', color: 'var(--ek-ink-muted)' }}>
-          {notas.length}/500 caracteres
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {saved && <span style={{ color: 'var(--ek-success)', fontSize: '0.875rem' }}>✓ Guardado</span>}
-          {error && <span style={{ color: 'var(--ek-danger)', fontSize: '0.875rem' }}>{error}</span>}
-          <button onClick={handleSave} disabled={saving} className="ek-cta">
-            {saving ? 'Guardando…' : 'Guardar notas'}
-          </button>
-        </div>
-      </div>
+      {error && <span style={{ color: 'var(--sala-error)', fontSize: '0.875rem' }}>{error}</span>}
     </div>
   );
 }
