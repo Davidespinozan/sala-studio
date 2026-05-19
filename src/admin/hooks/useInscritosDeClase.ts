@@ -18,17 +18,14 @@ export interface MiembroBuscable {
   membresia_tier: string | null;
 }
 
-/** Fetch reservas (todas las status) de un slot específico, join a usuarios. */
-export function useInscritosDeClase(
-  recursoId: string | null,
-  slotInicio: Date | null
-) {
+/** Fetch reservas (todas las status) de una clase concreta, join a usuarios.
+ *  S4.2: ahora filtra por clase_id (antes era recurso_id + slot_inicio). */
+export function useInscritosDeClase(claseId: string | null) {
   const [inscritos, setInscritos] = useState<InscritoAdmin[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const slotISO = slotInicio?.toISOString() ?? null;
 
   const refetch = useCallback(async () => {
-    if (!recursoId || !slotISO) {
+    if (!claseId) {
       setInscritos([]);
       return;
     }
@@ -38,8 +35,7 @@ export function useInscritosDeClase(
       .select(
         'id, status, folio, usuario:usuarios!reservas_usuario_id_fkey(id, nombre, email, membresia_tier)'
       )
-      .eq('recurso_id', recursoId)
-      .eq('slot_inicio', slotISO)
+      .eq('clase_id', claseId)
       .order('id', { ascending: true });
 
     if (error) {
@@ -72,7 +68,7 @@ export function useInscritosDeClase(
       }))
     );
     setIsLoading(false);
-  }, [recursoId, slotISO]);
+  }, [claseId]);
 
   useEffect(() => {
     void refetch();
@@ -143,13 +139,15 @@ export async function buscarMiembrosTenant(
 
 export async function inscribirMiembroManual(params: {
   tenantId: string;
+  claseId: string;
   recursoId: string;
   usuarioId: string;
   slotInicio: Date;
   slotFin: Date;
   duracionMin: number;
 }) {
-  // Folio único basado en timestamp + random para reservas creadas por admin
+  // Folio único basado en timestamp + random para reservas creadas por admin.
+  // S4.2: incluye clase_id para mantener integridad con la nueva tabla.
   const stamp = Date.now().toString(36).toUpperCase();
   const rand = Math.floor(Math.random() * 1000)
     .toString()
@@ -165,6 +163,7 @@ export async function inscribirMiembroManual(params: {
     duracion_min: params.duracionMin,
     folio,
     status: 'confirmada',
-    invitados_count: 0
+    invitados_count: 0,
+    clase_id: params.claseId
   } as never);
 }

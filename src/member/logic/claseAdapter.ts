@@ -1,35 +1,30 @@
 /**
- * Adapter: convierte (recurso, slot, reservas) → Clase visual.
+ * Adapter: convierte una fila real de `clases` (con su recurso joineado y el
+ * count de reservas activas) en la interfaz `Clase` que consume la UI.
  *
- * Hoy SALA usa el modelo EKKO (recursos + slots virtuales). Esta capa
- * presenta los datos al UI como "clases de gimnasio" con cupos, instructor
- * y disciplina, MOCKEANDO los campos que todavía no existen en BD.
+ * Hasta S4.1 esta capa mockeaba cupos e instructores porque no había tabla
+ * real. Desde S4.2 lee de `clases` directamente — los mocks viejos
+ * (CUPO_MAX_MOCK, MOCK_INSTRUCTORES, mockInstructorFor, clasesDelDia,
+ * reservaToClase) fueron eliminados.
  *
- * Cuando llegue S4 y se cree la tabla `clases` real, los componentes de
- * UI siguen funcionando — solo se reescribe este archivo para mapear de
- * la nueva tabla en lugar de mockear.
+ * `instructor_nombre_mock` sigue siendo el placeholder hasta que llegue la
+ * tabla `instructores` (Sprint S6).
  */
 
-import { diaNombre, combinarFechaHora, type HorarioBloque } from './reservaLogic';
+import { combinarFechaHora } from './reservaLogic';
+import type { Database } from '@shared/types/database';
 
-// ---------------------------------------------------------------------------
-// Mocks centralizados — TODO S4: reemplazar por datos reales de tabla `clases`
-// ---------------------------------------------------------------------------
-
-// TODO S4: reemplazar por `recurso.cupo_max` real por sala (Yoga 20, Spinning 25,
-// Funcional 15). Valor temporal 8 para que 8 mocks + admin saturen clases de demo.
-const CUPO_MAX_MOCK = 8;
-const MOCK_INSTRUCTORES = ['María', 'Carlos', 'Sofía', 'Diego', 'Lucía', 'Pablo'];
+type ClaseRow = Database['public']['Tables']['clases']['Row'];
 
 // ---------------------------------------------------------------------------
 // Tipos
 // ---------------------------------------------------------------------------
 
 export interface Clase {
-  /** ID compuesto recursoId_slotISO. En S4 será UUID propio. */
+  /** UUID real de la fila en `clases` (era ID composite recursoId_slotISO antes de S4.2). */
   id: string;
   nombre: string;
-  /** ISO datetime del inicio del slot. */
+  /** ISO datetime del inicio de la clase (en zona horaria local del browser). */
   hora: string;
   duracionMinutos: number;
   cupoMax: number;
@@ -40,7 +35,7 @@ export interface Clase {
   imagenUrl?: string;
   /** Nombre de la sala física donde se da la clase. */
   salaNombre?: string;
-  /** Tier slugs permitidos para reservar (de recurso.tiers_permitidos). */
+  /** Tier slugs permitidos (vienen del recurso). */
   tiersPermitidos?: string[];
   // Datos brutos para navegación / acciones
   recursoId: string;
@@ -48,176 +43,59 @@ export interface Clase {
   slotFin: Date;
 }
 
-export interface RecursoMin {
+export interface RecursoContext {
   id: string;
   nombre: string;
-  descripcion?: string | null;
   foto_url?: string | null;
-  tipo_contenido?: string[] | null;
   tiers_permitidos?: string[];
-  horarios?: unknown;
 }
 
 // ---------------------------------------------------------------------------
-// ID composite (encode/decode)
+// Helpers de combinación fecha+hora
 // ---------------------------------------------------------------------------
 
-export function makeClaseId(recursoId: string, slotInicio: Date): string {
-  return `${recursoId}_${slotInicio.toISOString()}`;
+/** Postgres `time` viene como 'HH:MM:SS'. La UI usa 'HH:MM'. */
+function trimSegundos(horaStr: string): string {
+  return horaStr.length >= 5 ? horaStr.slice(0, 5) : horaStr;
 }
 
-export function parseClaseId(id: string): { recursoId: string; slotInicio: Date } | null {
-  const idx = id.indexOf('_');
-  if (idx === -1) return null;
-  const recursoId = id.slice(0, idx);
-  const slotISO = id.slice(idx + 1);
-  const slotInicio = new Date(slotISO);
-  if (!recursoId || isNaN(slotInicio.getTime())) return null;
-  return { recursoId, slotInicio };
+/** Combina `clases.fecha` ('YYYY-MM-DD') + `clases.hora_inicio` ('HH:MM:SS')
+ *  en un Date local (timezone del browser). */
+export function slotInicioFromClaseRow(row: Pick<ClaseRow, 'fecha' | 'hora_inicio'>): Date {
+  return combinarFechaHora(row.fecha, trimSegundos(row.hora_inicio));
 }
 
 // ---------------------------------------------------------------------------
-// Mocks deterministas
+// Mapper principal
 // ---------------------------------------------------------------------------
 
-/** Instructor mock derivado del hash de (recursoId + slotISO).
- *  Determinista: misma clase, mismo instructor entre renders.
- *  TODO S4: leer de tabla clases.instructor_id → usuarios.nombre */
-function mockInstructorFor(recursoId: string, slotISO: string): string {
-  const seed = (recursoId + slotISO).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  return MOCK_INSTRUCTORES[seed % MOCK_INSTRUCTORES.length];
-}
-
-/** Disciplina derivada del primer tipo_contenido del recurso, o cae al nombre.
- *  TODO S4: campo `disciplina` real en tabla clases */
-function disciplinaFor(recurso: RecursoMin): string {
-  const tag = recurso.tipo_contenido?.[0];
-  if (tag) return tag;
-  return recurso.nombre;
-}
-
-// ---------------------------------------------------------------------------
-// Mappers
-// ---------------------------------------------------------------------------
-
-interface ToClaseInput {
-  recurso: RecursoMin;
-  slotInicio: Date;
-  duracionMinutos: number;
+interface ClaseFromRowInput {
+  row: ClaseRow;
   cuposReservados: number;
+  recurso: RecursoContext;
 }
 
-/** Construye una Clase desde un recurso + slot + cupos.
- *  Usado por ClaseDetalle cuando se navega desde un ID compuesto. */
-export function claseFromSlot(input: ToClaseInput): Clase {
-  return toClase(input);
-}
-
-function toClase(input: ToClaseInput): Clase {
-  const slotFin = new Date(input.slotInicio.getTime() + input.duracionMinutos * 60_000);
-  const slotISO = input.slotInicio.toISOString();
+/** Construye la Clase UI desde una fila real de `clases` + recurso + count. */
+export function claseFromRow({ row, cuposReservados, recurso }: ClaseFromRowInput): Clase {
+  const slotInicio = slotInicioFromClaseRow(row);
+  const slotFin = new Date(slotInicio.getTime() + row.duracion_minutos * 60_000);
   return {
-    id: makeClaseId(input.recurso.id, input.slotInicio),
-    nombre: input.recurso.nombre,
-    hora: slotISO,
-    duracionMinutos: input.duracionMinutos,
-    cupoMax: CUPO_MAX_MOCK,
-    cuposReservados: input.cuposReservados,
-    instructor: mockInstructorFor(input.recurso.id, slotISO),
-    disciplina: disciplinaFor(input.recurso),
-    descripcion: input.recurso.descripcion ?? undefined,
-    imagenUrl: input.recurso.foto_url ?? undefined,
-    salaNombre: input.recurso.nombre,
-    tiersPermitidos: input.recurso.tiers_permitidos,
-    recursoId: input.recurso.id,
-    slotInicio: input.slotInicio,
+    id: row.id,
+    nombre: row.nombre,
+    hora: slotInicio.toISOString(),
+    duracionMinutos: row.duracion_minutos,
+    cupoMax: row.cupo_max,
+    cuposReservados,
+    instructor: row.instructor_nombre_mock ?? 'Por confirmar',
+    disciplina: row.disciplina ?? '',
+    descripcion: row.descripcion ?? undefined,
+    imagenUrl: recurso.foto_url ?? undefined,
+    salaNombre: recurso.nombre,
+    tiersPermitidos: recurso.tiers_permitidos,
+    recursoId: row.recurso_id,
+    slotInicio,
     slotFin
   };
-}
-
-/** Genera los slots base de un recurso para una fecha (sin marcar disponibilidad).
- *  Es una versión "neutral" de generarSlotsDisponibles para uso del adapter. */
-function generarSlotsBase(
-  horarios: HorarioBloque[],
-  fechaISO: string,
-  duracionMin: number
-): Date[] {
-  const fechaBase = new Date(fechaISO + 'T00:00:00');
-  const diaSemana = diaNombre(fechaBase);
-  const bloquesDia = horarios.filter((b) => b.dia === diaSemana);
-  if (bloquesDia.length === 0) return [];
-
-  const slots: Date[] = [];
-  for (const bloque of bloquesDia) {
-    const inicioBloque = combinarFechaHora(fechaISO, bloque.inicio);
-    const finBloque = combinarFechaHora(fechaISO, bloque.fin);
-    let cursor = new Date(inicioBloque);
-    while (cursor.getTime() + duracionMin * 60_000 <= finBloque.getTime()) {
-      slots.push(new Date(cursor));
-      cursor = new Date(cursor.getTime() + duracionMin * 60_000);
-    }
-  }
-  return slots;
-}
-
-/** Genera todas las Clases de un día, atravesando todos los recursos activos.
- *  Sort por hora ascendente.
- *
- *  @param reservasExistentes filas crudas de `reservas` con recurso_id +
- *         slot_inicio (en status 'confirmada' o 'completada') usadas para
- *         calcular cuposReservados.
- */
-export function clasesDelDia(
-  recursos: RecursoMin[],
-  fechaISO: string,
-  duracionDefaultMin: number,
-  reservasExistentes: Array<{ recurso_id: string; slot_inicio: string }>
-): Clase[] {
-  // Index reservas por (recurso_id + slot_inicio_ms) → count
-  const cuposMap = new Map<string, number>();
-  for (const r of reservasExistentes) {
-    const ms = new Date(r.slot_inicio).getTime();
-    const key = `${r.recurso_id}_${ms}`;
-    cuposMap.set(key, (cuposMap.get(key) ?? 0) + 1);
-  }
-
-  const clases: Clase[] = [];
-  for (const recurso of recursos) {
-    const horarios = (recurso.horarios as HorarioBloque[] | null | undefined) ?? [];
-    const slots = generarSlotsBase(horarios, fechaISO, duracionDefaultMin);
-    for (const slot of slots) {
-      const key = `${recurso.id}_${slot.getTime()}`;
-      clases.push(toClase({
-        recurso,
-        slotInicio: slot,
-        duracionMinutos: duracionDefaultMin,
-        cuposReservados: cuposMap.get(key) ?? 0
-      }));
-    }
-  }
-
-  clases.sort((a, b) => a.slotInicio.getTime() - b.slotInicio.getTime());
-  return clases;
-}
-
-/** Convierte una reserva existente del miembro + el recurso joined en una Clase.
- *  Útil para "próxima clase" del Dashboard o detalle de clase ya reservada. */
-export function reservaToClase(
-  reserva: { recurso_id: string; slot_inicio: string; slot_fin: string },
-  recurso: RecursoMin,
-  cuposReservadosTotales?: number
-): Clase {
-  const slotInicio = new Date(reserva.slot_inicio);
-  const slotFin = new Date(reserva.slot_fin);
-  const duracionMin = Math.max(1, Math.round((slotFin.getTime() - slotInicio.getTime()) / 60_000));
-  return toClase({
-    recurso,
-    slotInicio,
-    duracionMinutos: duracionMin,
-    // Si el caller no provee count, asumimos al menos 1 (el propio miembro).
-    // TODO S4: pasar el count real siempre.
-    cuposReservados: cuposReservadosTotales ?? 1
-  });
 }
 
 // ---------------------------------------------------------------------------
@@ -253,7 +131,6 @@ export function formatHoraHumana(slot: Date, ahora: Date = new Date()): string {
   const dia = slot.toLocaleDateString('es-MX', { weekday: 'short' });
   const num = slot.getDate();
   const mes = slot.toLocaleDateString('es-MX', { month: 'short' });
-  // Capitalizar primera letra del día
   const diaCap = dia.charAt(0).toUpperCase() + dia.slice(1);
   return `${diaCap} ${num} ${mes}, ${horaStr}`;
 }

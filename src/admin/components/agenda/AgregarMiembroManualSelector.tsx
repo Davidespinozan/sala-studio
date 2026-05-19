@@ -61,6 +61,7 @@ export function AgregarMiembroManualSelector({
     setAgregandoId(m.id);
     const { error } = await inscribirMiembroManual({
       tenantId: tenant.id,
+      claseId: clase.id,
       recursoId: clase.recursoId,
       usuarioId: m.id,
       slotInicio: clase.slotInicio,

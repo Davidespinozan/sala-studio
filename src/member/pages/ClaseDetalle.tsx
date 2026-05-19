@@ -6,16 +6,17 @@ import { useToast } from '@shared/hooks/useToast';
 import { supabase } from '@shared/lib/supabase';
 import { crearReserva, cancelarReserva as cancelarReservaRPC } from '@member/hooks/useReservas';
 import {
-  parseClaseId,
-  claseFromSlot,
+  claseFromRow,
   estadoCupos,
   formatHoraHumana,
-  type Clase,
-  type RecursoMin
+  type Clase
 } from '@member/logic/claseAdapter';
+import type { Database } from '@shared/types/database';
 import { CupoBar } from '@member/components/CupoBar';
 import { ConfirmarReservaModal } from '@member/components/ConfirmarReservaModal';
 import { ConfirmarCancelacionModal } from '@member/components/ConfirmarCancelacionModal';
+
+type ClaseRow = Database['public']['Tables']['clases']['Row'];
 
 interface RecursoFetched {
   id: string;
@@ -53,23 +54,17 @@ export default function ClaseDetalle() {
   const tenant = useTenant();
   const toast = useToast();
 
-  const parsed = useMemo(() => {
+  // S4.2: el id de la URL es ahora el UUID directo de la fila en `clases`.
+  const claseId = useMemo(() => {
     if (!id) return null;
     try {
-      return parseClaseId(decodeURIComponent(id));
+      return decodeURIComponent(id);
     } catch {
       return null;
     }
   }, [id]);
 
-  const duracionDefaultMin = useMemo<number>(() => {
-    const c = (tenant.config as Record<string, unknown> | null | undefined)?.reserva as
-      | Record<string, unknown>
-      | undefined;
-    const v = c?.duracion_default_min;
-    return typeof v === 'number' && v > 0 ? v : 60;
-  }, [tenant.config]);
-
+  const [claseRow, setClaseRow] = useState<ClaseRow | null>(null);
   const [recurso, setRecurso] = useState<RecursoFetched | null>(null);
   const [cuposReservados, setCuposReservados] = useState(0);
   const [miReservaId, setMiReservaId] = useState<string | null>(null);
@@ -88,8 +83,8 @@ export default function ClaseDetalle() {
   const triggerRefresh = () => setRefreshTick((t) => t + 1);
 
   useEffect(() => {
-    if (!parsed || !usuario) {
-      if (!parsed) {
+    if (!claseId || !usuario) {
+      if (!claseId) {
         setNotFound(true);
         setIsLoading(false);
       }
@@ -100,27 +95,42 @@ export default function ClaseDetalle() {
     setNotFound(false);
 
     async function load() {
-      const slotISO = parsed!.slotInicio.toISOString();
+      // 1) Cargar la clase por UUID
+      const claseRes = await supabase
+        .from('clases')
+        .select('*')
+        .eq('id', claseId!)
+        .eq('tenant_id', tenant.id)
+        .maybeSingle();
 
+      if (!mounted) return;
+
+      if (claseRes.error || !claseRes.data) {
+        setNotFound(true);
+        setIsLoading(false);
+        return;
+      }
+
+      const row = claseRes.data as ClaseRow;
+
+      // 2) Recurso + cupos + mi reserva en paralelo
       const [recursoRes, countRes, miRes] = await Promise.all([
         supabase
           .from('recursos')
           .select('id, nombre, descripcion, foto_url, tipo_contenido, tiers_permitidos, capacidad_personas, equipo_incluido')
-          .eq('id', parsed!.recursoId)
+          .eq('id', row.recurso_id)
           .eq('tenant_id', tenant.id)
           .maybeSingle(),
         supabase
           .from('reservas')
           .select('id', { count: 'exact', head: true })
-          .eq('recurso_id', parsed!.recursoId)
-          .eq('slot_inicio', slotISO)
+          .eq('clase_id', row.id)
           .in('status', ['confirmada', 'completada']),
         supabase
           .from('reservas')
           .select('id, status')
           .eq('usuario_id', usuario!.id)
-          .eq('recurso_id', parsed!.recursoId)
-          .eq('slot_inicio', slotISO)
+          .eq('clase_id', row.id)
           .in('status', ['confirmada', 'completada'])
           .maybeSingle()
       ]);
@@ -133,6 +143,7 @@ export default function ClaseDetalle() {
         return;
       }
 
+      setClaseRow(row);
       setRecurso(recursoRes.data as RecursoFetched);
       setCuposReservados(countRes.count ?? 0);
       setMiReservaId((miRes.data as { id: string } | null)?.id ?? null);
@@ -141,18 +152,22 @@ export default function ClaseDetalle() {
 
     void load();
     return () => { mounted = false; };
-  }, [parsed, usuario, tenant.id, refreshTick]);
+  }, [claseId, usuario, tenant.id, refreshTick]);
 
-  // Construir la Clase visual
+  // Construir la Clase visual a partir de la fila real
   const clase = useMemo<Clase | null>(() => {
-    if (!parsed || !recurso) return null;
-    return claseFromSlot({
-      recurso: recurso as RecursoMin,
-      slotInicio: parsed.slotInicio,
-      duracionMinutos: duracionDefaultMin,
-      cuposReservados
+    if (!claseRow || !recurso) return null;
+    return claseFromRow({
+      row: claseRow,
+      cuposReservados,
+      recurso: {
+        id: recurso.id,
+        nombre: recurso.nombre,
+        foto_url: recurso.foto_url,
+        tiers_permitidos: recurso.tiers_permitidos
+      }
     });
-  }, [parsed, recurso, duracionDefaultMin, cuposReservados]);
+  }, [claseRow, recurso, cuposReservados]);
 
   const tier = usuario?.membresia_tier ?? null;
   const puedeAccederTier = recurso ? tierTieneAcceso(recurso.tiers_permitidos, tier) : false;
@@ -193,9 +208,7 @@ export default function ClaseDetalle() {
     setErrorReserva(null);
     try {
       await crearReserva({
-        recursoId: clase.recursoId,
-        slotInicio: clase.slotInicio,
-        duracionMin: clase.duracionMinutos,
+        claseId: clase.id,
         invitados,
         notas: undefined
       });

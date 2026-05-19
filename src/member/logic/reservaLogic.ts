@@ -234,6 +234,10 @@ export function traducirErrorRPC(message: string): string {
   if (message.includes('CONTINUAS_NO_PERMITIDAS')) return 'No podés reservar horas consecutivas.';
   if (message.includes('CONTINUA')) return 'No podés reservar horas consecutivas.';
   if (message.includes('SLOT_OCUPADO')) return 'Este horario acaba de ser tomado por otro miembro. Elegí otro.';
+  if (message.includes('CLASE_NO_EXISTE')) return 'Esta clase no existe en tu gimnasio.';
+  if (message.includes('CLASE_NO_PROGRAMADA')) return 'Esta clase ya no está disponible.';
+  if (message.includes('YA_RESERVADO')) return 'Ya tenés una reserva activa en esta clase.';
+  if (message.includes('CUPO_LLENO')) return 'Esta clase está llena. Probá con otro horario.';
   if (message.includes('RESERVA_NO_EXISTE')) return 'No encontramos esa reserva.';
   if (message.includes('NO_AUTORIZADO')) return 'No podés hacer esta acción.';
   if (message.includes('RESERVA_NO_CANCELABLE')) return 'Esta reserva no se puede cancelar.';

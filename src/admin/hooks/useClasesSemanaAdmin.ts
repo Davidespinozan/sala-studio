@@ -1,86 +1,114 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
-import {
-  clasesDelDia,
-  type Clase,
-  type RecursoMin
-} from '@member/logic/claseAdapter';
-import { formatDateISO } from '@member/logic/reservaLogic';
+import { claseFromRow, type Clase, type RecursoContext } from '@member/logic/claseAdapter';
+import type { Database } from '@shared/types/database';
+
+type ClaseRow = Database['public']['Tables']['clases']['Row'];
+type RecursoRow = Pick<
+  Database['public']['Tables']['recursos']['Row'],
+  'id' | 'nombre' | 'foto_url' | 'tiers_permitidos'
+>;
+
+interface JoinedClaseRow extends ClaseRow {
+  recurso: RecursoRow | null;
+}
 
 /**
- * Admin: clases computadas de los próximos 7 días desde una fecha.
- * NO filtra por tier del usuario (admin ve todas).
+ * Admin: clases de los próximos 7 días desde una fecha, leyendo de la tabla
+ * `clases` real (S4.2). El count de cupos reservados se calcula en una segunda
+ * query — Supabase REST no soporta count agregado en el mismo SELECT.
  *
- * @param inicioSemana fecha de inicio (lunes a las 00:00) — los 7 días se cuentan
- *   desde acá inclusive.
- * @param salaIdFilter si se provee, solo computa clases de ese recurso.
+ * @param inicioSemana fecha de inicio (lunes a las 00:00). Los 7 días se cuentan
+ *   desde acá inclusive (lunes a domingo).
+ * @param salaIdFilter si se provee, solo trae clases de ese recurso.
  */
 export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) {
   const tenant = useTenant();
   const [clases, setClases] = useState<Clase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const duracionDefaultMin = useMemo<number>(() => {
-    const c = (tenant.config as Record<string, unknown> | null | undefined)?.reserva as
-      | Record<string, unknown>
-      | undefined;
-    const v = c?.duracion_default_min;
-    return typeof v === 'number' && v > 0 ? v : 60;
-  }, [tenant.config]);
-
-  // Primitivo estable para deps
   const inicioMs = inicioSemana.getTime();
 
   const refetch = useCallback(async () => {
     setIsLoading(true);
     const inicio = new Date(inicioMs);
     const fin = new Date(inicioMs + 7 * 24 * 60 * 60 * 1000);
+    const fechaInicioISO = ymd(inicio);
+    const fechaFinISO = ymd(fin);
 
-    const [recursosRes, reservasRes] = await Promise.all([
-      supabase
-        .from('recursos')
-        .select('id, nombre, descripcion, foto_url, tipo_contenido, tiers_permitidos, horarios')
-        .eq('tenant_id', tenant.id)
-        .eq('activo', true),
-      supabase
-        .from('reservas')
-        .select('recurso_id, slot_inicio')
-        .eq('tenant_id', tenant.id)
-        .in('status', ['confirmada', 'completada'])
-        .gte('slot_inicio', inicio.toISOString())
-        .lt('slot_inicio', fin.toISOString())
-    ]);
+    let claseQuery = supabase
+      .from('clases')
+      .select('*, recurso:recursos(id, nombre, foto_url, tiers_permitidos)')
+      .eq('tenant_id', tenant.id)
+      .eq('status', 'programada')
+      .gte('fecha', fechaInicioISO)
+      .lt('fecha', fechaFinISO)
+      .order('fecha', { ascending: true })
+      .order('hora_inicio', { ascending: true });
 
-    const allRecursos = (recursosRes.data ?? []) as unknown as RecursoMin[];
-    const recursos = salaIdFilter
-      ? allRecursos.filter((r) => r.id === salaIdFilter)
-      : allRecursos;
-    const reservas = (reservasRes.data ?? []) as Array<{
-      recurso_id: string;
-      slot_inicio: string;
-    }>;
+    if (salaIdFilter) claseQuery = claseQuery.eq('recurso_id', salaIdFilter);
 
-    const all: Clase[] = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(inicioMs + i * 24 * 60 * 60 * 1000);
-      const fechaISO = formatDateISO(d);
-      const inicioDiaMs = d.getTime();
-      const finDiaMs = inicioDiaMs + 24 * 60 * 60 * 1000;
-      const reservasDelDia = reservas.filter((r) => {
-        const ms = new Date(r.slot_inicio).getTime();
-        return ms >= inicioDiaMs && ms < finDiaMs;
-      });
-      all.push(...clasesDelDia(recursos, fechaISO, duracionDefaultMin, reservasDelDia));
+    const { data: clasesRaw, error: clasesErr } = await claseQuery;
+    if (clasesErr) {
+      console.error('[useClasesSemanaAdmin:clases]', clasesErr);
+      setClases([]);
+      setIsLoading(false);
+      return;
     }
 
-    setClases(all);
+    const filas = (clasesRaw ?? []) as unknown as JoinedClaseRow[];
+    if (filas.length === 0) {
+      setClases([]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Cupos por clase: una sola query agrupada por clase_id
+    const claseIds = filas.map((c) => c.id);
+    const { data: reservasRaw } = await supabase
+      .from('reservas')
+      .select('clase_id')
+      .in('clase_id', claseIds)
+      .in('status', ['confirmada', 'completada']);
+
+    const cuposPorClase = new Map<string, number>();
+    for (const r of (reservasRaw ?? []) as Array<{ clase_id: string | null }>) {
+      if (!r.clase_id) continue;
+      cuposPorClase.set(r.clase_id, (cuposPorClase.get(r.clase_id) ?? 0) + 1);
+    }
+
+    const mapped: Clase[] = filas.map((row) => {
+      const recurso: RecursoContext = row.recurso
+        ? {
+            id: row.recurso.id,
+            nombre: row.recurso.nombre,
+            foto_url: row.recurso.foto_url,
+            tiers_permitidos: row.recurso.tiers_permitidos
+          }
+        : { id: row.recurso_id, nombre: '—' };
+      return claseFromRow({
+        row,
+        cuposReservados: cuposPorClase.get(row.id) ?? 0,
+        recurso
+      });
+    });
+
+    setClases(mapped);
     setIsLoading(false);
-  }, [tenant.id, inicioMs, salaIdFilter, duracionDefaultMin]);
+  }, [tenant.id, inicioMs, salaIdFilter]);
 
   useEffect(() => {
     void refetch();
   }, [refetch]);
 
   return { clases, isLoading, refetch };
+}
+
+/** YYYY-MM-DD en tz local (sin desfases por toISOString). */
+function ymd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }

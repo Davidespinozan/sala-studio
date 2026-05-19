@@ -12,15 +12,21 @@ import {
   generarFechasReservables,
   type TenantReservaConfig
 } from '@member/logic/reservaLogic';
-import {
-  clasesDelDia,
-  type Clase,
-  type RecursoMin
-} from '@member/logic/claseAdapter';
+import { claseFromRow, type Clase } from '@member/logic/claseAdapter';
+import type { Database } from '@shared/types/database';
 import { DayTabSelector } from '@member/components/DayTabSelector';
 import { ClaseRow } from '@member/components/ClaseRow';
 import { ConfirmarReservaModal } from '@member/components/ConfirmarReservaModal';
 import { ConfirmarCancelacionModal } from '@member/components/ConfirmarCancelacionModal';
+
+type ClaseRowDB = Database['public']['Tables']['clases']['Row'];
+type RecursoMinDB = Pick<
+  Database['public']['Tables']['recursos']['Row'],
+  'id' | 'nombre' | 'foto_url' | 'tiers_permitidos'
+>;
+interface ClaseConRecurso extends ClaseRowDB {
+  recurso: RecursoMinDB | null;
+}
 
 const SALA_TODAS = '__todas__';
 
@@ -55,9 +61,12 @@ export default function Reservar() {
   const [fechaSel, setFechaSel] = useState<string>(fechas[0]?.fechaISO ?? '');
   const [salaSel, setSalaSel] = useState<string>(SALA_TODAS);
 
-  // Datos del día seleccionado
-  const [reservasDelDia, setReservasDelDia] = useState<Array<{ recurso_id: string; slot_inicio: string }>>([]);
-  const [misReservasIds, setMisReservasIds] = useState<Map<string, string>>(new Map()); // clave → reserva.id
+  // S4.2: traemos las clases programadas del día desde la tabla `clases`.
+  // misReservasIds: clase_id → reserva.id del usuario (para cancelar inline).
+  // cuposPorClase: clase_id → count de reservas activas.
+  const [clasesRaw, setClasesRaw] = useState<ClaseConRecurso[]>([]);
+  const [cuposPorClase, setCuposPorClase] = useState<Map<string, number>>(new Map());
+  const [misReservasIds, setMisReservasIds] = useState<Map<string, string>>(new Map());
   const [loadingDia, setLoadingDia] = useState(false);
 
   // Modal de reserva
@@ -74,66 +83,92 @@ export default function Reservar() {
   const [refreshTick, setRefreshTick] = useState(0);
   const triggerRefresh = () => setRefreshTick((t) => t + 1);
 
-  // Cargar reservas del día seleccionado
+  // S4.2: cargar clases del día (tabla real) + cupos + mis reservas
   useEffect(() => {
     if (!fechaSel || !usuario) return;
     let mounted = true;
     setLoadingDia(true);
 
     async function load() {
-      const inicio = new Date(fechaSel + 'T00:00:00');
-      const fin = new Date(inicio.getTime() + 24 * 60 * 60 * 1000);
-
-      const [allRes, misRes] = await Promise.all([
-        supabase
-          .from('reservas')
-          .select('recurso_id, slot_inicio')
-          .eq('tenant_id', tenant.id)
-          .in('status', ['confirmada', 'completada'])
-          .gte('slot_inicio', inicio.toISOString())
-          .lt('slot_inicio', fin.toISOString()),
-        supabase
-          .from('reservas')
-          .select('id, recurso_id, slot_inicio')
-          .eq('usuario_id', usuario!.id)
-          .in('status', ['confirmada', 'completada'])
-          .gte('slot_inicio', inicio.toISOString())
-          .lt('slot_inicio', fin.toISOString())
-      ]);
+      const clasesRes = await supabase
+        .from('clases')
+        .select('*, recurso:recursos(id, nombre, foto_url, tiers_permitidos)')
+        .eq('tenant_id', tenant.id)
+        .eq('fecha', fechaSel)
+        .eq('status', 'programada')
+        .order('hora_inicio', { ascending: true });
 
       if (!mounted) return;
-      setReservasDelDia((allRes.data ?? []) as Array<{ recurso_id: string; slot_inicio: string }>);
-      const map = new Map<string, string>();
-      ((misRes.data ?? []) as Array<{ id: string; recurso_id: string; slot_inicio: string }>).forEach((r) => {
-        const key = `${r.recurso_id}_${new Date(r.slot_inicio).getTime()}`;
-        map.set(key, r.id);
-      });
-      setMisReservasIds(map);
+
+      const filas = (clasesRes.data ?? []) as unknown as ClaseConRecurso[];
+      const claseIds = filas.map((c) => c.id);
+
+      const [cuposRes, misRes] = claseIds.length === 0
+        ? [{ data: [] as Array<{ clase_id: string | null }> }, { data: [] as Array<{ id: string; clase_id: string | null }> }]
+        : await Promise.all([
+            supabase
+              .from('reservas')
+              .select('clase_id')
+              .in('clase_id', claseIds)
+              .in('status', ['confirmada', 'completada']),
+            supabase
+              .from('reservas')
+              .select('id, clase_id')
+              .eq('usuario_id', usuario!.id)
+              .in('clase_id', claseIds)
+              .in('status', ['confirmada', 'completada'])
+          ]);
+
+      if (!mounted) return;
+
+      const cuposMap = new Map<string, number>();
+      for (const r of (cuposRes.data ?? []) as Array<{ clase_id: string | null }>) {
+        if (!r.clase_id) continue;
+        cuposMap.set(r.clase_id, (cuposMap.get(r.clase_id) ?? 0) + 1);
+      }
+      const misMap = new Map<string, string>();
+      for (const r of (misRes.data ?? []) as Array<{ id: string; clase_id: string | null }>) {
+        if (r.clase_id) misMap.set(r.clase_id, r.id);
+      }
+
+      setClasesRaw(filas);
+      setCuposPorClase(cuposMap);
+      setMisReservasIds(misMap);
       setLoadingDia(false);
     }
     void load();
     return () => { mounted = false; };
   }, [fechaSel, tenant.id, usuario, refreshTick]);
 
-  // Computar las Clases del día
+  // Mapear las clases a la interfaz UI, aplicando filtro de sala y "ya pasó" si es hoy.
   const clases = useMemo<Clase[]>(() => {
-    if (!fechaSel || recursos.length === 0) return [];
-    const recursosFiltrados =
-      salaSel === SALA_TODAS ? recursos : recursos.filter((r) => r.id === salaSel);
-    const todas = clasesDelDia(
-      recursosFiltrados as unknown as RecursoMin[],
-      fechaSel,
-      config.duracion_default_min,
-      reservasDelDia
-    );
-    // Si la fecha es HOY, filtrar pasadas
+    if (clasesRaw.length === 0) return [];
+    const filasFiltradas =
+      salaSel === SALA_TODAS ? clasesRaw : clasesRaw.filter((c) => c.recurso_id === salaSel);
+
+    const mapped = filasFiltradas.map((row) => {
+      const recurso = row.recurso
+        ? {
+            id: row.recurso.id,
+            nombre: row.recurso.nombre,
+            foto_url: row.recurso.foto_url,
+            tiers_permitidos: row.recurso.tiers_permitidos
+          }
+        : { id: row.recurso_id, nombre: '—' };
+      return claseFromRow({
+        row,
+        cuposReservados: cuposPorClase.get(row.id) ?? 0,
+        recurso
+      });
+    });
+
     const hoy = new Date();
     const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
     const esHoy = fechaSel === inicioHoy.toISOString().slice(0, 10);
-    if (!esHoy) return todas;
+    if (!esHoy) return mapped;
     const ahora = Date.now();
-    return todas.filter((c) => c.slotInicio.getTime() >= ahora);
-  }, [fechaSel, recursos, salaSel, config.duracion_default_min, reservasDelDia]);
+    return mapped.filter((c) => c.slotInicio.getTime() >= ahora);
+  }, [clasesRaw, cuposPorClase, salaSel, fechaSel]);
 
   const maxInvitados = tier === 'pro' ? 4 : tier === 'basica' ? 2 : 0;
 
@@ -160,9 +195,7 @@ export default function Reservar() {
     setErrorReserva(null);
     try {
       await crearReserva({
-        recursoId: claseAReservar.recursoId,
-        slotInicio: claseAReservar.slotInicio,
-        duracionMin: claseAReservar.duracionMinutos,
+        claseId: claseAReservar.id,
         invitados,
         notas: undefined
       });
@@ -179,8 +212,7 @@ export default function Reservar() {
 
   async function confirmarCancelacion() {
     if (!claseACancelar) return;
-    const claveBusqueda = `${claseACancelar.recursoId}_${claseACancelar.slotInicio.getTime()}`;
-    const reservaId = misReservasIds.get(claveBusqueda);
+    const reservaId = misReservasIds.get(claseACancelar.id);
     if (!reservaId) {
       toast.error('No encontramos tu reserva. Recargá la página.');
       setClaseACancelar(null);
@@ -292,8 +324,7 @@ export default function Reservar() {
           <EmptyDia />
         ) : (
           clases.map((clase) => {
-            const key = `${clase.recursoId}_${clase.slotInicio.getTime()}`;
-            const yaReservada = misReservasIds.has(key);
+            const yaReservada = misReservasIds.has(clase.id);
             const puede = tierTieneAcceso(clase.tiersPermitidos, tier);
             return (
               <ClaseRow

@@ -23,10 +23,7 @@ interface Props {
 export function ListaInscritosModal({ clase, onClose }: Props) {
   const { usuario: currentUser } = useAuth();
   const toast = useToast();
-  const { inscritos, isLoading, refetch } = useInscritosDeClase(
-    clase.recursoId,
-    clase.slotInicio
-  );
+  const { inscritos, isLoading, refetch } = useInscritosDeClase(clase.id);
   const [showAgregar, setShowAgregar] = useState(false);
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<

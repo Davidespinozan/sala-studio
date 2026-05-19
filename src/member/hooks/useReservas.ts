@@ -55,23 +55,20 @@ export function useReservasDelUsuario() {
 }
 
 /**
- * Crea una reserva llamando al RPC atómico.
+ * Crea una reserva llamando al RPC atómico contra una clase concreta.
  *
- * NOTA: la firma del RPC cambió en la migración 160000 (agregó p_duracion_min
- * y renombró p_invitados_count → p_invitados, returns jsonb en vez de reservas).
- * Cast a `any` hasta que se aplique la migración y se regeneren tipos.
+ * S4.2: ahora pivotea sobre `clase_id`. El RPC valida cupo via COUNT contra
+ * `clases.cupo_max` y los anteriores chequeos de tier/anticipación/continua/etc.
+ * Cast a `any` hasta que `supabase gen types` exponga la nueva función
+ * (regen post-migración manual la incluye).
  */
 export async function crearReserva(params: {
-  recursoId: string;
-  slotInicio: Date;
-  duracionMin: number;
+  claseId: string;
   invitados?: number;
   notas?: string;
 }) {
-  const { data, error } = await (supabase.rpc as any)('reservar_recurso_atomic', {
-    p_recurso_id: params.recursoId,
-    p_slot_inicio: params.slotInicio.toISOString(),
-    p_duracion_min: params.duracionMin,
+  const { data, error } = await (supabase.rpc as any)('reservar_clase_atomic', {
+    p_clase_id: params.claseId,
     p_invitados: params.invitados ?? 0,
     p_notas: params.notas
   });
