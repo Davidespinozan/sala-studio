@@ -292,7 +292,7 @@ export default function Dashboard() {
               to="/app/reservar"
               style={{ color: 'var(--sala-primary)', fontWeight: 600, textDecoration: 'none' }}
             >
-              agenda de mañana →
+              agenda completa →
             </Link>
           </p>
         ) : (

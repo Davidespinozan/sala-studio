@@ -166,13 +166,13 @@ export default function Reservar() {
       });
     });
 
-    const hoy = new Date();
-    const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-    const esHoy = fechaSel === inicioHoy.toISOString().slice(0, 10);
+    // esHoy: comparar contra fechas[0] (hoy local, ya en formato YYYY-MM-DD).
+    // Evita el bug de toISOString() que desfasa el día en timezones != UTC-.
+    const esHoy = fechaSel === fechas[0]?.fechaISO;
     if (!esHoy) return mapped;
     const ahora = Date.now();
     return mapped.filter((c) => c.slotInicio.getTime() >= ahora);
-  }, [clasesRaw, cuposPorClase, salaSel, fechaSel]);
+  }, [clasesRaw, cuposPorClase, salaSel, fechaSel, fechas]);
 
   const maxInvitados = tier === 'pro' ? 4 : tier === 'basica' ? 2 : 0;
 
