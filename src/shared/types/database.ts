@@ -25,6 +25,7 @@ export type Database = {
           duracion_minutos: number
           fecha: string
           hora_inicio: string
+          horario_recurrente_id: string | null
           id: string
           instructor_id: string | null
           instructor_nombre_mock: string | null
@@ -46,6 +47,7 @@ export type Database = {
           duracion_minutos?: number
           fecha: string
           hora_inicio: string
+          horario_recurrente_id?: string | null
           id?: string
           instructor_id?: string | null
           instructor_nombre_mock?: string | null
@@ -67,6 +69,7 @@ export type Database = {
           duracion_minutos?: number
           fecha?: string
           hora_inicio?: string
+          horario_recurrente_id?: string | null
           id?: string
           instructor_id?: string | null
           instructor_nombre_mock?: string | null
@@ -79,6 +82,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "clases_horario_recurrente_id_fkey"
+            columns: ["horario_recurrente_id"]
+            isOneToOne: false
+            referencedRelation: "horarios_recurrentes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clases_instructor_id_fkey"
             columns: ["instructor_id"]
@@ -95,6 +105,73 @@ export type Database = {
           },
           {
             foreignKeyName: "clases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      horarios_recurrentes: {
+        Row: {
+          activo: boolean
+          created_at: string
+          cupo_max: number | null
+          dias_semana: number[]
+          duracion_minutos: number
+          hora_inicio: string
+          id: string
+          instructor_id: string | null
+          nombre: string
+          recurso_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          cupo_max?: number | null
+          dias_semana: number[]
+          duracion_minutos?: number
+          hora_inicio: string
+          id?: string
+          instructor_id?: string | null
+          nombre: string
+          recurso_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          cupo_max?: number | null
+          dias_semana?: number[]
+          duracion_minutos?: number
+          hora_inicio?: string
+          id?: string
+          instructor_id?: string | null
+          nombre?: string
+          recurso_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "horarios_recurrentes_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "horarios_recurrentes_recurso_id_fkey"
+            columns: ["recurso_id"]
+            isOneToOne: false
+            referencedRelation: "recursos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "horarios_recurrentes_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -961,6 +1038,7 @@ export type Database = {
         Args: { p_dias_forward?: number; p_tenant_id: string }
         Returns: Json
       }
+      generar_mis_clases_recurrentes: { Args: never; Returns: Json }
       get_my_rol: { Args: never; Returns: string }
       get_my_tenant_id: { Args: never; Returns: string }
       get_my_user_id: { Args: never; Returns: string }
