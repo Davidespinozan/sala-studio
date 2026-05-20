@@ -83,7 +83,7 @@ export type Database = {
             foreignKeyName: "clases_instructor_id_fkey"
             columns: ["instructor_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "instructores"
             referencedColumns: ["id"]
           },
           {
@@ -95,6 +95,53 @@ export type Database = {
           },
           {
             foreignKeyName: "clases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instructores: {
+        Row: {
+          activo: boolean
+          bio: string | null
+          created_at: string
+          especialidades: string[]
+          foto_url: string | null
+          id: string
+          nombre: string
+          orden: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          bio?: string | null
+          created_at?: string
+          especialidades?: string[]
+          foto_url?: string | null
+          id?: string
+          nombre: string
+          orden?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          bio?: string | null
+          created_at?: string
+          especialidades?: string[]
+          foto_url?: string | null
+          id?: string
+          nombre?: string
+          orden?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instructores_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
