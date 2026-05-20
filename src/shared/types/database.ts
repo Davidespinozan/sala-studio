@@ -734,6 +734,58 @@ export type Database = {
           },
         ]
       }
+      usuario_status_historial: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          status_anterior: string | null
+          status_nuevo: string
+          tenant_id: string
+          usuario_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          status_anterior?: string | null
+          status_nuevo: string
+          tenant_id: string
+          usuario_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          status_anterior?: string | null
+          status_nuevo?: string
+          tenant_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usuario_status_historial_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usuario_status_historial_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usuario_status_historial_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuarios: {
         Row: {
           auth_id: string | null
