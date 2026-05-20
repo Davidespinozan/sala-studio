@@ -39,3 +39,4 @@ playwright/.cache/
 # Misc
 .eslintcache
 *.tsbuildinfo
+deno.lock
