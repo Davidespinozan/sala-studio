@@ -149,6 +149,68 @@ export type Database = {
           },
         ]
       }
+      lista_espera: {
+        Row: {
+          clase_id: string
+          created_at: string
+          id: string
+          promovido_at: string | null
+          reserva_id: string | null
+          status: string
+          tenant_id: string
+          usuario_id: string
+        }
+        Insert: {
+          clase_id: string
+          created_at?: string
+          id?: string
+          promovido_at?: string | null
+          reserva_id?: string | null
+          status?: string
+          tenant_id: string
+          usuario_id: string
+        }
+        Update: {
+          clase_id?: string
+          created_at?: string
+          id?: string
+          promovido_at?: string | null
+          reserva_id?: string | null
+          status?: string
+          tenant_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lista_espera_clase_id_fkey"
+            columns: ["clase_id"]
+            isOneToOne: false
+            referencedRelation: "clases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lista_espera_reserva_id_fkey"
+            columns: ["reserva_id"]
+            isOneToOne: false
+            referencedRelation: "reservas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lista_espera_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lista_espera_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       membresias: {
         Row: {
           cancelada_at: string | null
@@ -764,6 +826,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _promover_entrada: { Args: { p_le_id: string }; Returns: string }
+      anotar_lista_espera: { Args: { p_clase_id: string }; Returns: Json }
       cancelar_reserva_atomic: {
         Args: { p_motivo?: string; p_reserva_id: string }
         Returns: {
@@ -852,6 +916,16 @@ export type Database = {
       is_recepcionista: { Args: never; Returns: boolean }
       marcar_no_shows: { Args: never; Returns: Json }
       max_invitados_por_tier: { Args: { p_tier: string }; Returns: number }
+      mi_posicion_lista_espera: { Args: { p_clase_id: string }; Returns: Json }
+      mis_listas_espera: { Args: never; Returns: Json }
+      promover_manual_lista_espera: {
+        Args: { p_lista_espera_id: string }
+        Returns: Json
+      }
+      promover_siguiente_en_espera: {
+        Args: { p_clase_id: string }
+        Returns: string
+      }
       reservar_clase_atomic: {
         Args: { p_clase_id: string; p_invitados?: number; p_notas?: string }
         Returns: Json
@@ -866,6 +940,7 @@ export type Database = {
         }
         Returns: Json
       }
+      salir_lista_espera: { Args: { p_clase_id: string }; Returns: Json }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
