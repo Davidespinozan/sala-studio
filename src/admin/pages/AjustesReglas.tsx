@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTenantConfigEditor } from '../hooks/useTenantConfigEditor';
 import { useToast } from '@shared/hooks/useToast';
+import { DEFAULT_TIMEZONE, TIMEZONE_OPTIONS } from '@shared/lib/timezone';
 import Toggle from '../components/Toggle';
 
 type ReglasDraft = {
@@ -8,13 +9,15 @@ type ReglasDraft = {
   duracion_default_min: number;
   permitir_continuas: boolean;
   no_show_bloqueo_dias: number;
+  timezone: string;
 };
 
 const DEFAULT: ReglasDraft = {
   anticipacion_min_horas: 24,
   duracion_default_min: 60,
   permitir_continuas: false,
-  no_show_bloqueo_dias: 7
+  no_show_bloqueo_dias: 7,
+  timezone: DEFAULT_TIMEZONE
 };
 
 function readDraft(config: Record<string, unknown> | null): ReglasDraft {
@@ -30,7 +33,11 @@ function readDraft(config: Record<string, unknown> | null): ReglasDraft {
     anticipacion_min_horas: num(reserva.anticipacion_min_horas, DEFAULT.anticipacion_min_horas),
     duracion_default_min: num(reserva.duracion_default_min, DEFAULT.duracion_default_min),
     permitir_continuas: Boolean(reserva.permitir_continuas ?? DEFAULT.permitir_continuas),
-    no_show_bloqueo_dias: num(penalizaciones.no_show_bloqueo_dias, DEFAULT.no_show_bloqueo_dias)
+    no_show_bloqueo_dias: num(penalizaciones.no_show_bloqueo_dias, DEFAULT.no_show_bloqueo_dias),
+    timezone:
+      typeof config?.timezone === 'string' && config.timezone
+        ? (config.timezone as string)
+        : DEFAULT_TIMEZONE
   };
 }
 
@@ -117,7 +124,8 @@ export default function AjustesReglas() {
       penalizaciones: {
         ...penalizaciones,
         no_show_bloqueo_dias: draft.no_show_bloqueo_dias
-      }
+      },
+      timezone: draft.timezone
     };
 
     const { error } = await saveTopLevel(patch);
@@ -217,6 +225,25 @@ export default function AjustesReglas() {
             }
             className="ek-input"
           />
+        </FormField>
+      </Section>
+
+      <Section title="ZONA HORARIA">
+        <FormField
+          label="Zona horaria del gimnasio"
+          helper="Todas las clases y reservas se manejan en esta zona horaria. Cambiarla no afecta las clases ya creadas — solo las que se generen después."
+        >
+          <select
+            value={draft.timezone}
+            onChange={(e) => setDraft({ ...draft, timezone: e.target.value })}
+            className="ek-input"
+          >
+            {TIMEZONE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
         </FormField>
       </Section>
 
