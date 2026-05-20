@@ -118,11 +118,9 @@ function useInstructoresPublicos() {
   return { instructores, isLoading };
 }
 
-/** Card de instructor para la sección pública de la landing. */
+/** Card horizontal compacta de instructor para la landing pública. */
 function InstructorLandingCard({ instructor }: { instructor: InstructorPublico }) {
-  const [expandida, setExpandida] = useState(false);
   const bio = instructor.bio?.trim() ?? '';
-  const bioLarga = bio.length > 140;
   const inicial =
     instructor.nombre
       .split(/\s+/)
@@ -135,13 +133,12 @@ function InstructorLandingCard({ instructor }: { instructor: InstructorPublico }
     <div
       className="ek-card"
       style={{
-        padding: '28px 24px',
-        border: '0.5px solid var(--ek-line)',
-        background: 'var(--ek-bg-soft)',
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
-        textAlign: 'center'
+        gap: '16px',
+        padding: '18px',
+        border: '0.5px solid var(--ek-line)',
+        background: 'var(--ek-bg-soft)'
       }}
     >
       {instructor.foto_url ? (
@@ -149,19 +146,19 @@ function InstructorLandingCard({ instructor }: { instructor: InstructorPublico }
           src={instructor.foto_url}
           alt={instructor.nombre}
           style={{
-            width: '96px',
-            height: '96px',
+            width: '72px',
+            height: '72px',
             borderRadius: '50%',
             objectFit: 'cover',
-            marginBottom: '16px'
+            flexShrink: 0
           }}
         />
       ) : (
         <div
           aria-hidden="true"
           style={{
-            width: '96px',
-            height: '96px',
+            width: '72px',
+            height: '72px',
             borderRadius: '50%',
             background: 'var(--ek-mustard-soft)',
             color: 'var(--ek-mustard)',
@@ -169,97 +166,73 @@ function InstructorLandingCard({ instructor }: { instructor: InstructorPublico }
             alignItems: 'center',
             justifyContent: 'center',
             fontFamily: 'var(--ek-font-display)',
-            fontSize: '32px',
+            fontSize: '24px',
             fontWeight: 700,
-            marginBottom: '16px'
+            flexShrink: 0
           }}
         >
           {inicial}
         </div>
       )}
 
-      <h3
-        style={{
-          fontFamily: 'var(--ek-font-display)',
-          fontSize: '20px',
-          fontWeight: 600,
-          letterSpacing: '-0.02em',
-          margin: 0,
-          marginBottom: '10px',
-          color: 'var(--ek-ink)'
-        }}
-      >
-        {instructor.nombre}
-      </h3>
-
-      {instructor.especialidades.length > 0 && (
-        <div
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h3
           style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '6px',
-            justifyContent: 'center',
-            marginBottom: bio ? '14px' : 0
+            fontFamily: 'var(--ek-font-display)',
+            fontSize: '18px',
+            fontWeight: 600,
+            letterSpacing: '-0.02em',
+            margin: 0,
+            color: 'var(--ek-ink)'
           }}
         >
-          {instructor.especialidades.map((e) => (
-            <span
-              key={e}
-              style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                color: 'var(--ek-mustard)',
-                background: 'var(--ek-mustard-soft)',
-                padding: '3px 10px',
-                borderRadius: '999px'
-              }}
-            >
-              {e}
-            </span>
-          ))}
-        </div>
-      )}
+          {instructor.nombre}
+        </h3>
 
-      {bio && (
-        <>
+        {instructor.especialidades.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '6px',
+              marginTop: '6px'
+            }}
+          >
+            {instructor.especialidades.map((e) => (
+              <span
+                key={e}
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--ek-mustard)',
+                  background: 'var(--ek-mustard-soft)',
+                  padding: '2px 8px',
+                  borderRadius: '999px'
+                }}
+              >
+                {e}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {bio && (
           <p
             style={{
               fontSize: '13px',
               color: 'var(--ek-ink-muted)',
-              margin: 0,
-              lineHeight: 1.55,
-              ...(bioLarga && !expandida
-                ? {
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical' as const,
-                    overflow: 'hidden'
-                  }
-                : {})
+              margin: '8px 0 0',
+              lineHeight: 1.5,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden'
             }}
           >
             {bio}
           </p>
-          {bioLarga && (
-            <button
-              type="button"
-              onClick={() => setExpandida((v) => !v)}
-              style={{
-                marginTop: '8px',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--ek-mustard)',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit'
-              }}
-            >
-              {expandida ? 'Ver menos' : 'Ver más'}
-            </button>
-          )}
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -613,8 +586,8 @@ export default function Landing() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '20px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))',
+            gap: '16px'
           }}>
             {instructores.map((i) => (
               <InstructorLandingCard key={i.id} instructor={i} />
