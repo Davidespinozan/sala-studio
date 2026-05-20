@@ -252,5 +252,11 @@ export function traducirErrorRPC(message: string): string {
   if (message.includes('NO_AUTORIZADO')) return 'No podés hacer esta acción.';
   if (message.includes('RESERVA_NO_CANCELABLE')) return 'Esta reserva no se puede cancelar.';
   if (message.includes('RESERVA_PASADA')) return 'No podés cancelar una reserva que ya pasó.';
+  if (message.includes('YA_EN_LISTA')) return 'Ya estás en la lista de espera de esta clase.';
+  if (message.includes('NO_EN_LISTA')) return 'No estás en la lista de espera de esta clase.';
+  if (message.includes('HAY_CUPO')) return 'Esta clase tiene lugares disponibles, reservá normalmente.';
+  if (message.includes('CLASE_PASADA')) return 'Esta clase ya empezó.';
+  if (message.includes('YA_PROCESADA')) return 'Esa persona ya no está en la lista de espera.';
+  if (message.includes('ENTRADA_NO_EXISTE')) return 'No encontramos esa entrada de lista de espera.';
   return message;
 }

@@ -12,6 +12,7 @@ import {
 import { getTenantTimezone, hoyEnTimezone } from '@shared/lib/timezone';
 import { ProximaClaseHero } from '@member/components/ProximaClaseHero';
 import { ClaseCard } from '@member/components/ClaseCard';
+import { useMisListasEspera, type ListaEsperaItem } from '@member/hooks/useListaEspera';
 
 type Recurso = Database['public']['Tables']['recursos']['Row'];
 type Reserva = Database['public']['Tables']['reservas']['Row'];
@@ -205,6 +206,7 @@ export default function Dashboard() {
     tenant.id,
     tz
   );
+  const { items: listasEspera } = useMisListasEspera();
 
   const ahora = new Date();
   const bloqueado = !!usuario?.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > ahora;
@@ -283,6 +285,18 @@ export default function Dashboard() {
         </section>
       ) : (
         <EmptyProximaClaseInline />
+      )}
+
+      {/* En lista de espera */}
+      {listasEspera.length > 0 && (
+        <section style={{ marginBottom: '40px' }}>
+          <SectionHeader title="En lista de espera" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {listasEspera.map((item) => (
+              <ListaEsperaCard key={item.lista_espera_id} item={item} />
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Clases de hoy */}
@@ -442,6 +456,79 @@ function SectionHeader({
         </Link>
       )}
     </div>
+  );
+}
+
+function ListaEsperaCard({ item }: { item: ListaEsperaItem }) {
+  const fechaObj = new Date(`${item.fecha}T12:00:00`);
+  const fechaLabel = fechaObj.toLocaleDateString('es-MX', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short'
+  });
+  const hora = item.hora_inicio.slice(0, 5);
+
+  return (
+    <Link
+      to={`/app/clase/${item.clase_id}`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+        padding: '14px 16px',
+        background: 'var(--sala-surface)',
+        border: '1px dashed var(--sala-border-strong)',
+        borderRadius: '14px',
+        textDecoration: 'none',
+        color: 'var(--sala-text-primary)'
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <p
+          style={{
+            fontFamily: 'var(--ek-font-display)',
+            fontSize: '15px',
+            fontWeight: 600,
+            letterSpacing: '-0.02em',
+            margin: 0,
+            marginBottom: '2px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {item.nombre}
+        </p>
+        <p
+          style={{
+            fontSize: '12px',
+            color: 'var(--sala-text-secondary)',
+            margin: 0,
+            textTransform: 'capitalize',
+            fontVariantNumeric: 'tabular-nums'
+          }}
+        >
+          {fechaLabel} · {hora}
+        </p>
+      </div>
+      <span
+        style={{
+          flexShrink: 0,
+          fontSize: '10px',
+          fontWeight: 700,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: 'var(--sala-primary)',
+          background: 'var(--sala-primary-light)',
+          padding: '5px 10px',
+          borderRadius: '999px',
+          fontVariantNumeric: 'tabular-nums'
+        }}
+      >
+        En espera #{item.posicion}
+      </span>
+    </Link>
   );
 }
 

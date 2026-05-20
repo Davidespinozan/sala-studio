@@ -6,6 +6,12 @@ import { useToast } from '@shared/hooks/useToast';
 import { supabase } from '@shared/lib/supabase';
 import { crearReserva, cancelarReserva as cancelarReservaRPC } from '@member/hooks/useReservas';
 import {
+  anotarseEnListaEspera,
+  salirDeListaEspera,
+  miPosicionEnLista,
+  type MiPosicionEspera
+} from '@member/hooks/useListaEspera';
+import {
   claseFromRow,
   estadoCupos,
   type Clase,
@@ -16,6 +22,7 @@ import type { Database } from '@shared/types/database';
 import { CupoBar } from '@member/components/CupoBar';
 import { ConfirmarReservaModal } from '@member/components/ConfirmarReservaModal';
 import { ConfirmarCancelacionModal } from '@member/components/ConfirmarCancelacionModal';
+import { ConfirmarListaEsperaModal } from '@member/components/ConfirmarListaEsperaModal';
 
 type ClaseRow = Database['public']['Tables']['clases']['Row'];
 
@@ -71,12 +78,14 @@ export default function ClaseDetalle() {
   const [recurso, setRecurso] = useState<RecursoFetched | null>(null);
   const [cuposReservados, setCuposReservados] = useState(0);
   const [miReservaId, setMiReservaId] = useState<string | null>(null);
+  const [miEspera, setMiEspera] = useState<MiPosicionEspera | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   // Modales
   const [showReservaModal, setShowReservaModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showEsperaModal, setShowEsperaModal] = useState(false);
   const [invitados, setInvitados] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [errorReserva, setErrorReserva] = useState<string | null>(null);
@@ -117,8 +126,8 @@ export default function ClaseDetalle() {
       const data = claseRes.data as ClaseRow & { instructor: InstructorContext | null };
       const row = data as ClaseRow;
 
-      // 2) Recurso + cupos + mi reserva en paralelo
-      const [recursoRes, countRes, miRes] = await Promise.all([
+      // 2) Recurso + cupos + mi reserva + mi lista de espera en paralelo
+      const [recursoRes, countRes, miRes, esperaRes] = await Promise.all([
         supabase
           .from('recursos')
           .select('id, nombre, descripcion, foto_url, tipo_contenido, tiers_permitidos, capacidad_personas, equipo_incluido')
@@ -136,7 +145,8 @@ export default function ClaseDetalle() {
           .eq('usuario_id', usuario!.id)
           .eq('clase_id', row.id)
           .in('status', ['confirmada', 'completada'])
-          .maybeSingle()
+          .maybeSingle(),
+        miPosicionEnLista(row.id).catch(() => null)
       ]);
 
       if (!mounted) return;
@@ -152,6 +162,7 @@ export default function ClaseDetalle() {
       setRecurso(recursoRes.data as RecursoFetched);
       setCuposReservados(countRes.count ?? 0);
       setMiReservaId((miRes.data as { id: string } | null)?.id ?? null);
+      setMiEspera(esperaRes);
       setIsLoading(false);
     }
 
@@ -182,6 +193,11 @@ export default function ClaseDetalle() {
   const esFutura = clase ? clase.slotInicio.getTime() > Date.now() : false;
   const maxInvitados = tier === 'pro' ? 4 : tier === 'basica' ? 2 : 0;
 
+  const enEspera = miEspera?.en_lista ?? false;
+  const posicionEspera = miEspera?.posicion ?? null;
+  const totalEnEspera = miEspera?.total ?? 0;
+  const fuePromovido = yaReservada && (miEspera?.promovido ?? false);
+
   // === Handlers ===
 
   function handleBack() {
@@ -193,7 +209,7 @@ export default function ClaseDetalle() {
     if (!clase) return;
     const llena = clase.cuposReservados >= clase.cupoMax;
     if (llena) {
-      toast.info('Lista de espera próximamente. Probá con otro horario por ahora.');
+      handleAnotarEspera();
       return;
     }
     if (!puedeAccederTier) {
@@ -207,6 +223,15 @@ export default function ClaseDetalle() {
     setErrorReserva(null);
     setInvitados(0);
     setShowReservaModal(true);
+  }
+
+  function handleAnotarEspera() {
+    if (!clase) return;
+    if (!esFutura) {
+      toast.error('Esta clase ya pasó.');
+      return;
+    }
+    setShowEsperaModal(true);
   }
 
   async function confirmarReserva() {
@@ -242,6 +267,35 @@ export default function ClaseDetalle() {
     toast.success('Reserva cancelada.');
     setShowCancelModal(false);
     triggerRefresh();
+  }
+
+  async function confirmarAnotarEspera() {
+    if (!clase) return;
+    setSubmitting(true);
+    try {
+      const { posicion } = await anotarseEnListaEspera(clase.id);
+      setShowEsperaModal(false);
+      setSubmitting(false);
+      toast.success(`Estás en lista de espera, posición #${posicion}.`);
+      triggerRefresh();
+    } catch (e) {
+      setSubmitting(false);
+      toast.error(e instanceof Error ? e.message : 'No pudimos anotarte en la lista.');
+    }
+  }
+
+  async function handleSalirEspera() {
+    if (!clase) return;
+    setSubmitting(true);
+    try {
+      await salirDeListaEspera(clase.id);
+      setSubmitting(false);
+      toast.success('Saliste de la lista de espera.');
+      triggerRefresh();
+    } catch (e) {
+      setSubmitting(false);
+      toast.error(e instanceof Error ? e.message : 'No pudimos sacarte de la lista.');
+    }
   }
 
   // === Render ===
@@ -364,6 +418,76 @@ export default function ClaseDetalle() {
             <p style={{ fontSize: '14px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
               Esta clase fue cancelada por el administrador.
               {yaReservada && ' Tu reserva queda registrada pero la clase no se realizará.'}
+            </p>
+          </div>
+        )}
+
+        {/* Banner: fuiste promovido desde la lista de espera */}
+        {!esCancelada && fuePromovido && (
+          <div
+            style={{
+              background: 'var(--sala-success-bg)',
+              border: '1px solid var(--sala-success)',
+              borderRadius: '14px',
+              padding: '14px 16px',
+              marginBottom: '20px'
+            }}
+          >
+            <p
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+                color: 'var(--sala-success)',
+                margin: 0,
+                marginBottom: '6px'
+              }}
+            >
+              ¡Buenas noticias!
+            </p>
+            <p style={{ fontSize: '14px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
+              Se liberó un lugar y tu reserva ya está confirmada.
+            </p>
+          </div>
+        )}
+
+        {/* Banner: estás en lista de espera */}
+        {!esCancelada && enEspera && (
+          <div
+            style={{
+              background: 'var(--sala-primary-light)',
+              border: '1px solid var(--sala-border)',
+              borderRadius: '14px',
+              padding: '14px 16px',
+              marginBottom: '20px'
+            }}
+          >
+            <p
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+                color: 'var(--sala-primary)',
+                margin: 0,
+                marginBottom: '6px'
+              }}
+            >
+              Lista de espera
+            </p>
+            <p
+              style={{
+                fontSize: '14px',
+                color: 'var(--sala-text-primary)',
+                margin: 0,
+                lineHeight: 1.5,
+                fontVariantNumeric: 'tabular-nums'
+              }}
+            >
+              Estás en lista de espera — <strong>posición #{posicionEspera}</strong>
+              {totalEnEspera > 1 ? ` de ${totalEnEspera}` : ''}. Si se libera un lugar,
+              te confirmamos la reserva automáticamente.
             </p>
           </div>
         )}
@@ -581,12 +705,16 @@ export default function ClaseDetalle() {
         <StickyAction
           cancelada={esCancelada}
           yaReservada={yaReservada}
+          enEspera={enEspera}
           puedeAccederTier={puedeAccederTier}
           esFutura={esFutura}
           llena={llena}
           pocos={pocos}
+          submitting={submitting}
           onReservar={handleReservar}
           onCancelar={() => setShowCancelModal(true)}
+          onAnotarEspera={handleAnotarEspera}
+          onSalirEspera={handleSalirEspera}
           onVolver={handleBack}
         />
       </StickyCTA>
@@ -611,6 +739,16 @@ export default function ClaseDetalle() {
           submitting={submitting}
           onConfirm={confirmarCancelacion}
           onClose={() => !submitting && setShowCancelModal(false)}
+        />
+      )}
+
+      {showEsperaModal && clase && (
+        <ConfirmarListaEsperaModal
+          clase={clase}
+          totalEnEspera={totalEnEspera}
+          submitting={submitting}
+          onConfirm={confirmarAnotarEspera}
+          onClose={() => !submitting && setShowEsperaModal(false)}
         />
       )}
     </div>
@@ -817,22 +955,30 @@ function StickyCTA({ children }: { children: React.ReactNode }) {
 function StickyAction({
   cancelada,
   yaReservada,
+  enEspera,
   puedeAccederTier,
   esFutura,
   llena,
   pocos,
+  submitting,
   onReservar,
   onCancelar,
+  onAnotarEspera,
+  onSalirEspera,
   onVolver
 }: {
   cancelada: boolean;
   yaReservada: boolean;
+  enEspera: boolean;
   puedeAccederTier: boolean;
   esFutura: boolean;
   llena: boolean;
   pocos: boolean;
+  submitting: boolean;
   onReservar: () => void;
   onCancelar: () => void;
+  onAnotarEspera: () => void;
+  onSalirEspera: () => void;
   onVolver: () => void;
 }) {
   const baseFullCTA: React.CSSProperties = {
@@ -900,16 +1046,36 @@ function StickyAction({
     );
   }
 
-  if (llena) {
+  if (enEspera) {
     return (
       <button
         type="button"
-        onClick={onReservar}
+        onClick={onSalirEspera}
+        disabled={submitting}
         style={{
           ...baseFullCTA,
           background: 'transparent',
           color: 'var(--sala-accent)',
-          borderColor: 'var(--sala-accent)'
+          borderColor: 'var(--sala-accent)',
+          cursor: submitting ? 'not-allowed' : 'pointer',
+          opacity: submitting ? 0.6 : 1
+        }}
+      >
+        {submitting ? 'Saliendo…' : 'Salir de la lista de espera'}
+      </button>
+    );
+  }
+
+  if (llena) {
+    return (
+      <button
+        type="button"
+        onClick={onAnotarEspera}
+        style={{
+          ...baseFullCTA,
+          background: 'var(--sala-primary)',
+          color: 'var(--sala-text-on-primary)',
+          borderColor: 'var(--sala-primary)'
         }}
       >
         Anotarme en lista de espera
