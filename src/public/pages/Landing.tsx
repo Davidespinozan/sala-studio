@@ -30,17 +30,23 @@ interface TierPublico {
 }
 
 function useEstudiosPublicos() {
+  const tenant = useTenant();
   const [estudios, setEstudios] = useState<EstudioPublico[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     async function load() {
+      // El filtro tenant_id es la PRIMERA línea de defensa para lecturas
+      // anónimas: la RLS read_public no puede scopear por tenant (anon no
+      // tiene JWT, get_my_tenant_id() es NULL). Sin este filtro, la landing
+      // de un gym mostraría salas de otros tenants.
       const { data, error } = await supabase
         .from('recursos')
         .select(
           'id, slug, nombre, descripcion, tiers_permitidos, tipo_contenido, equipo_incluido, estilo_visual, capacidad_personas, foto_url'
         )
+        .eq('tenant_id', tenant.id)
         .eq('activo', true)
         .order('orden', { ascending: true });
 
@@ -51,21 +57,27 @@ function useEstudiosPublicos() {
     }
     load();
     return () => { mounted = false; };
-  }, []);
+  }, [tenant.id]);
 
   return { estudios, isLoading };
 }
 
 function useTiersPublicos() {
+  const tenant = useTenant();
   const [tiers, setTiers] = useState<TierPublico[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     async function load() {
+      // El filtro tenant_id es la PRIMERA línea de defensa para lecturas
+      // anónimas: la RLS read_public no puede scopear por tenant (anon no
+      // tiene JWT, get_my_tenant_id() es NULL). Sin este filtro, la landing
+      // de un gym mostraría planes de otros tenants.
       const { data, error } = await supabase
         .from('tiers')
         .select('slug, nombre, precio_centavos, descripcion, beneficios, reglas, orden')
+        .eq('tenant_id', tenant.id)
         .eq('activo', true)
         .order('orden', { ascending: true });
 
@@ -76,7 +88,7 @@ function useTiersPublicos() {
     }
     load();
     return () => { mounted = false; };
-  }, []);
+  }, [tenant.id]);
 
   return { tiers, isLoading };
 }

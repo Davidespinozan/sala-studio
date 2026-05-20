@@ -1,6 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { useNavigate, useSearchParams, Link, Navigate } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
+import { useTenant } from '@shared/hooks/useTenant';
 
 type Tier = 'basica' | 'pro';
 
@@ -34,15 +35,22 @@ function parseBeneficios(raw: unknown): string[] {
 }
 
 function useTierPorSlug(slug: string) {
+  const tenant = useTenant();
   const [tier, setTier] = useState<TierRow | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     async function load() {
+      // El filtro tenant_id es la PRIMERA línea de defensa para lecturas
+      // anónimas: la RLS read_public no puede scopear por tenant (anon no
+      // tiene JWT, get_my_tenant_id() es NULL). Además es lo que hace que
+      // maybeSingle() sea seguro: sin él, dos tenants con el mismo slug de
+      // tier (basica/pro) devolverían múltiples filas y romperían la query.
       const { data, error } = await supabase
         .from('tiers')
         .select('slug, nombre, precio_centavos, beneficios')
+        .eq('tenant_id', tenant.id)
         .eq('slug', slug)
         .eq('activo', true)
         .maybeSingle();
@@ -54,7 +62,7 @@ function useTierPorSlug(slug: string) {
     }
     load();
     return () => { mounted = false; };
-  }, [slug]);
+  }, [slug, tenant.id]);
 
   return { tier, isLoading };
 }
