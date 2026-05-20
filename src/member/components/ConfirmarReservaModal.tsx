@@ -74,7 +74,7 @@ export function ConfirmarReservaModal({
           }}
         >
           {fecha.charAt(0).toUpperCase() + fecha.slice(1)} · {hora} · {clase.duracionMinutos} min<br />
-          con {clase.instructor}
+          {clase.instructorNombre ? `con ${clase.instructorNombre}` : 'Instructor por confirmar'}
         </p>
 
         {maxInvitados > 0 && (

@@ -192,6 +192,17 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
             >
               {fechaFmt} · {formatHora(claseActual.slotInicio)} · {claseActual.duracionMinutos} min
             </p>
+            <p
+              style={{
+                fontSize: '12px',
+                color: 'var(--sala-text-tertiary)',
+                margin: '2px 0 0'
+              }}
+            >
+              {claseActual.instructorNombre
+                ? `Instructor: ${claseActual.instructorNombre}`
+                : 'Sin instructor asignado'}
+            </p>
           </div>
           {!esCancelada && (
             <button

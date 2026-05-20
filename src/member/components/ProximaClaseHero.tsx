@@ -86,7 +86,7 @@ export function ProximaClaseHero({ clase, reservaId }: Props) {
           marginBottom: '20px'
         }}
       >
-        con {clase.instructor}
+        {clase.instructorNombre ? `con ${clase.instructorNombre}` : 'Instructor por confirmar'}
         {clase.salaNombre && clase.salaNombre !== clase.nombre && ` · ${clase.salaNombre}`}
       </p>
 

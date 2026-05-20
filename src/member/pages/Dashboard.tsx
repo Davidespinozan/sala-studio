@@ -4,7 +4,11 @@ import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
 import { supabase } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
-import { claseFromRow, type Clase } from '@member/logic/claseAdapter';
+import {
+  claseFromRow,
+  type Clase,
+  type InstructorContext
+} from '@member/logic/claseAdapter';
 import { formatDateISO } from '@member/logic/reservaLogic';
 import { ProximaClaseHero } from '@member/components/ProximaClaseHero';
 import { ClaseCard } from '@member/components/ClaseCard';
@@ -16,6 +20,7 @@ type RecursoMinDB = Pick<Recurso, 'id' | 'nombre' | 'foto_url' | 'tiers_permitid
 
 interface ClaseConRecurso extends ClaseRow {
   recurso: RecursoMinDB | null;
+  instructor: InstructorContext | null;
 }
 
 interface ReservaConClase extends Reserva {
@@ -42,7 +47,7 @@ function useProximaReserva(usuarioId: string | undefined) {
       const { data } = await supabase
         .from('reservas')
         .select(
-          '*, clase:clases(*, recurso:recursos(id, nombre, foto_url, tiers_permitidos))'
+          '*, clase:clases(*, recurso:recursos(id, nombre, foto_url, tiers_permitidos), instructor:instructores(id, nombre, foto_url))'
         )
         .eq('usuario_id', usuarioId!)
         .eq('status', 'confirmada')
@@ -85,7 +90,7 @@ function mapClase(row: ClaseConRecurso, cuposReservados: number): Clase {
         tiers_permitidos: row.recurso.tiers_permitidos
       }
     : { id: row.recurso_id, nombre: '—' };
-  return claseFromRow({ row, cuposReservados, recurso });
+  return claseFromRow({ row, cuposReservados, recurso, instructor: row.instructor });
 }
 
 /** Clases de hoy desde la tabla `clases` real (S4.2). */
@@ -103,7 +108,9 @@ function useClasesDeHoy(tenantId: string) {
       // S4.3: incluye canceladas para mostrarlas apagadas (transparencia al miembro).
       const clasesRes = await supabase
         .from('clases')
-        .select('*, recurso:recursos(id, nombre, foto_url, tiers_permitidos)')
+        .select(
+          '*, recurso:recursos(id, nombre, foto_url, tiers_permitidos), instructor:instructores(id, nombre, foto_url)'
+        )
         .eq('tenant_id', tenantId)
         .eq('fecha', fechaISO)
         .in('status', ['programada', 'cancelada'])

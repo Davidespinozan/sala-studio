@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
-import { claseFromRow, type Clase, type RecursoContext } from '@member/logic/claseAdapter';
+import {
+  claseFromRow,
+  type Clase,
+  type RecursoContext,
+  type InstructorContext
+} from '@member/logic/claseAdapter';
 import type { Database } from '@shared/types/database';
 
 type ClaseRow = Database['public']['Tables']['clases']['Row'];
@@ -12,6 +17,7 @@ type RecursoRow = Pick<
 
 interface JoinedClaseRow extends ClaseRow {
   recurso: RecursoRow | null;
+  instructor: InstructorContext | null;
 }
 
 /**
@@ -40,7 +46,9 @@ export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) 
     // S4.3: incluye canceladas para mostrarlas con estilo apagado en la grilla.
     let claseQuery = supabase
       .from('clases')
-      .select('*, recurso:recursos(id, nombre, foto_url, tiers_permitidos)')
+      .select(
+        '*, recurso:recursos(id, nombre, foto_url, tiers_permitidos), instructor:instructores(id, nombre, foto_url)'
+      )
       .eq('tenant_id', tenant.id)
       .in('status', ['programada', 'cancelada'])
       .gte('fecha', fechaInicioISO)
@@ -91,7 +99,8 @@ export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) 
       return claseFromRow({
         row,
         cuposReservados: cuposPorClase.get(row.id) ?? 0,
-        recurso
+        recurso,
+        instructor: row.instructor
       });
     });
 

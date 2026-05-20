@@ -29,9 +29,14 @@ export interface Clase {
   duracionMinutos: number;
   cupoMax: number;
   cuposReservados: number;
-  instructor: string;
   /** FK a instructores. null si la clase no tiene instructor asignado. */
   instructorId: string | null;
+  /** Nombre del instructor asignado (del JOIN a instructores). undefined si no hay. */
+  instructorNombre?: string;
+  /** Foto del instructor asignado. */
+  instructorFotoUrl?: string;
+  /** Bio del instructor asignado. */
+  instructorBio?: string;
   disciplina: string;
   descripcion?: string;
   imagenUrl?: string;
@@ -75,14 +80,29 @@ export function slotInicioFromClaseRow(row: Pick<ClaseRow, 'fecha' | 'hora_inici
 // Mapper principal
 // ---------------------------------------------------------------------------
 
+/** Instructor joineado desde la tabla `instructores` (S6). */
+export interface InstructorContext {
+  id: string;
+  nombre: string;
+  foto_url: string | null;
+  bio?: string | null;
+}
+
 interface ClaseFromRowInput {
   row: ClaseRow;
   cuposReservados: number;
   recurso: RecursoContext;
+  /** Instructor del JOIN. null/undefined si la clase no tiene instructor. */
+  instructor?: InstructorContext | null;
 }
 
 /** Construye la Clase UI desde una fila real de `clases` + recurso + count. */
-export function claseFromRow({ row, cuposReservados, recurso }: ClaseFromRowInput): Clase {
+export function claseFromRow({
+  row,
+  cuposReservados,
+  recurso,
+  instructor
+}: ClaseFromRowInput): Clase {
   const slotInicio = slotInicioFromClaseRow(row);
   const slotFin = new Date(slotInicio.getTime() + row.duracion_minutos * 60_000);
   return {
@@ -92,8 +112,10 @@ export function claseFromRow({ row, cuposReservados, recurso }: ClaseFromRowInpu
     duracionMinutos: row.duracion_minutos,
     cupoMax: row.cupo_max,
     cuposReservados,
-    instructor: row.instructor_nombre_mock ?? 'Por confirmar',
     instructorId: row.instructor_id,
+    instructorNombre: instructor?.nombre,
+    instructorFotoUrl: instructor?.foto_url ?? undefined,
+    instructorBio: instructor?.bio ?? undefined,
     disciplina: row.disciplina ?? '',
     descripcion: row.descripcion ?? undefined,
     imagenUrl: recurso.foto_url ?? undefined,

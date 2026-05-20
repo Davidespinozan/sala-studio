@@ -74,7 +74,7 @@ export function ClaseCard({ clase, ya_reservada }: Props) {
           textTransform: 'uppercase'
         }}
       >
-        {clase.instructor}
+        {clase.instructorNombre ?? 'Por confirmar'}
       </p>
       <p
         style={{

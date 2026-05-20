@@ -12,7 +12,11 @@ import {
   generarFechasReservables,
   type TenantReservaConfig
 } from '@member/logic/reservaLogic';
-import { claseFromRow, type Clase } from '@member/logic/claseAdapter';
+import {
+  claseFromRow,
+  type Clase,
+  type InstructorContext
+} from '@member/logic/claseAdapter';
 import type { Database } from '@shared/types/database';
 import { DayTabSelector } from '@member/components/DayTabSelector';
 import { ClaseRow } from '@member/components/ClaseRow';
@@ -26,6 +30,7 @@ type RecursoMinDB = Pick<
 >;
 interface ClaseConRecurso extends ClaseRowDB {
   recurso: RecursoMinDB | null;
+  instructor: InstructorContext | null;
 }
 
 const SALA_TODAS = '__todas__';
@@ -93,7 +98,9 @@ export default function Reservar() {
       // S4.3: incluye canceladas para mostrarlas apagadas (transparencia al miembro).
       const clasesRes = await supabase
         .from('clases')
-        .select('*, recurso:recursos(id, nombre, foto_url, tiers_permitidos)')
+        .select(
+          '*, recurso:recursos(id, nombre, foto_url, tiers_permitidos), instructor:instructores(id, nombre, foto_url)'
+        )
         .eq('tenant_id', tenant.id)
         .eq('fecha', fechaSel)
         .in('status', ['programada', 'cancelada'])
@@ -163,7 +170,8 @@ export default function Reservar() {
       return claseFromRow({
         row,
         cuposReservados: cuposPorClase.get(row.id) ?? 0,
-        recurso
+        recurso,
+        instructor: row.instructor
       });
     });
 

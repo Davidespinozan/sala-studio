@@ -185,7 +185,7 @@ function ClaseRowAdminMobile({ clase, onClick }: { clase: Clase; onClick: () => 
             marginTop: '2px'
           }}
         >
-          con {clase.instructor}
+          {clase.instructorNombre ? `con ${clase.instructorNombre}` : 'Instructor por confirmar'}
         </p>
       </div>
       <div

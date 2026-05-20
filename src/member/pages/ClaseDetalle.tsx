@@ -9,7 +9,8 @@ import {
   claseFromRow,
   estadoCupos,
   formatHoraHumana,
-  type Clase
+  type Clase,
+  type InstructorContext
 } from '@member/logic/claseAdapter';
 import type { Database } from '@shared/types/database';
 import { CupoBar } from '@member/components/CupoBar';
@@ -65,6 +66,7 @@ export default function ClaseDetalle() {
   }, [id]);
 
   const [claseRow, setClaseRow] = useState<ClaseRow | null>(null);
+  const [instructorCtx, setInstructorCtx] = useState<InstructorContext | null>(null);
   const [recurso, setRecurso] = useState<RecursoFetched | null>(null);
   const [cuposReservados, setCuposReservados] = useState(0);
   const [miReservaId, setMiReservaId] = useState<string | null>(null);
@@ -98,7 +100,7 @@ export default function ClaseDetalle() {
       // 1) Cargar la clase por UUID
       const claseRes = await supabase
         .from('clases')
-        .select('*')
+        .select('*, instructor:instructores(id, nombre, foto_url, bio)')
         .eq('id', claseId!)
         .eq('tenant_id', tenant.id)
         .maybeSingle();
@@ -111,7 +113,8 @@ export default function ClaseDetalle() {
         return;
       }
 
-      const row = claseRes.data as ClaseRow;
+      const data = claseRes.data as ClaseRow & { instructor: InstructorContext | null };
+      const row = data as ClaseRow;
 
       // 2) Recurso + cupos + mi reserva en paralelo
       const [recursoRes, countRes, miRes] = await Promise.all([
@@ -144,6 +147,7 @@ export default function ClaseDetalle() {
       }
 
       setClaseRow(row);
+      setInstructorCtx(data.instructor ?? null);
       setRecurso(recursoRes.data as RecursoFetched);
       setCuposReservados(countRes.count ?? 0);
       setMiReservaId((miRes.data as { id: string } | null)?.id ?? null);
@@ -165,9 +169,10 @@ export default function ClaseDetalle() {
         nombre: recurso.nombre,
         foto_url: recurso.foto_url,
         tiers_permitidos: recurso.tiers_permitidos
-      }
+      },
+      instructor: instructorCtx
     });
-  }, [claseRow, recurso, cuposReservados]);
+  }, [claseRow, recurso, cuposReservados, instructorCtx]);
 
   const tier = usuario?.membresia_tier ?? null;
   const puedeAccederTier = recurso ? tierTieneAcceso(recurso.tiers_permitidos, tier) : false;
@@ -406,7 +411,7 @@ export default function ClaseDetalle() {
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
+            alignItems: clase.instructorBio ? 'flex-start' : 'center',
             gap: '12px',
             marginBottom: '28px',
             padding: '14px 16px',
@@ -415,7 +420,7 @@ export default function ClaseDetalle() {
             borderRadius: '14px'
           }}
         >
-          <InstructorAvatar nombre={clase.instructor} />
+          <InstructorAvatar nombre={clase.instructorNombre} fotoUrl={clase.instructorFotoUrl} />
           <div style={{ minWidth: 0 }}>
             <p
               style={{
@@ -434,12 +439,26 @@ export default function ClaseDetalle() {
               style={{
                 fontSize: '15px',
                 fontWeight: 600,
-                color: 'var(--sala-text-primary)',
+                color: clase.instructorNombre
+                  ? 'var(--sala-text-primary)'
+                  : 'var(--sala-text-tertiary)',
                 margin: 0
               }}
             >
-              {clase.instructor}
+              {clase.instructorNombre ?? 'Por confirmar'}
             </p>
+            {clase.instructorBio && (
+              <p
+                style={{
+                  fontSize: '13px',
+                  color: 'var(--sala-text-secondary)',
+                  margin: '4px 0 0',
+                  lineHeight: 1.5
+                }}
+              >
+                {clase.instructorBio}
+              </p>
+            )}
           </div>
         </div>
 
@@ -707,8 +726,24 @@ function HeroImage({
   );
 }
 
-function InstructorAvatar({ nombre }: { nombre: string }) {
-  const inicial = nombre.charAt(0).toUpperCase();
+function InstructorAvatar({ nombre, fotoUrl }: { nombre?: string; fotoUrl?: string }) {
+  const inicial = (nombre?.trim().charAt(0) ?? '·').toUpperCase();
+  if (fotoUrl) {
+    return (
+      <img
+        src={fotoUrl}
+        alt={nombre ?? 'Instructor'}
+        style={{
+          flexShrink: 0,
+          width: '44px',
+          height: '44px',
+          borderRadius: '50%',
+          objectFit: 'cover',
+          border: '1px solid var(--sala-border)'
+        }}
+      />
+    );
+  }
   return (
     <div
       aria-hidden="true"
@@ -717,8 +752,9 @@ function InstructorAvatar({ nombre }: { nombre: string }) {
         width: '44px',
         height: '44px',
         borderRadius: '50%',
-        background: 'var(--sala-primary)',
-        color: 'var(--sala-text-on-primary)',
+        background: nombre ? 'var(--sala-primary)' : 'var(--sala-bg)',
+        color: nombre ? 'var(--sala-text-on-primary)' : 'var(--sala-text-tertiary)',
+        border: nombre ? 'none' : '1px solid var(--sala-border)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
