@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
+import { traducirErrorRPC } from '@member/logic/reservaLogic';
 
 export interface InscritoAdmin {
   reservaId: string;
@@ -135,6 +136,86 @@ export async function buscarMiembrosTenant(
     return [];
   }
   return (data ?? []).filter((m) => !excludeIds.includes(m.id));
+}
+
+// ============================================================================
+// Lista de espera (admin)
+// ============================================================================
+
+export interface EnEsperaAdmin {
+  listaEsperaId: string;
+  usuarioId: string;
+  nombre: string;
+  email: string;
+  planSlug: string | null;
+  posicion: number;
+  createdAt: string;
+}
+
+/** Fetch de la lista de espera (status 'esperando') de una clase, en orden FIFO. */
+export function useListaEsperaDeClase(claseId: string | null) {
+  const [enEspera, setEnEspera] = useState<EnEsperaAdmin[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const refetch = useCallback(async () => {
+    if (!claseId) {
+      setEnEspera([]);
+      return;
+    }
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('lista_espera')
+      .select('id, created_at, usuario:usuarios(id, nombre, email, membresia_tier)')
+      .eq('clase_id', claseId)
+      .eq('status', 'esperando')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('[useListaEsperaDeClase]', error);
+      setIsLoading(false);
+      return;
+    }
+
+    const rows = (data ?? []) as unknown as Array<{
+      id: string;
+      created_at: string;
+      usuario: {
+        id: string;
+        nombre: string | null;
+        email: string;
+        membresia_tier: string | null;
+      } | null;
+    }>;
+
+    setEnEspera(
+      rows.map((r, i) => ({
+        listaEsperaId: r.id,
+        usuarioId: r.usuario?.id ?? '',
+        nombre: r.usuario?.nombre ?? r.usuario?.email ?? '—',
+        email: r.usuario?.email ?? '',
+        planSlug: r.usuario?.membresia_tier ?? null,
+        posicion: i + 1,
+        createdAt: r.created_at
+      }))
+    );
+    setIsLoading(false);
+  }, [claseId]);
+
+  useEffect(() => {
+    void refetch();
+  }, [refetch]);
+
+  return { enEspera, isLoading, refetch };
+}
+
+/** Promueve manualmente a una persona de la lista de espera (saltea el FIFO). */
+export async function promoverManualEspera(
+  listaEsperaId: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('promover_manual_lista_espera', {
+    p_lista_espera_id: listaEsperaId
+  });
+  return { error: error ? traducirErrorRPC(error.message) : null };
 }
 
 export async function inscribirMiembroManual(params: {

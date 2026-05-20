@@ -4,10 +4,13 @@ import { useToast } from '@shared/hooks/useToast';
 import { estadoCupos, type Clase } from '@member/logic/claseAdapter';
 import {
   useInscritosDeClase,
+  useListaEsperaDeClase,
   marcarAsistenciaAdmin,
   marcarNoShowAdmin,
   cancelarReservaAdminQuick,
-  type InscritoAdmin
+  promoverManualEspera,
+  type InscritoAdmin,
+  type EnEsperaAdmin
 } from '@admin/hooks/useInscritosDeClase';
 import { useEditarCancelarClase } from '@admin/hooks/useEditarCancelarClase';
 import CardMenuDropdown from '../CardMenuDropdown';
@@ -28,11 +31,13 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
   // claseActual: copia local que se actualiza si el admin edita la clase.
   const [claseActual, setClaseActual] = useState<Clase>(clase);
   const { inscritos, isLoading, refetch } = useInscritosDeClase(claseActual.id);
+  const { enEspera, refetch: refetchEspera } = useListaEsperaDeClase(claseActual.id);
   const { cancelarClase, cancelling } = useEditarCancelarClase(claseActual.id);
   const [showAgregar, setShowAgregar] = useState(false);
   const [showEditar, setShowEditar] = useState(false);
   const [showCancelarClase, setShowCancelarClase] = useState(false);
   const [actioningId, setActioningId] = useState<string | null>(null);
+  const [promovingId, setPromovingId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<
     { kind: 'noShow' | 'cancelar'; inscrito: InscritoAdmin } | null
   >(null);
@@ -106,7 +111,21 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
         ? `${inscrito.nombre}: marcado como no-show.`
         : `${inscrito.nombre}: reserva cancelada.`
     );
-    await refetch();
+    // Cancelar una reserva puede promover automáticamente al primero en espera:
+    // refrescamos inscritos y lista de espera.
+    await Promise.all([refetch(), refetchEspera()]);
+  }
+
+  async function handlePromover(e: EnEsperaAdmin) {
+    setPromovingId(e.listaEsperaId);
+    const { error } = await promoverManualEspera(e.listaEsperaId);
+    setPromovingId(null);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    toast.success(`${e.nombre}: promovido a reserva confirmada.`);
+    await Promise.all([refetch(), refetchEspera()]);
   }
 
   async function handleCancelarClase() {
@@ -332,6 +351,43 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
                 onCancelar={() => handleCancelar(r)}
               />
             ))}
+          </div>
+        )}
+
+        {/* Lista de espera */}
+        {enEspera.length > 0 && (
+          <div style={{ marginBottom: '16px' }}>
+            <p
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: 'var(--sala-text-secondary)',
+                margin: '0 0 8px'
+              }}
+            >
+              Lista de espera ({enEspera.length})
+            </p>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                maxHeight: '32vh',
+                overflowY: 'auto'
+              }}
+            >
+              {enEspera.map((e) => (
+                <EsperaRow
+                  key={e.listaEsperaId}
+                  espera={e}
+                  puedePromover={cuposLibres > 0 && !esCancelada}
+                  promoting={promovingId === e.listaEsperaId}
+                  onPromover={() => handlePromover(e)}
+                />
+              ))}
+            </div>
           </div>
         )}
 
@@ -594,6 +650,112 @@ function InscritoRow({
         {st.label}
       </span>
       {items.length > 0 && <CardMenuDropdown items={items} />}
+    </div>
+  );
+}
+
+function EsperaRow({
+  espera,
+  puedePromover,
+  promoting,
+  onPromover
+}: {
+  espera: EnEsperaAdmin;
+  puedePromover: boolean;
+  promoting: boolean;
+  onPromover: () => void;
+}) {
+  const planLabel =
+    espera.planSlug === 'pro'
+      ? 'Ilimitado'
+      : espera.planSlug === 'basica'
+        ? 'Drop-In'
+        : '—';
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '10px 12px',
+        background: 'var(--sala-surface)',
+        border: '1px dashed var(--sala-border-strong)',
+        borderRadius: '12px'
+      }}
+    >
+      <span
+        title={`Posición ${espera.posicion} en la lista de espera`}
+        style={{
+          width: '28px',
+          height: '28px',
+          borderRadius: '50%',
+          background: 'var(--sala-bg)',
+          border: '1px solid var(--sala-border-strong)',
+          color: 'var(--sala-text-secondary)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '12px',
+          fontWeight: 700,
+          flexShrink: 0,
+          fontVariantNumeric: 'tabular-nums'
+        }}
+      >
+        {espera.posicion}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p
+          style={{
+            fontSize: '14px',
+            fontWeight: 600,
+            color: 'var(--sala-text-primary)',
+            margin: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {espera.nombre}
+        </p>
+        <p
+          style={{
+            fontSize: '11px',
+            color: 'var(--sala-text-tertiary)',
+            margin: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {planLabel} · {espera.email}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onPromover}
+        disabled={!puedePromover || promoting}
+        title={
+          puedePromover
+            ? 'Promover a reserva confirmada'
+            : 'No hay lugar libre — cancelá una reserva primero'
+        }
+        style={{
+          flexShrink: 0,
+          padding: '7px 12px',
+          minHeight: '32px',
+          background: 'transparent',
+          color: puedePromover ? 'var(--sala-primary)' : 'var(--sala-text-tertiary)',
+          border: `1px solid ${puedePromover ? 'var(--sala-primary)' : 'var(--sala-border)'}`,
+          borderRadius: '999px',
+          fontSize: '12px',
+          fontWeight: 600,
+          cursor: puedePromover && !promoting ? 'pointer' : 'not-allowed',
+          fontFamily: 'inherit'
+        }}
+      >
+        {promoting ? 'Promoviendo…' : 'Promover'}
+      </button>
     </div>
   );
 }
