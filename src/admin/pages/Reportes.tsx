@@ -15,6 +15,12 @@ import {
   type PeriodoReporte,
   type ReportesData
 } from '../hooks/useReportes';
+import {
+  useReportesAvanzados,
+  type ReportesAvanzadosData,
+  type CohorteRetencion,
+  type MiembroRiesgo
+} from '../hooks/useReportesAvanzados';
 
 const SALVIA = '#3d6b52';
 const SALVIA_LIGHT = '#a9c4b3';
@@ -23,6 +29,7 @@ const CORAL = '#c44a35';
 export default function Reportes() {
   const [periodo, setPeriodo] = useState<PeriodoReporte>('mes');
   const { data, isLoading } = useReportes(periodo);
+  const { data: avanzado, isLoading: avLoading } = useReportesAvanzados(periodo);
 
   return (
     <div className="adm-page">
@@ -75,26 +82,73 @@ export default function Reportes() {
           <BloqueReservas data={data} />
         </div>
       )}
+
+      {/* ───────────────────────── Reportes avanzados ───────────────────────── */}
+      <div
+        style={{
+          marginTop: '40px',
+          paddingTop: '28px',
+          borderTop: '1px solid var(--sala-border)'
+        }}
+      >
+        <p className="ek-eyebrow" style={{ color: 'var(--sala-primary)' }}>AVANZADO · PRO</p>
+        <h2 className="ek-h2" style={{ marginBottom: '4px' }}>Retención y churn</h2>
+        <p className="adm-body" style={{ color: 'var(--sala-text-secondary)', marginBottom: '20px' }}>
+          Quién se queda, quién se va, y quién está por irse.
+        </p>
+
+        {avLoading || !avanzado ? (
+          <p className="adm-body">Cargando métricas avanzadas…</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+            <BloqueRetencion av={avanzado} />
+            <BloqueMiembrosRiesgo miembros={avanzado.miembrosRiesgo} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 // ============================================================================
-// Bloques
+// Bloques básicos (con comparación de período)
 // ============================================================================
 
 function BloqueOcupacion({ data }: { data: ReportesData }) {
   const o = data.ocupacion;
+  const comp = data.comparacion?.ocupacion ?? null;
   return (
     <Bloque titulo="Ocupación y asistencia">
       <KpiRow>
-        <KpiCard label="Ocupación promedio" valor={`${o.promedioPct}%`} />
-        <KpiCard label="Clases en el período" valor={o.totalClases} />
+        <KpiCard
+          label="Ocupación promedio"
+          valor={`${o.promedioPct}%`}
+          comparar={
+            comp ? { actual: o.promedioPct, anterior: comp.promedioPct, modo: 'puntos' } : undefined
+          }
+        />
+        <KpiCard
+          label="Clases en el período"
+          valor={o.totalClases}
+          comparar={comp ? { actual: o.totalClases, anterior: comp.totalClases } : undefined}
+        />
         <KpiCard
           label="Asistencia"
           valor={o.asistenciaPct == null ? '—' : `${o.asistenciaPct}%`}
+          comparar={
+            o.asistenciaPct != null && comp?.asistenciaPct != null
+              ? { actual: o.asistenciaPct, anterior: comp.asistenciaPct, modo: 'puntos' }
+              : undefined
+          }
         />
-        <KpiCard label="No-shows" valor={o.noShows} alerta={o.noShows > 5} />
+        <KpiCard
+          label="No-shows"
+          valor={o.noShows}
+          alerta={o.noShows > 5}
+          comparar={
+            comp ? { actual: o.noShows, anterior: comp.noShows, inversa: true } : undefined
+          }
+        />
       </KpiRow>
       <ChartCard titulo="Ocupación por sala">
         {o.porSala.length === 0 ? (
@@ -122,11 +176,18 @@ function BloqueOcupacion({ data }: { data: ReportesData }) {
 
 function BloqueMiembros({ data }: { data: ReportesData }) {
   const m = data.miembros;
+  const comp = data.comparacion?.miembros ?? null;
   return (
     <Bloque titulo="Miembros">
       <KpiRow>
+        {/* activos/bajas/total son snapshots — su comparación real está en
+            el bloque avanzado (vía historial). Acá van sin flecha. */}
         <KpiCard label="Miembros activos" valor={m.activos} />
-        <KpiCard label="Altas nuevas" valor={m.altasNuevas} />
+        <KpiCard
+          label="Altas nuevas"
+          valor={m.altasNuevas}
+          comparar={comp ? { actual: m.altasNuevas, anterior: comp.altasNuevas } : undefined}
+        />
         <KpiCard label="Bajas" valor={m.bajas} />
         <KpiCard label="Total de miembros" valor={m.total} />
       </KpiRow>
@@ -155,13 +216,34 @@ function BloqueMiembros({ data }: { data: ReportesData }) {
 
 function BloqueReservas({ data }: { data: ReportesData }) {
   const r = data.reservas;
+  const comp = data.comparacion?.reservas ?? null;
   return (
     <Bloque titulo="Reservas">
       <KpiRow>
-        <KpiCard label="Total de reservas" valor={r.total} />
-        <KpiCard label="Confirmadas" valor={r.confirmadas} />
-        <KpiCard label="Canceladas" valor={r.canceladas} />
-        <KpiCard label="Promedio por día" valor={r.promedioPorDia} />
+        <KpiCard
+          label="Total de reservas"
+          valor={r.total}
+          comparar={comp ? { actual: r.total, anterior: comp.total } : undefined}
+        />
+        <KpiCard
+          label="Confirmadas"
+          valor={r.confirmadas}
+          comparar={comp ? { actual: r.confirmadas, anterior: comp.confirmadas } : undefined}
+        />
+        <KpiCard
+          label="Canceladas"
+          valor={r.canceladas}
+          comparar={
+            comp ? { actual: r.canceladas, anterior: comp.canceladas, inversa: true } : undefined
+          }
+        />
+        <KpiCard
+          label="Promedio por día"
+          valor={r.promedioPorDia}
+          comparar={
+            comp ? { actual: r.promedioPorDia, anterior: comp.promedioPorDia } : undefined
+          }
+        />
       </KpiRow>
       <ChartCard titulo="Reservas por día">
         {r.total === 0 ? (
@@ -193,6 +275,226 @@ function BloqueReservas({ data }: { data: ReportesData }) {
           </ResponsiveContainer>
         )}
       </ChartCard>
+    </Bloque>
+  );
+}
+
+// ============================================================================
+// Bloques avanzados
+// ============================================================================
+
+function BloqueRetencion({ av }: { av: ReportesAvanzadosData }) {
+  const { churn, miembrosActivos, retencion3m, cohortes } = av;
+  return (
+    <Bloque titulo="Retención y churn">
+      <KpiRow>
+        <KpiCard
+          label="Miembros activos"
+          valor={miembrosActivos.actual}
+          comparar={{ actual: miembrosActivos.actual, anterior: miembrosActivos.anterior }}
+        />
+        <KpiCard
+          label="Bajas en el período"
+          valor={churn.bajas}
+          alerta={churn.bajas > 0}
+          nota={`de ${churn.activosInicio} activos al inicio`}
+          comparar={{ actual: churn.bajas, anterior: churn.bajasAnterior, inversa: true }}
+        />
+        <KpiCard
+          label="Tasa de churn"
+          valor={churn.tasaChurnPct == null ? '—' : `${churn.tasaChurnPct}%`}
+          alerta={churn.tasaChurnPct != null && churn.tasaChurnPct > 10}
+          comparar={
+            churn.tasaChurnPct != null && churn.tasaChurnPctAnterior != null
+              ? {
+                  actual: churn.tasaChurnPct,
+                  anterior: churn.tasaChurnPctAnterior,
+                  inversa: true,
+                  modo: 'puntos'
+                }
+              : undefined
+          }
+        />
+        <KpiCard
+          label="Retención 3 meses"
+          valor={retencion3m.pct == null ? '—' : `${retencion3m.pct}%`}
+          nota={
+            retencion3m.tamanoCohorte > 0
+              ? `cohorte ${retencion3m.label} · ${retencion3m.tamanoCohorte} miembros`
+              : `sin altas en ${retencion3m.label}`
+          }
+        />
+      </KpiRow>
+      <ChartCard titulo="Retención por cohorte de alta">
+        <TablaCohortes cohortes={cohortes} />
+      </ChartCard>
+    </Bloque>
+  );
+}
+
+function TablaCohortes({ cohortes }: { cohortes: CohorteRetencion[] }) {
+  const conAltas = cohortes.some((c) => c.tamano > 0);
+  if (!conAltas) {
+    return <EmptyChart mensaje="Sin altas en los últimos 6 meses." />;
+  }
+
+  const th: React.CSSProperties = {
+    textAlign: 'right',
+    padding: '8px 10px',
+    fontSize: '11px',
+    fontWeight: 700,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    color: 'var(--sala-text-tertiary)',
+    whiteSpace: 'nowrap'
+  };
+  const td: React.CSSProperties = {
+    textAlign: 'right',
+    padding: '10px',
+    fontSize: '14px',
+    fontVariantNumeric: 'tabular-nums',
+    borderTop: '1px solid var(--sala-border)'
+  };
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '420px' }}>
+        <thead>
+          <tr>
+            <th style={{ ...th, textAlign: 'left' }}>Cohorte</th>
+            <th style={th}>Miembros</th>
+            <th style={th}>+1 mes</th>
+            <th style={th}>+2 meses</th>
+            <th style={th}>+3 meses</th>
+          </tr>
+        </thead>
+        <tbody>
+          {cohortes.map((c) => (
+            <tr key={c.mes}>
+              <td
+                style={{
+                  ...td,
+                  textAlign: 'left',
+                  fontWeight: 600,
+                  textTransform: 'capitalize',
+                  color: 'var(--sala-text-primary)'
+                }}
+              >
+                {c.label}
+              </td>
+              <td style={{ ...td, color: 'var(--sala-text-secondary)' }}>
+                {c.tamano || '—'}
+              </td>
+              {c.retencion.map((pct, i) => (
+                <td
+                  key={i}
+                  style={{
+                    ...td,
+                    fontWeight: 600,
+                    color: pct == null ? 'var(--sala-text-tertiary)' : colorRetencion(pct)
+                  }}
+                >
+                  {pct == null ? '—' : `${pct}%`}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function colorRetencion(pct: number): string {
+  if (pct >= 70) return SALVIA;
+  if (pct >= 40) return 'var(--sala-text-primary)';
+  return CORAL;
+}
+
+function BloqueMiembrosRiesgo({ miembros }: { miembros: MiembroRiesgo[] }) {
+  return (
+    <Bloque titulo={`Miembros en riesgo (${miembros.length})`}>
+      <div
+        style={{
+          background: 'var(--sala-surface)',
+          border: '1px solid var(--sala-border)',
+          borderRadius: '14px',
+          padding: '18px'
+        }}
+      >
+        <p
+          style={{
+            fontSize: '12px',
+            fontWeight: 600,
+            color: 'var(--sala-text-secondary)',
+            margin: '0 0 14px'
+          }}
+        >
+          Activos sin reservar ni asistir hace 21+ días — contactalos antes de perderlos.
+        </p>
+        {miembros.length === 0 ? (
+          <EmptyChart mensaje="Nadie en riesgo. Todos los miembros activos reservaron hace poco. 🎉" />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {miembros.map((m) => (
+              <div
+                key={m.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  padding: '10px 14px',
+                  background: 'var(--sala-bg)',
+                  border: '1px solid var(--sala-border)',
+                  borderRadius: '12px'
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <p
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: 'var(--sala-text-primary)',
+                      margin: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {m.nombre}
+                  </p>
+                  <p
+                    style={{
+                      fontSize: '12px',
+                      color: 'var(--sala-text-tertiary)',
+                      margin: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {m.email}
+                  </p>
+                </div>
+                <span
+                  style={{
+                    flexShrink: 0,
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: CORAL,
+                    fontVariantNumeric: 'tabular-nums'
+                  }}
+                >
+                  {m.diasSinActividad == null
+                    ? 'Sin actividad reciente'
+                    : `${m.diasSinActividad} días`}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </Bloque>
   );
 }
@@ -235,14 +537,27 @@ function KpiRow({ children }: { children: React.ReactNode }) {
   );
 }
 
+interface CompararKpi {
+  actual: number;
+  anterior: number | null;
+  /** true cuando subir es MALO (churn, no-shows, canceladas). */
+  inversa?: boolean;
+  /** 'relativo' = % de cambio (conteos); 'puntos' = diferencia (porcentajes). */
+  modo?: 'relativo' | 'puntos';
+}
+
 function KpiCard({
   label,
   valor,
-  alerta
+  alerta,
+  nota,
+  comparar
 }: {
   label: string;
   valor: string | number;
   alerta?: boolean;
+  nota?: string;
+  comparar?: CompararKpi;
 }) {
   return (
     <div
@@ -278,7 +593,62 @@ function KpiCard({
       >
         {valor}
       </p>
+      {comparar && <DeltaBadge {...comparar} />}
+      {nota && (
+        <p style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', margin: '4px 0 0' }}>
+          {nota}
+        </p>
+      )}
     </div>
+  );
+}
+
+/** Indicador de variación vs. el período anterior. */
+function DeltaBadge({ actual, anterior, inversa = false, modo = 'relativo' }: CompararKpi) {
+  if (anterior == null) return null;
+
+  let texto: string;
+  let subio: boolean;
+
+  if (modo === 'puntos') {
+    const d = Math.round((actual - anterior) * 10) / 10;
+    if (d === 0) return <DeltaIgual />;
+    subio = d > 0;
+    texto = `${subio ? '↑' : '↓'} ${Math.abs(d)} pts`;
+  } else {
+    if (anterior === 0) {
+      if (actual === 0) return <DeltaIgual />;
+      subio = true;
+      texto = '↑ nuevo';
+    } else {
+      const pct = ((actual - anterior) / anterior) * 100;
+      if (Math.round(pct) === 0) return <DeltaIgual />;
+      subio = pct > 0;
+      texto = `${subio ? '↑' : '↓'} ${Math.abs(Math.round(pct))}%`;
+    }
+  }
+
+  const esBueno = inversa ? !subio : subio;
+  return (
+    <p style={{ fontSize: '11px', fontWeight: 600, margin: '4px 0 0' }}>
+      <span style={{ color: esBueno ? SALVIA : CORAL }}>{texto}</span>{' '}
+      <span style={{ color: 'var(--sala-text-tertiary)', fontWeight: 500 }}>vs. anterior</span>
+    </p>
+  );
+}
+
+function DeltaIgual() {
+  return (
+    <p
+      style={{
+        fontSize: '11px',
+        fontWeight: 500,
+        color: 'var(--sala-text-tertiary)',
+        margin: '4px 0 0'
+      }}
+    >
+      → sin cambios vs. anterior
+    </p>
   );
 }
 
@@ -311,12 +681,14 @@ function EmptyChart({ mensaje }: { mensaje: string }) {
   return (
     <div
       style={{
-        height: '180px',
+        minHeight: '120px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         color: 'var(--sala-text-tertiary)',
-        fontSize: '13px'
+        fontSize: '13px',
+        textAlign: 'center',
+        padding: '0 16px'
       }}
     >
       {mensaje}
