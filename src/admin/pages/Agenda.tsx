@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useTenant } from '@shared/hooks/useTenant';
+import { getTenantTimezone, hoyEnTimezone } from '@shared/lib/timezone';
 import { useRecursosAdmin } from '../hooks/useAdminData';
 import { useClasesSemanaAdmin } from '../hooks/useClasesSemanaAdmin';
 import { AgendaSemanal } from '../components/agenda/AgendaSemanal';
@@ -20,11 +22,24 @@ function inicioSemanaDe(d: Date): Date {
   return date;
 }
 
+/** Date a medianoche local de una fecha 'YYYY-MM-DD'. */
+function fechaLocal(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export default function Agenda() {
+  const tenant = useTenant();
+  const tz = getTenantTimezone(tenant);
+  // S4.4: "hoy" es el de la timezone del gym, no la del browser del admin.
+  const hoyISO = hoyEnTimezone(tz);
+
   const { recursos, isLoading: loadingRecursos } = useRecursosAdmin();
-  const [inicioSemana, setInicioSemana] = useState<Date>(() => inicioSemanaDe(new Date()));
+  const [inicioSemana, setInicioSemana] = useState<Date>(() =>
+    inicioSemanaDe(fechaLocal(hoyISO))
+  );
   const [salaSel, setSalaSel] = useState<string>(SALA_TODAS);
-  const [fechaSel, setFechaSel] = useState<string>(() => formatDateISO(new Date()));
+  const [fechaSel, setFechaSel] = useState<string>(hoyISO);
   const [refreshTick, setRefreshTick] = useState(0);
 
   const { clases, isLoading: loadingClases, refetch } = useClasesSemanaAdmin(
@@ -194,8 +209,8 @@ export default function Agenda() {
           <button
             type="button"
             onClick={() => {
-              setInicioSemana(inicioSemanaDe(new Date()));
-              setFechaSel(formatDateISO(new Date()));
+              setInicioSemana(inicioSemanaDe(fechaLocal(hoyISO)));
+              setFechaSel(hoyISO);
             }}
             style={{
               flexShrink: 0,
@@ -274,6 +289,7 @@ export default function Agenda() {
             <AgendaSemanal
               clases={clases}
               inicioSemana={inicioSemana}
+              hoyISO={hoyISO}
               onClickClase={setClaseSel}
               onClickSlotVacio={(fecha, hora) => setSlotVacioSel({ fecha, hora })}
             />

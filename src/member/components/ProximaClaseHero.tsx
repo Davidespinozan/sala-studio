@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { formatHoraHumana, type Clase } from '@member/logic/claseAdapter';
+import { type Clase } from '@member/logic/claseAdapter';
 
 interface Props {
   clase: Clase;
@@ -75,7 +75,7 @@ export function ProximaClaseHero({ clase, reservaId }: Props) {
           fontVariantNumeric: 'tabular-nums'
         }}
       >
-        {formatHoraHumana(clase.slotInicio)}
+        {clase.horaHumanaLabel}
       </p>
 
       <p

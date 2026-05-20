@@ -7,6 +7,7 @@
  */
 
 import type { Database } from '@shared/types/database';
+import { hoyEnTimezone, sumarDias } from '@shared/lib/timezone';
 
 type Recurso = Database['public']['Tables']['recursos']['Row'];
 type Reserva = Database['public']['Tables']['reservas']['Row'];
@@ -140,23 +141,32 @@ export function generarSlotsDisponibles(
 
 /**
  * Genera la lista de fechas reservables a partir de hoy según anticipación_max_dias.
+ * S4.4: "hoy" se calcula en la timezone del tenant (`tz`), no en la del browser.
  */
 export function generarFechasReservables(
   config: TenantReservaConfig,
-  ahora: Date = new Date()
+  tz: string
 ): { fechaISO: string; date: Date; label: string }[] {
   const fechas: { fechaISO: string; date: Date; label: string }[] = [];
-  const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+  const hoy = hoyEnTimezone(tz);
+  const manana = sumarDias(hoy, 1);
 
   for (let i = 0; i < config.anticipacion_max_dias; i++) {
-    const d = new Date(hoy);
-    d.setDate(hoy.getDate() + i);
-    const fechaISO = formatDateISO(d);
-    fechas.push({
-      fechaISO,
-      date: d,
-      label: formatDateLabel(d, ahora)
-    });
+    const fechaISO = sumarDias(hoy, i);
+    const [y, m, d] = fechaISO.split('-').map(Number);
+    // Date a mediodía local: solo se leen partes de calendario (día, mes, dow).
+    const date = new Date(y, m - 1, d, 12);
+    let label: string;
+    if (fechaISO === hoy) {
+      label = 'Hoy';
+    } else if (fechaISO === manana) {
+      label = 'Mañana';
+    } else {
+      const dia = DIAS_ES[date.getDay()];
+      const mes = date.toLocaleDateString('es-MX', { month: 'short' });
+      label = `${capitalize(dia)} ${d} ${mes}`;
+    }
+    fechas.push({ fechaISO, date, label });
   }
 
   return fechas;

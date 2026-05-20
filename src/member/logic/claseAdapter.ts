@@ -11,7 +11,12 @@
  * tabla `instructores` (Sprint S6).
  */
 
-import { combinarFechaHora } from './reservaLogic';
+import {
+  instanteDeClase,
+  formatHoraEnTz,
+  formatFechaLarga,
+  horaHumana
+} from '@shared/lib/timezone';
 import type { Database } from '@shared/types/database';
 
 type ClaseRow = Database['public']['Tables']['clases']['Row'];
@@ -48,10 +53,20 @@ export interface Clase {
   status: string;
   /** Timestamp ISO de cancelación, si la clase fue cancelada. */
   canceladaAt: string | null;
-  // Datos brutos para navegación / acciones
-  recursoId: string;
+  // ── Fecha/hora (S4.4: todo en la timezone del tenant) ──
+  /** Fecha de la clase 'YYYY-MM-DD' (wall-clock del gym = clases.fecha). */
+  fechaISO: string;
+  /** Hora de inicio 'HH:MM' (wall-clock del gym). */
+  horaLabel: string;
+  /** Fecha larga: "lunes 25 de mayo". */
+  fechaLabel: string;
+  /** Etiqueta humana: "Hoy, 07:00" / "Mañana, 19:00" / "Lun 25 may, 07:00". */
+  horaHumanaLabel: string;
+  /** slotInicio / slotFin: instantes UTC reales (para comparar contra now). */
   slotInicio: Date;
   slotFin: Date;
+  // Datos brutos para navegación / acciones
+  recursoId: string;
 }
 
 export interface RecursoContext {
@@ -59,21 +74,6 @@ export interface RecursoContext {
   nombre: string;
   foto_url?: string | null;
   tiers_permitidos?: string[];
-}
-
-// ---------------------------------------------------------------------------
-// Helpers de combinación fecha+hora
-// ---------------------------------------------------------------------------
-
-/** Postgres `time` viene como 'HH:MM:SS'. La UI usa 'HH:MM'. */
-function trimSegundos(horaStr: string): string {
-  return horaStr.length >= 5 ? horaStr.slice(0, 5) : horaStr;
-}
-
-/** Combina `clases.fecha` ('YYYY-MM-DD') + `clases.hora_inicio` ('HH:MM:SS')
- *  en un Date local (timezone del browser). */
-export function slotInicioFromClaseRow(row: Pick<ClaseRow, 'fecha' | 'hora_inicio'>): Date {
-  return combinarFechaHora(row.fecha, trimSegundos(row.hora_inicio));
 }
 
 // ---------------------------------------------------------------------------
@@ -94,16 +94,21 @@ interface ClaseFromRowInput {
   recurso: RecursoContext;
   /** Instructor del JOIN. null/undefined si la clase no tiene instructor. */
   instructor?: InstructorContext | null;
+  /** Timezone del tenant (S4.4). Las clases se interpretan/muestran en ella. */
+  tz: string;
 }
 
-/** Construye la Clase UI desde una fila real de `clases` + recurso + count. */
+/** Construye la Clase UI desde una fila real de `clases` + recurso + count.
+ *  S4.4: slotInicio/slotFin son instantes UTC reales (calculados con la tz
+ *  del tenant); las labels de fecha/hora se precomputan en esa tz. */
 export function claseFromRow({
   row,
   cuposReservados,
   recurso,
-  instructor
+  instructor,
+  tz
 }: ClaseFromRowInput): Clase {
-  const slotInicio = slotInicioFromClaseRow(row);
+  const slotInicio = instanteDeClase(row.fecha, row.hora_inicio, tz);
   const slotFin = new Date(slotInicio.getTime() + row.duracion_minutos * 60_000);
   return {
     id: row.id,
@@ -123,9 +128,13 @@ export function claseFromRow({
     tiersPermitidos: recurso.tiers_permitidos,
     status: row.status,
     canceladaAt: row.cancelada_at,
-    recursoId: row.recurso_id,
+    fechaISO: row.fecha,
+    horaLabel: formatHoraEnTz(slotInicio, tz),
+    fechaLabel: formatFechaLarga(row.fecha),
+    horaHumanaLabel: horaHumana(row.fecha, row.hora_inicio, tz),
     slotInicio,
-    slotFin
+    slotFin,
+    recursoId: row.recurso_id
   };
 }
 
@@ -141,27 +150,4 @@ export function estadoCupos(clase: Clase): EstadoCupos {
   if (libres <= 0) return 'llena';
   if (libres <= 3) return 'pocos';
   return 'disponible';
-}
-
-/** Formato humano para la hora de una clase: "Hoy, 7:00 AM" / "Mañana, 19:00" / "Lun 25 may, 8:00". */
-export function formatHoraHumana(slot: Date, ahora: Date = new Date()): string {
-  const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
-  const manana = new Date(hoy);
-  manana.setDate(hoy.getDate() + 1);
-  const slotDia = new Date(slot.getFullYear(), slot.getMonth(), slot.getDate());
-
-  const horaStr = slot.toLocaleTimeString('es-MX', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-
-  if (slotDia.getTime() === hoy.getTime()) return `Hoy, ${horaStr}`;
-  if (slotDia.getTime() === manana.getTime()) return `Mañana, ${horaStr}`;
-
-  const dia = slot.toLocaleDateString('es-MX', { weekday: 'short' });
-  const num = slot.getDate();
-  const mes = slot.toLocaleDateString('es-MX', { month: 'short' });
-  const diaCap = dia.charAt(0).toUpperCase() + dia.slice(1);
-  return `${diaCap} ${num} ${mes}, ${horaStr}`;
 }

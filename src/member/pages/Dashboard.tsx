@@ -9,7 +9,7 @@ import {
   type Clase,
   type InstructorContext
 } from '@member/logic/claseAdapter';
-import { formatDateISO } from '@member/logic/reservaLogic';
+import { getTenantTimezone, hoyEnTimezone } from '@shared/lib/timezone';
 import { ProximaClaseHero } from '@member/components/ProximaClaseHero';
 import { ClaseCard } from '@member/components/ClaseCard';
 
@@ -33,6 +33,8 @@ interface ReservaConClase extends Reserva {
 
 /** Próxima reserva del miembro + la clase joineada (S4.2: real). */
 function useProximaReserva(usuarioId: string | undefined) {
+  const tenant = useTenant();
+  const tz = getTenantTimezone(tenant);
   const [reserva, setReserva] = useState<ReservaConClase | null>(null);
   const [clase, setClase] = useState<Clase | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,7 +69,7 @@ function useProximaReserva(usuarioId: string | undefined) {
           .eq('clase_id', r.clase.id)
           .in('status', ['confirmada', 'completada']);
         if (!mounted) return;
-        setClase(mapClase(r.clase, count ?? 0));
+        setClase(mapClase(r.clase, count ?? 0, tz));
       } else {
         setClase(null);
       }
@@ -75,13 +77,13 @@ function useProximaReserva(usuarioId: string | undefined) {
     }
     void load();
     return () => { mounted = false; };
-  }, [usuarioId]);
+  }, [usuarioId, tz]);
 
   return { reserva, clase, isLoading };
 }
 
 /** Mapea una fila de clases (con recurso joineado) a la interfaz UI Clase. */
-function mapClase(row: ClaseConRecurso, cuposReservados: number): Clase {
+function mapClase(row: ClaseConRecurso, cuposReservados: number, tz: string): Clase {
   const recurso = row.recurso
     ? {
         id: row.recurso.id,
@@ -90,11 +92,11 @@ function mapClase(row: ClaseConRecurso, cuposReservados: number): Clase {
         tiers_permitidos: row.recurso.tiers_permitidos
       }
     : { id: row.recurso_id, nombre: '—' };
-  return claseFromRow({ row, cuposReservados, recurso, instructor: row.instructor });
+  return claseFromRow({ row, cuposReservados, recurso, instructor: row.instructor, tz });
 }
 
-/** Clases de hoy desde la tabla `clases` real (S4.2). */
-function useClasesDeHoy(tenantId: string) {
+/** Clases de hoy desde la tabla `clases` real (S4.2). "Hoy" = tz del gym (S4.4). */
+function useClasesDeHoy(tenantId: string, tz: string) {
   const [clases, setClases] = useState<Clase[]>([]);
   const [reservasMiembro, setReservasMiembro] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
@@ -103,7 +105,7 @@ function useClasesDeHoy(tenantId: string) {
   useEffect(() => {
     let mounted = true;
     async function load() {
-      const fechaISO = formatDateISO(new Date());
+      const fechaISO = hoyEnTimezone(tz);
 
       // S4.3: incluye canceladas para mostrarlas apagadas (transparencia al miembro).
       const clasesRes = await supabase
@@ -157,7 +159,7 @@ function useClasesDeHoy(tenantId: string) {
 
       const ahora = Date.now();
       const futurasHoy = filas
-        .map((row) => mapClase(row, cuposMap.get(row.id) ?? 0))
+        .map((row) => mapClase(row, cuposMap.get(row.id) ?? 0, tz))
         .filter((c) => c.slotInicio.getTime() >= ahora);
 
       setClases(futurasHoy);
@@ -166,7 +168,7 @@ function useClasesDeHoy(tenantId: string) {
     }
     void load();
     return () => { mounted = false; };
-  }, [tenantId, usuario]);
+  }, [tenantId, usuario, tz]);
 
   return { clases, reservasMiembro, isLoading };
 }
@@ -192,6 +194,7 @@ function capitalizarNombre(nombre: string | null | undefined): string {
 export default function Dashboard() {
   const { usuario } = useAuth();
   const tenant = useTenant();
+  const tz = getTenantTimezone(tenant);
 
   const {
     reserva: proximaReserva,
@@ -199,7 +202,8 @@ export default function Dashboard() {
     isLoading: loadingReserva
   } = useProximaReserva(usuario?.id);
   const { clases: clasesHoy, reservasMiembro, isLoading: loadingClases } = useClasesDeHoy(
-    tenant.id
+    tenant.id,
+    tz
   );
 
   const ahora = new Date();

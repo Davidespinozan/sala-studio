@@ -7,6 +7,7 @@ import {
   type RecursoContext,
   type InstructorContext
 } from '@member/logic/claseAdapter';
+import { getTenantTimezone } from '@shared/lib/timezone';
 import type { Database } from '@shared/types/database';
 
 type ClaseRow = Database['public']['Tables']['clases']['Row'];
@@ -35,6 +36,8 @@ export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) 
   const [isLoading, setIsLoading] = useState(true);
 
   const inicioMs = inicioSemana.getTime();
+
+  const tz = getTenantTimezone(tenant);
 
   const refetch = useCallback(async () => {
     setIsLoading(true);
@@ -100,13 +103,14 @@ export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) 
         row,
         cuposReservados: cuposPorClase.get(row.id) ?? 0,
         recurso,
-        instructor: row.instructor
+        instructor: row.instructor,
+        tz
       });
     });
 
     setClases(mapped);
     setIsLoading(false);
-  }, [tenant.id, inicioMs, salaIdFilter]);
+  }, [tenant.id, inicioMs, salaIdFilter, tz]);
 
   useEffect(() => {
     void refetch();

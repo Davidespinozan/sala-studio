@@ -23,16 +23,9 @@ export function ConfirmarReservaModal({
   onConfirm,
   onClose
 }: Props) {
-  const hora = clase.slotInicio.toLocaleTimeString('es-MX', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-  const fecha = clase.slotInicio.toLocaleDateString('es-MX', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long'
-  });
+  // S4.4: labels precomputadas en la timezone del gym.
+  const hora = clase.horaLabel;
+  const fecha = clase.fechaLabel;
 
   return (
     <div className="ek-modal-backdrop" onClick={onClose}>

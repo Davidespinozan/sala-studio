@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { formatHora } from '@member/logic/reservaLogic';
 import { estadoCupos, type Clase } from '@member/logic/claseAdapter';
 import { DayTabSelector } from '@member/components/DayTabSelector';
 
@@ -20,12 +19,10 @@ export function AgendaListaDia({
   onClickClase
 }: Props) {
   const clasesDia = useMemo(() => {
+    // S4.4: filtrar por la fecha del gym (clase.fechaISO), no por componentes
+    // browser-local de un instante UTC.
     return clases
-      .filter((c) => {
-        const d = c.slotInicio;
-        const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        return iso === fechaSel;
-      })
+      .filter((c) => c.fechaISO === fechaSel)
       .sort((a, b) => a.slotInicio.getTime() - b.slotInicio.getTime());
   }, [clases, fechaSel]);
 
@@ -134,7 +131,7 @@ function ClaseRowAdminMobile({ clase, onClick }: { clase: Clase; onClick: () => 
             lineHeight: 1
           }}
         >
-          {formatHora(clase.slotInicio)}
+          {clase.horaLabel}
         </span>
         <span
           style={{

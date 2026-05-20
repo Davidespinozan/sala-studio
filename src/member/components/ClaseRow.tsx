@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { formatHora } from '@member/logic/reservaLogic';
 import { estadoCupos, type Clase } from '@member/logic/claseAdapter';
 import { CupoBar } from './CupoBar';
 
@@ -96,7 +95,7 @@ export function ClaseRow({
             fontVariantNumeric: 'tabular-nums'
           }}
         >
-          {formatHora(clase.slotInicio)}
+          {clase.horaLabel}
         </span>
         <span
           style={{

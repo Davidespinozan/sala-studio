@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import { formatDateISO } from '@member/logic/reservaLogic';
+import { diasEntre } from '@shared/lib/timezone';
 import type { Clase } from '@member/logic/claseAdapter';
 import { ClaseCellAdmin } from './ClaseCellAdmin';
 
@@ -8,20 +9,23 @@ const HORAS = Array.from({ length: 17 }, (_, i) => 6 + i); // 06:00..22:00
 interface Props {
   clases: Clase[];
   inicioSemana: Date;
+  /** 'YYYY-MM-DD' de hoy en la timezone del gym (S4.4). */
+  hoyISO: string;
   onClickClase: (clase: Clase) => void;
   onClickSlotVacio?: (date: Date, hora: number) => void;
 }
 
 /** Grid 7 días × 17 horas. Cada celda muestra las clases que arrancan en esa hora.
  *  Día actual: columna highlighted con tinte salvia. Celda vacía: botón "+" hover. */
-export function AgendaSemanal({ clases, inicioSemana, onClickClase, onClickSlotVacio }: Props) {
-  // Indexar clases por (dayIdx, hora). Multiple clases por celda posibles.
+export function AgendaSemanal({ clases, inicioSemana, hoyISO, onClickClase, onClickSlotVacio }: Props) {
+  // S4.4: indexar por la fecha/hora del gym (clase.fechaISO + horaLabel),
+  // no por componentes browser-local de un instante UTC.
+  const inicioISO = formatDateISO(inicioSemana);
   const slotMap = new Map<string, Clase[]>();
   for (const c of clases) {
-    const diffMs = c.slotInicio.getTime() - inicioSemana.getTime();
-    const dayIdx = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+    const dayIdx = diasEntre(inicioISO, c.fechaISO);
     if (dayIdx < 0 || dayIdx > 6) continue;
-    const hora = c.slotInicio.getHours();
+    const hora = parseInt(c.horaLabel.slice(0, 2), 10);
     const key = `${dayIdx}_${hora}`;
     const arr = slotMap.get(key) ?? [];
     arr.push(c);
@@ -33,8 +37,6 @@ export function AgendaSemanal({ clases, inicioSemana, onClickClase, onClickSlotV
     d.setDate(inicioSemana.getDate() + i);
     return d;
   });
-
-  const hoyISO = formatDateISO(new Date());
 
   // Wrapper con overflow horizontal + sombra lateral indicadora cuando hay scroll.
   // En viewports estrechos (900-1100px) el grid no se aplasta: cada día mantiene

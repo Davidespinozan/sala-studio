@@ -8,10 +8,10 @@ import { crearReserva, cancelarReserva as cancelarReservaRPC } from '@member/hoo
 import {
   claseFromRow,
   estadoCupos,
-  formatHoraHumana,
   type Clase,
   type InstructorContext
 } from '@member/logic/claseAdapter';
+import { getTenantTimezone } from '@shared/lib/timezone';
 import type { Database } from '@shared/types/database';
 import { CupoBar } from '@member/components/CupoBar';
 import { ConfirmarReservaModal } from '@member/components/ConfirmarReservaModal';
@@ -53,6 +53,7 @@ export default function ClaseDetalle() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
   const tenant = useTenant();
+  const tz = getTenantTimezone(tenant);
   const toast = useToast();
 
   // S4.2: el id de la URL es ahora el UUID directo de la fila en `clases`.
@@ -170,9 +171,10 @@ export default function ClaseDetalle() {
         foto_url: recurso.foto_url,
         tiers_permitidos: recurso.tiers_permitidos
       },
-      instructor: instructorCtx
+      instructor: instructorCtx,
+      tz
     });
-  }, [claseRow, recurso, cuposReservados, instructorCtx]);
+  }, [claseRow, recurso, cuposReservados, instructorCtx, tz]);
 
   const tier = usuario?.membresia_tier ?? null;
   const puedeAccederTier = recurso ? tierTieneAcceso(recurso.tiers_permitidos, tier) : false;
@@ -403,7 +405,7 @@ export default function ClaseDetalle() {
               fontVariantNumeric: 'tabular-nums'
             }}
           >
-            {formatHoraHumana(clase.slotInicio)} · {clase.duracionMinutos} min
+            {clase.horaHumanaLabel} · {clase.duracionMinutos} min
           </p>
         </div>
 

@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { formatHora } from '@member/logic/reservaLogic';
 import { estadoCupos, type Clase } from '@member/logic/claseAdapter';
 
 interface Props {
@@ -18,7 +17,7 @@ export function ClaseCard({ clase, ya_reservada }: Props) {
   return (
     <Link
       to={`/app/clase/${encodeURIComponent(clase.id)}`}
-      aria-label={`${clase.nombre} ${formatHora(clase.slotInicio)}`}
+      aria-label={`${clase.nombre} ${clase.horaLabel}`}
       style={{
         flexShrink: 0,
         width: '180px',
@@ -47,7 +46,7 @@ export function ClaseCard({ clase, ya_reservada }: Props) {
           fontVariantNumeric: 'tabular-nums'
         }}
       >
-        {formatHora(clase.slotInicio)}
+        {clase.horaLabel}
       </p>
       <p
         style={{

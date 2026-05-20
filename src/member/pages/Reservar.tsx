@@ -17,6 +17,7 @@ import {
   type Clase,
   type InstructorContext
 } from '@member/logic/claseAdapter';
+import { getTenantTimezone } from '@shared/lib/timezone';
 import type { Database } from '@shared/types/database';
 import { DayTabSelector } from '@member/components/DayTabSelector';
 import { ClaseRow } from '@member/components/ClaseRow';
@@ -60,9 +61,13 @@ export default function Reservar() {
   }, [tenant.config]);
 
   const tier = usuario?.membresia_tier ?? null;
+  const tz = getTenantTimezone(tenant);
 
-  // 7 días desde hoy
-  const fechas = useMemo(() => generarFechasReservables(config).slice(0, 7), [config]);
+  // 7 días desde hoy (en la timezone del gym)
+  const fechas = useMemo(
+    () => generarFechasReservables(config, tz).slice(0, 7),
+    [config, tz]
+  );
   const [fechaSel, setFechaSel] = useState<string>(fechas[0]?.fechaISO ?? '');
   const [salaSel, setSalaSel] = useState<string>(SALA_TODAS);
 
@@ -171,17 +176,17 @@ export default function Reservar() {
         row,
         cuposReservados: cuposPorClase.get(row.id) ?? 0,
         recurso,
-        instructor: row.instructor
+        instructor: row.instructor,
+        tz
       });
     });
 
-    // esHoy: comparar contra fechas[0] (hoy local, ya en formato YYYY-MM-DD).
-    // Evita el bug de toISOString() que desfasa el día en timezones != UTC-.
+    // esHoy: fechas[0].fechaISO ya es "hoy" en la tz del gym (S4.4).
     const esHoy = fechaSel === fechas[0]?.fechaISO;
     if (!esHoy) return mapped;
     const ahora = Date.now();
     return mapped.filter((c) => c.slotInicio.getTime() >= ahora);
-  }, [clasesRaw, cuposPorClase, salaSel, fechaSel, fechas]);
+  }, [clasesRaw, cuposPorClase, salaSel, fechaSel, fechas, tz]);
 
   const maxInvitados = tier === 'pro' ? 4 : tier === 'basica' ? 2 : 0;
 

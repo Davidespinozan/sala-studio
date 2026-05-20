@@ -1,4 +1,3 @@
-import { formatHora } from '@member/logic/reservaLogic';
 import { estadoCupos, type Clase } from '@member/logic/claseAdapter';
 
 interface Props {
@@ -58,7 +57,7 @@ export function ClaseCellAdmin({ clase, onClick }: Props) {
             opacity: 0.6
           }}
         >
-          {formatHora(clase.slotInicio)}
+          {clase.horaLabel}
         </span>
       </button>
     );
@@ -133,7 +132,7 @@ export function ClaseCellAdmin({ clase, onClick }: Props) {
           letterSpacing: '-0.01em'
         }}
       >
-        {formatHora(clase.slotInicio)}
+        {clase.horaLabel}
       </span>
       <span
         style={{

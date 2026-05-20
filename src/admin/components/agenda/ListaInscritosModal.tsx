@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
-import { formatHora } from '@member/logic/reservaLogic';
 import { estadoCupos, type Clase } from '@member/logic/claseAdapter';
 import {
   useInscritosDeClase,
@@ -121,11 +120,8 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
     onClose();
   }
 
-  const fechaFmt = claseActual.slotInicio.toLocaleDateString('es-MX', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long'
-  });
+  // S4.4: labels precomputadas en la timezone del gym.
+  const fechaFmt = claseActual.fechaLabel;
 
   const cupoColor = llena
     ? 'var(--sala-text-tertiary)'
@@ -190,7 +186,7 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
                 textTransform: 'capitalize'
               }}
             >
-              {fechaFmt} · {formatHora(claseActual.slotInicio)} · {claseActual.duracionMinutos} min
+              {fechaFmt} · {claseActual.horaLabel} · {claseActual.duracionMinutos} min
             </p>
             <p
               style={{
@@ -432,7 +428,7 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
         isOpen={showCancelarClase}
         variant="danger"
         title="¿Cancelar esta clase?"
-        description={`Se cancelará la clase del ${fechaFmt} a las ${formatHora(claseActual.slotInicio)}. Los ${cuposReservados} inscritos verán el cambio cuando abran la app. Esta acción no se puede deshacer.`}
+        description={`Se cancelará la clase del ${fechaFmt} a las ${claseActual.horaLabel}. Los ${cuposReservados} inscritos verán el cambio cuando abran la app. Esta acción no se puede deshacer.`}
         confirmLabel={cancelling ? 'Cancelando…' : 'Sí, cancelar clase'}
         cancelLabel="Volver"
         onConfirm={handleCancelarClase}

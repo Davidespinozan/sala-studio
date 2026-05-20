@@ -166,8 +166,7 @@ describe('generarSlotsDisponibles', () => {
 
 describe('generarFechasReservables', () => {
   it('genera anticipacion_max_dias fechas desde hoy', () => {
-    const ahora = new Date(2026, 4, 14, 12, 0);
-    const fechas = generarFechasReservables(baseConfig, ahora);
+    const fechas = generarFechasReservables(baseConfig, 'America/Mexico_City');
     expect(fechas).toHaveLength(30);
     expect(fechas[0].label).toBe('Hoy');
     expect(fechas[1].label).toBe('Mañana');
