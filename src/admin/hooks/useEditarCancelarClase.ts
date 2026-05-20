@@ -6,6 +6,7 @@ export interface ClasePatch {
   descripcion: string | null;
   cupo_max: number;
   duracion_minutos: number;
+  instructor_id: string | null;
 }
 
 /** S4.3 — mutaciones para editar/cancelar una clase puntual (instancia).

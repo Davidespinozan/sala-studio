@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useToast } from '@shared/hooks/useToast';
 import type { Clase } from '@member/logic/claseAdapter';
 import { useEditarCancelarClase, type ClasePatch } from '@admin/hooks/useEditarCancelarClase';
+import { useInstructores } from '@admin/hooks/useInstructores';
 
 interface Props {
   clase: Clase;
@@ -17,12 +18,20 @@ const DESC_MAX = 500;
 export function EditarClaseModal({ clase, inscritosActivos, onClose, onSaved }: Props) {
   const toast = useToast();
   const { updateClase, updating } = useEditarCancelarClase(clase.id);
+  const { instructores } = useInstructores();
 
   const [nombre, setNombre] = useState(clase.nombre);
   const [descripcion, setDescripcion] = useState(clase.descripcion ?? '');
   const [cupoMax, setCupoMax] = useState<number>(clase.cupoMax);
   const [duracion, setDuracion] = useState<number>(clase.duracionMinutos);
+  const [instructorId, setInstructorId] = useState<string>(clase.instructorId ?? '');
   const [error, setError] = useState<string | null>(null);
+
+  // Opciones del dropdown: instructores activos + el ya asignado aunque esté
+  // inactivo (para que el prefill no se pierda).
+  const opcionesInstructor = instructores.filter(
+    (i) => i.activo || i.id === clase.instructorId
+  );
 
   async function handleSave() {
     setError(null);
@@ -54,7 +63,8 @@ export function EditarClaseModal({ clase, inscritosActivos, onClose, onSaved }: 
       nombre: nombre.trim(),
       descripcion: descripcion.trim() || null,
       cupo_max: cupoMax,
-      duracion_minutos: duracion
+      duracion_minutos: duracion,
+      instructor_id: instructorId || null
     };
     const { error: err } = await updateClase(patch);
     if (err) {
@@ -152,6 +162,23 @@ export function EditarClaseModal({ clase, inscritosActivos, onClose, onSaved }: 
         <p style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', margin: '8px 0 0' }}>
           Inscritos actuales: {inscritosActivos}. El cupo no puede ser menor a ese número.
         </p>
+
+        <label className="ek-label" style={{ marginTop: '14px' }}>
+          Instructor
+          <select
+            value={instructorId}
+            onChange={(e) => setInstructorId(e.target.value)}
+            className="ek-input"
+          >
+            <option value="">Sin instructor asignado</option>
+            {opcionesInstructor.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.nombre}
+                {!i.activo ? ' (inactivo)' : ''}
+              </option>
+            ))}
+          </select>
+        </label>
 
         {error && <p className="ek-error-text" style={{ marginTop: '10px' }}>{error}</p>}
 

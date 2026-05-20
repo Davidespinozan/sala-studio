@@ -30,6 +30,8 @@ export interface Clase {
   cupoMax: number;
   cuposReservados: number;
   instructor: string;
+  /** FK a instructores. null si la clase no tiene instructor asignado. */
+  instructorId: string | null;
   disciplina: string;
   descripcion?: string;
   imagenUrl?: string;
@@ -91,6 +93,7 @@ export function claseFromRow({ row, cuposReservados, recurso }: ClaseFromRowInpu
     cupoMax: row.cupo_max,
     cuposReservados,
     instructor: row.instructor_nombre_mock ?? 'Por confirmar',
+    instructorId: row.instructor_id,
     disciplina: row.disciplina ?? '',
     descripcion: row.descripcion ?? undefined,
     imagenUrl: recurso.foto_url ?? undefined,

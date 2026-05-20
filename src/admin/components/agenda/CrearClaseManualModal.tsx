@@ -3,6 +3,7 @@ import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { formatDateISO } from '@member/logic/reservaLogic';
+import { useInstructores } from '@admin/hooks/useInstructores';
 
 interface RecursoOption {
   id: string;
@@ -46,8 +47,11 @@ function nombreSugerido(r: RecursoOption): string {
 export function CrearClaseManualModal({ recursos, prefill, onClose, onCreated }: Props) {
   const tenant = useTenant();
   const toast = useToast();
+  const { instructores } = useInstructores();
+  const instructoresActivos = instructores.filter((i) => i.activo);
 
   const [recursoId, setRecursoId] = useState(recursos[0]?.id ?? '');
+  const [instructorId, setInstructorId] = useState('');
   const [fecha, setFecha] = useState(
     prefill ? formatDateISO(prefill.fecha) : formatDateISO(new Date())
   );
@@ -155,6 +159,7 @@ export function CrearClaseManualModal({ recursos, prefill, onClose, onCreated }:
       disciplina: disciplina || null,
       descripcion: descripcion.trim() || null,
       cupo_max: cupoMax,
+      instructor_id: instructorId || null,
       origen: 'manual',
       status: 'programada'
     });
@@ -308,6 +313,22 @@ export function CrearClaseManualModal({ recursos, prefill, onClose, onCreated }:
                 />
               </label>
             </div>
+
+            <label className="ek-label" style={{ marginTop: '14px' }}>
+              Instructor
+              <select
+                value={instructorId}
+                onChange={(e) => setInstructorId(e.target.value)}
+                className="ek-input"
+              >
+                <option value="">Sin instructor asignado</option>
+                {instructoresActivos.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             {error && <p className="ek-error-text" style={{ marginTop: '10px' }}>{error}</p>}
 
