@@ -3,6 +3,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { getTenantTimezone } from '@shared/lib/timezone';
 import { useSuscripcion } from '../hooks/useSuscripcion';
 import { CheckoutModalMock } from '../components/CheckoutModalMock';
+import { EstadoSuscripcionCard } from '../components/EstadoSuscripcionCard';
 import {
   PLANES_SAAS,
   TIERS_ORDEN,
@@ -18,7 +19,7 @@ import {
 export default function Suscripcion() {
   const tenant = useTenant();
   const tz = getTenantTimezone(tenant);
-  const { suscripcion, isLoading, refetch } = useSuscripcion();
+  const { suscripcion, uso, isLoading, refetch } = useSuscripcion();
 
   const [moneda, setMoneda] = useState<MonedaSaas>(() => monedaSugerida(tz));
   const [checkout, setCheckout] = useState<TierSaas | null>(null);
@@ -59,6 +60,22 @@ export default function Suscripcion() {
         <p className="adm-body">Cargando…</p>
       ) : (
         <>
+          {/* Estado de la suscripción actual + uso de miembros */}
+          <EstadoSuscripcionCard suscripcion={suscripcion} uso={uso} onCambio={refetch} />
+
+          <h2
+            style={{
+              fontFamily: 'var(--ek-font-display)',
+              fontSize: '16px',
+              fontWeight: 600,
+              letterSpacing: '-0.02em',
+              color: 'var(--sala-text-primary)',
+              margin: '0 0 12px'
+            }}
+          >
+            {tierActual ? 'Cambiar de plan' : 'Elegí tu plan'}
+          </h2>
+
           {/* Selector de moneda */}
           <div
             style={{
