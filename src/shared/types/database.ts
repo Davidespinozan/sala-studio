@@ -701,6 +701,62 @@ export type Database = {
           },
         ]
       }
+      suscripciones_saas: {
+        Row: {
+          cancelada_at: string | null
+          created_at: string
+          estado: string
+          id: string
+          moneda: string
+          periodo_actual_termina: string | null
+          precio_centavos: number
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tenant_id: string
+          tier: string
+          trial_termina: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancelada_at?: string | null
+          created_at?: string
+          estado: string
+          id?: string
+          moneda: string
+          periodo_actual_termina?: string | null
+          precio_centavos: number
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tenant_id: string
+          tier: string
+          trial_termina?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancelada_at?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          moneda?: string
+          periodo_actual_termina?: string | null
+          precio_centavos?: number
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tenant_id?: string
+          tier?: string
+          trial_termina?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suscripciones_saas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           branding: Json
