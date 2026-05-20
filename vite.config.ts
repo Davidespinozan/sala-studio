@@ -59,6 +59,10 @@ export default defineConfig(({ mode }) => {
       })
     ].filter(Boolean),
     resolve: {
+      // Garantiza una sola copia de React: sin esto, el pre-bundling de Vite
+      // en dev puede servir dos instancias (chunks con ?v= distintos) y
+      // useContext crashea con "Cannot read properties of null".
+      dedupe: ['react', 'react-dom', 'react-router-dom'],
       alias: {
         '@shared': path.resolve(__dirname, './src/shared'),
         '@public': path.resolve(__dirname, './src/public'),
@@ -67,6 +71,11 @@ export default defineConfig(({ mode }) => {
         '@reception': path.resolve(__dirname, './src/reception'),
         '@styles': path.resolve(__dirname, './src/styles')
       }
+    },
+    optimizeDeps: {
+      // Pre-bundlea React de forma consistente para que todos los chunks
+      // compartan la misma instancia.
+      include: ['react', 'react-dom', 'react-router-dom']
     },
     build: {
       outDir: 'dist',

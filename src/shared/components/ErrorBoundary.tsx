@@ -8,16 +8,23 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  componentStack: string | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, error: null };
+  state: State = { hasError: false, error: null, componentStack: null };
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: { componentStack?: string | null }) {
+    // Log a consola SIEMPRE — sin esto el error real queda invisible en dev.
+    console.error('[ErrorBoundary] error capturado:', error);
+    if (errorInfo.componentStack) {
+      console.error('[ErrorBoundary] componentStack:', errorInfo.componentStack);
+    }
+    this.setState({ componentStack: errorInfo.componentStack ?? null });
     Sentry.captureException(error, {
       contexts: { react: { componentStack: errorInfo.componentStack } }
     });
@@ -25,6 +32,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const esDev = import.meta.env.DEV;
       return (
         <div
           style={{
@@ -62,6 +70,32 @@ export class ErrorBoundary extends Component<Props, State> {
           >
             Recargar
           </button>
+
+          {/* En desarrollo: mostrar el error real para diagnosticar al instante. */}
+          {esDev && this.state.error && (
+            <pre
+              style={{
+                marginTop: '2rem',
+                maxWidth: 'min(900px, 92vw)',
+                maxHeight: '50vh',
+                overflow: 'auto',
+                textAlign: 'left',
+                fontSize: '12px',
+                lineHeight: 1.5,
+                background: '#1a1f1c',
+                color: '#ff9a8a',
+                padding: '16px',
+                borderRadius: '8px',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word'
+              }}
+            >
+              {String(this.state.error.stack ?? this.state.error.message)}
+              {this.state.componentStack
+                ? `\n\n--- componentStack ---${this.state.componentStack}`
+                : ''}
+            </pre>
+          )}
         </div>
       );
     }
