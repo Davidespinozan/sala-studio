@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { useLandingConfig } from '@shared/hooks/useLandingConfig';
+import { useTenant } from '@shared/hooks/useTenant';
 import EstudioModal, { type EstudioInfo } from '../components/EstudioModal';
 import Footer from '../components/Footer';
 
@@ -80,6 +81,189 @@ function useTiersPublicos() {
   return { tiers, isLoading };
 }
 
+interface InstructorPublico {
+  id: string;
+  nombre: string;
+  bio: string | null;
+  foto_url: string | null;
+  especialidades: string[];
+}
+
+/** S6-5: instructores activos del tenant para la sección de la landing. */
+function useInstructoresPublicos() {
+  const tenant = useTenant();
+  const [instructores, setInstructores] = useState<InstructorPublico[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      const { data, error } = await supabase
+        .from('instructores')
+        .select('id, nombre, bio, foto_url, especialidades')
+        .eq('tenant_id', tenant.id)
+        .eq('activo', true)
+        .order('orden', { ascending: true })
+        .order('nombre', { ascending: true });
+
+      if (!mounted) return;
+      if (error) console.error('[useInstructoresPublicos]', error);
+      else setInstructores((data ?? []) as InstructorPublico[]);
+      setIsLoading(false);
+    }
+    load();
+    return () => { mounted = false; };
+  }, [tenant.id]);
+
+  return { instructores, isLoading };
+}
+
+/** Card de instructor para la sección pública de la landing. */
+function InstructorLandingCard({ instructor }: { instructor: InstructorPublico }) {
+  const [expandida, setExpandida] = useState(false);
+  const bio = instructor.bio?.trim() ?? '';
+  const bioLarga = bio.length > 140;
+  const inicial =
+    instructor.nombre
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() ?? '')
+      .join('') || '?';
+
+  return (
+    <div
+      className="ek-card"
+      style={{
+        padding: '28px 24px',
+        border: '0.5px solid var(--ek-line)',
+        background: 'var(--ek-bg-soft)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        textAlign: 'center'
+      }}
+    >
+      {instructor.foto_url ? (
+        <img
+          src={instructor.foto_url}
+          alt={instructor.nombre}
+          style={{
+            width: '96px',
+            height: '96px',
+            borderRadius: '50%',
+            objectFit: 'cover',
+            marginBottom: '16px'
+          }}
+        />
+      ) : (
+        <div
+          aria-hidden="true"
+          style={{
+            width: '96px',
+            height: '96px',
+            borderRadius: '50%',
+            background: 'var(--ek-mustard-soft)',
+            color: 'var(--ek-mustard)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: 'var(--ek-font-display)',
+            fontSize: '32px',
+            fontWeight: 700,
+            marginBottom: '16px'
+          }}
+        >
+          {inicial}
+        </div>
+      )}
+
+      <h3
+        style={{
+          fontFamily: 'var(--ek-font-display)',
+          fontSize: '20px',
+          fontWeight: 600,
+          letterSpacing: '-0.02em',
+          margin: 0,
+          marginBottom: '10px',
+          color: 'var(--ek-ink)'
+        }}
+      >
+        {instructor.nombre}
+      </h3>
+
+      {instructor.especialidades.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '6px',
+            justifyContent: 'center',
+            marginBottom: bio ? '14px' : 0
+          }}
+        >
+          {instructor.especialidades.map((e) => (
+            <span
+              key={e}
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--ek-mustard)',
+                background: 'var(--ek-mustard-soft)',
+                padding: '3px 10px',
+                borderRadius: '999px'
+              }}
+            >
+              {e}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {bio && (
+        <>
+          <p
+            style={{
+              fontSize: '13px',
+              color: 'var(--ek-ink-muted)',
+              margin: 0,
+              lineHeight: 1.55,
+              ...(bioLarga && !expandida
+                ? {
+                    display: '-webkit-box',
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: 'vertical' as const,
+                    overflow: 'hidden'
+                  }
+                : {})
+            }}
+          >
+            {bio}
+          </p>
+          {bioLarga && (
+            <button
+              type="button"
+              onClick={() => setExpandida((v) => !v)}
+              style={{
+                marginTop: '8px',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--ek-mustard)',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit'
+              }}
+            >
+              {expandida ? 'Ver menos' : 'Ver más'}
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function parseBeneficios(raw: unknown): string[] {
   if (Array.isArray(raw)) return raw.filter((b): b is string => typeof b === 'string');
   if (typeof raw === 'string') {
@@ -103,7 +287,8 @@ export default function Landing() {
   const [estudioAbierto, setEstudioAbierto] = useState<EstudioInfo | null>(null);
   const { estudios, isLoading: estudiosLoading } = useEstudiosPublicos();
   const { tiers, isLoading: tiersLoading } = useTiersPublicos();
-  const { hero, cta_final, whatsappUrl } = useLandingConfig();
+  const { instructores } = useInstructoresPublicos();
+  const { hero, cta_final, whatsappUrl, mostrarInstructores } = useLandingConfig();
   const ctaWhatsappUrl = whatsappUrl();
 
   const precioPro = tiers.find((t) => t.slug === 'pro')?.precio_centavos;
@@ -404,6 +589,39 @@ export default function Landing() {
           </div>
         )}
       </section>
+
+      {/* ============================================================
+          INSTRUCTORES (S6-5 · toggle desde admin)
+          ============================================================ */}
+      {mostrarInstructores && instructores.length > 0 && (
+        <section style={{ padding: '80px 0' }}>
+          <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>NUESTRO EQUIPO</p>
+          <h2 style={{
+            fontFamily: 'var(--ek-font-display)',
+            fontSize: 'clamp(36px, 6vw, 56px)',
+            fontWeight: 700,
+            letterSpacing: '-0.04em',
+            margin: 0,
+            marginBottom: '16px'
+          }}>
+            Conocé a nuestros<br />
+            <span style={{ color: 'var(--ek-mustard)' }}>instructores.</span>
+          </h2>
+          <p className="ek-body-muted" style={{ marginBottom: '40px', maxWidth: '600px' }}>
+            El equipo que te va a acompañar en cada clase.
+          </p>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '20px'
+          }}>
+            {instructores.map((i) => (
+              <InstructorLandingCard key={i.id} instructor={i} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ============================================================
           MEMBRESÍAS

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTenantConfigEditor } from '../hooks/useTenantConfigEditor';
 import { useToast } from '@shared/hooks/useToast';
+import Toggle from '../components/Toggle';
 
 type HeroDraft = {
   eyebrow: string;
@@ -29,12 +30,14 @@ type LandingDraft = {
   hero: HeroDraft;
   cta_final: CtaFinalDraft;
   footer: FooterDraft;
+  mostrar_instructores: boolean;
 };
 
 const EMPTY: LandingDraft = {
   hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta_link: '' },
   cta_final: { eyebrow: '', titulo: '', subtitulo: '', cta_texto: '' },
-  footer: { tagline: '', copyright: '', direccion: '', email: '' }
+  footer: { tagline: '', copyright: '', direccion: '', email: '' },
+  mostrar_instructores: false
 };
 
 function readLanding(config: Record<string, unknown> | null): LandingDraft {
@@ -62,7 +65,8 @@ function readLanding(config: Record<string, unknown> | null): LandingDraft {
       copyright: String(footer.copyright ?? ''),
       direccion: footer.direccion == null ? '' : String(footer.direccion),
       email: footer.email == null ? '' : String(footer.email)
-    }
+    },
+    mostrar_instructores: landing.mostrar_instructores === true
   };
 }
 
@@ -191,7 +195,8 @@ export default function AjustesLanding() {
         copyright: draft.footer.copyright,
         direccion: draft.footer.direccion || null,
         email: draft.footer.email || null
-      }
+      },
+      mostrar_instructores: draft.mostrar_instructores
     };
     const { error } = await saveTopLevel({ landing: payload });
     if (error) {
@@ -294,6 +299,18 @@ export default function AjustesLanding() {
             placeholder="#membresias"
           />
         </FormField>
+      </Section>
+
+      <Section
+        title="SECCIONES"
+        description="Encendé o apagá bloques opcionales de tu landing pública."
+      >
+        <Toggle
+          checked={draft.mostrar_instructores}
+          onChange={(v) => setDraft({ ...draft, mostrar_instructores: v })}
+          label="Sección de instructores"
+          description="Mostrá a tu equipo de instructores en tu página pública. Se muestran todos los instructores activos."
+        />
       </Section>
 
       <Section title="CALL TO ACTION FINAL" description="El último empujón antes del footer.">

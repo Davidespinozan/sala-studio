@@ -102,6 +102,9 @@ export function useLandingConfig() {
 
   const contacto = parseObject(contactoRaw, CONTACTO_DEFAULT);
 
+  // S6-5: toggle de la sección de instructores en la landing. Default false.
+  const mostrarInstructores = landing.mostrar_instructores === true;
+
   // Helper: URL completa de WhatsApp con mensaje encoded.
   // Devuelve null si no hay número configurado → render condicional en el consumidor.
   const whatsappUrl = (mensaje?: string): string | null => {
@@ -115,6 +118,7 @@ export function useLandingConfig() {
     cta_final,
     footer,
     contacto,
+    mostrarInstructores,
     whatsappUrl
   };
 }
