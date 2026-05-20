@@ -20,6 +20,11 @@ import { precioCentavos, TRIAL_DIAS, type TierSaas, type MonedaSaas } from './pl
 //
 // `useSuscripcion` y toda la UI leen suscripciones_saas igual — no se enteran
 // de si el pago fue mock o real. Ese es el punto del aislamiento.
+//
+// PRECIOS: en Stripe habrá 9 Prices (3 tiers × 3 monedas). A cada gym se le
+// asigna el Price de SU moneda de mercado — la que devuelve monedaDelTenant()
+// según su timezone. Son precios fijos independientes: NO hay conversión
+// automática entre monedas ni el usuario elige moneda.
 // ════════════════════════════════════════════════════════════════════════════
 
 /** true mientras el pago sea simulado. La UI lo usa para marcar "MODO DEMO". */

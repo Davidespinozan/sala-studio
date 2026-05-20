@@ -1,27 +1,25 @@
 import { useState } from 'react';
 import { useTenant } from '@shared/hooks/useTenant';
-import { getTenantTimezone } from '@shared/lib/timezone';
 import { useSuscripcion } from '../hooks/useSuscripcion';
 import { CheckoutModalMock } from '../components/CheckoutModalMock';
 import { EstadoSuscripcionCard } from '../components/EstadoSuscripcionCard';
 import {
   PLANES_SAAS,
   TIERS_ORDEN,
-  MONEDAS,
   TRIAL_DIAS,
   formatPrecio,
   precioCentavos,
-  monedaSugerida,
+  monedaDelTenant,
   type TierSaas,
   type MonedaSaas
 } from '../lib/planesSaas';
 
 export default function Suscripcion() {
   const tenant = useTenant();
-  const tz = getTenantTimezone(tenant);
   const { suscripcion, uso, isLoading, refetch } = useSuscripcion();
 
-  const [moneda, setMoneda] = useState<MonedaSaas>(() => monedaSugerida(tz));
+  // La moneda la fija el MERCADO del gym (su timezone), no es elegible.
+  const moneda = monedaDelTenant(tenant);
   const [checkout, setCheckout] = useState<TierSaas | null>(null);
 
   // El tier vigente — null si no hay suscripción o está cancelada.
@@ -76,46 +74,7 @@ export default function Suscripcion() {
             {tierActual ? 'Cambiar de plan' : 'Elegí tu plan'}
           </h2>
 
-          {/* Selector de moneda */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              flexWrap: 'wrap',
-              marginBottom: '20px'
-            }}
-          >
-            <span style={{ fontSize: '12px', color: 'var(--sala-text-secondary)', fontWeight: 600 }}>
-              Moneda:
-            </span>
-            {MONEDAS.map((m) => {
-              const activa = moneda === m.codigo;
-              return (
-                <button
-                  key={m.codigo}
-                  type="button"
-                  onClick={() => setMoneda(m.codigo)}
-                  style={{
-                    padding: '6px 14px',
-                    minHeight: '32px',
-                    background: activa ? 'var(--sala-primary)' : 'var(--sala-surface)',
-                    color: activa ? 'var(--sala-text-on-primary)' : 'var(--sala-text-secondary)',
-                    border: `1px solid ${activa ? 'var(--sala-primary)' : 'var(--sala-border)'}`,
-                    borderRadius: '999px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit'
-                  }}
-                >
-                  {m.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Cards de planes */}
+          {/* Cards de planes — precios en la moneda del mercado del gym */}
           <div
             style={{
               display: 'grid',

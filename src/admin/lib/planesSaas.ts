@@ -6,9 +6,12 @@
 // editables. La columna suscripciones_saas.precio_centavos guarda el snapshot
 // de lo que paga cada tenant.
 //
-// Cuando llegue Stripe real, cada (tier, moneda) mapeará a un Stripe Price ID;
-// ese mapeo se agrega acá mismo.
+// Cuando llegue Stripe real se crearán 9 Stripe Prices (3 tiers × 3 monedas).
+// A cada gym se le asigna el price de SU moneda de mercado — son precios fijos
+// independientes, no hay conversión entre monedas. Ese mapeo se agrega acá.
 // ════════════════════════════════════════════════════════════════════════════
+
+import { getTenantTimezone } from '@shared/lib/timezone';
 
 export type TierSaas = 'starter' | 'pro' | 'business';
 export type MonedaSaas = 'mxn' | 'usd' | 'eur';
@@ -101,28 +104,28 @@ export function limiteMiembros(tier: TierSaas): number | null {
   return PLANES_SAAS[tier].maxMiembros;
 }
 
-// Timezones IANA de México → MXN.
+// Timezones IANA de México → mercado MXN.
 const TZ_MEXICO = new Set([
   'America/Mexico_City',
-  'America/Cancun',
-  'America/Merida',
-  'America/Monterrey',
-  'America/Matamoros',
   'America/Mazatlan',
-  'America/Chihuahua',
-  'America/Ciudad_Juarez',
-  'America/Ojinaga',
-  'America/Hermosillo',
-  'America/Tijuana',
-  'America/Bahia_Banderas'
+  'America/Cancun',
+  'America/Tijuana'
 ]);
 
 /**
- * Sugiere una moneda según la timezone del tenant. Es solo un default —
- * el admin la cambia manualmente en el checkout.
+ * Moneda de MERCADO a partir de una timezone IANA. Cada mercado tiene su
+ * propio precio fijo — no es una moneda elegible ni hay conversión:
+ *   México → MXN · Europa → EUR · resto (incl. LATAM y USA) → USD
  */
-export function monedaSugerida(timezone: string): MonedaSaas {
+export function monedaPorTimezone(timezone: string): MonedaSaas {
   if (TZ_MEXICO.has(timezone)) return 'mxn';
   if (timezone.startsWith('Europe/')) return 'eur';
   return 'usd';
+}
+
+/** Moneda de mercado del tenant, derivada de su timezone (S4.4). */
+export function monedaDelTenant(
+  tenant: Parameters<typeof getTenantTimezone>[0]
+): MonedaSaas {
+  return monedaPorTimezone(getTenantTimezone(tenant));
 }
