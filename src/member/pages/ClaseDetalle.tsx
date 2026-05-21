@@ -17,7 +17,7 @@ import {
   type Clase,
   type InstructorContext
 } from '@member/logic/claseAdapter';
-import { getTenantTimezone } from '@shared/lib/timezone';
+import { getSucursalTimezone, getTenantTimezone } from '@shared/lib/timezone';
 import type { Database } from '@shared/types/database';
 import { CupoBar } from '@member/components/CupoBar';
 import { ConfirmarReservaModal } from '@member/components/ConfirmarReservaModal';
@@ -75,6 +75,7 @@ export default function ClaseDetalle() {
 
   const [claseRow, setClaseRow] = useState<ClaseRow | null>(null);
   const [instructorCtx, setInstructorCtx] = useState<InstructorContext | null>(null);
+  const [sucursalTz, setSucursalTz] = useState<string | null>(null);
   const [recurso, setRecurso] = useState<RecursoFetched | null>(null);
   const [cuposReservados, setCuposReservados] = useState(0);
   const [miReservaId, setMiReservaId] = useState<string | null>(null);
@@ -110,7 +111,7 @@ export default function ClaseDetalle() {
       // 1) Cargar la clase por UUID
       const claseRes = await supabase
         .from('clases')
-        .select('*, instructor:instructores(id, nombre, foto_url, bio)')
+        .select('*, instructor:instructores(id, nombre, foto_url, bio), sucursal:sucursales(timezone)')
         .eq('id', claseId!)
         .eq('tenant_id', tenant.id)
         .maybeSingle();
@@ -123,7 +124,10 @@ export default function ClaseDetalle() {
         return;
       }
 
-      const data = claseRes.data as ClaseRow & { instructor: InstructorContext | null };
+      const data = claseRes.data as ClaseRow & {
+        instructor: InstructorContext | null;
+        sucursal: { timezone: string } | null;
+      };
       const row = data as ClaseRow;
 
       // 2) Recurso + cupos + mi reserva + mi lista de espera en paralelo
@@ -159,6 +163,7 @@ export default function ClaseDetalle() {
 
       setClaseRow(row);
       setInstructorCtx(data.instructor ?? null);
+      setSucursalTz(data.sucursal?.timezone ?? null);
       setRecurso(recursoRes.data as RecursoFetched);
       setCuposReservados(countRes.count ?? 0);
       setMiReservaId((miRes.data as { id: string } | null)?.id ?? null);
@@ -183,9 +188,9 @@ export default function ClaseDetalle() {
         tiers_permitidos: recurso.tiers_permitidos
       },
       instructor: instructorCtx,
-      tz
+      tz: getSucursalTimezone(sucursalTz, tz)
     });
-  }, [claseRow, recurso, cuposReservados, instructorCtx, tz]);
+  }, [claseRow, recurso, cuposReservados, instructorCtx, sucursalTz, tz]);
 
   const tier = usuario?.membresia_tier ?? null;
   const puedeAccederTier = recurso ? tierTieneAcceso(recurso.tiers_permitidos, tier) : false;

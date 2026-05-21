@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useSucursal } from '../providers/SucursalProvider';
-import { getTenantTimezone, hoyEnTimezone } from '@shared/lib/timezone';
+import { getSucursalTimezone, getTenantTimezone, hoyEnTimezone } from '@shared/lib/timezone';
 import { useRecursosAdmin } from '../hooks/useAdminData';
 import { useClasesSemanaAdmin } from '../hooks/useClasesSemanaAdmin';
 import { AgendaSemanal } from '../components/agenda/AgendaSemanal';
@@ -31,8 +31,8 @@ function fechaLocal(iso: string): Date {
 
 export default function Agenda() {
   const tenant = useTenant();
-  const { sucursalId } = useSucursal();
-  const tz = getTenantTimezone(tenant);
+  const { sucursalId, sucursalActiva } = useSucursal();
+  const tz = getSucursalTimezone(sucursalActiva?.timezone, getTenantTimezone(tenant));
   // S4.4: "hoy" es el de la timezone del gym, no la del browser del admin.
   const hoyISO = hoyEnTimezone(tz);
 

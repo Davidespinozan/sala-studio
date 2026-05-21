@@ -18,6 +18,24 @@ export function getTenantTimezone(
   return typeof tz === 'string' && tz.length > 0 ? tz : DEFAULT_TIMEZONE;
 }
 
+/**
+ * Multi-sucursal: timezone IANA efectiva de una sucursal. Cada sucursal tiene
+ * su propia tz (sucursales.timezone). Si la sucursal no la tuviera, cae al
+ * `fallbackTimezone` (típicamente la del tenant) y, en último caso, al default.
+ */
+export function getSucursalTimezone(
+  sucursalTimezone: string | null | undefined,
+  fallbackTimezone?: string | null
+): string {
+  if (typeof sucursalTimezone === 'string' && sucursalTimezone.length > 0) {
+    return sucursalTimezone;
+  }
+  if (typeof fallbackTimezone === 'string' && fallbackTimezone.length > 0) {
+    return fallbackTimezone;
+  }
+  return DEFAULT_TIMEZONE;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers de fecha/hora conscientes de timezone
 // ---------------------------------------------------------------------------

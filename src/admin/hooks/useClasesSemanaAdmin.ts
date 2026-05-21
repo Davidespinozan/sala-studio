@@ -8,7 +8,7 @@ import {
   type RecursoContext,
   type InstructorContext
 } from '@member/logic/claseAdapter';
-import { getTenantTimezone } from '@shared/lib/timezone';
+import { getSucursalTimezone, getTenantTimezone } from '@shared/lib/timezone';
 import type { Database } from '@shared/types/database';
 
 type ClaseRow = Database['public']['Tables']['clases']['Row'];
@@ -33,13 +33,15 @@ interface JoinedClaseRow extends ClaseRow {
  */
 export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) {
   const tenant = useTenant();
-  const { sucursalId } = useSucursal();
+  const { sucursalId, sucursalActiva } = useSucursal();
   const [clases, setClases] = useState<Clase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const inicioMs = inicioSemana.getTime();
 
-  const tz = getTenantTimezone(tenant);
+  // Multi-sucursal: la Agenda está scopeada a una sola sucursal → todas las
+  // clases comparten su tz. Fallback a la del tenant.
+  const tz = getSucursalTimezone(sucursalActiva?.timezone, getTenantTimezone(tenant));
 
   const refetch = useCallback(async () => {
     if (!sucursalId) {

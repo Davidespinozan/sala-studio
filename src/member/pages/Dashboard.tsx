@@ -9,7 +9,7 @@ import {
   type Clase,
   type InstructorContext
 } from '@member/logic/claseAdapter';
-import { getTenantTimezone, hoyEnTimezone } from '@shared/lib/timezone';
+import { getSucursalTimezone, getTenantTimezone, hoyEnTimezone } from '@shared/lib/timezone';
 import { ProximaClaseHero } from '@member/components/ProximaClaseHero';
 import { ClaseCard } from '@member/components/ClaseCard';
 import { useMisListasEspera, type ListaEsperaItem } from '@member/hooks/useListaEspera';
@@ -22,6 +22,7 @@ type RecursoMinDB = Pick<Recurso, 'id' | 'nombre' | 'foto_url' | 'tiers_permitid
 interface ClaseConRecurso extends ClaseRow {
   recurso: RecursoMinDB | null;
   instructor: InstructorContext | null;
+  sucursal: { timezone: string } | null;
 }
 
 interface ReservaConClase extends Reserva {
@@ -50,7 +51,7 @@ function useProximaReserva(usuarioId: string | undefined) {
       const { data } = await supabase
         .from('reservas')
         .select(
-          '*, clase:clases(*, recurso:recursos(id, nombre, foto_url, tiers_permitidos), instructor:instructores(id, nombre, foto_url))'
+          '*, clase:clases(*, recurso:recursos(id, nombre, foto_url, tiers_permitidos), instructor:instructores(id, nombre, foto_url), sucursal:sucursales(timezone))'
         )
         .eq('usuario_id', usuarioId!)
         .eq('status', 'confirmada')
@@ -70,7 +71,9 @@ function useProximaReserva(usuarioId: string | undefined) {
           .eq('clase_id', r.clase.id)
           .in('status', ['confirmada', 'completada']);
         if (!mounted) return;
-        setClase(mapClase(r.clase, count ?? 0, tz));
+        setClase(
+          mapClase(r.clase, count ?? 0, getSucursalTimezone(r.clase.sucursal?.timezone, tz))
+        );
       } else {
         setClase(null);
       }
@@ -112,7 +115,7 @@ function useClasesDeHoy(tenantId: string, tz: string) {
       const clasesRes = await supabase
         .from('clases')
         .select(
-          '*, recurso:recursos(id, nombre, foto_url, tiers_permitidos), instructor:instructores(id, nombre, foto_url)'
+          '*, recurso:recursos(id, nombre, foto_url, tiers_permitidos), instructor:instructores(id, nombre, foto_url), sucursal:sucursales(timezone)'
         )
         .eq('tenant_id', tenantId)
         .eq('fecha', fechaISO)
@@ -160,7 +163,9 @@ function useClasesDeHoy(tenantId: string, tz: string) {
 
       const ahora = Date.now();
       const futurasHoy = filas
-        .map((row) => mapClase(row, cuposMap.get(row.id) ?? 0, tz))
+        .map((row) =>
+          mapClase(row, cuposMap.get(row.id) ?? 0, getSucursalTimezone(row.sucursal?.timezone, tz))
+        )
         .filter((c) => c.slotInicio.getTime() >= ahora);
 
       setClases(futurasHoy);

@@ -17,7 +17,7 @@ import {
   type Clase,
   type InstructorContext
 } from '@member/logic/claseAdapter';
-import { getTenantTimezone } from '@shared/lib/timezone';
+import { getSucursalTimezone, getTenantTimezone } from '@shared/lib/timezone';
 import type { Database } from '@shared/types/database';
 import { DayTabSelector } from '@member/components/DayTabSelector';
 import { ClaseRow } from '@member/components/ClaseRow';
@@ -32,6 +32,7 @@ type RecursoMinDB = Pick<
 interface ClaseConRecurso extends ClaseRowDB {
   recurso: RecursoMinDB | null;
   instructor: InstructorContext | null;
+  sucursal: { timezone: string } | null;
 }
 
 const SALA_TODAS = '__todas__';
@@ -104,7 +105,7 @@ export default function Reservar() {
       const clasesRes = await supabase
         .from('clases')
         .select(
-          '*, recurso:recursos(id, nombre, foto_url, tiers_permitidos), instructor:instructores(id, nombre, foto_url)'
+          '*, recurso:recursos(id, nombre, foto_url, tiers_permitidos), instructor:instructores(id, nombre, foto_url), sucursal:sucursales(timezone)'
         )
         .eq('tenant_id', tenant.id)
         .eq('fecha', fechaSel)
@@ -177,7 +178,7 @@ export default function Reservar() {
         cuposReservados: cuposPorClase.get(row.id) ?? 0,
         recurso,
         instructor: row.instructor,
-        tz
+        tz: getSucursalTimezone(row.sucursal?.timezone, tz)
       });
     });
 

@@ -1231,6 +1231,10 @@ export type Database = {
       salir_lista_espera: { Args: { p_clase_id: string }; Returns: Json }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      timezone_de_sucursal: {
+        Args: { p_sucursal_id: string; p_tenant_id: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
