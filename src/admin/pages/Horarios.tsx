@@ -6,6 +6,7 @@ import {
   useHorariosRecurrentes,
   crearHorarioRecurrente,
   actualizarHorarioRecurrente,
+  eliminarHorarioRecurrente,
   generarClasesAhora,
   type HorarioRecurrente,
   type HorarioRecurrenteFormData
@@ -13,6 +14,8 @@ import {
 import { useRecursosAdmin } from '../hooks/useAdminData';
 import { useInstructores } from '../hooks/useInstructores';
 import Toggle from '../components/Toggle';
+import ConfirmDialog from '../components/ConfirmDialog';
+import CardMenuDropdown from '../components/CardMenuDropdown';
 
 const DIAS = [
   { n: 1, corto: 'Lun', largo: 'Lunes' },
@@ -45,6 +48,7 @@ export default function Horarios() {
 
   const [modal, setModal] = useState<ModalState>(null);
   const [generando, setGenerando] = useState(false);
+  const [eliminando, setEliminando] = useState<HorarioRecurrente | null>(null);
 
   const instructorById = useMemo(
     () => new Map(instructores.map((i) => [i.id, i])),
@@ -79,6 +83,18 @@ export default function Horarios() {
         ? `${clasesCreadas} clase${clasesCreadas === 1 ? '' : 's'} nueva${clasesCreadas === 1 ? '' : 's'} generada${clasesCreadas === 1 ? '' : 's'}.`
         : 'Todo al día — no había clases nuevas para generar.'
     );
+  }
+
+  async function handleEliminar() {
+    if (!eliminando) return;
+    const { error } = await eliminarHorarioRecurrente(eliminando.id);
+    if (error) {
+      toast.error('No pudimos eliminar el horario. Probá de nuevo.');
+      return;
+    }
+    setEliminando(null);
+    toast.success('Horario eliminado. Las clases ya programadas se mantienen.');
+    await refetch();
   }
 
   return (
@@ -200,6 +216,7 @@ export default function Horarios() {
                     }
                     cupoDefault={recurso.cupo_max_default}
                     onEdit={() => setModal({ mode: 'edit', horario: h })}
+                    onDelete={() => setEliminando(h)}
                   />
                 ))}
               </div>
@@ -225,6 +242,16 @@ export default function Horarios() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={eliminando !== null}
+        title={eliminando ? `¿Eliminar "${eliminando.nombre}"?` : ''}
+        description="Este horario dejará de generar clases nuevas. Las clases ya programadas y sus reservas se mantienen sin cambios."
+        confirmLabel="Eliminar"
+        variant="warning"
+        onConfirm={handleEliminar}
+        onCancel={() => setEliminando(null)}
+      />
     </div>
   );
 }
@@ -237,12 +264,14 @@ function HorarioRow({
   horario: h,
   instructorNombre,
   cupoDefault,
-  onEdit
+  onEdit,
+  onDelete
 }: {
   horario: HorarioRecurrente;
   instructorNombre: string | null;
   cupoDefault: number;
   onEdit: () => void;
+  onDelete: () => void;
 }) {
   const meta = [
     formatDias(h.dias_semana),
@@ -307,18 +336,25 @@ function HorarioRow({
           {meta}
         </p>
       </div>
-      <span
-        style={{
-          flexShrink: 0,
-          fontSize: '10px',
-          fontWeight: 700,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: h.activo ? 'var(--sala-success)' : 'var(--sala-text-tertiary)'
-        }}
-      >
-        {h.activo ? 'Activo' : 'Inactivo'}
-      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        <span
+          style={{
+            fontSize: '10px',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: h.activo ? 'var(--sala-success)' : 'var(--sala-text-tertiary)'
+          }}
+        >
+          {h.activo ? 'Activo' : 'Inactivo'}
+        </span>
+        <CardMenuDropdown
+          items={[
+            { label: 'Editar', icon: '✏️', onClick: onEdit },
+            { label: 'Eliminar', icon: '🗑', onClick: onDelete, danger: true, divider: true }
+          ]}
+        />
+      </div>
     </div>
   );
 }

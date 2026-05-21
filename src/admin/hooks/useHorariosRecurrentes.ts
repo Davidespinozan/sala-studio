@@ -82,6 +82,20 @@ export async function toggleActivoHorario(
 }
 
 /**
+ * Elimina la regla de horario recurrente. Las clases que ya generó NO se
+ * tocan: la FK clases.horario_recurrente_id es ON DELETE SET NULL, así que
+ * esas clases (y sus reservas) quedan intactas, solo sin vínculo al horario.
+ * Al no existir más, ni "generar ahora" ni el cron crean clases nuevas de él.
+ * RLS (horarios_rec_admin_all) limita el DELETE al admin del tenant dueño.
+ */
+export async function eliminarHorarioRecurrente(
+  id: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('horarios_recurrentes').delete().eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+/**
  * Dispara la generación de clases del tenant actual (próximos 60 días).
  * Wrapper SQL scopeado: resuelve el tenant y exige rol admin.
  */
