@@ -702,6 +702,7 @@ function PasoSetup({
 
 function PasoListo({ state, slug }: { state: OnboardingState; slug: string }) {
   const url = urlDelGym(slug);
+  const email = state.cuenta.email.trim().toLowerCase();
   return (
     <div style={{ maxWidth: '520px', margin: '0 auto', padding: '60px 24px', minHeight: '100vh' }}>
       <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: '0 0 8px' }}>
@@ -732,6 +733,7 @@ function PasoListo({ state, slug }: { state: OnboardingState; slug: string }) {
           marginBottom: '24px'
         }}
       >
+        <Resumen label="Tu cuenta" valor={email} />
         <Resumen label="Gym" valor={state.gym.gymNombre} />
         <Resumen label="Plan" valor={state.tier ? PLANES_SAAS[state.tier].nombre : '—'} />
         <Resumen label="Sala" valor={`${state.setup.salaNombre} · cupo ${state.setup.salaCupo}`} />
@@ -745,8 +747,17 @@ function PasoListo({ state, slug }: { state: OnboardingState; slug: string }) {
       >
         Ir a mi gym →
       </a>
-      <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', textAlign: 'center', marginTop: '12px' }}>
-        Iniciá sesión con el email y la contraseña que registraste.
+      <p
+        style={{
+          fontSize: '13px',
+          color: 'var(--ek-ink-muted)',
+          textAlign: 'center',
+          marginTop: '12px',
+          lineHeight: 1.5
+        }}
+      >
+        Iniciá sesión con <strong style={{ color: 'var(--ek-ink)' }}>{email}</strong> y la
+        contraseña que registraste.
       </p>
     </div>
   );
