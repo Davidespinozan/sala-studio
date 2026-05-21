@@ -1,5 +1,5 @@
 import { supabase } from '@shared/lib/supabase';
-import { precioCentavos, TRIAL_DIAS, type TierSaas, type MonedaSaas } from './planesSaas';
+import { precioCentavos, TRIAL_DIAS, type TierSaas, type MonedaSaas } from '@shared/lib/planesSaas';
 
 // ════════════════════════════════════════════════════════════════════════════
 // MOCK DE PAGO — leer antes de tocar

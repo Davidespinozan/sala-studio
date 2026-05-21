@@ -9,7 +9,7 @@ import {
   precioCentavos,
   type TierSaas,
   type MonedaSaas
-} from '../lib/planesSaas';
+} from '@shared/lib/planesSaas';
 
 interface Props {
   tier: TierSaas;

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import type { Database } from '@shared/types/database';
-import { limiteMiembros, type TierSaas } from '../lib/planesSaas';
+import { limiteMiembros, type TierSaas } from '@shared/lib/planesSaas';
 
 export type SuscripcionSaas = Database['public']['Tables']['suscripciones_saas']['Row'];
 

@@ -12,7 +12,7 @@ import {
   monedaDelTenant,
   type TierSaas,
   type MonedaSaas
-} from '../lib/planesSaas';
+} from '@shared/lib/planesSaas';
 
 export default function Suscripcion() {
   const tenant = useTenant();

@@ -1058,6 +1058,24 @@ export type Database = {
         Args: { p_recurso_id: string }
         Returns: number
       }
+      crear_tenant_onboarding: {
+        Args: {
+          p_admin_email: string
+          p_admin_nombre: string
+          p_auth_id: string
+          p_color_primario: string
+          p_gym_nombre: string
+          p_logo_url: string
+          p_moneda: string
+          p_precio_centavos: number
+          p_sala_cupo: number
+          p_sala_nombre: string
+          p_slug: string
+          p_tier_saas: string
+          p_timezone: string
+        }
+        Returns: Json
+      }
       dev_activar_miembro: {
         Args: { p_email: string; p_tier?: string }
         Returns: {

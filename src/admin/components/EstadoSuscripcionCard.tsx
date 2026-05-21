@@ -6,7 +6,7 @@ import {
   TIERS_ORDEN,
   formatPrecio,
   type TierSaas
-} from '../lib/planesSaas';
+} from '@shared/lib/planesSaas';
 import type { SuscripcionSaas, UsoMiembros } from '../hooks/useSuscripcion';
 import ConfirmDialog from './ConfirmDialog';
 
