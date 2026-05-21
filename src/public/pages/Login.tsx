@@ -86,7 +86,7 @@ export default function Login() {
               />
             </div>
 
-            <div style={{ textAlign: 'right', marginTop: '-6px' }}>
+            <div style={{ textAlign: 'right', marginTop: '12px' }}>
               <Link
                 to="/recuperar"
                 style={{
