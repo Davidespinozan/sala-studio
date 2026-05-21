@@ -7,6 +7,7 @@ const PublicLayout = lazy(() => import('@public/PublicLayout'));
 const MemberLayout = lazy(() => import('@member/MemberLayout'));
 const AdminLayout = lazy(() => import('@admin/AdminLayout'));
 const ReceptionLayout = lazy(() => import('@reception/ReceptionLayout'));
+const Onboarding = lazy(() => import('@public/pages/Onboarding'));
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="/app/*" element={<MemberLayout />} />
           <Route path="/admin/*" element={<AdminLayout />} />
           <Route path="/recepcion/*" element={<ReceptionLayout />} />
+          <Route path="/registro" element={<Onboarding />} />
           <Route path="/*" element={<PublicLayout />} />
         </Routes>
       </Suspense>

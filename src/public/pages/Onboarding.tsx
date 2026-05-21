@@ -1,0 +1,672 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '@shared/lib/supabase';
+import { TIMEZONE_OPTIONS } from '@shared/lib/timezone';
+import {
+  PLANES_SAAS,
+  TIERS_ORDEN,
+  TRIAL_DIAS,
+  formatPrecio,
+  precioCentavos,
+  monedaPorTimezone,
+  type TierSaas
+} from '@shared/lib/planesSaas';
+import {
+  validarPasoCuenta,
+  validarPasoGym,
+  validarPasoPlan,
+  validarPasoSetup,
+  validarSubdominio,
+  sugerirSubdominio,
+  construirPayloadOnboarding,
+  COLOR_PRIMARIO_DEFAULT,
+  type OnboardingState
+} from '../lib/onboardingLogic';
+
+const PASOS = ['Cuenta', 'Tu gym', 'Plan', 'Pago', 'Setup'];
+
+const ESTADO_INICIAL: OnboardingState = {
+  cuenta: { nombre: '', email: '', password: '' },
+  gym: { gymNombre: '', slug: '', timezone: 'America/Mexico_City' },
+  tier: null,
+  setup: { colorPrimario: COLOR_PRIMARIO_DEFAULT, logoUrl: null, salaNombre: '', salaCupo: 15 }
+};
+
+/** URL del gym recién creado (subdominio). En dev, *.localhost resuelve solo. */
+function urlDelGym(slug: string): string {
+  if (typeof window === 'undefined') return `https://${slug}.salastudio.com/admin`;
+  const { protocol, host } = window.location;
+  return `${protocol}//${slug}.${host}/admin`;
+}
+
+export default function Onboarding() {
+  const [paso, setPaso] = useState(0);
+  const [state, setState] = useState<OnboardingState>(ESTADO_INICIAL);
+  const [errorPaso, setErrorPaso] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [resultado, setResultado] = useState<{ slug: string } | null>(null);
+
+  function avanzar(validacion: { ok: boolean; error?: string }) {
+    if (!validacion.ok) {
+      setErrorPaso(validacion.error ?? 'Revisá los datos.');
+      return;
+    }
+    setErrorPaso(null);
+    setPaso((p) => p + 1);
+  }
+
+  function retroceder() {
+    setErrorPaso(null);
+    setPaso((p) => Math.max(0, p - 1));
+  }
+
+  async function crearGym() {
+    const v = validarPasoSetup(state.setup);
+    if (!v.ok) {
+      setErrorPaso(v.error ?? 'Revisá los datos.');
+      return;
+    }
+    setErrorPaso(null);
+    setSubmitting(true);
+    try {
+      const payload = construirPayloadOnboarding(state);
+      const res = await fetch('/.netlify/functions/onboarding-crear-gym', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo crear el gym.');
+      setResultado({ slug: data.slug as string });
+    } catch (e) {
+      setErrorPaso(e instanceof Error ? e.message : 'Error inesperado. Probá de nuevo.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (resultado) {
+    return <PasoListo state={state} slug={resultado.slug} />;
+  }
+
+  return (
+    <div style={{ maxWidth: '520px', margin: '0 auto', padding: '40px 24px 80px', minHeight: '100vh' }}>
+      <Link
+        to="/"
+        style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', textDecoration: 'none' }}
+      >
+        ← Volver a SALA
+      </Link>
+
+      <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: '24px 0 4px' }}>
+        CREÁ TU GYM
+      </p>
+      <h1
+        style={{
+          fontFamily: 'var(--ek-font-display)',
+          fontSize: '28px',
+          fontWeight: 700,
+          letterSpacing: '-0.03em',
+          margin: '0 0 20px'
+        }}
+      >
+        {PASOS[paso]}
+      </h1>
+
+      <Progreso pasoActual={paso} />
+
+      <div style={{ marginTop: '24px' }}>
+        {paso === 0 && (
+          <PasoCuenta
+            value={state.cuenta}
+            onChange={(cuenta) => setState((s) => ({ ...s, cuenta }))}
+          />
+        )}
+        {paso === 1 && (
+          <PasoGym
+            value={state.gym}
+            onChange={(gym) => setState((s) => ({ ...s, gym }))}
+          />
+        )}
+        {paso === 2 && (
+          <PasoPlan
+            timezone={state.gym.timezone}
+            tier={state.tier}
+            onChange={(tier) => setState((s) => ({ ...s, tier }))}
+          />
+        )}
+        {paso === 3 && state.tier && (
+          <PasoPago tier={state.tier} timezone={state.gym.timezone} />
+        )}
+        {paso === 4 && (
+          <PasoSetup
+            value={state.setup}
+            onChange={(setup) => setState((s) => ({ ...s, setup }))}
+          />
+        )}
+      </div>
+
+      {errorPaso && (
+        <p className="ek-error-text" style={{ marginTop: '14px' }}>
+          {errorPaso}
+        </p>
+      )}
+
+      <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+        {paso > 0 && (
+          <button
+            type="button"
+            onClick={retroceder}
+            disabled={submitting}
+            className="ek-cta ek-cta--secondary"
+            style={{ flex: '0 0 auto' }}
+          >
+            Atrás
+          </button>
+        )}
+        {paso === 0 && (
+          <button type="button" className="ek-cta" style={{ flex: 1 }}
+            onClick={() => avanzar(validarPasoCuenta(state.cuenta))}>
+            Continuar
+          </button>
+        )}
+        {paso === 1 && (
+          <button type="button" className="ek-cta" style={{ flex: 1 }}
+            onClick={() => avanzar(validarPasoGym(state.gym))}>
+            Continuar
+          </button>
+        )}
+        {paso === 2 && (
+          <button type="button" className="ek-cta" style={{ flex: 1 }}
+            onClick={() => avanzar(validarPasoPlan(state.tier))}>
+            Continuar
+          </button>
+        )}
+        {paso === 3 && (
+          <button type="button" className="ek-cta" style={{ flex: 1 }}
+            onClick={() => { setErrorPaso(null); setPaso(4); }}>
+            Confirmar suscripción (DEMO)
+          </button>
+        )}
+        {paso === 4 && (
+          <button type="button" className="ek-cta" style={{ flex: 1 }}
+            onClick={crearGym} disabled={submitting}>
+            {submitting ? 'Creando tu gym…' : 'Crear mi gym'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Indicador de progreso
+// ============================================================================
+
+function Progreso({ pasoActual }: { pasoActual: number }) {
+  return (
+    <div style={{ display: 'flex', gap: '6px' }}>
+      {PASOS.map((label, i) => (
+        <div key={label} style={{ flex: 1 }}>
+          <div
+            style={{
+              height: '4px',
+              borderRadius: '999px',
+              background: i <= pasoActual ? 'var(--ek-mustard)' : 'var(--ek-line)'
+            }}
+          />
+          <p
+            style={{
+              fontSize: '10px',
+              fontWeight: 600,
+              letterSpacing: '0.04em',
+              color: i === pasoActual ? 'var(--ek-mustard)' : 'var(--ek-ink-faint)',
+              margin: '6px 0 0',
+              textAlign: 'center'
+            }}
+          >
+            {label}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================================
+// Paso 1 — Cuenta
+// ============================================================================
+
+function PasoCuenta({
+  value,
+  onChange
+}: {
+  value: OnboardingState['cuenta'];
+  onChange: (v: OnboardingState['cuenta']) => void;
+}) {
+  return (
+    <div className="ek-stack-md">
+      <p className="ek-body-muted" style={{ margin: 0 }}>
+        Creá tu cuenta de dueño. Vas a administrar el gym con este acceso.
+      </p>
+      <Campo label="Tu nombre">
+        <input
+          type="text"
+          className="ek-input"
+          value={value.nombre}
+          onChange={(e) => onChange({ ...value, nombre: e.target.value })}
+          autoComplete="name"
+        />
+      </Campo>
+      <Campo label="Email">
+        <input
+          type="email"
+          className="ek-input"
+          value={value.email}
+          onChange={(e) => onChange({ ...value, email: e.target.value })}
+          autoComplete="email"
+        />
+      </Campo>
+      <Campo label="Contraseña" hint="Mínimo 8 caracteres, con una letra y un número.">
+        <input
+          type="password"
+          className="ek-input"
+          value={value.password}
+          onChange={(e) => onChange({ ...value, password: e.target.value })}
+          autoComplete="new-password"
+        />
+      </Campo>
+    </div>
+  );
+}
+
+// ============================================================================
+// Paso 2 — Datos del gym
+// ============================================================================
+
+type Disponibilidad = 'idle' | 'checking' | 'disponible' | 'tomado' | 'invalido';
+
+function PasoGym({
+  value,
+  onChange
+}: {
+  value: OnboardingState['gym'];
+  onChange: (v: OnboardingState['gym']) => void;
+}) {
+  const [slugTocado, setSlugTocado] = useState(value.slug.length > 0);
+  const [disp, setDisp] = useState<Disponibilidad>('idle');
+
+  // Autosugerir slug desde el nombre del gym mientras no se haya tocado.
+  function setNombre(gymNombre: string) {
+    const next = { ...value, gymNombre };
+    if (!slugTocado) next.slug = sugerirSubdominio(gymNombre);
+    onChange(next);
+  }
+
+  // Chequeo de disponibilidad del slug (debounced).
+  useEffect(() => {
+    const slug = value.slug.trim().toLowerCase();
+    const fmt = validarSubdominio(slug);
+    if (!fmt.ok) {
+      setDisp(slug ? 'invalido' : 'idle');
+      return;
+    }
+    setDisp('checking');
+    let cancelado = false;
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from('tenants')
+        .select('id')
+        .eq('slug', slug)
+        .maybeSingle();
+      if (cancelado) return;
+      setDisp(data ? 'tomado' : 'disponible');
+    }, 450);
+    return () => {
+      cancelado = true;
+      clearTimeout(t);
+    };
+  }, [value.slug]);
+
+  const dispMsg: Record<Disponibilidad, { texto: string; color: string } | null> = {
+    idle: null,
+    checking: { texto: 'Verificando…', color: 'var(--ek-ink-faint)' },
+    disponible: { texto: '✓ Disponible', color: 'var(--sala-success)' },
+    tomado: { texto: 'Ese subdominio ya está en uso', color: 'var(--sala-error)' },
+    invalido: { texto: validarSubdominio(value.slug).error ?? 'Subdominio inválido', color: 'var(--sala-error)' }
+  };
+  const msg = dispMsg[disp];
+  const hostEjemplo = typeof window !== 'undefined' ? window.location.host : 'salastudio.com';
+
+  return (
+    <div className="ek-stack-md">
+      <Campo label="Nombre del gym">
+        <input
+          type="text"
+          className="ek-input"
+          value={value.gymNombre}
+          onChange={(e) => setNombre(e.target.value)}
+          placeholder="Ej: Yoga Sol"
+        />
+      </Campo>
+      <Campo label="Subdominio" hint={`Tu gym vivirá en ${value.slug || 'tu-gym'}.${hostEjemplo}`}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <input
+            type="text"
+            className="ek-input"
+            value={value.slug}
+            onChange={(e) => {
+              setSlugTocado(true);
+              onChange({ ...value, slug: e.target.value.toLowerCase() });
+            }}
+            placeholder="yogasol"
+            style={{ flex: 1 }}
+          />
+        </div>
+        {msg && (
+          <span style={{ fontSize: '12px', fontWeight: 600, color: msg.color }}>
+            {msg.texto}
+          </span>
+        )}
+      </Campo>
+      <Campo label="País / zona horaria" hint="Define tu moneda y la hora de tus clases.">
+        <select
+          className="ek-input"
+          value={value.timezone}
+          onChange={(e) => onChange({ ...value, timezone: e.target.value })}
+        >
+          {TIMEZONE_OPTIONS.map((tz) => (
+            <option key={tz.value} value={tz.value}>
+              {tz.label}
+            </option>
+          ))}
+        </select>
+      </Campo>
+    </div>
+  );
+}
+
+// ============================================================================
+// Paso 3 — Plan
+// ============================================================================
+
+function PasoPlan({
+  timezone,
+  tier,
+  onChange
+}: {
+  timezone: string;
+  tier: TierSaas | null;
+  onChange: (t: TierSaas) => void;
+}) {
+  const moneda = useMemo(() => monedaPorTimezone(timezone), [timezone]);
+
+  return (
+    <div className="ek-stack-md">
+      <p className="ek-body-muted" style={{ margin: 0 }}>
+        {TRIAL_DIAS} días de prueba gratis en cualquier plan. Cancelás cuando quieras.
+      </p>
+      {TIERS_ORDEN.map((t) => {
+        const plan = PLANES_SAAS[t];
+        const sel = tier === t;
+        return (
+          <button
+            key={t}
+            type="button"
+            onClick={() => onChange(t)}
+            style={{
+              textAlign: 'left',
+              background: 'var(--ek-bg-soft)',
+              border: `1.5px solid ${sel ? 'var(--ek-mustard)' : 'var(--ek-line)'}`,
+              borderRadius: 'var(--ek-r-card)',
+              padding: '16px',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
+              <span style={{ fontFamily: 'var(--ek-font-display)', fontSize: '18px', fontWeight: 700 }}>
+                {plan.nombre}
+              </span>
+              <span style={{ fontSize: '15px', fontWeight: 700 }}>
+                {formatPrecio(precioCentavos(t, moneda), moneda)}
+                <span style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', fontWeight: 500 }}>
+                  {' '}/mes
+                </span>
+              </span>
+            </div>
+            <span style={{ fontSize: '12px', color: 'var(--ek-ink-muted)' }}>{plan.resumen}</span>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {plan.features.map((f) => (
+                <li key={f} style={{ fontSize: '12px', display: 'flex', gap: '6px' }}>
+                  <span style={{ color: 'var(--ek-mustard)' }}>✓</span>
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ============================================================================
+// Paso 4 — Pago (mock)
+// ============================================================================
+
+function PasoPago({ tier, timezone }: { tier: TierSaas; timezone: string }) {
+  const moneda = monedaPorTimezone(timezone);
+  const precioStr = `${formatPrecio(precioCentavos(tier, moneda), moneda)}/mes`;
+
+  return (
+    <div className="ek-stack-md">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px'
+        }}
+      >
+        <p className="ek-body-muted" style={{ margin: 0 }}>
+          Plan {PLANES_SAAS[tier].nombre}
+        </p>
+        <span
+          style={{
+            fontSize: '9px',
+            fontWeight: 700,
+            letterSpacing: '0.12em',
+            color: 'var(--sala-accent)',
+            background: 'var(--sala-accent-light)',
+            padding: '3px 8px',
+            borderRadius: '999px'
+          }}
+        >
+          MODO DEMO
+        </span>
+      </div>
+
+      <div
+        style={{
+          background: 'var(--ek-bg-soft)',
+          border: '0.5px solid var(--ek-line)',
+          borderRadius: 'var(--ek-r-md)',
+          padding: '14px 16px'
+        }}
+      >
+        <p style={{ fontFamily: 'var(--ek-font-display)', fontSize: '22px', fontWeight: 700, margin: '0 0 4px' }}>
+          {precioStr}
+        </p>
+        <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0 }}>
+          {TRIAL_DIAS} días gratis. Después, {precioStr}.
+        </p>
+      </div>
+
+      <Campo label="Datos de pago (modo demo)">
+        <input className="ek-input" value="4242 4242 4242 4242" disabled readOnly />
+      </Campo>
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <input className="ek-input" value="12 / 30" disabled readOnly style={{ flex: 1 }} />
+        <input className="ek-input" value="···" disabled readOnly style={{ flex: 1 }} />
+      </div>
+      <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', margin: 0 }}>
+        Es una demostración: no se procesa ni se cobra ningún pago real.
+      </p>
+    </div>
+  );
+}
+
+// ============================================================================
+// Paso 5 — Setup
+// ============================================================================
+
+function PasoSetup({
+  value,
+  onChange
+}: {
+  value: OnboardingState['setup'];
+  onChange: (v: OnboardingState['setup']) => void;
+}) {
+  return (
+    <div className="ek-stack-md">
+      <p className="ek-body-muted" style={{ margin: 0 }}>
+        Últimos toques. Podés cambiar todo después desde el panel.
+      </p>
+      <Campo label="Color primario">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <input
+            type="color"
+            value={value.colorPrimario}
+            onChange={(e) => onChange({ ...value, colorPrimario: e.target.value })}
+            style={{ width: '48px', height: '40px', border: 'none', background: 'none', cursor: 'pointer' }}
+          />
+          <span style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', fontFamily: 'var(--ek-font-mono)' }}>
+            {value.colorPrimario}
+          </span>
+        </div>
+      </Campo>
+      <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', margin: 0 }}>
+        El logo lo subís más tarde desde Ajustes › Marca.
+      </p>
+      <Campo label="Tu primera sala">
+        <input
+          type="text"
+          className="ek-input"
+          value={value.salaNombre}
+          onChange={(e) => onChange({ ...value, salaNombre: e.target.value })}
+          placeholder="Ej: Sala Principal"
+        />
+      </Campo>
+      <Campo label="Cupo de la sala" hint="Cuántas personas entran por clase.">
+        <input
+          type="number"
+          min={1}
+          className="ek-input"
+          value={value.salaCupo}
+          onChange={(e) => onChange({ ...value, salaCupo: Math.floor(Number(e.target.value)) || 0 })}
+        />
+      </Campo>
+    </div>
+  );
+}
+
+// ============================================================================
+// Paso final — Listo
+// ============================================================================
+
+function PasoListo({ state, slug }: { state: OnboardingState; slug: string }) {
+  const url = urlDelGym(slug);
+  return (
+    <div style={{ maxWidth: '520px', margin: '0 auto', padding: '60px 24px', minHeight: '100vh' }}>
+      <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: '0 0 8px' }}>
+        TODO LISTO
+      </p>
+      <h1
+        style={{
+          fontFamily: 'var(--ek-font-display)',
+          fontSize: '32px',
+          fontWeight: 700,
+          letterSpacing: '-0.03em',
+          margin: '0 0 12px'
+        }}
+      >
+        ¡Tu gym está listo! 🎉
+      </h1>
+      <p className="ek-body-muted" style={{ margin: '0 0 24px' }}>
+        Creamos <strong>{state.gym.gymNombre}</strong> con tu plan, tu primera sala
+        y tu cuenta de administrador.
+      </p>
+
+      <div
+        style={{
+          background: 'var(--ek-bg-soft)',
+          border: '0.5px solid var(--ek-line)',
+          borderRadius: 'var(--ek-r-card)',
+          padding: '18px',
+          marginBottom: '24px'
+        }}
+      >
+        <Resumen label="Gym" valor={state.gym.gymNombre} />
+        <Resumen label="Plan" valor={state.tier ? PLANES_SAAS[state.tier].nombre : '—'} />
+        <Resumen label="Sala" valor={`${state.setup.salaNombre} · cupo ${state.setup.salaCupo}`} />
+        <Resumen label="Dirección" valor={`${slug}`} ultimo />
+      </div>
+
+      <a
+        href={url}
+        className="ek-cta ek-cta--full"
+        style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '16px' }}
+      >
+        Ir a mi gym →
+      </a>
+      <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', textAlign: 'center', marginTop: '12px' }}>
+        Iniciá sesión con el email y la contraseña que registraste.
+      </p>
+    </div>
+  );
+}
+
+// ============================================================================
+// Helpers de UI
+// ============================================================================
+
+function Campo({
+  label,
+  hint,
+  children
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="ek-form-field">
+      <label className="ek-label">{label}</label>
+      {children}
+      {hint && (
+        <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)' }}>{hint}</span>
+      )}
+    </div>
+  );
+}
+
+function Resumen({ label, valor, ultimo }: { label: string; valor: string; ultimo?: boolean }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        gap: '12px',
+        padding: '8px 0',
+        borderBottom: ultimo ? 'none' : '0.5px solid var(--ek-line)'
+      }}
+    >
+      <span style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: '13px', fontWeight: 600, textAlign: 'right' }}>{valor}</span>
+    </div>
+  );
+}
