@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 
 export default function Login() {
@@ -84,6 +84,19 @@ export default function Login() {
                 className="ek-input"
                 placeholder="••••••••"
               />
+            </div>
+
+            <div style={{ textAlign: 'right', marginTop: '-6px' }}>
+              <Link
+                to="/recuperar"
+                style={{
+                  fontSize: '13px',
+                  color: 'var(--ek-mustard)',
+                  textDecoration: 'none'
+                }}
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
             </div>
 
             {error && <p className="ek-error-text">{error}</p>}
