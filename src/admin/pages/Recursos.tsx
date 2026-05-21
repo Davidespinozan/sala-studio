@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useSucursal } from '../providers/SucursalProvider';
 import { useToast } from '@shared/hooks/useToast';
 import { useRecursosAdmin, updateRecurso, insertRecurso } from '../hooks/useAdminData';
 import {
@@ -115,6 +116,7 @@ export default function Recursos() {
 
     const payload: RecursoInsert = {
       tenant_id: tenant.id,
+      sucursal_id: original.sucursal_id,
       slug: nuevoSlug,
       nombre: `(copia) ${original.nombre}`,
       descripcion: original.descripcion,
@@ -626,6 +628,7 @@ function EditarRecursoModal({
   onSaved: () => Promise<void>;
 }) {
   const tenant = useTenant();
+  const { sucursalId } = useSucursal();
   const tiersDisponibles = useTiersDelTenant();
   const esCreacion = recurso === null;
 
@@ -685,9 +688,15 @@ function EditarRecursoModal({
         setSaving(false);
         return;
       }
+      if (!sucursalId) {
+        setError('No hay una sucursal activa. Recargá la página.');
+        setSaving(false);
+        return;
+      }
 
       const { error: err } = await insertRecurso({
         tenant_id: tenant.id,
+        sucursal_id: sucursalId,
         slug: slugFinal,
         nombre: nombre.trim(),
         descripcion: descripcion || null,

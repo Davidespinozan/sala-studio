@@ -4,6 +4,8 @@ import { lazy, Suspense } from 'react';
 import { useAdminGuard } from './hooks/useAdminGuard';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { Sidebar } from './components/Sidebar';
+import { SucursalProvider } from './providers/SucursalProvider';
+import { SucursalSelectorBar } from './components/SucursalSelectorBar';
 
 const Dashboard = lazy(() => import('./pages/AdminDashboard'));
 const Miembros = lazy(() => import('./pages/Miembros'));
@@ -29,6 +31,7 @@ export default function AdminLayout() {
   if (isLoading) return <LoadingScreen />;
 
   return (
+    <SucursalProvider>
     <div className="adm-shell">
       <div className="adm-sidebar-desktop">
         <Sidebar />
@@ -98,6 +101,8 @@ export default function AdminLayout() {
           <div style={{ width: '40px' }} />
         </header>
 
+        <SucursalSelectorBar />
+
         <main className="adm-main">
           <Suspense fallback={<LoadingScreen />}>
             <Routes>
@@ -125,5 +130,6 @@ export default function AdminLayout() {
         </main>
       </div>
     </div>
+    </SucursalProvider>
   );
 }

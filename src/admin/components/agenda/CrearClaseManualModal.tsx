@@ -8,6 +8,7 @@ import { useInstructores } from '@admin/hooks/useInstructores';
 interface RecursoOption {
   id: string;
   nombre: string;
+  sucursal_id: string;
   tipo_contenido: string[] | null;
   cupo_max_default: number;
 }
@@ -82,7 +83,7 @@ export function CrearClaseManualModal({ recursos, prefill, onClose, onCreated }:
   async function handleSave() {
     setError(null);
 
-    if (!recursoId) {
+    if (!recursoId || !recursoSel) {
       setError('Elegí una sala.');
       return;
     }
@@ -151,6 +152,7 @@ export function CrearClaseManualModal({ recursos, prefill, onClose, onCreated }:
 
     const { error: insErr } = await supabase.from('clases').insert({
       tenant_id: tenant.id,
+      sucursal_id: recursoSel.sucursal_id,
       recurso_id: recursoId,
       fecha,
       hora_inicio: `${horaInicio}:00`,

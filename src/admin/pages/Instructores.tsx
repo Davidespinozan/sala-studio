@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useSucursal } from '../providers/SucursalProvider';
 import { useToast } from '@shared/hooks/useToast';
 import {
   useInstructores,
@@ -285,6 +286,7 @@ function InstructorModal({
   onSaved: () => Promise<void>;
 }) {
   const tenant = useTenant();
+  const { sucursalId } = useSucursal();
   const toast = useToast();
   const esCreacion = instructor === null;
 
@@ -310,6 +312,10 @@ function InstructorModal({
       setError(`La bio no puede superar ${BIO_MAX} caracteres.`);
       return;
     }
+    if (esCreacion && !sucursalId) {
+      setError('No hay una sucursal activa. Recargá la página.');
+      return;
+    }
 
     const data: InstructorFormData = {
       nombre: nombre.trim(),
@@ -321,7 +327,7 @@ function InstructorModal({
 
     setSaving(true);
     const { error: err } = esCreacion
-      ? await crearInstructor(tenant.id, data)
+      ? await crearInstructor(tenant.id, sucursalId!, data)
       : await actualizarInstructor(instructor!.id, data);
     setSaving(false);
 

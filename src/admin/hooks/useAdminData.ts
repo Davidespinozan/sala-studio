@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useSucursal } from '@admin/providers/SucursalProvider';
 import { backendPost } from '@shared/lib/backend';
 import type { Database } from '@shared/types/database';
 
@@ -106,19 +107,26 @@ export async function updateMiembro(
 }
 
 /**
- * Recursos del tenant (admin ve todos, incluso inactivos).
+ * Recursos de la sucursal activa (admin ve todos, incluso inactivos).
  */
 export function useRecursosAdmin() {
   const tenant = useTenant();
+  const { sucursalId } = useSucursal();
   const [recursos, setRecursos] = useState<Recurso[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const refetch = useCallback(async () => {
+    if (!sucursalId) {
+      setRecursos([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     const { data, error } = await supabase
       .from('recursos')
       .select('*')
       .eq('tenant_id', tenant.id)
+      .eq('sucursal_id', sucursalId)
       .order('orden', { ascending: true });
     if (error) {
       console.error('[useRecursosAdmin]', error);
@@ -127,7 +135,7 @@ export function useRecursosAdmin() {
     }
     setRecursos(data ?? []);
     setIsLoading(false);
-  }, [tenant.id]);
+  }, [tenant.id, sucursalId]);
 
   useEffect(() => { refetch(); }, [refetch]);
   return { recursos, isLoading, refetch };

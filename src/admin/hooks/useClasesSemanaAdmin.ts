@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useSucursal } from '@admin/providers/SucursalProvider';
 import {
   claseFromRow,
   type Clase,
@@ -32,6 +33,7 @@ interface JoinedClaseRow extends ClaseRow {
  */
 export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) {
   const tenant = useTenant();
+  const { sucursalId } = useSucursal();
   const [clases, setClases] = useState<Clase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -40,6 +42,11 @@ export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) 
   const tz = getTenantTimezone(tenant);
 
   const refetch = useCallback(async () => {
+    if (!sucursalId) {
+      setClases([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     const inicio = new Date(inicioMs);
     const fin = new Date(inicioMs + 7 * 24 * 60 * 60 * 1000);
@@ -53,6 +60,7 @@ export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) 
         '*, recurso:recursos(id, nombre, foto_url, tiers_permitidos), instructor:instructores(id, nombre, foto_url)'
       )
       .eq('tenant_id', tenant.id)
+      .eq('sucursal_id', sucursalId)
       .in('status', ['programada', 'cancelada'])
       .gte('fecha', fechaInicioISO)
       .lt('fecha', fechaFinISO)
@@ -110,7 +118,7 @@ export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) 
 
     setClases(mapped);
     setIsLoading(false);
-  }, [tenant.id, inicioMs, salaIdFilter, tz]);
+  }, [tenant.id, sucursalId, inicioMs, salaIdFilter, tz]);
 
   useEffect(() => {
     void refetch();

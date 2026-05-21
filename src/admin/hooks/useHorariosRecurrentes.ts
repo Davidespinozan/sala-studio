@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useSucursal } from '@admin/providers/SucursalProvider';
 import type { Database } from '@shared/types/database';
 
 export type HorarioRecurrente = Database['public']['Tables']['horarios_recurrentes']['Row'];
@@ -16,18 +17,25 @@ export interface HorarioRecurrenteFormData {
   activo: boolean;
 }
 
-/** Horarios recurrentes del tenant (admin ve activos + inactivos). */
+/** Horarios recurrentes de la sucursal activa (admin ve activos + inactivos). */
 export function useHorariosRecurrentes() {
   const tenant = useTenant();
+  const { sucursalId } = useSucursal();
   const [horarios, setHorarios] = useState<HorarioRecurrente[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const refetch = useCallback(async () => {
+    if (!sucursalId) {
+      setHorarios([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     const { data, error } = await supabase
       .from('horarios_recurrentes')
       .select('*')
       .eq('tenant_id', tenant.id)
+      .eq('sucursal_id', sucursalId)
       .order('hora_inicio', { ascending: true })
       .order('created_at', { ascending: true });
     if (error) {
@@ -37,7 +45,7 @@ export function useHorariosRecurrentes() {
     }
     setHorarios(data ?? []);
     setIsLoading(false);
-  }, [tenant.id]);
+  }, [tenant.id, sucursalId]);
 
   useEffect(() => {
     void refetch();
@@ -48,11 +56,12 @@ export function useHorariosRecurrentes() {
 
 export async function crearHorarioRecurrente(
   tenantId: string,
+  sucursalId: string,
   data: HorarioRecurrenteFormData
 ): Promise<{ error: string | null }> {
   const { error } = await supabase
     .from('horarios_recurrentes')
-    .insert({ tenant_id: tenantId, ...data });
+    .insert({ tenant_id: tenantId, sucursal_id: sucursalId, ...data });
   return { error: error?.message ?? null };
 }
 

@@ -34,6 +34,7 @@ export type Database = {
           recurso_id: string
           serie_id: string | null
           status: string
+          sucursal_id: string
           tenant_id: string
           updated_at: string
         }
@@ -56,6 +57,7 @@ export type Database = {
           recurso_id: string
           serie_id?: string | null
           status?: string
+          sucursal_id: string
           tenant_id: string
           updated_at?: string
         }
@@ -78,6 +80,7 @@ export type Database = {
           recurso_id?: string
           serie_id?: string | null
           status?: string
+          sucursal_id?: string
           tenant_id?: string
           updated_at?: string
         }
@@ -104,6 +107,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "clases_sucursal_id_fkey"
+            columns: ["sucursal_id"]
+            isOneToOne: false
+            referencedRelation: "sucursales"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "clases_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -124,6 +134,7 @@ export type Database = {
           instructor_id: string | null
           nombre: string
           recurso_id: string
+          sucursal_id: string
           tenant_id: string
           updated_at: string
         }
@@ -138,6 +149,7 @@ export type Database = {
           instructor_id?: string | null
           nombre: string
           recurso_id: string
+          sucursal_id: string
           tenant_id: string
           updated_at?: string
         }
@@ -152,6 +164,7 @@ export type Database = {
           instructor_id?: string | null
           nombre?: string
           recurso_id?: string
+          sucursal_id?: string
           tenant_id?: string
           updated_at?: string
         }
@@ -168,6 +181,13 @@ export type Database = {
             columns: ["recurso_id"]
             isOneToOne: false
             referencedRelation: "recursos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "horarios_recurrentes_sucursal_id_fkey"
+            columns: ["sucursal_id"]
+            isOneToOne: false
+            referencedRelation: "sucursales"
             referencedColumns: ["id"]
           },
           {
@@ -189,6 +209,7 @@ export type Database = {
           id: string
           nombre: string
           orden: number
+          sucursal_id: string
           tenant_id: string
           updated_at: string
         }
@@ -201,6 +222,7 @@ export type Database = {
           id?: string
           nombre: string
           orden?: number
+          sucursal_id: string
           tenant_id: string
           updated_at?: string
         }
@@ -213,10 +235,18 @@ export type Database = {
           id?: string
           nombre?: string
           orden?: number
+          sucursal_id?: string
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "instructores_sucursal_id_fkey"
+            columns: ["sucursal_id"]
+            isOneToOne: false
+            referencedRelation: "sucursales"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "instructores_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -520,6 +550,7 @@ export type Database = {
           nombre: string
           orden: number
           slug: string
+          sucursal_id: string
           tenant_id: string
           tiers_permitidos: string[]
           tipo: string
@@ -543,6 +574,7 @@ export type Database = {
           nombre: string
           orden?: number
           slug: string
+          sucursal_id: string
           tenant_id: string
           tiers_permitidos?: string[]
           tipo?: string
@@ -566,6 +598,7 @@ export type Database = {
           nombre?: string
           orden?: number
           slug?: string
+          sucursal_id?: string
           tenant_id?: string
           tiers_permitidos?: string[]
           tipo?: string
@@ -574,6 +607,13 @@ export type Database = {
           video_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "recursos_sucursal_id_fkey"
+            columns: ["sucursal_id"]
+            isOneToOne: false
+            referencedRelation: "sucursales"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "recursos_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -697,6 +737,50 @@ export type Database = {
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sucursales: {
+        Row: {
+          activa: boolean
+          created_at: string
+          direccion: string | null
+          id: string
+          nombre: string
+          orden: number
+          tenant_id: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          activa?: boolean
+          created_at?: string
+          direccion?: string | null
+          id?: string
+          nombre: string
+          orden?: number
+          tenant_id: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          activa?: boolean
+          created_at?: string
+          direccion?: string | null
+          id?: string
+          nombre?: string
+          orden?: number
+          tenant_id?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sucursales_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]

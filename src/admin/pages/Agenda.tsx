@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useSucursal } from '../providers/SucursalProvider';
 import { getTenantTimezone, hoyEnTimezone } from '@shared/lib/timezone';
 import { useRecursosAdmin } from '../hooks/useAdminData';
 import { useClasesSemanaAdmin } from '../hooks/useClasesSemanaAdmin';
@@ -30,6 +31,7 @@ function fechaLocal(iso: string): Date {
 
 export default function Agenda() {
   const tenant = useTenant();
+  const { sucursalId } = useSucursal();
   const tz = getTenantTimezone(tenant);
   // S4.4: "hoy" es el de la timezone del gym, no la del browser del admin.
   const hoyISO = hoyEnTimezone(tz);
@@ -41,6 +43,12 @@ export default function Agenda() {
   const [salaSel, setSalaSel] = useState<string>(SALA_TODAS);
   const [fechaSel, setFechaSel] = useState<string>(hoyISO);
   const [refreshTick, setRefreshTick] = useState(0);
+
+  // Al cambiar de sucursal, el filtro de sala apunta a una sala de otra
+  // sucursal: reseteamos a "todas" para no mostrar una grilla vacía.
+  useEffect(() => {
+    setSalaSel(SALA_TODAS);
+  }, [sucursalId]);
 
   const { clases, isLoading: loadingClases, refetch } = useClasesSemanaAdmin(
     inicioSemana,

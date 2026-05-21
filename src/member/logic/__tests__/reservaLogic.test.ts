@@ -25,6 +25,7 @@ function makeRecurso(overrides: Partial<Recurso> = {}): Recurso {
   return {
     id: 'rec-1',
     tenant_id: 'tenant-1',
+    sucursal_id: 'suc-1',
     slug: 'estudio-1',
     nombre: 'Estudio 1',
     descripcion: null,

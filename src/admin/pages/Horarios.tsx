@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useSucursal } from '../providers/SucursalProvider';
 import { useToast } from '@shared/hooks/useToast';
 import {
   useHorariosRecurrentes,
@@ -343,6 +344,7 @@ function HorarioModal({
   onSaved: (esCreacion: boolean) => Promise<void>;
 }) {
   const tenant = useTenant();
+  const { sucursalId } = useSucursal();
   const esCreacion = horario === null;
 
   const [recursoId, setRecursoId] = useState(horario?.recurso_id ?? '');
@@ -408,6 +410,10 @@ function HorarioModal({
       }
       cupoVal = c;
     }
+    if (esCreacion && !sucursalId) {
+      setError('No hay una sucursal activa. Recargá la página.');
+      return;
+    }
 
     const data: HorarioRecurrenteFormData = {
       recurso_id: recursoId,
@@ -422,7 +428,7 @@ function HorarioModal({
 
     setSaving(true);
     const { error: err } = esCreacion
-      ? await crearHorarioRecurrente(tenant.id, data)
+      ? await crearHorarioRecurrente(tenant.id, sucursalId!, data)
       : await actualizarHorarioRecurrente(horario!.id, data);
     setSaving(false);
 
