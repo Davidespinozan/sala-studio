@@ -9,7 +9,8 @@ import {
   formatPrecio,
   precioCentavos,
   monedaPorTimezone,
-  type TierSaas
+  type TierSaas,
+  type MonedaSaas
 } from '@shared/lib/planesSaas';
 import {
   validarPasoCuenta,
@@ -390,6 +391,20 @@ function PasoGym({
 // Paso 3 — Plan
 // ============================================================================
 
+/** true cuando el viewport es angosto (<768px) → las cards se apilan. */
+function useEsAngosto(): boolean {
+  const [angosto, setAngosto] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const onChange = () => setAngosto(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return angosto;
+}
+
 function PasoPlan({
   timezone,
   tier,
@@ -400,57 +415,164 @@ function PasoPlan({
   onChange: (t: TierSaas) => void;
 }) {
   const moneda = useMemo(() => monedaPorTimezone(timezone), [timezone]);
+  const angosto = useEsAngosto();
 
   return (
     <div className="ek-stack-md">
       <p className="ek-body-muted" style={{ margin: 0 }}>
         {TRIAL_DIAS} días de prueba gratis en cualquier plan. Cancelás cuando quieras.
       </p>
-      {TIERS_ORDEN.map((t) => {
-        const plan = PLANES_SAAS[t];
-        const sel = tier === t;
-        return (
-          <button
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: angosto ? '1fr' : 'repeat(3, 1fr)',
+          gap: '10px',
+          alignItems: 'stretch',
+          marginTop: '8px'
+        }}
+      >
+        {TIERS_ORDEN.map((t) => (
+          <PlanColumna
             key={t}
-            type="button"
-            onClick={() => onChange(t)}
+            tier={t}
+            moneda={moneda}
+            seleccionado={tier === t}
+            onSelect={() => onChange(t)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Card de un tier, pensada para grilla de 3 columnas de igual alto. */
+function PlanColumna({
+  tier,
+  moneda,
+  seleccionado,
+  onSelect
+}: {
+  tier: TierSaas;
+  moneda: MonedaSaas;
+  seleccionado: boolean;
+  onSelect: () => void;
+}) {
+  const plan = PLANES_SAAS[tier];
+  const destacado = tier === 'pro';
+  const borderColor = seleccionado || destacado ? 'var(--ek-mustard)' : 'var(--ek-line)';
+  const borderWidth = seleccionado ? '2px' : destacado ? '1.5px' : '1px';
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={seleccionado}
+      style={{
+        position: 'relative',
+        textAlign: 'left',
+        background: seleccionado ? 'var(--ek-mustard-soft)' : 'var(--ek-bg-soft)',
+        border: `${borderWidth} solid ${borderColor}`,
+        borderRadius: 'var(--ek-r-card)',
+        padding: '16px 12px 14px',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '7px',
+        height: '100%'
+      }}
+    >
+      {destacado && (
+        <span
+          style={{
+            position: 'absolute',
+            top: '-9px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            fontSize: '9px',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--ek-bg)',
+            background: 'var(--ek-mustard)',
+            padding: '3px 10px',
+            borderRadius: '999px',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Más popular
+        </span>
+      )}
+
+      {seleccionado && (
+        <span
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+            width: '18px',
+            height: '18px',
+            borderRadius: '50%',
+            background: 'var(--ek-mustard)',
+            color: 'var(--ek-bg)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '11px',
+            fontWeight: 700
+          }}
+        >
+          ✓
+        </span>
+      )}
+
+      <span style={{ fontFamily: 'var(--ek-font-display)', fontSize: '16px', fontWeight: 700 }}>
+        {plan.nombre}
+      </span>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', flexWrap: 'wrap' }}>
+        <span
+          style={{
+            fontFamily: 'var(--ek-font-display)',
+            fontSize: '20px',
+            fontWeight: 700,
+            letterSpacing: '-0.02em'
+          }}
+        >
+          {formatPrecio(precioCentavos(tier, moneda), moneda)}
+        </span>
+        <span style={{ fontSize: '11px', color: 'var(--ek-ink-muted)', fontWeight: 500 }}>/mes</span>
+      </div>
+      <span style={{ fontSize: '11px', color: 'var(--ek-ink-muted)', lineHeight: 1.4 }}>
+        {plan.resumen}
+      </span>
+      <ul
+        style={{
+          listStyle: 'none',
+          margin: '2px 0 0',
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '5px'
+        }}
+      >
+        {plan.features.map((f) => (
+          <li
+            key={f}
             style={{
-              textAlign: 'left',
-              background: 'var(--ek-bg-soft)',
-              border: `1.5px solid ${sel ? 'var(--ek-mustard)' : 'var(--ek-line)'}`,
-              borderRadius: 'var(--ek-r-card)',
-              padding: '16px',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
+              fontSize: '11px',
               display: 'flex',
-              flexDirection: 'column',
-              gap: '8px'
+              gap: '5px',
+              lineHeight: 1.35,
+              color: 'var(--ek-ink)'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
-              <span style={{ fontFamily: 'var(--ek-font-display)', fontSize: '18px', fontWeight: 700 }}>
-                {plan.nombre}
-              </span>
-              <span style={{ fontSize: '15px', fontWeight: 700 }}>
-                {formatPrecio(precioCentavos(t, moneda), moneda)}
-                <span style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', fontWeight: 500 }}>
-                  {' '}/mes
-                </span>
-              </span>
-            </div>
-            <span style={{ fontSize: '12px', color: 'var(--ek-ink-muted)' }}>{plan.resumen}</span>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {plan.features.map((f) => (
-                <li key={f} style={{ fontSize: '12px', display: 'flex', gap: '6px' }}>
-                  <span style={{ color: 'var(--ek-mustard)' }}>✓</span>
-                  {f}
-                </li>
-              ))}
-            </ul>
-          </button>
-        );
-      })}
-    </div>
+            <span style={{ color: 'var(--ek-mustard)', flexShrink: 0 }}>✓</span>
+            <span>{f}</span>
+          </li>
+        ))}
+      </ul>
+    </button>
   );
 }
 
