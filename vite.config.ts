@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import path from 'path';
+import { devFunctionsPlugin } from './scripts/devFunctionsPlugin';
 
 export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
@@ -14,6 +15,8 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+      // Dev-only: sirve las Netlify Functions dentro de `npm run dev`.
+      devFunctionsPlugin(),
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
