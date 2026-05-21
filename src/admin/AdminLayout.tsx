@@ -16,6 +16,7 @@ const Recursos = lazy(() => import('./pages/Recursos'));
 const Horarios = lazy(() => import('./pages/Horarios'));
 const Instructores = lazy(() => import('./pages/Instructores'));
 const Tiers = lazy(() => import('./pages/Tiers'));
+const Sucursales = lazy(() => import('./pages/Sucursales'));
 const Reportes = lazy(() => import('./pages/Reportes'));
 const Equipo = lazy(() => import('./pages/Equipo'));
 const AjustesLanding = lazy(() => import('./pages/AjustesLanding'));
@@ -115,6 +116,7 @@ export default function AdminLayout() {
               <Route path="/horarios" element={<Horarios />} />
               <Route path="/instructores" element={<Instructores />} />
               <Route path="/tiers" element={<Tiers />} />
+              <Route path="/sucursales" element={<Sucursales />} />
               <Route path="/reportes" element={<Reportes />} />
               <Route path="/equipo" element={<Equipo />} />
               <Route path="/landing" element={<AjustesLanding />} />
