@@ -28,7 +28,6 @@ export type Database = {
           horario_recurrente_id: string | null
           id: string
           instructor_id: string | null
-          instructor_nombre_mock: string | null
           nombre: string
           origen: string
           recurso_id: string
@@ -51,7 +50,6 @@ export type Database = {
           horario_recurrente_id?: string | null
           id?: string
           instructor_id?: string | null
-          instructor_nombre_mock?: string | null
           nombre: string
           origen?: string
           recurso_id: string
@@ -74,7 +72,6 @@ export type Database = {
           horario_recurrente_id?: string | null
           id?: string
           instructor_id?: string | null
-          instructor_nombre_mock?: string | null
           nombre?: string
           origen?: string
           recurso_id?: string

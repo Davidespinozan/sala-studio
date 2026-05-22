@@ -5,10 +5,8 @@
  * Hasta S4.1 esta capa mockeaba cupos e instructores porque no había tabla
  * real. Desde S4.2 lee de `clases` directamente — los mocks viejos
  * (CUPO_MAX_MOCK, MOCK_INSTRUCTORES, mockInstructorFor, clasesDelDia,
- * reservaToClase) fueron eliminados.
- *
- * `instructor_nombre_mock` sigue siendo el placeholder hasta que llegue la
- * tabla `instructores` (Sprint S6).
+ * reservaToClase) fueron eliminados. El instructor sale del JOIN a la tabla
+ * `instructores` (S6).
  */
 
 import {
