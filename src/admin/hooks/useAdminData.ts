@@ -146,7 +146,6 @@ export async function updateRecurso(
   patch: Partial<Pick<Recurso,
     | 'nombre'
     | 'descripcion'
-    | 'horarios'
     | 'tiers_permitidos'
     | 'activo'
     | 'orden'

@@ -545,7 +545,6 @@ export type Database = {
           estilo_visual: string | null
           foto_url: string | null
           fotos_urls: string[]
-          horarios: Json
           id: string
           nombre: string
           orden: number
@@ -569,7 +568,6 @@ export type Database = {
           estilo_visual?: string | null
           foto_url?: string | null
           fotos_urls?: string[]
-          horarios?: Json
           id?: string
           nombre: string
           orden?: number
@@ -593,7 +591,6 @@ export type Database = {
           estilo_visual?: string | null
           foto_url?: string | null
           fotos_urls?: string[]
-          horarios?: Json
           id?: string
           nombre?: string
           orden?: number
@@ -1216,16 +1213,6 @@ export type Database = {
       }
       reservar_clase_atomic: {
         Args: { p_clase_id: string; p_invitados?: number; p_notas?: string }
-        Returns: Json
-      }
-      reservar_recurso_atomic: {
-        Args: {
-          p_duracion_min: number
-          p_invitados?: number
-          p_notas?: string
-          p_recurso_id: string
-          p_slot_inicio: string
-        }
         Returns: Json
       }
       salir_lista_espera: { Args: { p_clase_id: string }; Returns: Json }

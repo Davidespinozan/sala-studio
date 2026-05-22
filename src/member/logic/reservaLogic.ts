@@ -1,29 +1,12 @@
 /**
- * Lógica pura de reservas. Sin React, sin Supabase.
- * Testeable. Toda la lógica del cliente que decide qué mostrar/permitir.
- *
- * NOTA: la fuente de verdad sigue siendo el RPC `reservar_recurso_atomic`.
- * Esta capa cliente es solo para UX (no mostrar slots inválidos al usuario).
+ * Lógica pura de reservas. Sin React, sin Supabase. Testeable.
+ * Helpers de fecha y filtrado que usan las pantallas de reserva del miembro.
  */
 
 import type { Database } from '@shared/types/database';
 import { hoyEnTimezone, sumarDias } from '@shared/lib/timezone';
 
 type Recurso = Database['public']['Tables']['recursos']['Row'];
-type Reserva = Database['public']['Tables']['reservas']['Row'];
-
-export interface Slot {
-  inicio: Date;
-  fin: Date;
-  disponible: boolean;
-  razon?: 'ocupado' | 'pasado' | 'anticipacion_insuficiente' | 'continuo' | 'fuera_horario';
-}
-
-export interface HorarioBloque {
-  dia: string;        // 'lunes' | 'martes' | ... | 'domingo'
-  inicio: string;     // 'HH:mm' ej '09:00'
-  fin: string;        // 'HH:mm' ej '22:00'
-}
 
 export interface TenantReservaConfig {
   duracion_default_min: number;
@@ -52,91 +35,6 @@ export function combinarFechaHora(fechaISO: string, horaHHmm: string): Date {
   const [y, m, d] = fechaISO.split('-').map(Number);
   const [h, min] = horaHHmm.split(':').map(Number);
   return new Date(y, m - 1, d, h, min, 0, 0);
-}
-
-/**
- * Genera los slots disponibles para un recurso en una fecha específica.
- *
- * Considera:
- * - Horario del recurso (recursos.horarios) para ese día de semana
- * - Reservas ya activas en ese recurso (no disponibles)
- * - Anticipación mínima del tenant (no reservar muy cerca)
- * - Reservas continuas del propio usuario (si tenant prohíbe continuas)
- *
- * @param recurso El recurso seleccionado
- * @param fechaISO Fecha objetivo en formato 'YYYY-MM-DD'
- * @param config Reglas del tenant
- * @param reservasDelRecurso Reservas ya activas en ese recurso (cualquier usuario)
- * @param reservasDelUsuario Reservas ya activas del usuario (cualquier recurso) — para regla continuas
- * @param ahora Fecha actual (inyectable para testing)
- */
-export function generarSlotsDisponibles(
-  recurso: Recurso,
-  fechaISO: string,
-  config: TenantReservaConfig,
-  reservasDelRecurso: Pick<Reserva, 'slot_inicio'>[],
-  reservasDelUsuario: Pick<Reserva, 'slot_inicio'>[],
-  ahora: Date = new Date()
-): Slot[] {
-  const horarios = (recurso.horarios as unknown as HorarioBloque[]) ?? [];
-  const fechaBase = new Date(fechaISO + 'T00:00:00');
-  const diaSemana = diaNombre(fechaBase);
-
-  // Encontrar bloques de horario para ese día
-  const bloquesDia = horarios.filter((b) => b.dia === diaSemana);
-  if (bloquesDia.length === 0) return [];
-
-  const slots: Slot[] = [];
-  const duracion = config.duracion_default_min;
-  const anticipacionMs = config.anticipacion_min_horas * 60 * 60 * 1000;
-  const limiteAnticipacion = new Date(ahora.getTime() + anticipacionMs);
-
-  // Set de slots ocupados (timestamps ISO) para lookup O(1)
-  const ocupados = new Set(reservasDelRecurso.map((r) => new Date(r.slot_inicio).getTime()));
-
-  // Set de slots del usuario (para detectar continuos si está prohibido)
-  const slotsUsuario = new Set(reservasDelUsuario.map((r) => new Date(r.slot_inicio).getTime()));
-
-  for (const bloque of bloquesDia) {
-    const inicioBloque = combinarFechaHora(fechaISO, bloque.inicio);
-    const finBloque = combinarFechaHora(fechaISO, bloque.fin);
-
-    let cursor = new Date(inicioBloque);
-    while (cursor.getTime() + duracion * 60_000 <= finBloque.getTime()) {
-      const slotInicio = new Date(cursor);
-      const slotFin = new Date(cursor.getTime() + duracion * 60_000);
-      const slotInicioMs = slotInicio.getTime();
-
-      let disponible = true;
-      let razon: Slot['razon'] | undefined;
-
-      if (slotInicio < ahora) {
-        disponible = false;
-        razon = 'pasado';
-      } else if (slotInicio < limiteAnticipacion) {
-        disponible = false;
-        razon = 'anticipacion_insuficiente';
-      } else if (ocupados.has(slotInicioMs)) {
-        disponible = false;
-        razon = 'ocupado';
-      } else if (!config.permitir_continuas) {
-        // Validar que el usuario no tenga reserva en slot adyacente (±duracion)
-        const slotAnteriorMs = slotInicioMs - duracion * 60_000;
-        const slotSiguienteMs = slotInicioMs + duracion * 60_000;
-        if (slotsUsuario.has(slotAnteriorMs) || slotsUsuario.has(slotSiguienteMs)) {
-          disponible = false;
-          razon = 'continuo';
-        }
-      }
-
-      slots.push({ inicio: slotInicio, fin: slotFin, disponible, razon });
-
-      // Avanzar al siguiente slot (duración + 0 gap)
-      cursor = new Date(cursor.getTime() + duracion * 60_000);
-    }
-  }
-
-  return slots;
 }
 
 /**
@@ -228,7 +126,7 @@ export function formatHora(d: Date): string {
 }
 
 /**
- * Traduce errores del RPC reservar_recurso_atomic a mensajes user-friendly.
+ * Traduce los códigos de error de los RPC de reservas a mensajes user-friendly.
  */
 export function traducirErrorRPC(message: string): string {
   if (message.includes('USUARIO_INACTIVO')) return 'Tu membresía no está activa. Contactá al administrador.';
