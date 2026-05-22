@@ -13,6 +13,7 @@ import {
 } from '../hooks/useHorariosRecurrentes';
 import { useRecursosAdmin } from '../hooks/useAdminData';
 import { useInstructores } from '../hooks/useInstructores';
+import { buscarSolape } from '../lib/horarioOverlap';
 import Toggle from '../components/Toggle';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CardMenuDropdown from '../components/CardMenuDropdown';
@@ -230,6 +231,7 @@ export default function Horarios() {
           horario={modal.mode === 'edit' ? modal.horario : null}
           recursos={recursos}
           instructores={instructores}
+          horarios={horarios}
           onClose={() => setModal(null)}
           onSaved={async (esCreacion) => {
             await refetch();
@@ -370,12 +372,14 @@ function HorarioModal({
   horario,
   recursos,
   instructores,
+  horarios,
   onClose,
   onSaved
 }: {
   horario: HorarioRecurrente | null;
   recursos: RecursoOpt[];
   instructores: InstructorOpt[];
+  horarios: HorarioRecurrente[];
   onClose: () => void;
   onSaved: (esCreacion: boolean) => Promise<void>;
 }) {
@@ -451,6 +455,30 @@ function HorarioModal({
       return;
     }
 
+    // Solape: un horario activo no puede pisar a otro activo de la misma sala
+    // (mismo día + rango horario). Los inactivos no generan clases → no se
+    // validan. Al editar, buscarSolape se excluye a sí mismo por id.
+    if (activo) {
+      const solape = buscarSolape(
+        {
+          id: horario?.id ?? '',
+          recurso_id: recursoId,
+          dias_semana: dias,
+          hora_inicio: horaInicio,
+          duracion_minutos: dur,
+          activo: true
+        },
+        horarios
+      );
+      if (solape) {
+        setError(
+          `Este horario se solapa con "${solape.nombre}" (${formatDias(solape.dias_semana)} ` +
+            `${formatHora(solape.hora_inicio)}) en la misma sala. Ajustá el día o la hora.`
+        );
+        return;
+      }
+    }
+
     const data: HorarioRecurrenteFormData = {
       recurso_id: recursoId,
       dias_semana: [...dias].sort((a, b) => a - b),
@@ -469,7 +497,11 @@ function HorarioModal({
     setSaving(false);
 
     if (err) {
-      setError('No pudimos guardar el horario. Probá de nuevo.');
+      setError(
+        err.includes('HORARIO_SOLAPADO')
+          ? 'Este horario se solapa con otro de la misma sala. Ajustá el día o la hora.'
+          : 'No pudimos guardar el horario. Probá de nuevo.'
+      );
       return;
     }
     await onSaved(esCreacion);
