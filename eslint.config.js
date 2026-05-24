@@ -47,6 +47,31 @@ export default [
     }
   },
   {
+    // Scripts Node (.mjs) — herramientas one-shot que corren con `node`,
+    // no son código del bundle. Habilitar globals de Node y apagar no-undef
+    // por consistencia con el bloque de ts/tsx.
+    files: ['**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly'
+      }
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'no-undef': 'off'
+    }
+  },
+  {
     ignores: ['dist/**', 'node_modules/**', '.netlify/**', 'playwright-report/**', 'test-results/**']
   }
 ];
