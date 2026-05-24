@@ -315,12 +315,78 @@ export type Database = {
           },
         ]
       }
+      membresia_movimientos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          delta_creditos: number
+          id: string
+          membresia_id: string
+          motivo: string | null
+          reserva_id: string | null
+          tenant_id: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          delta_creditos: number
+          id?: string
+          membresia_id: string
+          motivo?: string | null
+          reserva_id?: string | null
+          tenant_id: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          delta_creditos?: number
+          id?: string
+          membresia_id?: string
+          motivo?: string | null
+          reserva_id?: string | null
+          tenant_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membresia_movimientos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membresia_movimientos_membresia_id_fkey"
+            columns: ["membresia_id"]
+            isOneToOne: false
+            referencedRelation: "membresias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membresia_movimientos_reserva_id_fkey"
+            columns: ["reserva_id"]
+            isOneToOne: false
+            referencedRelation: "reservas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membresia_movimientos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       membresias: {
         Row: {
           cancelada_at: string | null
           cancelada_efectiva_at: string | null
           commitment_ends_at: string | null
           created_at: string
+          creditos_restantes: number | null
           id: string
           periodo_actual_fin: string | null
           periodo_actual_inicio: string | null
@@ -339,6 +405,7 @@ export type Database = {
           cancelada_efectiva_at?: string | null
           commitment_ends_at?: string | null
           created_at?: string
+          creditos_restantes?: number | null
           id?: string
           periodo_actual_fin?: string | null
           periodo_actual_inicio?: string | null
@@ -357,6 +424,7 @@ export type Database = {
           cancelada_efectiva_at?: string | null
           commitment_ends_at?: string | null
           created_at?: string
+          creditos_restantes?: number | null
           id?: string
           periodo_actual_fin?: string | null
           periodo_actual_inicio?: string | null
@@ -887,8 +955,10 @@ export type Database = {
         Row: {
           activo: boolean
           beneficios: Json
+          clases_incluidas: number | null
           created_at: string
           descripcion: string | null
+          duracion_dias: number | null
           id: string
           moneda: string
           nombre: string
@@ -899,13 +969,16 @@ export type Database = {
           slug: string
           stripe_price_id: string | null
           tenant_id: string
+          tipo: string
           updated_at: string
         }
         Insert: {
           activo?: boolean
           beneficios?: Json
+          clases_incluidas?: number | null
           created_at?: string
           descripcion?: string | null
+          duracion_dias?: number | null
           id?: string
           moneda?: string
           nombre: string
@@ -916,13 +989,16 @@ export type Database = {
           slug: string
           stripe_price_id?: string | null
           tenant_id: string
+          tipo?: string
           updated_at?: string
         }
         Update: {
           activo?: boolean
           beneficios?: Json
+          clases_incluidas?: number | null
           created_at?: string
           descripcion?: string | null
+          duracion_dias?: number | null
           id?: string
           moneda?: string
           nombre?: string
@@ -933,6 +1009,7 @@ export type Database = {
           slug?: string
           stripe_price_id?: string | null
           tenant_id?: string
+          tipo?: string
           updated_at?: string
         }
         Relationships: [
