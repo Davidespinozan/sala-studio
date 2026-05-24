@@ -24,8 +24,12 @@ export default defineConfig(({ mode }) => {
           name: 'SALA Studio',
           short_name: 'SALA',
           description: 'Reserva clases, gestiona membresías, opera tu gimnasio',
-          theme_color: '#0A0A0A',
-          background_color: '#F5F1E8',
+          lang: 'es',
+          // Paleta Salvia Light real del proyecto (src/styles/sala.css):
+          //   theme_color  = --sala-primary (chrome del browser / status bar)
+          //   background_color = --sala-bg (splash; matchea lo que pinta la app)
+          theme_color: '#3D6B52',
+          background_color: '#FAFAF7',
           display: 'standalone',
           orientation: 'portrait',
           scope: '/',
