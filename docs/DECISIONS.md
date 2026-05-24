@@ -82,3 +82,25 @@ safe-area-spacing, breakpoints, flexbox helpers).
 
 **Razón**: Tailwind puro lleva a clases gigantes ilegibles para CTAs/cards
 recurrentes. CSS namespaced mantiene legibilidad y portabilidad de componentes.
+
+## D-010: política de `membresias.status='past_due'` — diferida a Stripe
+
+**Decisión actual**: el gate de `reservar_clase_atomic` (Fase 2A.2,
+`20260524200000`) considera `past_due` como uno de los estados que permiten
+reservar (junto con `trialing` y `activa`). `congelada` bloquea.
+
+**Razón de diferir**: hoy NADA en el sistema pone a un socio en `past_due` —
+es un estado que solo va a aparecer cuando integremos Stripe (webhook
+`invoice.payment_failed`). Mientras no exista esa entrada, definir "qué hace
+past_due" es teórico y sin tester real.
+
+**Pendiente de decidir al integrar Stripe**: bajo el modelo prepago estricto
+`past_due` debería **bloquear** la reserva (no pagó, no entra). La alternativa
+es un **período de gracia configurable** (e.g. 3 días entre fallo de cobro y
+bloqueo efectivo) que se sostiene en `tenants.config.reserva.gracia_past_due_dias`
+con default 0 (bloqueo inmediato).
+
+**Cuando se decida**: ajustar el gate para excluir `past_due` del set de
+estados que pasan, o agregar la lógica de gracia. Hoy es una línea: cambiar
+`('trialing', 'activa', 'past_due', 'congelada')` → `('trialing', 'activa', 'congelada')`
+en el WHERE del SELECT del gate (y dejar `congelada` con su error explícito).
