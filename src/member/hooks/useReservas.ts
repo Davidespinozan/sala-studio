@@ -78,12 +78,31 @@ export async function crearReserva(params: {
 }
 
 /**
- * Cancela una reserva llamando al RPC atómico.
+ * Resultado de cancelar una reserva: status final + si se devolvió crédito.
+ * El campo `devolucion_motivo` puede ser:
+ *   - 'a_tiempo'    → la cancelación entró dentro de la ventana, se devolvió 1.
+ *   - 'tarde'       → fuera de la ventana, no se devolvió.
+ *   - 'sin_credito' → tier=tiempo o reserva sin débito previo (nada que devolver).
+ *   - 'no_aplica'   → quien canceló no es socio o no tiene membresía vigente.
+ */
+export interface CancelarReservaResult {
+  success: boolean;
+  reserva_id: string;
+  status: string;
+  devuelto: boolean;
+  devolucion_motivo: 'a_tiempo' | 'tarde' | 'sin_credito' | 'no_aplica';
+  ventana_horas: number;
+  creditos_restantes: number | null;
+}
+
+/**
+ * Cancela una reserva llamando al RPC atómico. Devuelve metadata sobre la
+ * ventana de cancelación y la devolución de crédito (si aplica).
  */
 export async function cancelarReserva(params: {
   reserva_id: string;
   motivo?: string;
-}): Promise<{ data: Reserva | null; error: string | null }> {
+}): Promise<{ data: CancelarReservaResult | null; error: string | null }> {
   const { data, error } = await supabase.rpc('cancelar_reserva_atomic', {
     p_reserva_id: params.reserva_id,
     p_motivo: params.motivo
@@ -92,7 +111,7 @@ export async function cancelarReserva(params: {
   if (error) {
     return { data: null, error: traducirErrorRPC(error.message) };
   }
-  return { data: data as Reserva, error: null };
+  return { data: data as unknown as CancelarReservaResult, error: null };
 }
 
 /**
