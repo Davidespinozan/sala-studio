@@ -133,6 +133,17 @@ export function traducirErrorRPC(message: string): string {
   if (message.includes('USUARIO_BLOQUEADO')) return 'Tu cuenta tiene una restricción activa.';
   if (message.includes('RECURSO_NO_EXISTE')) return 'Esta sala no está disponible.';
   if (message.includes('RECURSO_INACTIVO')) return 'Esta sala no está disponible.';
+  // Gate de membresía (Fase 2A.2). Mensajes "soft" sin botón de pago — el
+  // socio contacta al gimnasio. Cuando se integre Stripe, estos textos pasan
+  // a CTA de renovación/recarga.
+  if (message.includes('MEMBRESIA_VENCIDA'))
+    return 'Tu membresía venció. Contactá al gimnasio para renovar.';
+  if (message.includes('SIN_CREDITOS'))
+    return 'Te quedaste sin clases. Contactá al gimnasio para recargar.';
+  if (message.includes('MEMBRESIA_CONGELADA'))
+    return 'Tu membresía está pausada. Contactá al gimnasio.';
+  if (message.includes('SIN_MEMBRESIA'))
+    return 'No tenés una membresía activa. Contactá al gimnasio.';
   if (message.includes('TIER_NO_PERMITIDO')) return 'Tu plan no tiene acceso a esta sala.';
   if (message.includes('TIER_NO_PERMITE')) return 'Tu plan no incluye acceso a esta sala.';
   if (message.includes('INVITADOS_EXCEDEN')) return 'Tu plan no permite tantos invitados.';
@@ -157,4 +168,20 @@ export function traducirErrorRPC(message: string): string {
   if (message.includes('YA_PROCESADA')) return 'Esa persona ya no está en la lista de espera.';
   if (message.includes('ENTRADA_NO_EXISTE')) return 'No encontramos esa entrada de lista de espera.';
   return message;
+}
+
+/**
+ * Mensaje para el toast de éxito tras cancelar una reserva, según el motivo
+ * de devolución que devuelve cancelar_reserva_atomic (Fase 2B). Si la cancelación
+ * fue a tiempo, comunica la devolución del crédito; si fue tarde, lo aclara.
+ * Para 'sin_credito' / 'no_aplica' (tipo tiempo, reserva sin débito, staff)
+ * basta con la confirmación simple.
+ */
+export function mensajeToastCancelacion(
+  motivo: 'a_tiempo' | 'tarde' | 'sin_credito' | 'no_aplica' | undefined
+): string {
+  if (motivo === 'a_tiempo') return 'Reserva cancelada. Se devolvió tu crédito.';
+  if (motivo === 'tarde')
+    return 'Reserva cancelada. Por cancelar fuera de tiempo, no se devolvió el crédito.';
+  return 'Reserva cancelada.';
 }

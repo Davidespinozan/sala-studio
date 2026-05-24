@@ -10,6 +10,7 @@ import {
 } from '@member/hooks/useReservas';
 import {
   generarFechasReservables,
+  mensajeToastCancelacion,
   type TenantReservaConfig
 } from '@member/logic/reservaLogic';
 import {
@@ -238,13 +239,13 @@ export default function Reservar() {
       return;
     }
     setCancelando(true);
-    const { error } = await cancelarReservaRPC({ reserva_id: reservaId });
+    const { data, error } = await cancelarReservaRPC({ reserva_id: reservaId });
     setCancelando(false);
     if (error) {
       toast.error(error);
       return;
     }
-    toast.success('Reserva cancelada.');
+    toast.success(mensajeToastCancelacion(data?.devolucion_motivo));
     setClaseACancelar(null);
     triggerRefresh();
   }

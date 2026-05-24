@@ -5,6 +5,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { supabase } from '@shared/lib/supabase';
 import { crearReserva, cancelarReserva as cancelarReservaRPC } from '@member/hooks/useReservas';
+import { mensajeToastCancelacion } from '@member/logic/reservaLogic';
 import {
   anotarseEnListaEspera,
   salirDeListaEspera,
@@ -263,13 +264,13 @@ export default function ClaseDetalle() {
   async function confirmarCancelacion() {
     if (!miReservaId) return;
     setSubmitting(true);
-    const { error } = await cancelarReservaRPC({ reserva_id: miReservaId });
+    const { data, error } = await cancelarReservaRPC({ reserva_id: miReservaId });
     setSubmitting(false);
     if (error) {
       toast.error(error);
       return;
     }
-    toast.success('Reserva cancelada.');
+    toast.success(mensajeToastCancelacion(data?.devolucion_motivo));
     setShowCancelModal(false);
     triggerRefresh();
   }

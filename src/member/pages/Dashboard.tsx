@@ -13,6 +13,12 @@ import { getSucursalTimezone, getTenantTimezone, hoyEnTimezone } from '@shared/l
 import { ProximaClaseHero } from '@member/components/ProximaClaseHero';
 import { ClaseCard } from '@member/components/ClaseCard';
 import { useMisListasEspera, type ListaEsperaItem } from '@member/hooks/useListaEspera';
+import {
+  useMembresiaActual,
+  membresiaEstado,
+  type MembresiaActual,
+  type EstadoMembresia
+} from '@member/hooks/useMembresiaActual';
 
 type Recurso = Database['public']['Tables']['recursos']['Row'];
 type Reserva = Database['public']['Tables']['reservas']['Row'];
@@ -360,16 +366,7 @@ export default function Dashboard() {
             gap: '12px'
           }}
         >
-          <QuickAccessCard
-            to="/app/perfil"
-            label="Mi membresía"
-            value={
-              usuario?.membresia_tier
-                ? `Plan ${capitalizarNombre(usuario.membresia_tier)}`
-                : 'Sin plan activo'
-            }
-            icon="✦"
-          />
+          <MembresiaCard />
           <QuickAccessCard
             to="/app/historial"
             label="Mis reservas"
@@ -637,4 +634,154 @@ function SkeletonScrollRow() {
       ))}
     </div>
   );
+}
+
+// ============================================================================
+// MembresiaCard — versión rica de la quick-access "Mi membresía"
+// ============================================================================
+
+/**
+ * Tarjeta del dashboard que muestra el estado real de la membresía del socio.
+ * Sustituye al texto plano "Plan Pro" que solo leía usuarios.membresia_tier.
+ * El value cambia según tier.tipo (tiempo / creditos / hibrido) y el estado
+ * derivado (vencida / sin créditos / pausada / sin membresía / sana).
+ */
+function MembresiaCard() {
+  const { membresia, isLoading } = useMembresiaActual();
+
+  if (isLoading) {
+    return (
+      <div
+        className="ek-skeleton"
+        style={{ height: '78px', borderRadius: '14px' }}
+        aria-hidden="true"
+      />
+    );
+  }
+
+  const estado = membresiaEstado(membresia);
+  const { value, problema } = membresiaCardTexto(membresia, estado);
+
+  // Paleta — sana usa el estilo neutro del QuickAccessCard; estado problemático
+  // tinta sutilmente el borde y el eyebrow (no llega a banner — eso ya está
+  // en el layout). Mantiene la altura para no romper el grid.
+  const eyebrowColor = problema
+    ? estado === 'vencida' || estado === 'sin_membresia'
+      ? 'var(--sala-error)'
+      : 'var(--sala-warning)'
+    : 'var(--sala-text-tertiary)';
+  const borderColor = problema
+    ? estado === 'vencida' || estado === 'sin_membresia'
+      ? 'rgba(196, 74, 53, 0.4)'
+      : 'rgba(200, 148, 31, 0.4)'
+    : 'var(--sala-border)';
+
+  return (
+    <Link
+      to="/app/perfil"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        padding: '16px 18px',
+        background: 'var(--sala-surface)',
+        border: `1px solid ${borderColor}`,
+        borderRadius: '14px',
+        textDecoration: 'none',
+        color: 'var(--sala-text-primary)',
+        transition: 'border-color 0.18s ease, transform 0.12s ease'
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span
+          aria-hidden="true"
+          style={{
+            fontSize: '14px',
+            color: problema ? eyebrowColor : 'var(--sala-primary)',
+            fontWeight: 700
+          }}
+        >
+          ✦
+        </span>
+        <span
+          style={{
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: eyebrowColor
+          }}
+        >
+          Mi membresía
+        </span>
+      </div>
+      <p
+        style={{
+          fontSize: '15px',
+          fontWeight: 600,
+          margin: 0,
+          color: 'var(--sala-text-primary)',
+          lineHeight: 1.35
+        }}
+      >
+        {value}
+      </p>
+    </Link>
+  );
+}
+
+/**
+ * Texto humano para la tarjeta según tipo + estado. Pura, testeable desde
+ * el helper exportado en el hook.
+ */
+export function membresiaCardTexto(
+  m: MembresiaActual | null,
+  estado: EstadoMembresia
+): { value: string; problema: boolean } {
+  if (estado === 'sin_membresia') return { value: 'Sin membresía activa', problema: true };
+  if (estado === 'congelada') return { value: 'Membresía pausada', problema: true };
+  // m no es null para los estados que siguen
+  const fin = m?.periodo_actual_fin ? new Date(m.periodo_actual_fin) : null;
+  const fechaCorta = fin
+    ? fin.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+    : null;
+
+  if (estado === 'vencida') {
+    return {
+      value: fechaCorta ? `Vencida el ${fechaCorta}` : 'Vencida',
+      problema: true
+    };
+  }
+
+  if (estado === 'sin_creditos') {
+    // Si es híbrido y tiene fecha, mostrarla para contexto.
+    if (m?.tier_tipo === 'hibrido' && fechaCorta) {
+      return { value: `Sin clases · hasta ${fechaCorta}`, problema: true };
+    }
+    return { value: 'Sin clases', problema: true };
+  }
+
+  // Estado sana — tres variantes según tipo
+  const tipo = m?.tier_tipo ?? 'tiempo';
+  const creditos = m?.creditos_restantes ?? 0;
+
+  if (tipo === 'tiempo') {
+    return {
+      value: fechaCorta ? `Activa · vence ${fechaCorta}` : 'Activa',
+      problema: false
+    };
+  }
+  if (tipo === 'creditos') {
+    return {
+      value: creditos === 1 ? '1 clase restante' : `${creditos} clases restantes`,
+      problema: false
+    };
+  }
+  // hibrido
+  return {
+    value: fechaCorta
+      ? `${creditos} ${creditos === 1 ? 'clase' : 'clases'} · hasta ${fechaCorta}`
+      : `${creditos} ${creditos === 1 ? 'clase' : 'clases'}`,
+    problema: false
+  };
 }

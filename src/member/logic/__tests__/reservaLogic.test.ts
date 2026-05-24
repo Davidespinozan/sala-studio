@@ -4,6 +4,8 @@ import {
   filtrarRecursosPorTier,
   diaNombre,
   formatDateISO,
+  traducirErrorRPC,
+  mensajeToastCancelacion,
   type TenantReservaConfig
 } from '../reservaLogic';
 import type { Database } from '@shared/types/database';
@@ -81,5 +83,56 @@ describe('utilidades de fecha', () => {
   it('formatDateISO produce YYYY-MM-DD local', () => {
     const d = new Date(2026, 4, 14, 23, 30);
     expect(formatDateISO(d)).toBe('2026-05-14');
+  });
+});
+
+describe('traducirErrorRPC — gate de membresía (Fase 2A.2)', () => {
+  it('MEMBRESIA_VENCIDA → texto humano sin código crudo', () => {
+    expect(traducirErrorRPC('MEMBRESIA_VENCIDA: Tu membresía venció el 12/06/2026')).toBe(
+      'Tu membresía venció. Contactá al gimnasio para renovar.'
+    );
+  });
+  it('SIN_CREDITOS → mensaje de recarga', () => {
+    expect(traducirErrorRPC('SIN_CREDITOS: Te quedaste sin créditos')).toBe(
+      'Te quedaste sin clases. Contactá al gimnasio para recargar.'
+    );
+  });
+  it('MEMBRESIA_CONGELADA → mensaje de pausa', () => {
+    expect(traducirErrorRPC('MEMBRESIA_CONGELADA: Tu membresía está pausada')).toBe(
+      'Tu membresía está pausada. Contactá al gimnasio.'
+    );
+  });
+  it('SIN_MEMBRESIA → mensaje de sin membresía', () => {
+    expect(traducirErrorRPC('SIN_MEMBRESIA: No tenés una membresía activa')).toBe(
+      'No tenés una membresía activa. Contactá al gimnasio.'
+    );
+  });
+  it('códigos preexistentes siguen funcionando (regresión)', () => {
+    expect(traducirErrorRPC('CUPO_LLENO: ...')).toBe(
+      'Esta clase está llena. Probá con otro horario.'
+    );
+    expect(traducirErrorRPC('YA_RESERVADO: ...')).toBe(
+      'Ya tenés una reserva activa en esta clase.'
+    );
+  });
+});
+
+describe('mensajeToastCancelacion', () => {
+  it('a_tiempo comunica la devolución del crédito', () => {
+    expect(mensajeToastCancelacion('a_tiempo')).toBe(
+      'Reserva cancelada. Se devolvió tu crédito.'
+    );
+  });
+  it('tarde aclara que no se devolvió', () => {
+    expect(mensajeToastCancelacion('tarde')).toBe(
+      'Reserva cancelada. Por cancelar fuera de tiempo, no se devolvió el crédito.'
+    );
+  });
+  it('sin_credito y no_aplica usan el mensaje simple', () => {
+    expect(mensajeToastCancelacion('sin_credito')).toBe('Reserva cancelada.');
+    expect(mensajeToastCancelacion('no_aplica')).toBe('Reserva cancelada.');
+  });
+  it('undefined (RPC no devolvió motivo) → mensaje simple', () => {
+    expect(mensajeToastCancelacion(undefined)).toBe('Reserva cancelada.');
   });
 });
