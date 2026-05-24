@@ -21,7 +21,7 @@ import {
   type HistorialItem
 } from '../components/miembro/MiembroHistorial';
 import { MiembroNotasInternas } from '../components/miembro/MiembroNotasInternas';
-import { CambiarPlanModal } from '../components/miembro/CambiarPlanModal';
+import { GestionarMembresiaModal } from '../components/miembro/GestionarMembresiaModal';
 import { BloquearAccesoModal } from '../components/miembro/BloquearAccesoModal';
 import type { Database } from '@shared/types/database';
 
@@ -326,10 +326,9 @@ export default function MiembroDetalle() {
 
       {/* Modales */}
       {showCambiarPlan && (
-        <CambiarPlanModal
+        <GestionarMembresiaModal
           usuarioId={miembro.id}
           nombreMiembro={miembro.nombre ?? miembro.email}
-          tierActualSlug={miembro.membresia_tier}
           onClose={() => setShowCambiarPlan(false)}
           onSaved={handleAfterChange}
         />

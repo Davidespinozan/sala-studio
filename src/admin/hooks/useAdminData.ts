@@ -526,6 +526,7 @@ export interface CreateUserParams {
 export interface CreateUserResponse {
   success: boolean;
   user: {
+    id: string;
     email: string;
     nombre: string;
     rol: string;
@@ -542,6 +543,42 @@ export async function adminUpdateRole(params: {
   rol: 'miembro' | 'recepcionista' | 'staff' | 'admin';
 }) {
   return backendPost<{ success: boolean }>('admin-update-role', params);
+}
+
+/**
+ * Resultado del RPC gestionar_membresia_socio (Fase 4).
+ * El RPC devuelve esto en el jsonb de respuesta.
+ */
+export interface GestionarMembresiaResult {
+  success: boolean;
+  membresia_id: string;
+  modo: 'alta' | 'renovacion' | 'renovacion_desde_hoy' | 'cambio_de_tipo';
+  tier_slug: string;
+  tier_nombre: string;
+  tier_tipo: 'tiempo' | 'creditos' | 'hibrido';
+  periodo_actual_fin: string | null;
+  creditos_restantes: number | null;
+  delta_creditos: number;
+}
+
+/**
+ * Alta / renovación / recarga / cambio de tipo manual de la membresía de un
+ * socio. Wrapper del RPC gestionar_membresia_socio (Fase 4). Solo staff
+ * (admin/recepción) del tenant del socio puede llamarlo — el RPC lo enforce.
+ * Para detalle de la lógica suma/reset, ver el comment del RPC.
+ */
+export async function gestionarMembresiaSocio(params: {
+  usuario_id: string;
+  tier_id: string;
+  motivo?: string;
+}): Promise<{ data: GestionarMembresiaResult | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('gestionar_membresia_socio', {
+    p_usuario_id: params.usuario_id,
+    p_tier_id: params.tier_id,
+    p_motivo: params.motivo
+  });
+  if (error) return { data: null, error: error.message };
+  return { data: data as unknown as GestionarMembresiaResult, error: null };
 }
 
 /** Hard delete real vía auth.admin.deleteUser (libera el email para re-uso).

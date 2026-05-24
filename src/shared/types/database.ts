@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       clases: {
@@ -351,24 +376,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "membresia_movimientos_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "membresia_movimientos_membresia_id_fkey"
             columns: ["membresia_id"]
             isOneToOne: false
             referencedRelation: "membresias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "membresia_movimientos_reserva_id_fkey"
-            columns: ["reserva_id"]
-            isOneToOne: false
-            referencedRelation: "reservas"
             referencedColumns: ["id"]
           },
           {
@@ -1170,36 +1181,7 @@ export type Database = {
       anotar_lista_espera: { Args: { p_clase_id: string }; Returns: Json }
       cancelar_reserva_atomic: {
         Args: { p_motivo?: string; p_reserva_id: string }
-        Returns: {
-          cancelacion_notificada_at: string | null
-          cancelada_at: string | null
-          cancelada_motivo: string | null
-          cancelada_por: string | null
-          check_in_at: string | null
-          check_in_by: string | null
-          check_in_method: string | null
-          clase_id: string | null
-          created_at: string
-          duracion_min: number
-          folio: string
-          id: string
-          invitados_count: number
-          notas: string | null
-          qr_token_hash: string | null
-          recurso_id: string
-          slot_fin: string
-          slot_inicio: string
-          status: string
-          tenant_id: string
-          updated_at: string
-          usuario_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "reservas"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        Returns: Json
       }
       check_in_atomic: { Args: { p_reserva_id: string }; Returns: Json }
       check_in_manual_atomic: {
@@ -1268,6 +1250,10 @@ export type Database = {
         Returns: Json
       }
       generar_mis_clases_recurrentes: { Args: never; Returns: Json }
+      gestionar_membresia_socio: {
+        Args: { p_motivo?: string; p_tier_id: string; p_usuario_id: string }
+        Returns: Json
+      }
       get_my_rol: { Args: never; Returns: string }
       get_my_tenant_id: { Args: never; Returns: string }
       get_my_user_id: { Args: never; Returns: string }
@@ -1424,6 +1410,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMiembros } from '../hooks/useAdminData';
 import { NuevaPersonaModal } from '../components/NuevaPersonaModal';
 import CardMenuDropdown from '../components/CardMenuDropdown';
-import { CambiarPlanModal } from '../components/miembro/CambiarPlanModal';
+import { GestionarMembresiaModal } from '../components/miembro/GestionarMembresiaModal';
 import { BloquearAccesoModal } from '../components/miembro/BloquearAccesoModal';
 import type { Database } from '@shared/types/database';
 
@@ -139,10 +139,9 @@ export default function Miembros() {
       )}
 
       {cambiarPlanFor && (
-        <CambiarPlanModal
+        <GestionarMembresiaModal
           usuarioId={cambiarPlanFor.id}
           nombreMiembro={cambiarPlanFor.nombre ?? cambiarPlanFor.email}
-          tierActualSlug={cambiarPlanFor.membresia_tier}
           onClose={() => setCambiarPlanFor(null)}
           onSaved={async () => {
             await refetch();

@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { adminCreateUser } from '../hooks/useAdminData';
+import {
+  adminCreateUser,
+  gestionarMembresiaSocio,
+  useTiersAdmin
+} from '../hooks/useAdminData';
 
 type Rol = 'miembro' | 'recepcionista' | 'staff' | 'admin';
-type Tier = 'basica' | 'pro' | '';
 
 interface Props {
   onClose: () => void;
@@ -10,16 +13,21 @@ interface Props {
 }
 
 export function NuevaPersonaModal({ onClose, onCreated }: Props) {
+  const { tiers, isLoading: loadingTiers } = useTiersAdmin();
   const [email, setEmail] = useState('');
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
   const [password, setPassword] = useState('');
   const [rol, setRol] = useState<Rol>('miembro');
-  const [tier, setTier] = useState<Tier>('');
+  // tier_id (uuid) o '' para "sin plan". Antes era slug hardcoded — ahora se
+  // resuelve desde useTiersAdmin, así soporta tiers custom del tenant.
+  const [tierId, setTierId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ email: string; password: string; rol: string } | null>(null);
   const [needsAdminConfirm, setNeedsAdminConfirm] = useState(false);
+
+  const tiersActivos = tiers.filter((t) => t.activo);
 
   function generarPassword() {
     const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -45,8 +53,32 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
         nombre: nombre.trim(),
         telefono: telefono.trim() || undefined,
         rol,
-        membresia_tier: rol === 'miembro' ? (tier || null) : null
+        // Pasamos null: el "atajo viejo" de setear usuarios.membresia_tier sin
+        // crear fila en membresias dejaba al socio bloqueado por SIN_MEMBRESIA.
+        // Si se eligió tier, la membresía la crea el RPC en el paso siguiente.
+        membresia_tier: null
       });
+
+      // Si es miembro Y se eligió un tier, alta de membresía vía RPC. Eso
+      // crea la fila en `membresias`, sincroniza `usuarios.membresia_tier`,
+      // y pasa el status de pendiente_pago a activo.
+      if (rol === 'miembro' && tierId) {
+        const { error: memErr } = await gestionarMembresiaSocio({
+          usuario_id: res.user.id,
+          tier_id: tierId,
+          motivo: 'alta inicial desde NuevaPersonaModal'
+        });
+        if (memErr) {
+          // El usuario YA está creado. La membresía no — mejor avisar y
+          // que el admin la cargue después desde MiembroDetalle.
+          setError(
+            `Usuario creado pero no se pudo asignar la membresía: ${memErr}. ` +
+            `Cargala manualmente desde su perfil.`
+          );
+          setSubmitting(false);
+          return;
+        }
+      }
 
       setSuccess({
         email: res.user.email,
@@ -164,16 +196,21 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
               <label className="ek-label" htmlFor="np-tier">Plan inicial (opcional)</label>
               <select
                 id="np-tier"
-                value={tier}
-                onChange={(e) => setTier(e.target.value as Tier)}
+                value={tierId}
+                onChange={(e) => setTierId(e.target.value)}
                 className="ek-input"
+                disabled={loadingTiers}
               >
                 <option value="">— sin plan asignado —</option>
-                <option value="basica">Básica</option>
-                <option value="pro">Pro</option>
+                {tiersActivos.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.nombre}
+                  </option>
+                ))}
               </select>
               <p className="ek-helper-text">
                 Si no asignas plan, el miembro queda en pendiente_pago hasta cobrar.
+                Cargás la membresía después desde su perfil.
               </p>
             </div>
           )}

@@ -67,17 +67,22 @@ export function membresiaEstado(
  * Misma fuente de verdad que el gate (Fase 2A.2): SELECT por usuario_id en
  * status IN ('trialing','activa','past_due','congelada'), pick más reciente.
  *
- * RLS: el socio lee solo su propia fila vía membresias_read_self y los tiers
- * de su tenant vía tiers_read_tenant. No requiere policy nueva.
+ * @param usuarioId — si se pasa, lee la membresía de ese usuario (modo admin
+ *   viendo a otro socio). Si se omite, lee la del usuario actual (modo socio).
+ *
+ * RLS: socio lee solo su propia fila vía membresias_read_self. Admin/recepción
+ * leen cualquier fila de su tenant vía membresias_read_admin. Tiers se leen
+ * vía tiers_read_tenant. No requiere policy nueva.
  */
-export function useMembresiaActual() {
+export function useMembresiaActual(usuarioId?: string) {
   const { usuario } = useAuth();
+  const targetId = usuarioId ?? usuario?.id;
   const [membresia, setMembresia] = useState<MembresiaActual | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
-    if (!usuario) {
+    if (!targetId) {
       setMembresia(null);
       setIsLoading(false);
       return;
@@ -90,7 +95,7 @@ export function useMembresiaActual() {
       .select(
         'id, status, periodo_actual_inicio, periodo_actual_fin, creditos_restantes, tier_id, tier:tiers(slug, nombre, tipo, duracion_dias, clases_incluidas)'
       )
-      .eq('usuario_id', usuario.id)
+      .eq('usuario_id', targetId)
       .in('status', ['trialing', 'activa', 'past_due', 'congelada'])
       .order('created_at', { ascending: false })
       .limit(1)
@@ -131,7 +136,7 @@ export function useMembresiaActual() {
       clases_incluidas: tier.clases_incluidas
     });
     setIsLoading(false);
-  }, [usuario]);
+  }, [targetId]);
 
   useEffect(() => {
     refetch();
