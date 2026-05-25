@@ -238,3 +238,103 @@ sí lleva el branding completo (símbolo blanco sobre verde).
 **Iteración previa** (también documentada): la primera versión usaba el
 símbolo verde sobre fondo blanco en TODOS los íconos. Funcional pero menos
 "app-nativa". Se reemplazó cuando llegó la versión blanca del logo (mayo 2026).
+
+## D-015: favicon dinámico por tenant (white-label)
+
+**Estado**: campo `branding.favicon_url` ya existe + editor en AjustesMarca
+sube el archivo a Supabase Storage. **Pero el front no lo lee** —
+`index.html:5-6` hardcodea `<link rel="icon" href="/favicon.svg">` con el
+favicon de SALA. Un admin sube su favicon, ve "Marca actualizada" y la
+pestaña sigue mostrando SALA.
+
+**Severidad**: white-label — importante para diferenciación vs competidores.
+NO bloquea operación (la app funciona; solo se ve "SALA" en la pestaña en
+lugar del gimnasio). Pero sí rompe la promesa de white-label.
+
+**Solución**: inyectar el `<link rel="icon">` dinámico al cargar el tenant
+(en TenantProvider, después de setear `document.title`). Si
+`branding.favicon_url` existe, reemplaza el `href` del `<link>`. Para PWA
+manifest hace falta más trabajo (manifest dinámico vía endpoint o
+generación al vuelo) — eso es D-018.
+
+**Cuando se ataque** (junto con D-018 idealmente): manipular DOM al cargar
+tenant para reemplazar favicon `<link>` + theme-color `<meta>` +
+apple-touch-icon. Anotar en KERNEL la lista de tags dinámicos.
+
+## D-017: colores dinámicos por tenant (white-label)
+
+**Estado**: el `TenantProvider` tiene `branding.color_primary`,
+`color_bg`, `color_accent` disponibles en contexto pero **comentado** —
+hay un bloque con TODO ("Branding tokens dinámicos están desactivados en
+Sprint C1"). La CSS global cementa `--sala-primary: #3D6B52` y compañía.
+**Toda la UI de SALA y de todos los tenants es del mismo verde**.
+
+Además AjustesMarca **no tiene editor de colores** — solo logos/OG/favicon.
+Los colores vienen por defecto de `crear_tenant_onboarding` con
+`#3d6b52` hardcoded y nadie los puede cambiar desde la UI.
+
+**Severidad**: **ALTA para white-label**. Hoy un gimnasio cliente NO PUEDE
+poner su paleta. Es la pieza que más rompe la promesa de "tu marca, no la mía".
+
+**Solución**:
+  1. Re-activar el mapeo en TenantProvider (líneas 89-100 comentadas).
+     Setear `document.documentElement.style.setProperty('--sala-primary', branding.color_primary)`
+     después de cargar el tenant. Mismo para color_bg y color_accent.
+  2. Agregar sección "COLORES" en AjustesMarca con 3 color pickers
+     (primary / bg / accent).
+  3. Auditar el codebase: cualquier hex `#3D6B52` hardcoded fuera de CSS
+     (ej. `Reportes.tsx: const SALVIA = '#3d6b52'`, scripts de íconos PWA,
+     onboarding default) debería seguir refiriendo a SALA-producto y no
+     al tenant. Distinguir bien.
+  4. Validar contraste WCAG en el editor: advertir si el tenant elige
+     un color con contraste bajo sobre fondo claro.
+
+**Cuando se ataque**: probable cambio amplio en CSS (deshardcodear
+verdes) + nuevo componente ColorPicker en AjustesMarca + tests visuales.
+Recomiendo atacar antes de Stripe / antes de vender a clientes reales.
+
+## D-018: head injection dinámica (white-label — meta tags / OG / theme-color)
+
+**Estado**: `index.html` tiene meta tags estáticos:
+  - `<meta name="theme-color" content="#3D6B52">` (status bar móvil)
+  - `<meta name="apple-mobile-web-app-title" content="SALA">` (nombre PWA en iOS)
+  - `<meta property="og:title" content="SALA Studio">` (preview compartido)
+  - `<meta property="og:description" content="Reserva clases, gestiona membresías…">`
+  - **NO hay `<meta property="og:image">`** aunque AjustesMarca sube
+    `branding.og_image_url` (otra pieza inerte).
+
+**Severidad**: white-label. Cuando un gimnasio comparte su URL por
+WhatsApp/redes, el preview dice "SALA Studio", no el gym. La status bar
+móvil es verde SALA siempre. El nombre del ícono PWA en iOS dice "SALA".
+
+**Solución**: inyectar / actualizar meta tags al cargar tenant
+(`TenantProvider` después del título). Lista mínima a manipular:
+  - `<meta name="theme-color">` con `branding.color_primary` (cuando D-017)
+  - `<meta name="apple-mobile-web-app-title">` con `tenant.nombre`
+  - `<meta property="og:title">` con `tenant.nombre`
+  - `<meta property="og:description">` con un campo nuevo
+    `branding.tagline_seo` o derivado del landing_config
+  - `<meta property="og:image">` con `branding.og_image_url`
+  - `<link rel="icon">` con `branding.favicon_url` (D-015)
+
+**Caveat**: los meta OG los lee el crawler de WhatsApp/Twitter/etc. ANTES
+de que el JS de la app corra. Si la app es SPA pura, el crawler ve el HTML
+estático sin las modificaciones. Para que el OG funcione de verdad en
+preview de WhatsApp hace falta:
+  - Edge/Netlify Function que genera HTML SSR con los meta del tenant
+    según el subdominio, O
+  - Pre-render por subdominio (más complejo).
+Para favicon/theme-color/title sí alcanza con manipular DOM en runtime
+(el browser actualiza la pestaña/status bar después de cargar JS).
+
+**Severidad por sub-pieza**:
+  - theme-color, apple-web-app-title, favicon (runtime): media — solo
+    afecta visual de quien tiene la app abierta. Implementable con DOM
+    manipulation simple, junto con D-015.
+  - og:title / og:description / og:image (crawlers): alta — requiere SSR.
+    Mucho más caro de implementar.
+
+**Cuando se ataque**: hacer primero la parte runtime (junto con D-015 y
+D-017). La parte SSR/OG para crawlers puede quedar D-018b si el SaaS
+explota y vale el esfuerzo de configurar Netlify Functions con HTML
+custom por subdominio.

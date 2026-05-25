@@ -148,30 +148,18 @@ export default function AjustesMarca() {
 
       <Section
         title="IMAGEN PARA REDES (OPEN GRAPH)"
-        description="Aparece cuando alguien comparte tu landing en WhatsApp, Twitter, Facebook. Recomendado: 1200×630px JPG/PNG."
+        description="Aparecerá cuando alguien comparta tu landing en WhatsApp, Twitter, Facebook. Recomendado: 1200×630px JPG/PNG."
+        proximamente="Sistema en desarrollo (D-018) — todavía no se aplica al compartir. Esperá a habilitarlo."
       >
-        <ImageUploader
-          bucket="logos"
-          pathPrefix={`${tenant.slug}/og-image`}
-          currentUrl={draft.og_image_url}
-          onUploaded={(url) => setDraft({ ...draft, og_image_url: url || null })}
-          label=""
-          helperText="JPG / PNG / WEBP. Máx 2MB."
-        />
+        <DisabledPlaceholder current={draft.og_image_url} kind="image" />
       </Section>
 
       <Section
         title="FAVICON"
-        description="Aparece en la pestaña del navegador. Recomendado: 32×32px o 64×64px PNG transparente."
+        description="Aparecerá en la pestaña del navegador. Recomendado: 32×32px o 64×64px PNG transparente."
+        proximamente="Sistema en desarrollo (D-015) — la pestaña todavía muestra el favicon de SALA. Esperá a habilitarlo."
       >
-        <ImageUploader
-          bucket="logos"
-          pathPrefix={`${tenant.slug}/favicon`}
-          currentUrl={draft.favicon_url}
-          onUploaded={(url) => setDraft({ ...draft, favicon_url: url || null })}
-          label=""
-          helperText="PNG / ICO. Máx 2MB."
-        />
+        <DisabledPlaceholder current={draft.favicon_url} kind="image" />
       </Section>
 
       <div style={{ display: 'flex', gap: '10px', position: 'sticky', bottom: '12px' }}>
@@ -197,27 +185,125 @@ export default function AjustesMarca() {
 function Section({
   title,
   description,
+  proximamente,
   children
 }: {
   title: string;
   description: string;
+  /** Si está, muestra un badge "Próximamente" + nota explicativa. */
+  proximamente?: string;
   children: React.ReactNode;
 }) {
   return (
     <section
       className="ek-card"
-      style={{ padding: '24px', marginBottom: '20px', display: 'block' }}
+      style={{
+        padding: '24px',
+        marginBottom: '20px',
+        display: 'block',
+        opacity: proximamente ? 0.7 : 1
+      }}
     >
-      <p
-        className="ek-eyebrow ek-eyebrow--mustard"
-        style={{ marginBottom: '6px', fontSize: '11px' }}
-      >
-        {title}
-      </p>
-      <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '18px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+        <p
+          className="ek-eyebrow ek-eyebrow--mustard"
+          style={{ margin: 0, fontSize: '11px' }}
+        >
+          {title}
+        </p>
+        {proximamente && (
+          <span
+            style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.10em',
+              textTransform: 'uppercase',
+              color: 'var(--sala-warning)',
+              background: 'var(--sala-warning-bg)',
+              padding: '3px 8px',
+              borderRadius: '999px',
+              border: '1px solid rgba(200, 148, 31, 0.3)'
+            }}
+          >
+            Próximamente
+          </span>
+        )}
+      </div>
+      <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: proximamente ? '8px' : '18px' }}>
         {description}
       </p>
+      {proximamente && (
+        <p
+          style={{
+            fontSize: '12px',
+            color: 'var(--sala-warning)',
+            margin: 0,
+            marginBottom: '14px',
+            fontStyle: 'italic'
+          }}
+        >
+          ⏳ {proximamente}
+        </p>
+      )}
       {children}
     </section>
+  );
+}
+
+/**
+ * Placeholder visual mientras la pieza de marca no se aplica aún (D-015/D-018).
+ * Mantiene el aspecto del uploader pero sin permitir subir, para evitar UX
+ * engañosa ("subí mi favicon" → no pasa nada en la pestaña).
+ */
+function DisabledPlaceholder({ current, kind }: { current: string | null; kind: 'image' }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '14px',
+        padding: '14px 16px',
+        background: 'var(--sala-surface)',
+        border: '1px dashed var(--sala-border-strong)',
+        borderRadius: '12px',
+        cursor: 'not-allowed'
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          width: '48px',
+          height: '48px',
+          background: 'var(--sala-bg)',
+          border: '1px solid var(--sala-border)',
+          borderRadius: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '22px',
+          flexShrink: 0
+        }}
+      >
+        {kind === 'image' ? '🖼' : '📁'}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p
+          style={{
+            fontSize: '13px',
+            color: 'var(--sala-text-primary)',
+            margin: 0,
+            marginBottom: '4px',
+            fontWeight: 600
+          }}
+        >
+          Carga deshabilitada por ahora
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', margin: 0, lineHeight: 1.4 }}>
+          {current
+            ? 'Hay un archivo subido pero todavía no se aplica al sistema. Lo activamos cuando habilitemos esta pieza.'
+            : 'Cuando habilitemos esta pieza vas a poder subir tu archivo desde acá.'}
+        </p>
+      </div>
+    </div>
   );
 }
