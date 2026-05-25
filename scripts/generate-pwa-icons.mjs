@@ -49,7 +49,12 @@ import { existsSync, mkdirSync, copyFileSync, writeFileSync, unlinkSync } from '
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const APPLE_BG = '#3D6B52'; // --sala-primary
+// Fondo verde de marca para TODOS los íconos: el SVG fuente es el símbolo
+// BLANCO de SALA, que sobre fondo verde queda con look app-nativa (mismo
+// patrón que la mayoría de apps modernas). Antes era blanco con símbolo
+// verde — D-015 documentó la evolución cuando consigamos la versión blanca
+// del logo. Ya la tenemos, así que actualizamos.
+const BRAND_BG = '#3D6B52';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PUBLIC_DIR = resolve(ROOT, 'public');
@@ -72,7 +77,7 @@ console.log(`Fuente: ${sourcePath} ${isSvg ? '(SVG)' : '(PNG)'}\n`);
 
 if (!existsSync(ICONS_DIR)) mkdirSync(ICONS_DIR, { recursive: true });
 
-async function renderPng(outPath, size, { opaque = false, bg = APPLE_BG } = {}) {
+async function renderPng(outPath, size, { opaque = true, bg = BRAND_BG } = {}) {
   const pipeline = sharp(sourcePath).resize(size, size, {
     fit: 'contain',
     background: opaque ? bg : { r: 0, g: 0, b: 0, alpha: 0 }
@@ -82,19 +87,27 @@ async function renderPng(outPath, size, { opaque = false, bg = APPLE_BG } = {}) 
   console.log(`  ✓ ${outPath}  (${size}×${size}${opaque ? `, opaco ${bg}` : ', alpha'})`);
 }
 
-// 2) PWA — transparentes (los OS los componen sobre lo que sea)
+// 2) PWA — opacos con fondo verde de marca. El SVG fuente trae el símbolo
+//    blanco sobre transparencia; el flatten lo asienta sobre el verde
+//    #3D6B52 para que el ícono tenga look app-nativa en Android (maskable)
+//    y en cualquier launcher/escritorio.
 await renderPng(resolve(ICONS_DIR, 'icon-192.png'), 192);
 await renderPng(resolve(ICONS_DIR, 'icon-512.png'), 512);
 
-// 3) apple-touch-icon — opaco (iOS no respeta transparencia; rellena con verde)
-await renderPng(resolve(PUBLIC_DIR, 'apple-touch-icon.png'), 180, { opaque: true });
+// 3) apple-touch-icon — mismo verde. iOS no respeta transparencia; el
+//    flatten lo aplica explícito así no queda un cuadrado negro en
+//    versiones viejas.
+await renderPng(resolve(PUBLIC_DIR, 'apple-touch-icon.png'), 180);
 
-// 4) favicon.ico — multi-resolución
+// 4) favicon.ico — multi-resolución. Mismo fondo verde que los demás para
+//    que el ícono en pestaña del browser (cuando no soporta favicon.svg) se
+//    vea coherente con el resto y siempre visible.
 const tmpPngs = [];
 for (const size of [16, 32, 48]) {
   const tmp = resolve(PUBLIC_DIR, `_tmp-favicon-${size}.png`);
   await sharp(sourcePath)
-    .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .resize(size, size, { fit: 'contain', background: BRAND_BG })
+    .flatten({ background: BRAND_BG })
     .png()
     .toFile(tmp);
   tmpPngs.push(tmp);
@@ -104,13 +117,23 @@ writeFileSync(resolve(PUBLIC_DIR, 'favicon.ico'), icoBuffer);
 console.log(`  ✓ ${resolve(PUBLIC_DIR, 'favicon.ico')}  (16/32/48 multi-res)`);
 for (const p of tmpPngs) unlinkSync(p);
 
-// 5) favicon.svg — copia 1:1 si la fuente es SVG (browsers modernos lo prefieren)
-if (isSvg) {
-  copyFileSync(sourcePath, resolve(PUBLIC_DIR, 'favicon.svg'));
-  console.log(`  ✓ ${resolve(PUBLIC_DIR, 'favicon.svg')}`);
+// 5) favicon.svg — el SVG principal (blanco) tiene símbolo blanco; en
+//    pestaña de browser con fondo claro queda invisible. Por eso usamos
+//    una fuente alternativa para el favicon: el símbolo VERDE sobre fondo
+//    blanco, que se ve bien en pestañas con cualquier tema. Si no existe,
+//    fallback a la fuente principal (que sería el blanco — los browsers
+//    modernos van a fallback al .ico que sí tiene fondo verde sólido).
+const faviconSource = resolve(PUBLIC_DIR, 'sala-favicon-source.svg');
+const faviconSvgOut = resolve(PUBLIC_DIR, 'favicon.svg');
+if (existsSync(faviconSource)) {
+  copyFileSync(faviconSource, faviconSvgOut);
+  console.log(`  ✓ ${faviconSvgOut}  (desde sala-favicon-source.svg)`);
+} else if (isSvg) {
+  copyFileSync(sourcePath, faviconSvgOut);
+  console.log(`  ✓ ${faviconSvgOut}  (desde fuente principal — considerar agregar sala-favicon-source.svg si el símbolo es blanco)`);
 } else {
   console.log(
-    '  (favicon.svg no se genera: la fuente es PNG; el .ico cubre el fallback)'
+    '  (favicon.svg no se genera: fuente PNG; el .ico cubre el fallback)'
   );
 }
 

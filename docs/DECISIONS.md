@@ -209,3 +209,32 @@ limpia. Y elimina la inconsistencia.
 (`src/admin/components/CancelarReservaModal.tsx`) para llamar
 `cancelar_reserva_atomic` en lugar de UPDATE directo. Borrar el branch
 muerto del trigger de lista de espera (`OLD.status='cancelada_admin'`).
+
+## D-015: ícono PWA — look app-nativa con fondo verde de marca (resuelto)
+
+**Decisión final** (PWA, mayo 2026): los íconos generados por
+`scripts/generate-pwa-icons.mjs` usan **símbolo blanco sobre fondo verde de
+marca `#3D6B52`** (= `--sala-primary`). Aplica a `icon-192.png`,
+`icon-512.png`, `apple-touch-icon.png` y `favicon.ico` — look app-nativa
+coherente en Android (maskable), iOS y escritorio.
+
+**Excepción de diseño — favicon.svg**: el SVG que los browsers modernos
+preferencian para pestañas (vía `<link rel="icon" type="image/svg+xml">`)
+usa el símbolo VERDE sobre fondo BLANCO. Razón: una pestaña suele
+renderizarse sobre fondo claro del browser, donde un símbolo blanco
+desaparecería. Para mantener legibilidad en cualquier tema de browser,
+favicon.svg viene de una fuente separada (`public/sala-favicon-source.svg`)
+con la versión verde-sobre-blanco. El `.ico` (fallback para browsers viejos)
+sí lleva el branding completo (símbolo blanco sobre verde).
+
+**Estructura de fuentes**:
+  - `public/sala-icon-source.svg` → fuente principal (símbolo blanco con
+    fondo transparente). Genera los 192/512/apple-touch/.ico, todos con
+    flatten contra `#3D6B52`.
+  - `public/sala-favicon-source.svg` → fuente alterna solo para
+    favicon.svg (verde sobre blanco). Si no existe, el script hace fallback
+    a la fuente principal con un warning.
+
+**Iteración previa** (también documentada): la primera versión usaba el
+símbolo verde sobre fondo blanco en TODOS los íconos. Funcional pero menos
+"app-nativa". Se reemplazó cuando llegó la versión blanca del logo (mayo 2026).
