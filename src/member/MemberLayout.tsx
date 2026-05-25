@@ -7,7 +7,7 @@ import { DemoBanner } from '@shared/components/DemoBanner';
 import NotificacionesBanner from './components/NotificacionesBanner';
 import EstadoMembresiaBanner from './components/EstadoMembresiaBanner';
 import { BottomNav } from './components/BottomNav';
-import { SalaLogo } from '@shared/components/SalaLogo';
+import { TenantLogo } from '@shared/components/TenantLogo';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Reservar = lazy(() => import('./pages/Reservar'));
@@ -61,7 +61,7 @@ export default function MemberLayout() {
       <header className="ek-header-glass">
         <div className="ek-header-inner">
           <Link to="/app" style={{ textDecoration: 'none', display: 'inline-block' }}>
-            <SalaLogo height={28} fallbackFontSize={22} />
+            <TenantLogo height={28} fallbackFontSize={22} showSuffix={true} />
           </Link>
         </div>
       </header>

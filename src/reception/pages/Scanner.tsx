@@ -5,6 +5,7 @@ import { ReservasHoyView } from '../components/ReservasHoyView';
 import { CheckInDetail } from '../components/CheckInDetail';
 import { CameraModal } from '../components/CameraModal';
 import { useScannerHID } from '../hooks/useScannerHID';
+import { TenantLogo } from '@shared/components/TenantLogo';
 
 function capitalizarNombre(s: string | undefined | null): string {
   if (!s) return '';
@@ -78,18 +79,7 @@ export default function Scanner() {
             >
               RECEPCIÓN
             </p>
-            <p
-              style={{
-                fontFamily: 'var(--ek-font-display)',
-                fontSize: '18px',
-                fontWeight: 700,
-                letterSpacing: '-0.03em',
-                margin: 0,
-                color: 'var(--ek-mustard)'
-              }}
-            >
-              SALA Studio
-            </p>
+            <TenantLogo height={22} fallbackFontSize={18} showSuffix={true} />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

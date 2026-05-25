@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
-import { SalaLogo } from '@shared/components/SalaLogo';
+import { TenantLogo } from '@shared/components/TenantLogo';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ export default function Login() {
     }}>
       <div style={{ maxWidth: '400px', width: '100%' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px' }}>
-          <SalaLogo height={56} fallbackFontSize={36} />
+          <TenantLogo height={56} fallbackFontSize={36} showSuffix={true} />
         </div>
 
         <div className="ek-card">

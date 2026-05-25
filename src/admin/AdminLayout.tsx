@@ -6,7 +6,7 @@ import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { Sidebar } from './components/Sidebar';
 import { SucursalProvider } from './providers/SucursalProvider';
 import { SucursalSelectorBar } from './components/SucursalSelectorBar';
-import { SalaLogo } from '@shared/components/SalaLogo';
+import { TenantLogo } from '@shared/components/TenantLogo';
 
 const Dashboard = lazy(() => import('./pages/AdminDashboard'));
 const Miembros = lazy(() => import('./pages/Miembros'));
@@ -87,7 +87,7 @@ export default function AdminLayout() {
             </svg>
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <SalaLogo height={20} fallbackFontSize={17} showStudio={false} />
+            <TenantLogo height={20} fallbackFontSize={17} showSuffix={false} />
             <span className="ek-eyebrow" style={{ fontSize: '9px' }}>ADMIN</span>
           </div>
           <div style={{ width: '40px' }} />

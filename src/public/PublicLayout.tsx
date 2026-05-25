@@ -1,17 +1,16 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useRoleRedirect } from '@shared/hooks/useRoleRedirect';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { DemoBanner } from '@shared/components/DemoBanner';
+import { TenantLogo } from '@shared/components/TenantLogo';
 
 const Landing = lazy(() => import('./pages/Landing'));
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
 
 export default function PublicLayout() {
-  const tenant = useTenant();
   const { authUser, signOut } = useAuth();
   const location = useLocation();
   const enLogin = location.pathname === '/login';
@@ -29,8 +28,8 @@ export default function PublicLayout() {
           alignItems: 'center'
         }}
       >
-        <Link to="/" style={{ fontWeight: 700, fontSize: '1.125rem' }}>
-          {tenant.nombre}
+        <Link to="/" style={{ textDecoration: 'none', display: 'inline-block' }}>
+          <TenantLogo height={28} fallbackFontSize={18} showSuffix={true} />
         </Link>
         <nav style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           {authUser ? (
