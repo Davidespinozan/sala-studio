@@ -1,58 +1,77 @@
 import { useTenant } from '@shared/hooks/useTenant';
+import { SalaLogo } from '@shared/components/SalaLogo';
 
 /**
- * Logo del TENANT (gimnasio cliente). Consume `tenant.branding.logo_url`
- * (con preferencia por `logo_url_dark` si existe). Si no hay logo subido,
- * fallback al nombre del gimnasio en texto.
+ * Logo del TENANT (gimnasio cliente). Sistema de DOS PIEZAS:
+ *   - variant='completo'  → branding.logo_url[_dark] (horizontal: símbolo + wordmark)
+ *   - variant='isotipo'   → branding.isotipo_url (cuadrado: solo símbolo)
  *
- * NO usa el logo de SALA producto. La marca SALA no debe aparecer en
- * lugares de "logo del tenant" (login, headers member/admin/recepción,
- * landing público) — esos pertenecen al gimnasio.
+ * Cada pieza tiene su CASCADA DE FALLBACK independiente. NO se mezclan
+ * piezas entre tenant y SALA — si el tenant subió solo el logo
+ * horizontal y no el isotipo, en login se ve el isotipo de SALA, no
+ * el logo horizontal del tenant comprimido en un cuadrado:
  *
- * El admin del gimnasio sube su logo desde `/admin/ajustes/marca`
+ *   variant='completo':
+ *     1. tenant.branding.logo_url_dark
+ *     2. tenant.branding.logo_url
+ *     3. SalaLogo variant='completo' (fallback)
+ *
+ *   variant='isotipo':
+ *     1. tenant.branding.isotipo_url
+ *     2. SalaLogo variant='isotipo' (fallback)
+ *
+ * El admin del gimnasio sube sus piezas desde /admin/ajustes/marca
  * (AjustesMarca.tsx → bucket Storage "logos" → persistido en
- * `tenants.branding.logo_url[_dark]`).
+ * tenants.branding.{logo_url,isotipo_url}). Hasta que lo haga, ve el
+ * logo de SALA como placeholder.
  *
- * NOTA DE CONTRASTE — el fallback de texto usa `var(--ek-mustard)`, que
- * el TenantProvider sobrescribe con `branding.color_primary` del tenant.
- * Si un tenant configura un color custom muy claro (ej. amarillo pastel)
- * el texto pierde contraste sobre fondos claros (header crema/blanco).
- * Esto NO se resuelve acá — el editor de marca (AjustesMarca) debería
- * validar contraste WCAG mínimo del color elegido y advertir al admin
- * antes de guardar. Pendiente como mejora de UX del editor.
+ * Aplica a los 5 lugares:
+ *   Login                     → variant='isotipo'
+ *   Member header             → variant='completo'
+ *   Admin topbar (+pill ADMIN) → variant='completo'
+ *   Recepción (+eyebrow)       → variant='completo'
+ *   Landing público header    → variant='completo'
  */
 
 interface TenantLogoProps {
+  /** Pieza a mostrar. Default 'completo' (horizontal). */
+  variant?: 'isotipo' | 'completo';
   /** Alto en píxeles del SVG si hay logo subido. Default 32 (header típico). */
   height?: number;
-  /** font-size del primer token del nombre en el fallback. Default 22. */
+  /** font-size del primer token del nombre en el fallback de texto. Default 22. */
   fallbackFontSize?: number;
   /**
    * Si true, muestra el resto del nombre del tenant como eyebrow después
    * del primer token (ej. "SALA Studio" → "SALA" + eyebrow "STUDIO").
+   * Solo aplica al fallback de texto del SalaLogo variant='completo'.
    * Default false (solo primer token).
    */
   showSuffix?: boolean;
 }
 
 export function TenantLogo({
+  variant = 'completo',
   height = 32,
   fallbackFontSize = 22,
   showSuffix = false
 }: TenantLogoProps) {
   const tenant = useTenant();
   const branding = (tenant.branding ?? {}) as Record<string, unknown>;
-  const logoUrl =
-    typeof branding.logo_url_dark === 'string'
-      ? branding.logo_url_dark
-      : typeof branding.logo_url === 'string'
-        ? (branding.logo_url as string)
-        : null;
 
-  if (logoUrl) {
+  // Cascada por pieza, sin mezclar
+  const url =
+    variant === 'isotipo'
+      ? (typeof branding.isotipo_url === 'string' ? branding.isotipo_url : null)
+      : typeof branding.logo_url_dark === 'string'
+        ? branding.logo_url_dark
+        : typeof branding.logo_url === 'string'
+          ? (branding.logo_url as string)
+          : null;
+
+  if (url) {
     return (
       <img
-        src={logoUrl}
+        src={url}
         alt={tenant.nombre}
         style={{
           height: `${height}px`,
@@ -65,34 +84,13 @@ export function TenantLogo({
     );
   }
 
-  // Fallback: texto del nombre del tenant. Primer token destacado,
-  // resto como eyebrow opcional.
-  const tokens = (tenant.nombre || '').split(/\s+/).filter(Boolean);
-  const head = tokens[0] || 'Gym';
-  const suffix =
-    showSuffix && tokens.length > 1
-      ? tokens.slice(1).join(' ').toUpperCase()
-      : null;
-
+  // Fallback: SalaLogo con la MISMA variant (no mezclar piezas).
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-      <span
-        style={{
-          fontFamily: 'var(--ek-font-display)',
-          fontSize: `${fallbackFontSize}px`,
-          fontWeight: 700,
-          letterSpacing: '-0.04em',
-          color: 'var(--ek-mustard)', // ← mapeado a branding.color_primary del tenant
-          lineHeight: 1
-        }}
-      >
-        {head}
-      </span>
-      {suffix && (
-        <span className="ek-eyebrow" style={{ paddingTop: '4px' }}>
-          {suffix}
-        </span>
-      )}
-    </div>
+    <SalaLogo
+      variant={variant}
+      height={height}
+      fallbackFontSize={fallbackFontSize}
+      showStudio={showSuffix}
+    />
   );
 }

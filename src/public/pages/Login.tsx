@@ -45,7 +45,7 @@ export default function Login() {
     }}>
       <div style={{ maxWidth: '400px', width: '100%' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px' }}>
-          <TenantLogo height={56} fallbackFontSize={36} showSuffix={true} />
+          <TenantLogo variant="isotipo" height={80} />
         </div>
 
         <div className="ek-card">

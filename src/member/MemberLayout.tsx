@@ -61,7 +61,7 @@ export default function MemberLayout() {
       <header className="ek-header-glass">
         <div className="ek-header-inner">
           <Link to="/app" style={{ textDecoration: 'none', display: 'inline-block' }}>
-            <TenantLogo height={28} fallbackFontSize={22} showSuffix={true} />
+            <TenantLogo variant="completo" height={28} fallbackFontSize={22} showSuffix={true} />
           </Link>
         </div>
       </header>

@@ -29,7 +29,7 @@ export default function PublicLayout() {
         }}
       >
         <Link to="/" style={{ textDecoration: 'none', display: 'inline-block' }}>
-          <TenantLogo height={28} fallbackFontSize={18} showSuffix={true} />
+          <TenantLogo variant="completo" height={28} fallbackFontSize={18} showSuffix={true} />
         </Link>
         <nav style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           {authUser ? (

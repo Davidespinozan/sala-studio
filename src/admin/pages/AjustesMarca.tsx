@@ -6,12 +6,14 @@ import ImageUploader from '../components/ImageUploader';
 
 type BrandingDraft = {
   logo_url_dark: string | null;
+  isotipo_url: string | null;
   og_image_url: string | null;
   favicon_url: string | null;
 };
 
 const EMPTY: BrandingDraft = {
   logo_url_dark: null,
+  isotipo_url: null,
   og_image_url: null,
   favicon_url: null
 };
@@ -25,6 +27,7 @@ function readBranding(branding: unknown): BrandingDraft {
       : typeof b.logo_url === 'string'
         ? b.logo_url
         : null,
+    isotipo_url: typeof b.isotipo_url === 'string' ? b.isotipo_url : null,
     og_image_url: typeof b.og_image_url === 'string' ? b.og_image_url : null,
     favicon_url: typeof b.favicon_url === 'string' ? b.favicon_url : null
   };
@@ -106,8 +109,8 @@ export default function AjustesMarca() {
       </p>
 
       <Section
-        title="LOGO PRINCIPAL"
-        description="Aparece en sidebar admin, headers y footer público. Recomendado: PNG transparente, fondo oscuro, 512×128px."
+        title="LOGO PRINCIPAL (HORIZONTAL)"
+        description="Símbolo + nombre de tu marca en formato horizontal. Aparece en headers de la app (member/admin/recepción), landing público y sidebar admin. Recomendado: PNG/SVG transparente, ratio ~3:1, 512×170px."
       >
         <ImageUploader
           bucket="logos"
@@ -119,7 +122,26 @@ export default function AjustesMarca() {
         />
         {!draft.logo_url_dark && (
           <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
-            Por ahora se muestra el texto &quot;{tenant.nombre.split(/\s+/)[0]}&quot; como logo.
+            Mientras no subas tu logo, se muestra el logo de SALA como placeholder.
+          </p>
+        )}
+      </Section>
+
+      <Section
+        title="ISOTIPO (SÍMBOLO CUADRADO)"
+        description="Solo el símbolo de tu marca, sin texto, cuadrado. Aparece en el login y espacios chicos."
+      >
+        <ImageUploader
+          bucket="logos"
+          pathPrefix={`${tenant.slug}/isotipo`}
+          currentUrl={draft.isotipo_url}
+          onUploaded={(url) => setDraft({ ...draft, isotipo_url: url || null })}
+          label=""
+          helperText="Símbolo cuadrado (sin texto). PNG o SVG, fondo transparente, 512×512 mínimo. Aparece en el login y espacios chicos."
+        />
+        {!draft.isotipo_url && (
+          <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
+            Mientras no subas tu isotipo, se muestra el isotipo de SALA como placeholder.
           </p>
         )}
       </Section>
