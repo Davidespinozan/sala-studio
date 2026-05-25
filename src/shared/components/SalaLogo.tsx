@@ -19,7 +19,7 @@
  * Esos son del cliente, no del producto SALA.
  */
 
-const LOGO_SVG_DISPONIBLE = false;
+const LOGO_SVG_DISPONIBLE = true;
 const LOGO_SRC = '/logo-sala.svg';
 
 interface SalaLogoProps {
