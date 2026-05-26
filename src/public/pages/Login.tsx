@@ -2,6 +2,7 @@ import { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { TenantLogo } from '@shared/components/TenantLogo';
+import { PoweredBySala } from '@shared/components/PoweredBySala';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -103,6 +104,8 @@ export default function Login() {
             </button>
           </form>
         </div>
+
+        <PoweredBySala />
       </div>
     </div>
   );

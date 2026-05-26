@@ -1,5 +1,6 @@
 import { useLandingConfig } from '@shared/hooks/useLandingConfig';
 import { useTenant } from '@shared/hooks/useTenant';
+import { PoweredBySala } from '@shared/components/PoweredBySala';
 
 const ICON_SIZE = 18;
 
@@ -193,16 +194,28 @@ export default function Footer() {
         </div>
       </div>
 
-      <p
+      <div
         style={{
-          fontSize: '11px',
-          color: 'var(--ek-ink-faint)',
           marginTop: '32px',
-          letterSpacing: '0.04em'
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px'
         }}
       >
-        © {new Date().getFullYear()} {tenant.nombre || 'SALA Studio'}. {footer.copyright}
-      </p>
+        <p
+          style={{
+            fontSize: '11px',
+            color: 'var(--ek-ink-faint)',
+            margin: 0,
+            letterSpacing: '0.04em'
+          }}
+        >
+          © {new Date().getFullYear()} {tenant.nombre || 'SALA Studio'}. {footer.copyright}
+        </p>
+        <PoweredBySala align="left" />
+      </div>
     </footer>
   );
 }

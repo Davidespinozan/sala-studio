@@ -226,6 +226,24 @@ limpia. Y elimina la inconsistencia.
 `cancelar_reserva_atomic` en lugar de UPDATE directo. Borrar el branch
 muerto del trigger de lista de espera (`OLD.status='cancelada_admin'`).
 
+## D-014: gate de membresía lee `usuario.membresia_tier` en vez de JOIN a `tiers`
+
+**Severidad**: baja — funcional, pero desnormalización rara.
+
+**Bug**: `reservar_clase_atomic` y `anotar_lista_espera` verifican el tier
+del socio leyendo `usuario.membresia_tier` (string) y comparándolo contra
+`recurso.tiers_permitidos`. Es una columna desnormalizada que se sincroniza
+desde `membresias.tier_id` vía RPC (`gestionar_membresia_socio` setea ambos),
+pero abre la puerta a inconsistencia: si por algún motivo `usuario.
+membresia_tier` queda desfasada de la membresía activa real, el gate evalúa
+sobre el dato viejo.
+
+**Cuando se ataque**: refactorear el gate para JOIN directo
+`membresias → tiers → tiers_permitidos`. Es una línea de SQL más por gate,
+pero elimina la columna desnormalizada (o al menos la deja como cache no
+autoritativo). Anotado originalmente en
+`20260524500000_gestionar_membresia_socio.sql:41`.
+
 ## D-015: ícono PWA — look app-nativa con fondo verde de marca (resuelto)
 
 **Decisión final** (PWA, mayo 2026): los íconos generados por
@@ -255,7 +273,7 @@ sí lleva el branding completo (símbolo blanco sobre verde).
 símbolo verde sobre fondo blanco en TODOS los íconos. Funcional pero menos
 "app-nativa". Se reemplazó cuando llegó la versión blanca del logo (mayo 2026).
 
-## D-015: favicon dinámico por tenant (white-label)
+## D-016: favicon dinámico por tenant (white-label)
 
 **Estado**: campo `branding.favicon_url` ya existe + editor en AjustesMarca
 sube el archivo a Supabase Storage. **Pero el front no lo lee** —
@@ -331,7 +349,7 @@ móvil es verde SALA siempre. El nombre del ícono PWA en iOS dice "SALA".
   - `<meta property="og:description">` con un campo nuevo
     `branding.tagline_seo` o derivado del landing_config
   - `<meta property="og:image">` con `branding.og_image_url`
-  - `<link rel="icon">` con `branding.favicon_url` (D-015)
+  - `<link rel="icon">` con `branding.favicon_url` (D-016)
 
 **Caveat**: los meta OG los lee el crawler de WhatsApp/Twitter/etc. ANTES
 de que el JS de la app corra. Si la app es SPA pura, el crawler ve el HTML
@@ -346,11 +364,40 @@ Para favicon/theme-color/title sí alcanza con manipular DOM en runtime
 **Severidad por sub-pieza**:
   - theme-color, apple-web-app-title, favicon (runtime): media — solo
     afecta visual de quien tiene la app abierta. Implementable con DOM
-    manipulation simple, junto con D-015.
+    manipulation simple, junto con D-016.
   - og:title / og:description / og:image (crawlers): alta — requiere SSR.
     Mucho más caro de implementar.
 
-**Cuando se ataque**: hacer primero la parte runtime (junto con D-015 y
+**Cuando se ataque**: hacer primero la parte runtime (junto con D-016 y
 D-017). La parte SSR/OG para crawlers puede quedar D-018b si el SaaS
 explota y vale el esfuerzo de configurar Netlify Functions con HTML
 custom por subdominio.
+
+## D-019: flag `hide_powered_by` debería derivarse del plan SaaS, no manual
+
+**Severidad**: baja — hoy funciona, pero acopla mal cuando exista Stripe.
+
+**Estado actual**: el footer `<PoweredBySala>` (presente en Login, Member,
+Admin sidebar, Recepción, landing público) se oculta cuando el tenant tiene
+`branding.hide_powered_by === true`. Es un flag MANUAL — alguien (admin de
+SALA, no del gym) lo prende a mano para clientes premium.
+
+**Por qué se hizo así (opción A)**: cuando se construyó el footer
+(`feat(branding): Powered by SALA footer ...`), Stripe seguía mockeado y
+`suscripciones_saas` tenía `mock_cus_*` hardcoded. Conectar el flag a "plan
+premium" requería primero tener el plan real funcionando — y eso es un
+sprint entero. La opción A (flag manual) cubre el caso de los primeros
+clientes premium sin bloquear la entrega.
+
+**Lo que falta**: cuando Stripe esté conectado de verdad, el flag debería
+derivarse del tier del SaaS (ej. `suscripciones_saas.tier IN ('premium',
+'enterprise')` → ocultar; `'basic' o 'trial'` → mostrar). Un sólo lugar
+de verdad. Hoy hay riesgo de drift: un gym puede pagar premium y nadie le
+prende el flag, o dejar de pagar y nadie se lo apaga.
+
+**Cuando se ataque**: junto con la integración real de Stripe (`webhooks
++ suscripciones_saas` autoritativo). Cambiar
+`PoweredBySala.tsx:if (branding.hide_powered_by === true)` por algo como
+`if (suscripcionPremium(tenant.suscripcion))`. El campo manual
+`branding.hide_powered_by` puede quedar como override de soporte (gym
+beta-tester sin pagar pero acordado que no lleva footer) o eliminarse.

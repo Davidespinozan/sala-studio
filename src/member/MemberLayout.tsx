@@ -8,6 +8,7 @@ import NotificacionesBanner from './components/NotificacionesBanner';
 import EstadoMembresiaBanner from './components/EstadoMembresiaBanner';
 import { BottomNav } from './components/BottomNav';
 import { TenantLogo } from '@shared/components/TenantLogo';
+import { PoweredBySala } from '@shared/components/PoweredBySala';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Reservar = lazy(() => import('./pages/Reservar'));
@@ -78,6 +79,8 @@ export default function MemberLayout() {
           <Route path="/qr/:reservaId" element={<MiQR />} />
         </Routes>
       </Suspense>
+
+      <PoweredBySala />
 
       <BottomNav />
     </div>

@@ -157,7 +157,7 @@ export default function AjustesMarca() {
       <Section
         title="FAVICON"
         description="Aparecerá en la pestaña del navegador. Recomendado: 32×32px o 64×64px PNG transparente."
-        proximamente="Sistema en desarrollo (D-015) — la pestaña todavía muestra el favicon de SALA. Esperá a habilitarlo."
+        proximamente="Sistema en desarrollo (D-016) — la pestaña todavía muestra el favicon de SALA. Esperá a habilitarlo."
       >
         <DisabledPlaceholder current={draft.favicon_url} kind="image" />
       </Section>
@@ -251,7 +251,7 @@ function Section({
 }
 
 /**
- * Placeholder visual mientras la pieza de marca no se aplica aún (D-015/D-018).
+ * Placeholder visual mientras la pieza de marca no se aplica aún (D-016/D-018).
  * Mantiene el aspecto del uploader pero sin permitir subir, para evitar UX
  * engañosa ("subí mi favicon" → no pasa nada en la pestaña).
  */

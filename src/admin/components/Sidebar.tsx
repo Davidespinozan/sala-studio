@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
 import { TenantLogo } from '@shared/components/TenantLogo';
+import { PoweredBySala } from '@shared/components/PoweredBySala';
 
 const SIDEBAR_COLLAPSED_KEY = 'sala-admin-sidebar-collapsed';
 const VER_COMO_LABEL = 'VER COMO…';
@@ -447,6 +448,7 @@ export function Sidebar({ onNavigate }: Props = {}) {
         >
           Cerrar sesión →
         </button>
+        <PoweredBySala align="left" />
       </div>
     </aside>
   );

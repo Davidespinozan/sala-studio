@@ -6,6 +6,7 @@ import { CheckInDetail } from '../components/CheckInDetail';
 import { CameraModal } from '../components/CameraModal';
 import { useScannerHID } from '../hooks/useScannerHID';
 import { TenantLogo } from '@shared/components/TenantLogo';
+import { PoweredBySala } from '@shared/components/PoweredBySala';
 
 function capitalizarNombre(s: string | undefined | null): string {
   if (!s) return '';
@@ -102,6 +103,7 @@ export default function Scanner() {
           key={refreshTick}
           onManualCheckInSuccess={handleManualCheckIn}
         />
+        <PoweredBySala />
       </div>
 
       <button
