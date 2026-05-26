@@ -11,6 +11,99 @@ interface TenantContextValue {
   error: Error | null;
 }
 
+// ============================================================================
+// Helpers de color — Fase A del sistema dinámico (D-017 RESUELTO)
+// ============================================================================
+// Estos 4 helpers + applyBranding/restoreBranding deciden los 4 flags
+// JS-decididos del contrato CSS (--sala-primary, --sala-primary-text,
+// --sala-primary-tint y los equivalentes accent). Los 20 derivados se
+// recalculan solos vía color-mix() en sala.css.
+//
+// Umbrales (validados en scripts/validate-color-regression.mjs):
+//   - pickTextOn:    L > 0.55  → texto negro; sino texto blanco. WCAG AA UI.
+//   - pickHoverTint: L < 0.06  → lighten (white); sino darken (black).
+//     SALA verde tiene L=0.121 → darken (consistente con --sala-primary-hover
+//     hand-tuned original #2F5440).
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const cleaned = hex.replace('#', '');
+  if (!/^[0-9a-f]{6}$/i.test(cleaned)) return null;
+  return {
+    r: parseInt(cleaned.slice(0, 2), 16),
+    g: parseInt(cleaned.slice(2, 4), 16),
+    b: parseInt(cleaned.slice(4, 6), 16)
+  };
+}
+
+export function relativeLuminance(hex: string): number {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 0.5;
+  const linearize = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * linearize(rgb.r) + 0.7152 * linearize(rgb.g) + 0.0722 * linearize(rgb.b);
+}
+
+export function pickTextOn(hex: string): string {
+  return relativeLuminance(hex) > 0.55 ? '#0A0A0A' : '#FFFFFF';
+}
+
+export function pickHoverTint(hex: string): '#000000' | '#FFFFFF' {
+  return relativeLuminance(hex) < 0.06 ? '#FFFFFF' : '#000000';
+}
+
+/** Contrast ratio WCAG entre dos hex. >=4.5 pasa AA texto, >=3 pasa AA UI. */
+export function contrastRatio(hexA: string, hexB: string): number {
+  const la = relativeLuminance(hexA);
+  const lb = relativeLuminance(hexB);
+  const lighter = Math.max(la, lb);
+  const darker = Math.min(la, lb);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+interface BrandingColors {
+  color_primary?: string | null;
+  color_accent?: string | null;
+}
+
+/**
+ * Pisa los 6 flags dinámicos del :root con los colores del tenant.
+ * Los 20 derivados se recalculan solos vía color-mix().
+ * Si algún color es inválido, no pisa nada (queda el default SALA).
+ */
+export function applyBranding(branding: BrandingColors | null | undefined): void {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  const primary = (branding?.color_primary as string | undefined) || '#3D6B52';
+  const accent = (branding?.color_accent as string | undefined) || '#E8654A';
+
+  if (!hexToRgb(primary) || !hexToRgb(accent)) {
+    // Datos inválidos en DB — preserva defaults del :root.
+    return;
+  }
+
+  root.style.setProperty('--sala-primary', primary);
+  root.style.setProperty('--sala-primary-text', pickTextOn(primary));
+  root.style.setProperty('--sala-primary-tint', pickHoverTint(primary));
+
+  root.style.setProperty('--sala-accent', accent);
+  root.style.setProperty('--sala-accent-text', pickTextOn(accent));
+  root.style.setProperty('--sala-accent-tint', pickHoverTint(accent));
+}
+
+/**
+ * Revierte el applyBranding — borra los overrides inline para volver al
+ * valor declarado en el :root. Usado por AjustesMarca al cancelar el
+ * preview en tiempo real (vuelve al estado persistido).
+ */
+export function restoreBranding(branding: BrandingColors | null | undefined): void {
+  // Re-aplica con el branding persistido (NO borra los style props porque
+  // siempre queremos los flags JS-decididos seteados al valor "correcto"
+  // para el branding actual, no al SALA default).
+  applyBranding(branding);
+}
+
 const TenantContext = createContext<TenantContextValue>({
   tenant: null,
   isLoading: true,
@@ -86,18 +179,12 @@ export function TenantProvider({ children }: TenantProviderProps) {
         setTenant(data);
         setIsLoading(false);
 
-        // Branding tokens dinámicos están desactivados en Sprint C1.
-        // SALA usa paleta fija "Mostaza Ink" definida en CSS global.
-        //
-        // Para activar multi-paleta dinámica en Sprint D:
-        // 1. Mapear branding.color_primary → --ek-mustard
-        // 2. Mapear branding.color_bg → --ek-bg
-        // 3. Mapear branding.color_accent → --ek-mustard-soft
-        // 4. Auditar todos los usos de hex codes hardcoded en componentes
-        // 5. Documentar el contrato en KERNEL.md sección "Branding"
-        //
-        // branding sigue disponible en el contexto para Sprint D:
-        // logo_url, og_image_url, favicon_url (cuando se implementen).
+        // D-017 RESUELTO: aplicar color dinámico del tenant al :root.
+        // Pisa --sala-primary/-text/-tint y --sala-accent/-text/-tint;
+        // los 20 derivados se recalculan vía color-mix() en sala.css.
+        // Solo --sala-primary y --sala-accent del tenant fluyen — bg y
+        // neutros se quedan fijos (decisión del contrato Fase A).
+        applyBranding(data.branding as BrandingColors | null);
 
         // Setear título dinámico
         if (data.nombre) {

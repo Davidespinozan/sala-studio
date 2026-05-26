@@ -329,8 +329,9 @@ export function Sidebar({ onNavigate }: Props = {}) {
           className="ek-badge"
           style={{
             marginTop: '8px',
-            backgroundColor: 'var(--ek-mustard)',
-            color: 'var(--ek-bg)',
+            backgroundColor: 'transparent',
+            color: 'rgba(255, 255, 255, 0.85)',
+            border: '0.5px solid rgba(255, 255, 255, 0.22)',
             fontSize: '9px',
             fontWeight: 700,
             letterSpacing: '0.12em',
@@ -371,7 +372,7 @@ export function Sidebar({ onNavigate }: Props = {}) {
                         style={{
                           fontSize: '8px',
                           letterSpacing: '0.1em',
-                          color: 'var(--ek-ink-faint)',
+                          color: 'rgba(255, 255, 255, 0.55)',
                           fontWeight: 700,
                           whiteSpace: 'nowrap'
                         }}
@@ -401,7 +402,7 @@ export function Sidebar({ onNavigate }: Props = {}) {
                 title="Abre en nueva pestaña"
                 className="adm-sidebar-item"
                 style={{
-                  border: '0.5px solid var(--ek-line)',
+                  border: '0.5px solid rgba(255, 255, 255, 0.15)',
                   marginTop: '4px'
                 }}
               >
@@ -409,7 +410,7 @@ export function Sidebar({ onNavigate }: Props = {}) {
                   {link.icon}
                 </span>
                 <span style={{ flex: 1 }}>{link.label}</span>
-                <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)' }}>↗</span>
+                <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.55)' }}>↗</span>
               </a>
             ))}
         </div>
@@ -417,7 +418,14 @@ export function Sidebar({ onNavigate }: Props = {}) {
 
       <div className="adm-sidebar-footer">
         <div style={{ marginBottom: '12px' }}>
-          <p className="ek-eyebrow" style={{ fontSize: '9px', marginBottom: '4px' }}>
+          <p
+            className="ek-eyebrow"
+            style={{
+              fontSize: '9px',
+              marginBottom: '4px',
+              color: 'rgba(255, 255, 255, 0.55)'
+            }}
+          >
             CONECTADO
           </p>
           <p
@@ -427,7 +435,7 @@ export function Sidebar({ onNavigate }: Props = {}) {
               fontWeight: 600,
               letterSpacing: '-0.02em',
               margin: 0,
-              color: 'var(--ek-ink)'
+              color: 'rgba(255, 255, 255, 0.92)'
             }}
           >
             {nombreFormat || usuario?.email}
@@ -438,7 +446,7 @@ export function Sidebar({ onNavigate }: Props = {}) {
             signOut();
             navigate('/login');
           }}
-          className="ek-icon-btn"
+          className="ek-icon-btn adm-sidebar-signout"
           style={{
             width: '100%',
             padding: '10px',
@@ -448,7 +456,7 @@ export function Sidebar({ onNavigate }: Props = {}) {
         >
           Cerrar sesión →
         </button>
-        <PoweredBySala align="left" />
+        <PoweredBySala align="left" tone="dark" />
       </div>
     </aside>
   );
@@ -478,7 +486,7 @@ function SectionToggle({
         padding: '8px 8px 6px',
         background: 'transparent',
         border: 'none',
-        color: 'var(--ek-ink-faint)',
+        color: 'rgba(255, 255, 255, 0.60)',
         cursor: 'pointer',
         fontFamily: 'inherit',
         textAlign: 'left'
@@ -491,7 +499,7 @@ function SectionToggle({
           fontSize: '10px',
           transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
           transition: 'transform 0.18s ease',
-          color: 'var(--ek-ink-faint)'
+          color: 'rgba(255, 255, 255, 0.50)'
         }}
       >
         ▾

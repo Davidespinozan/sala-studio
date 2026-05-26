@@ -21,10 +21,31 @@ import {
   type CohorteRetencion,
   type MiembroRiesgo
 } from '../hooks/useReportesAvanzados';
+import { useTenant } from '@shared/hooks/useTenant';
 
-const SALVIA = '#3d6b52';
+const SALA_DEFAULT_PRIMARY = '#3D6B52';
+const SALA_DEFAULT_ACCENT  = '#C44A35';
+// SALVIA_LIGHT se queda hardcoded — recharts necesita un hex liso y el
+// derivado --sala-primary-light depende de color-mix() que recharts no
+// entiende. Si se vuelve un problema con tenants no-verdes, derivarlo
+// JS-side con un mix manual aquí.
 const SALVIA_LIGHT = '#a9c4b3';
-const CORAL = '#c44a35';
+
+/**
+ * Hook que entrega los colores de chart para recharts.
+ * Recharts no entiende CSS vars — necesita hex literal. Este hook lee
+ * tenant.branding.color_primary/color_accent y devuelve hex. Si el
+ * tenant tiene color custom, los charts se tiñen automáticamente.
+ */
+function useChartColors() {
+  const tenant = useTenant();
+  const branding = (tenant.branding ?? {}) as Record<string, unknown>;
+  return {
+    salvia: typeof branding.color_primary === 'string' ? branding.color_primary : SALA_DEFAULT_PRIMARY,
+    coral:  typeof branding.color_accent  === 'string' ? branding.color_accent  : SALA_DEFAULT_ACCENT,
+    salviaLight: SALVIA_LIGHT
+  };
+}
 
 export default function Reportes() {
   const [periodo, setPeriodo] = useState<PeriodoReporte>('mes');
@@ -115,6 +136,7 @@ export default function Reportes() {
 // ============================================================================
 
 function BloqueOcupacion({ data }: { data: ReportesData }) {
+  const { salvia } = useChartColors();
   const o = data.ocupacion;
   const comp = data.comparacion?.ocupacion ?? null;
   return (
@@ -165,7 +187,7 @@ function BloqueOcupacion({ data }: { data: ReportesData }) {
                 stroke="var(--sala-text-tertiary)"
               />
               <Tooltip formatter={(v) => [`${v}%`, 'Ocupación']} />
-              <Bar dataKey="ocupacionPct" name="Ocupación" radius={[6, 6, 0, 0]} fill={SALVIA} />
+              <Bar dataKey="ocupacionPct" name="Ocupación" radius={[6, 6, 0, 0]} fill={salvia} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -175,6 +197,7 @@ function BloqueOcupacion({ data }: { data: ReportesData }) {
 }
 
 function BloqueMiembros({ data }: { data: ReportesData }) {
+  const { salvia } = useChartColors();
   const m = data.miembros;
   const comp = data.comparacion?.miembros ?? null;
   return (
@@ -205,7 +228,7 @@ function BloqueMiembros({ data }: { data: ReportesData }) {
                 stroke="var(--sala-text-tertiary)"
               />
               <Tooltip formatter={(v) => [v, 'Miembros']} />
-              <Bar dataKey="cantidad" name="Miembros" radius={[6, 6, 0, 0]} fill={SALVIA} />
+              <Bar dataKey="cantidad" name="Miembros" radius={[6, 6, 0, 0]} fill={salvia} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -215,6 +238,7 @@ function BloqueMiembros({ data }: { data: ReportesData }) {
 }
 
 function BloqueReservas({ data }: { data: ReportesData }) {
+  const { salvia, salviaLight } = useChartColors();
   const r = data.reservas;
   const comp = data.comparacion?.reservas ?? null;
   return (
@@ -268,7 +292,7 @@ function BloqueReservas({ data }: { data: ReportesData }) {
               <Tooltip formatter={(v) => [v, 'Reservas']} />
               <Bar dataKey="cantidad" name="Reservas" radius={[4, 4, 0, 0]}>
                 {r.porDia.map((d) => (
-                  <Cell key={d.fecha} fill={d.cantidad > 0 ? SALVIA : SALVIA_LIGHT} />
+                  <Cell key={d.fecha} fill={d.cantidad > 0 ? salvia : salviaLight} />
                 ))}
               </Bar>
             </BarChart>
@@ -333,6 +357,7 @@ function BloqueRetencion({ av }: { av: ReportesAvanzadosData }) {
 }
 
 function TablaCohortes({ cohortes }: { cohortes: CohorteRetencion[] }) {
+  const { salvia, coral } = useChartColors();
   const conAltas = cohortes.some((c) => c.tamano > 0);
   if (!conAltas) {
     return <EmptyChart mensaje="Sin altas en los últimos 6 meses." />;
@@ -391,7 +416,7 @@ function TablaCohortes({ cohortes }: { cohortes: CohorteRetencion[] }) {
                   style={{
                     ...td,
                     fontWeight: 600,
-                    color: pct == null ? 'var(--sala-text-tertiary)' : colorRetencion(pct)
+                    color: pct == null ? 'var(--sala-text-tertiary)' : colorRetencion(pct, { salvia, coral })
                   }}
                 >
                   {pct == null ? '—' : `${pct}%`}
@@ -405,13 +430,14 @@ function TablaCohortes({ cohortes }: { cohortes: CohorteRetencion[] }) {
   );
 }
 
-function colorRetencion(pct: number): string {
-  if (pct >= 70) return SALVIA;
+function colorRetencion(pct: number, colors: { salvia: string; coral: string }): string {
+  if (pct >= 70) return colors.salvia;
   if (pct >= 40) return 'var(--sala-text-primary)';
-  return CORAL;
+  return colors.coral;
 }
 
 function BloqueMiembrosRiesgo({ miembros }: { miembros: MiembroRiesgo[] }) {
+  const { coral } = useChartColors();
   return (
     <Bloque titulo={`Miembros en riesgo (${miembros.length})`}>
       <div
@@ -482,7 +508,7 @@ function BloqueMiembrosRiesgo({ miembros }: { miembros: MiembroRiesgo[] }) {
                     flexShrink: 0,
                     fontSize: '12px',
                     fontWeight: 600,
-                    color: CORAL,
+                    color: coral,
                     fontVariantNumeric: 'tabular-nums'
                   }}
                 >
@@ -559,11 +585,12 @@ function KpiCard({
   nota?: string;
   comparar?: CompararKpi;
 }) {
+  const { coral } = useChartColors();
   return (
     <div
       style={{
         background: 'var(--sala-surface)',
-        border: `1px solid ${alerta ? 'rgba(196, 74, 53, 0.35)' : 'var(--sala-border)'}`,
+        border: `1px solid ${alerta ? 'var(--sala-error-glow)' : 'var(--sala-border)'}`,
         borderRadius: '14px',
         padding: '16px 18px'
       }}
@@ -587,7 +614,7 @@ function KpiCard({
           fontWeight: 700,
           letterSpacing: '-0.03em',
           fontVariantNumeric: 'tabular-nums',
-          color: alerta ? CORAL : 'var(--sala-text-primary)',
+          color: alerta ? coral : 'var(--sala-text-primary)',
           margin: 0
         }}
       >
@@ -605,6 +632,7 @@ function KpiCard({
 
 /** Indicador de variación vs. el período anterior. */
 function DeltaBadge({ actual, anterior, inversa = false, modo = 'relativo' }: CompararKpi) {
+  const { salvia, coral } = useChartColors();
   if (anterior == null) return null;
 
   let texto: string;
@@ -631,7 +659,7 @@ function DeltaBadge({ actual, anterior, inversa = false, modo = 'relativo' }: Co
   const esBueno = inversa ? !subio : subio;
   return (
     <p style={{ fontSize: '11px', fontWeight: 600, margin: '4px 0 0' }}>
-      <span style={{ color: esBueno ? SALVIA : CORAL }}>{texto}</span>{' '}
+      <span style={{ color: esBueno ? salvia : coral }}>{texto}</span>{' '}
       <span style={{ color: 'var(--sala-text-tertiary)', fontWeight: 500 }}>vs. anterior</span>
     </p>
   );

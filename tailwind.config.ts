@@ -1,54 +1,24 @@
 import type { Config } from 'tailwindcss';
 
+/**
+ * Tailwind config — solo utilities ortogonales (layout/spacing/fonts).
+ *
+ * D-017 (Fase A) eliminó los tokens de color brand (sala.primary, ek-mustard,
+ * etc.) porque 0 componentes usaban Tailwind brand classes en sus className.
+ * Toda la app consume color via CSS vars (--sala-primary, --ek-mustard) que
+ * fluyen dinámicamente del tenant. Verificado con grep sistemático antes de
+ * eliminar — ningún build se rompe.
+ *
+ * Si en el futuro algún componente necesita una utility brand, agregarla acá
+ * con el patrón rgb(var(--sala-primary-rgb) / <alpha-value>) para que respete
+ * el color dinámico del tenant.
+ */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       screens: {
         xs: '475px'
-      },
-      colors: {
-        // SALA design tokens — paleta Salvia Light
-        sala: {
-          bg: '#FAFAF7',
-          surface: '#FFFFFF',
-          border: '#E8E6E0',
-          'border-strong': '#D4D0C8',
-
-          primary: '#3D6B52',
-          'primary-hover': '#2F5440',
-          'primary-light': '#E8F0EB',
-
-          accent: '#E8654A',
-          'accent-hover': '#D54E33',
-          'accent-light': '#FCE8E2',
-
-          'text-primary': '#1A1F1C',
-          'text-secondary': '#6B7B73',
-          'text-tertiary': '#9CA8A1',
-          'text-on-primary': '#FFFFFF',
-          'text-on-accent': '#FFFFFF',
-
-          success: '#3D6B52',
-          'success-bg': '#E8F0EB',
-          warning: '#C8941F',
-          'warning-bg': '#FAF2DC',
-          error: '#C44A35',
-          'error-bg': '#FCE5DF'
-        },
-
-        // Legacy ek-* tokens — alias hacia Salvia Light (backward compat)
-        'ek-cream':         '#FAFAF7',
-        'ek-cream-warm':    '#FFFFFF',
-        'ek-cream-deep':    '#F2EFE8',
-        'ek-black':         '#1A1F1C',
-        'ek-black-soft':    '#6B7B73',
-        'ek-mustard':       '#3D6B52',
-        'ek-mustard-deep':  '#2F5440',
-        'ek-success':       '#3D6B52',
-        'ek-danger':        '#C44A35',
-        'ek-warning':       '#C8941F',
-        'ek-info':          '#4A7BA0'
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

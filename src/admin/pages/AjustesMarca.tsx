@@ -2,20 +2,33 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
+import {
+  applyBranding,
+  contrastRatio,
+  pickTextOn,
+  relativeLuminance
+} from '@shared/providers/TenantProvider';
 import ImageUploader from '../components/ImageUploader';
+
+const SALA_DEFAULT_PRIMARY = '#3D6B52';
+const SALA_DEFAULT_ACCENT  = '#E8654A';
 
 type BrandingDraft = {
   logo_url_dark: string | null;
   isotipo_url: string | null;
   og_image_url: string | null;
   favicon_url: string | null;
+  color_primary: string;
+  color_accent: string;
 };
 
 const EMPTY: BrandingDraft = {
   logo_url_dark: null,
   isotipo_url: null,
   og_image_url: null,
-  favicon_url: null
+  favicon_url: null,
+  color_primary: SALA_DEFAULT_PRIMARY,
+  color_accent: SALA_DEFAULT_ACCENT
 };
 
 function readBranding(branding: unknown): BrandingDraft {
@@ -29,14 +42,21 @@ function readBranding(branding: unknown): BrandingDraft {
         : null,
     isotipo_url: typeof b.isotipo_url === 'string' ? b.isotipo_url : null,
     og_image_url: typeof b.og_image_url === 'string' ? b.og_image_url : null,
-    favicon_url: typeof b.favicon_url === 'string' ? b.favicon_url : null
+    favicon_url: typeof b.favicon_url === 'string' ? b.favicon_url : null,
+    color_primary: typeof b.color_primary === 'string' ? b.color_primary : SALA_DEFAULT_PRIMARY,
+    color_accent:  typeof b.color_accent  === 'string' ? b.color_accent  : SALA_DEFAULT_ACCENT
   };
+}
+
+function isValidHex(s: string): boolean {
+  return /^#[0-9a-f]{6}$/i.test(s);
 }
 
 export default function AjustesMarca() {
   const tenant = useTenant();
   const toast = useToast();
   const [draft, setDraft] = useState<BrandingDraft>(EMPTY);
+  const [persisted, setPersisted] = useState<BrandingDraft>(EMPTY);
   const [originalJson, setOriginalJson] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -52,6 +72,7 @@ export default function AjustesMarca() {
     }
     const parsed = readBranding(data?.branding);
     setDraft(parsed);
+    setPersisted(parsed);
     setOriginalJson(JSON.stringify(parsed));
   }, [tenant.id]);
 
@@ -59,12 +80,47 @@ export default function AjustesMarca() {
     void loadBranding();
   }, [loadBranding]);
 
+  // Preview en tiempo real — al cambiar el draft, aplicamos los colores al
+  // :root para que toda la app se vea con la nueva paleta mientras el admin
+  // edita. NO toca DB.
+  useEffect(() => {
+    applyBranding({
+      color_primary: draft.color_primary,
+      color_accent: draft.color_accent
+    });
+  }, [draft.color_primary, draft.color_accent]);
+
+  // Cleanup — si el admin sale de la pantalla SIN guardar, restaurar al
+  // estado persistido para que el preview no quede pegado.
+  useEffect(() => {
+    return () => {
+      applyBranding({
+        color_primary: persisted.color_primary,
+        color_accent: persisted.color_accent
+      });
+    };
+  }, [persisted.color_primary, persisted.color_accent]);
+
   const dirty = JSON.stringify(draft) !== originalJson;
+
+  function resetColorsToSALA() {
+    setDraft((d) => ({
+      ...d,
+      color_primary: SALA_DEFAULT_PRIMARY,
+      color_accent:  SALA_DEFAULT_ACCENT
+    }));
+  }
+
+  function discardChanges() {
+    // Revierte el draft al persistido — el useEffect de preview va a llamar
+    // applyBranding(persisted) automáticamente.
+    setDraft(persisted);
+  }
 
   async function handleSave() {
     setIsSaving(true);
 
-    // Merge no destructivo con otras keys (color_primary, etc.)
+    // Merge no destructivo con otras keys (hide_powered_by, etc.)
     const { data: current } = await supabase
       .from('tenants')
       .select('branding')
@@ -86,7 +142,8 @@ export default function AjustesMarca() {
       return;
     }
     setOriginalJson(JSON.stringify(draft));
-    toast.success('Marca actualizada. Recargá para ver los cambios en sidebar.');
+    setPersisted(draft);
+    toast.success('Marca actualizada. Los colores ya aplican en toda la app.');
   }
 
   return (
@@ -147,6 +204,23 @@ export default function AjustesMarca() {
       </Section>
 
       <Section
+        title="COLORES"
+        description="Definí la paleta de tu marca. Cambian botones, links, acentos y atmósfera de toda la app. Los cambios se previsualizan en tiempo real — guardá para persistir, o descartá para volver."
+      >
+        <ColoresEditor
+          primary={draft.color_primary}
+          accent={draft.color_accent}
+          onPrimaryChange={(c) => {
+            if (isValidHex(c)) setDraft({ ...draft, color_primary: c });
+          }}
+          onAccentChange={(c) => {
+            if (isValidHex(c)) setDraft({ ...draft, color_accent: c });
+          }}
+          onReset={resetColorsToSALA}
+        />
+      </Section>
+
+      <Section
         title="IMAGEN PARA REDES (OPEN GRAPH)"
         description="Aparecerá cuando alguien comparta tu landing en WhatsApp, Twitter, Facebook. Recomendado: 1200×630px JPG/PNG."
         proximamente="Sistema en desarrollo (D-018) — todavía no se aplica al compartir. Esperá a habilitarlo."
@@ -172,12 +246,293 @@ export default function AjustesMarca() {
         >
           {isSaving ? 'Guardando…' : 'Guardar cambios'}
         </button>
+        {dirty && (
+          <button
+            type="button"
+            onClick={discardChanges}
+            disabled={isSaving}
+            className="ek-cta ek-cta--secondary"
+            style={{ padding: '14px 28px', fontSize: '14px' }}
+          >
+            Descartar
+          </button>
+        )}
       </div>
 
       <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '16px' }}>
-        Nota: OG image y favicon dinámicos requieren recargar la página para verse. La
-        sincronización en tiempo real con &lt;meta&gt; tags llega en sprint posterior.
+        Nota: los colores aplican en tiempo real al toda la app. OG image y favicon
+        dinámicos requieren recargar la página para verse — la sincronización en
+        tiempo real con &lt;meta&gt; tags llega en sprint posterior.
       </p>
+    </div>
+  );
+}
+
+// ============================================================================
+// ColoresEditor — 2 color pickers + preview chip strip + warnings
+// ============================================================================
+
+interface ColoresEditorProps {
+  primary: string;
+  accent: string;
+  onPrimaryChange: (hex: string) => void;
+  onAccentChange: (hex: string) => void;
+  onReset: () => void;
+}
+
+function ColoresEditor({
+  primary,
+  accent,
+  onPrimaryChange,
+  onAccentChange,
+  onReset
+}: ColoresEditorProps) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <ColorPickerRow
+        label="COLOR PRIMARIO"
+        hint="Marca principal: botones, links activos, focus rings, fondos suaves."
+        value={primary}
+        onChange={onPrimaryChange}
+      />
+      <ColorPickerRow
+        label="COLOR ACENTO"
+        hint="Segundo color: highlights, urgencia, status pocos cupos."
+        value={accent}
+        onChange={onAccentChange}
+      />
+
+      <ChipStripPreview label="Paleta primario" base={primary} kind="primary" />
+      <ChipStripPreview label="Paleta acento"    base={accent}  kind="accent"  />
+
+      <RealButtonPreview primary={primary} accent={accent} />
+
+      <button
+        type="button"
+        onClick={onReset}
+        className="ek-cta ek-cta--secondary"
+        style={{
+          padding: '10px 18px',
+          fontSize: '13px',
+          alignSelf: 'flex-start'
+        }}
+      >
+        ↺ Restablecer verde SALA
+      </button>
+    </div>
+  );
+}
+
+function ColorPickerRow({
+  label,
+  hint,
+  value,
+  onChange
+}: {
+  label: string;
+  hint: string;
+  value: string;
+  onChange: (hex: string) => void;
+}) {
+  const lum = relativeLuminance(value);
+  const textOn = pickTextOn(value);
+  const ratio = contrastRatio(value, textOn);
+
+  // Warning fuerte: contraste < 4.5:1 (WCAG AA texto)
+  const contrastFails = ratio < 4.5;
+  // Warning soft: primario muy claro (L > 0.75)
+  const tooLight = lum > 0.75;
+
+  return (
+    <div>
+      <p
+        className="ek-eyebrow ek-eyebrow--mustard"
+        style={{ margin: 0, marginBottom: '6px', fontSize: '11px' }}
+      >
+        {label}
+      </p>
+      <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '12px' }}>
+        {hint}
+      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value.toUpperCase())}
+          aria-label={label}
+          style={{
+            width: '56px',
+            height: '40px',
+            borderRadius: '10px',
+            border: '0.5px solid var(--sala-border-strong)',
+            cursor: 'pointer',
+            padding: 0,
+            background: 'transparent'
+          }}
+        />
+        <code
+          style={{
+            fontFamily: 'var(--ek-font-mono)',
+            fontSize: '14px',
+            color: 'var(--sala-text-primary)',
+            background: 'var(--sala-surface)',
+            border: '0.5px solid var(--ek-line)',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            letterSpacing: '0.04em'
+          }}
+        >
+          {value.toUpperCase()}
+        </code>
+      </div>
+      {contrastFails && (
+        <p
+          style={{
+            fontSize: '12px',
+            color: 'var(--sala-error)',
+            margin: 0,
+            marginTop: '10px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '6px',
+            lineHeight: 1.4
+          }}
+        >
+          <span aria-hidden="true">⚠️</span>
+          El texto sobre este color puede no leerse bien en tamaños pequeños (contraste {ratio.toFixed(1)}:1 vs el mínimo recomendado 4.5:1). Considerá un tono más oscuro.
+        </p>
+      )}
+      {tooLight && (
+        <p
+          style={{
+            fontSize: '12px',
+            color: 'var(--sala-warning)',
+            margin: 0,
+            marginTop: '8px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '6px',
+            lineHeight: 1.4
+          }}
+        >
+          <span aria-hidden="true">💡</span>
+          Este color es muy claro — los fondos suaves podrían no diferenciarse bien del fondo de la app.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ChipStripPreview({
+  label,
+  base,
+  kind
+}: {
+  label: string;
+  base: string;
+  kind: 'primary' | 'accent';
+}) {
+  // Cada chip muestra UN derivado del color base. Usamos los CSS vars
+  // dinámicos para que el chip refleje exactamente lo que verá toda la app.
+  // (Los CSS vars ya están seteados por el preview en tiempo real del
+  // useEffect del padre.)
+  const chips = [
+    { name: 'base',      bg: `var(--sala-${kind})` },
+    { name: 'hover',     bg: `var(--sala-${kind}-hover)` },
+    { name: 'active',    bg: `var(--sala-${kind}-active)` },
+    { name: 'light',     bg: `var(--sala-${kind}-light)` },
+    { name: 'soft',      bg: `var(--sala-${kind}-soft)` },
+    { name: 'dim',       bg: `var(--sala-${kind}-dim)` },
+    { name: 'glow',      bg: `var(--sala-${kind}-glow)` },
+    { name: 'darkest',   bg: `var(--sala-${kind}-darkest)` }
+  ];
+  return (
+    <div>
+      <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '8px' }}>
+        {label} <code style={{ fontFamily: 'var(--ek-font-mono)', fontSize: '11px' }}>{base.toUpperCase()}</code>
+      </p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {chips.map((c) => (
+          <div key={c.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '8px',
+                background: c.bg,
+                border: '0.5px solid var(--ek-line)'
+              }}
+            />
+            <span style={{ fontSize: '10px', color: 'var(--ek-ink-faint)', letterSpacing: '0.04em' }}>
+              {c.name}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RealButtonPreview({ primary, accent }: { primary: string; accent: string }) {
+  return (
+    <div>
+      <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '8px' }}>
+        Vista previa real
+      </p>
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '12px',
+          padding: '20px',
+          background: 'var(--sala-bg)',
+          border: '0.5px solid var(--ek-line)',
+          borderRadius: '14px'
+        }}
+      >
+        <button type="button" className="ek-cta" style={{ padding: '10px 18px', fontSize: '13px' }}>
+          Botón primario
+        </button>
+        <button
+          type="button"
+          className="ek-cta"
+          style={{
+            padding: '10px 18px',
+            fontSize: '13px',
+            background: 'var(--sala-accent)',
+            borderColor: 'var(--sala-accent)',
+            color: 'var(--sala-accent-text)',
+            boxShadow: '0 2px 8px var(--sala-accent-shadow)'
+          }}
+        >
+          Botón acento
+        </button>
+        {/* Texto sobre darkest — vista previa del sidebar/login oscuro */}
+        <div
+          style={{
+            padding: '12px 16px',
+            background: 'var(--sala-primary-darkest)',
+            color: '#FFFFFF',
+            borderRadius: '10px',
+            fontSize: '13px',
+            fontWeight: 500
+          }}
+        >
+          Texto sobre primary-darkest ({primary.toUpperCase()})
+        </div>
+        <div
+          style={{
+            padding: '12px 16px',
+            background: 'var(--sala-accent-darkest)',
+            color: '#FFFFFF',
+            borderRadius: '10px',
+            fontSize: '13px',
+            fontWeight: 500
+          }}
+        >
+          Texto sobre accent-darkest ({accent.toUpperCase()})
+        </div>
+      </div>
     </div>
   );
 }

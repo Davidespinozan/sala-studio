@@ -1,39 +1,93 @@
 /* ============================================================================
-   SALA Studio — Design System v3 "Salvia Light"
+   SALA Studio — Design System v4 "Color dinámico multi-tenant" (D-017)
    ============================================================================
-   Paleta clara wellness: cream base + sage green primary + coral accent.
+   Paleta clara wellness: cream base (neutros fijos) + primary + accent que
+   FLUYEN del tenant via TenantProvider.applyBranding().
+
+   ARQUITECTURA:
+   - Neutros (bg/surface/border/text) son FIJOS — no cambian con tenant.
+   - Primary + accent son DINÁMICOS — el TenantProvider los pisa en runtime
+     escribiendo a document.documentElement.style.
+   - 10 derivados por color (hover/active/light/soft/shadow/dim/glow/
+     glow-strong/focus-ring/darkest) se recalculan automáticamente vía
+     color-mix() cuando cambia la base.
+   - 2 flags por color decididos por JS al cargar tenant: -text (contraste
+     WCAG) y -tint (dirección del hover). Sin estos, primarios extremos
+     (navy ultra-oscuro / amarillo claro) producen hovers invisibles o
+     texto ilegible.
+   - Fallback @supports al final del :root: navegadores sin color-mix
+     (Safari <16.2 / Chrome <111) reciben los literales SALA — pierden la
+     dinámica multi-tenant pero la app no se rompe.
+
    Variable names (--ek-*) preserved for backward compat con componentes.
    --ek-mustard remapeado a salvia (verde sage); coral disponible vía
    --sala-accent para CTAs de urgencia.
    ============================================================================ */
 
 :root {
-  /* === Salvia Light (canonical tokens) === */
+  /* === NEUTROS FIJOS (no fluyen con tenant) === */
   --sala-bg:                #FAFAF7;
   --sala-surface:           #FFFFFF;
   --sala-border:            #E8E6E0;
   --sala-border-strong:     #D4D0C8;
-
-  --sala-primary:           #3D6B52;
-  --sala-primary-hover:     #2F5440;
-  --sala-primary-light:     #E8F0EB;
-
-  --sala-accent:            #E8654A;
-  --sala-accent-hover:      #D54E33;
-  --sala-accent-light:      #FCE8E2;
+  --sala-neutral-dark:      #0A0F0C;  /* ancla para -darkest, evita marrón con amarillos */
 
   --sala-text-primary:      #1A1F1C;
   --sala-text-secondary:    #6B7B73;
   --sala-text-tertiary:     #9CA8A1;
-  --sala-text-on-primary:   #FFFFFF;
-  --sala-text-on-accent:    #FFFFFF;
 
-  --sala-success:           #3D6B52;
-  --sala-success-bg:        #E8F0EB;
+  /* === BASES DINÁMICAS (TenantProvider las pisa) === */
+  --sala-primary:           #3D6B52;
+  --sala-primary-text:      #FFFFFF;   /* JS-decidido por luminance WCAG */
+  --sala-primary-tint:      #000000;   /* JS-decidido: black=darken, white=lighten */
+
+  --sala-accent:            #E8654A;
+  --sala-accent-text:       #FFFFFF;
+  --sala-accent-tint:       #000000;
+
+  /* === SEMÁNTICOS FIJOS === */
   --sala-warning:           #C8941F;
   --sala-warning-bg:        #FAF2DC;
   --sala-error:             #C44A35;
   --sala-error-bg:          #FCE5DF;
+
+  /* success se alinea con primary del tenant: el "OK" hereda la marca */
+  --sala-success:           var(--sala-primary);
+  --sala-success-bg:        var(--sala-primary-light);
+
+  /* === 10 DERIVADOS PRIMARY (color-mix, recalculan al cambiar la base) === */
+  --sala-primary-hover:        color-mix(in srgb, var(--sala-primary), var(--sala-primary-tint) 22%);
+  --sala-primary-active:       color-mix(in srgb, var(--sala-primary), var(--sala-primary-tint) 32%);
+  --sala-primary-light:        color-mix(in srgb, var(--sala-primary) 10%, var(--sala-bg));
+  --sala-primary-soft:         color-mix(in srgb, var(--sala-primary) 12%, transparent);
+  --sala-primary-shadow:       color-mix(in srgb, var(--sala-primary) 16%, transparent);
+  --sala-primary-dim:          color-mix(in srgb, var(--sala-primary) 24%, transparent);
+  --sala-primary-glow:         color-mix(in srgb, var(--sala-primary) 30%, transparent);
+  --sala-primary-glow-strong:  color-mix(in srgb, var(--sala-primary) 42%, transparent);
+  --sala-primary-focus-ring:   color-mix(in srgb, var(--sala-primary) 55%, transparent);
+  --sala-primary-darkest:      color-mix(in srgb, var(--sala-primary) 25%, var(--sala-neutral-dark));
+
+  /* === 10 DERIVADOS ACCENT === */
+  --sala-accent-hover:         color-mix(in srgb, var(--sala-accent), var(--sala-accent-tint) 22%);
+  --sala-accent-active:        color-mix(in srgb, var(--sala-accent), var(--sala-accent-tint) 32%);
+  --sala-accent-light:         color-mix(in srgb, var(--sala-accent) 10%, var(--sala-bg));
+  --sala-accent-soft:          color-mix(in srgb, var(--sala-accent) 12%, transparent);
+  --sala-accent-shadow:        color-mix(in srgb, var(--sala-accent) 16%, transparent);
+  --sala-accent-dim:           color-mix(in srgb, var(--sala-accent) 24%, transparent);
+  --sala-accent-glow:          color-mix(in srgb, var(--sala-accent) 30%, transparent);
+  --sala-accent-glow-strong:   color-mix(in srgb, var(--sala-accent) 42%, transparent);
+  --sala-accent-focus-ring:    color-mix(in srgb, var(--sala-accent) 55%, transparent);
+  --sala-accent-darkest:       color-mix(in srgb, var(--sala-accent) 25%, var(--sala-neutral-dark));
+
+  /* === DERIVADOS ERROR (semántico fijo, no dinámico) === */
+  --sala-error-hover:          color-mix(in srgb, var(--sala-error), black 22%);
+  --sala-error-shadow:         color-mix(in srgb, var(--sala-error) 16%, transparent);
+  --sala-error-dim:            color-mix(in srgb, var(--sala-error) 24%, transparent);
+  --sala-error-glow:            color-mix(in srgb, var(--sala-error) 30%, transparent);
+
+  /* Compat alias text-on-* (consumidores existentes) */
+  --sala-text-on-primary:   var(--sala-primary-text);
+  --sala-text-on-accent:    var(--sala-accent-text);
 
   /* === Legacy --ek-* aliases (componentes existentes los consumen) === */
 
@@ -47,9 +101,9 @@
   --ek-ink-muted:    var(--sala-text-secondary);
   --ek-ink-faint:    var(--sala-text-tertiary);
 
-  /* Brand (mustard → salvia green) */
+  /* Brand (mustard → primary dinámico) */
   --ek-mustard:      var(--sala-primary);
-  --ek-mustard-dim:  rgba(61, 107, 82, 0.24);
+  --ek-mustard-dim:  var(--sala-primary-dim);
   --ek-mustard-soft: var(--sala-primary-light);
 
   /* Lines (dark over light) */
@@ -67,7 +121,7 @@
   /* Shadows (sutiles sobre fondo claro) */
   --ek-shadow-card:    0 2px 8px rgba(26, 31, 28, 0.06);
   --ek-shadow-hero:    0 8px 24px rgba(26, 31, 28, 0.08), 0 2px 6px rgba(26, 31, 28, 0.04);
-  --ek-shadow-cta:     0 2px 8px rgba(61, 107, 82, 0.16);
+  --ek-shadow-cta:     0 2px 8px var(--sala-primary-shadow);
   --ek-shadow-modal:   0 24px 60px rgba(26, 31, 28, 0.18);
   --ek-shadow:         var(--ek-shadow-card);
   --ek-shadow-md:      var(--ek-shadow-card);
@@ -101,6 +155,46 @@
   --ek-mustard-deep: var(--ek-mustard);
 }
 
+/* ============================================================================
+   Fallback para navegadores sin color-mix() (Safari <16.2, Chrome <111).
+   Reemplaza los 20 derivados primary+accent + 4 error con literales SALA.
+   Multi-tenant degradado: el tenant elige primary/accent pero los TONOS
+   derivados se quedan en el verde/coral de SALA. Acepable: <1% mercado MX.
+   ============================================================================ */
+@supports not (color: color-mix(in srgb, red, blue)) {
+  :root {
+    /* Primary derivados */
+    --sala-primary-hover:        #2F5440;
+    --sala-primary-active:       #294938;
+    --sala-primary-light:        #E8F0EB;
+    --sala-primary-soft:         rgba(61, 107, 82, 0.12);
+    --sala-primary-shadow:       rgba(61, 107, 82, 0.16);
+    --sala-primary-dim:          rgba(61, 107, 82, 0.24);
+    --sala-primary-glow:         rgba(61, 107, 82, 0.30);
+    --sala-primary-glow-strong:  rgba(61, 107, 82, 0.42);
+    --sala-primary-focus-ring:   rgba(61, 107, 82, 0.55);
+    --sala-primary-darkest:      #17261E;
+
+    /* Accent derivados */
+    --sala-accent-hover:         #B54F3A;
+    --sala-accent-active:        #9E4532;
+    --sala-accent-light:         #FCE8E2;
+    --sala-accent-soft:          rgba(232, 101, 74, 0.12);
+    --sala-accent-shadow:        rgba(232, 101, 74, 0.16);
+    --sala-accent-dim:           rgba(232, 101, 74, 0.24);
+    --sala-accent-glow:          rgba(232, 101, 74, 0.30);
+    --sala-accent-glow-strong:   rgba(232, 101, 74, 0.42);
+    --sala-accent-focus-ring:    rgba(232, 101, 74, 0.55);
+    --sala-accent-darkest:       #42251C;
+
+    /* Error derivados */
+    --sala-error-hover:          #993A29;
+    --sala-error-shadow:         rgba(196, 74, 53, 0.16);
+    --sala-error-dim:            rgba(196, 74, 53, 0.24);
+    --sala-error-glow:           rgba(196, 74, 53, 0.30);
+  }
+}
+
 /* ----------------------------------------------------------------------------
    Global base (non-layered → wins over Tailwind @layer base)
    ---------------------------------------------------------------------------- */
@@ -116,8 +210,8 @@ html {
 body {
   margin: 0;
   background:
-    radial-gradient(ellipse 800px 500px at top right, rgba(61, 107, 82, 0.04), transparent 50%),
-    radial-gradient(ellipse 600px 400px at bottom left, rgba(232, 101, 74, 0.03), transparent 50%),
+    radial-gradient(ellipse 800px 500px at top right, color-mix(in srgb, var(--sala-primary) 4%, transparent), transparent 50%),
+    radial-gradient(ellipse 600px 400px at bottom left, color-mix(in srgb, var(--sala-accent) 3%, transparent), transparent 50%),
     var(--sala-bg);
   background-attachment: fixed;
   color: var(--ek-ink);
@@ -144,7 +238,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
 /* Custom focus visible */
 *:focus-visible {
-  outline: 2px solid rgba(61, 107, 82, 0.55);
+  outline: 2px solid var(--sala-primary-focus-ring);
   outline-offset: 2px;
   border-radius: 8px;
 }
@@ -358,7 +452,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     right: -40px;
     width: 180px;
     height: 180px;
-    background: radial-gradient(circle, rgba(61, 107, 82, 0.10), transparent 70%);
+    background: radial-gradient(circle, var(--sala-primary-soft), transparent 70%);
     border-radius: 50%;
     pointer-events: none;
   }
@@ -410,7 +504,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     background: var(--sala-primary-hover);
     border-color: var(--sala-primary-hover);
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(61, 107, 82, 0.24);
+    box-shadow: 0 4px 16px var(--sala-primary-dim);
   }
 
   .ek-cta:active,
@@ -445,13 +539,16 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     background: var(--sala-error);
     color: var(--sala-text-on-accent);
     border-color: var(--sala-error);
-    box-shadow: 0 2px 8px rgba(196, 74, 53, 0.16);
+    box-shadow: 0 2px 8px var(--sala-error-shadow);
   }
 
   .ek-cta--danger:hover {
-    background: var(--sala-accent-hover);
-    border-color: var(--sala-accent-hover);
-    box-shadow: 0 4px 16px rgba(196, 74, 53, 0.24);
+    /* Fix Fase A: antes usaba --sala-accent-hover (coral oscuro),
+       lo que cambiaba el hue rojo→coral. Ahora hover = mismo rojo + 22%
+       más oscuro. Bug semántico corregido. */
+    background: var(--sala-error-hover);
+    border-color: var(--sala-error-hover);
+    box-shadow: 0 4px 16px var(--sala-error-dim);
   }
 
   .ek-icon-btn {
@@ -497,7 +594,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     border-color: var(--sala-primary);
     background: var(--sala-surface);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(61, 107, 82, 0.12);
+    box-shadow: 0 0 0 3px var(--sala-primary-soft);
   }
 
   textarea.ek-input {
@@ -554,13 +651,13 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   .ek-badge--success {
     background: var(--sala-success-bg);
     color: var(--sala-success);
-    border: 0.5px solid rgba(61, 107, 82, 0.30);
+    border: 0.5px solid var(--sala-primary-glow);
   }
 
   .ek-badge--danger {
     background: var(--sala-error-bg);
     color: var(--sala-error);
-    border: 0.5px solid rgba(196, 74, 53, 0.30);
+    border: 0.5px solid var(--sala-error-glow);
   }
 
   .ek-badge--neutral {
@@ -570,9 +667,9 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   }
 
   .ek-status-dot { width: 6px; height: 6px; border-radius: 50%; }
-  .ek-status-dot--success { background: var(--sala-success); box-shadow: 0 0 8px rgba(61, 107, 82, 0.4); }
+  .ek-status-dot--success { background: var(--sala-success); box-shadow: 0 0 8px var(--sala-primary-glow-strong); }
   .ek-status-dot--danger  { background: var(--sala-error); }
-  .ek-status-dot--mustard { background: var(--sala-primary); box-shadow: 0 0 8px rgba(61, 107, 82, 0.4); }
+  .ek-status-dot--mustard { background: var(--sala-primary); box-shadow: 0 0 8px var(--sala-primary-glow-strong); }
 
   /* ============================================================================
      BOTTOM NAVIGATION (member)
@@ -911,7 +1008,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   .rec-search:focus {
     outline: none;
     border-color: var(--sala-primary);
-    box-shadow: 0 0 0 3px rgba(61, 107, 82, 0.12);
+    box-shadow: 0 0 0 3px var(--sala-primary-soft);
   }
 
   .rec-section-title {
@@ -1029,7 +1126,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   .rec-input:focus {
     outline: none;
     border-color: var(--sala-primary);
-    box-shadow: 0 0 0 3px rgba(61, 107, 82, 0.12);
+    box-shadow: 0 0 0 3px var(--sala-primary-soft);
   }
 
   /* Check-in detail (full screen overlay) */
@@ -1338,9 +1435,11 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
       display: block;
       width: 240px;
       flex-shrink: 0;
-      border-right: 1px solid var(--sala-border-strong);
-      background: var(--sala-surface);
-      box-shadow: 2px 0 12px rgba(26, 31, 28, 0.04);
+      border-right: 0.5px solid rgba(255, 255, 255, 0.08);
+      /* Fase B Round 1: sidebar dark teñido del primary del tenant.
+         Cada gym tiene su atmósfera profunda (white-label). */
+      background: var(--sala-primary-darkest);
+      box-shadow: 2px 0 24px rgba(0, 0, 0, 0.20);
       position: sticky;
       top: 0;
       height: 100vh;
@@ -1356,7 +1455,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .adm-sidebar-brand {
     padding: 0 20px 24px;
-    border-bottom: 0.5px solid var(--ek-line);
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.10);
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -1395,7 +1494,9 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     gap: 12px;
     padding: 10px 12px;
     border-radius: 10px;
-    color: var(--ek-ink-muted);
+    /* Fase B Round 1: items nav en light apagado.
+       Opacidad 0.70 valida 4.5:1 con los 4 primarios extremos. */
+    color: rgba(255, 255, 255, 0.70);
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
@@ -1404,13 +1505,15 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   }
 
   .adm-sidebar-item:hover {
-    background: var(--sala-bg);
-    color: var(--ek-ink);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 1);
   }
 
+  /* Active item: INVERSIÓN — cápsula light surface + texto darkest.
+     Esa inversión sobre el sidebar oscuro es la pieza que da el "premium feel". */
   .adm-sidebar-item--active {
-    background: var(--sala-primary-light);
-    color: var(--sala-primary) !important;
+    background: var(--sala-surface);
+    color: var(--sala-primary-darkest) !important;
   }
 
   .adm-sidebar-item--active::before {
@@ -1421,7 +1524,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     transform: translateY(-50%);
     width: 3px;
     height: 20px;
-    background: var(--ek-mustard);
+    background: var(--sala-primary);
     border-radius: 0 2px 2px 0;
   }
 
@@ -1433,7 +1536,21 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .adm-sidebar-footer {
     padding: 16px 20px 0;
-    border-top: 0.5px solid var(--ek-line);
+    border-top: 0.5px solid rgba(255, 255, 255, 0.10);
+  }
+
+  /* Cerrar sesión button — override .ek-icon-btn para context dark.
+     El selector tiene mayor especificidad que .ek-icon-btn sola. */
+  .adm-sidebar-footer .adm-sidebar-signout {
+    background: transparent;
+    border: 0.5px solid rgba(255, 255, 255, 0.22);
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .adm-sidebar-footer .adm-sidebar-signout:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 1);
   }
 
   /* Drawer mobile */
@@ -1454,8 +1571,9 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     bottom: 0;
     width: 280px;
     max-width: 80%;
-    background: var(--sala-surface);
-    border-right: 0.5px solid var(--ek-line);
+    /* Drawer hereda mismo dark teñido del sidebar desktop */
+    background: var(--sala-primary-darkest);
+    border-right: 0.5px solid rgba(255, 255, 255, 0.10);
     animation: ek-slide-in-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     overflow-y: auto;
     z-index: 91;
@@ -1806,16 +1924,18 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     transition: box-shadow 0.2s ease, transform 0.1s ease, background 0.18s ease, border-color 0.18s ease;
   }
   .ek-cta:not(.ek-cta--secondary):hover {
-    box-shadow: 0 4px 16px rgba(61, 107, 82, 0.24);
+    box-shadow: 0 4px 16px var(--sala-primary-dim);
   }
   .ek-cta:not(.ek-cta--secondary):active {
-    box-shadow: 0 2px 12px rgba(61, 107, 82, 0.32);
+    box-shadow: 0 2px 12px var(--sala-primary-glow);
     transform: scale(0.98);
   }
 
-  /* 2. Sidebar admin: surface plano (sin gradient oscuro) */
+  /* 2. Sidebar admin: dark teñido del primary del tenant (Fase B Round 1).
+     El bg lo establece .adm-sidebar-desktop / .adm-drawer; acá solo
+     aseguramos que el contenedor inner no tenga otra superficie encima. */
   .adm-sidebar {
-    background: var(--sala-surface);
+    background: transparent;
   }
 
   /* 3. Cards con border-glow salvia al hover */
@@ -1823,10 +1943,10 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
   .ek-card:hover {
-    border-color: rgba(61, 107, 82, 0.45);
+    border-color: var(--sala-primary-glow-strong);
     box-shadow:
       0 4px 16px rgba(26, 31, 28, 0.08),
-      0 0 24px rgba(61, 107, 82, 0.10);
+      0 0 24px var(--sala-primary-soft);
   }
 
   /* ============================================================================
@@ -1906,9 +2026,11 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     .adm-agenda-mobile  { display: none; }
   }
 
-  /* 4. Item activo del sidebar con halo lateral salvia */
+  /* 4. Item activo del sidebar — borde interno sutil sobre la cápsula light.
+     El cap usa --sala-surface; el inset shadow agrega un anillo de primary
+     bajo opacidad para reforzar la silueta sin competir con el texto darkest. */
   .adm-sidebar-item--active {
-    box-shadow: inset 0 0 0 1px rgba(61, 107, 82, 0.12);
+    box-shadow: inset 0 0 0 1px var(--sala-primary-dim);
   }
 
   /* 5. Tipografía con tracking ajustado */

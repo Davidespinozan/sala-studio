@@ -295,37 +295,76 @@ generación al vuelo) — eso es D-018.
 tenant para reemplazar favicon `<link>` + theme-color `<meta>` +
 apple-touch-icon. Anotar en KERNEL la lista de tags dinámicos.
 
-## D-017: colores dinámicos por tenant (white-label)
+## D-017: colores dinámicos por tenant (white-label) — RESUELTO (Fase A)
 
-**Estado**: el `TenantProvider` tiene `branding.color_primary`,
-`color_bg`, `color_accent` disponibles en contexto pero **comentado** —
-hay un bloque con TODO ("Branding tokens dinámicos están desactivados en
-Sprint C1"). La CSS global cementa `--sala-primary: #3D6B52` y compañía.
-**Toda la UI de SALA y de todos los tenants es del mismo verde**.
+**Resuelto en**: refactor Fase A del sistema de color dinámico, junto con
+fix del bug semántico .ek-cta--danger:hover (antes usaba accent-hover en
+vez de error-hover, cambio de hue rojo→coral).
 
-Además AjustesMarca **no tiene editor de colores** — solo logos/OG/favicon.
-Los colores vienen por defecto de `crear_tenant_onboarding` con
-`#3d6b52` hardcoded y nadie los puede cambiar desde la UI.
+**Resumen de la resolución**:
 
-**Severidad**: **ALTA para white-label**. Hoy un gimnasio cliente NO PUEDE
-poner su paleta. Es la pieza que más rompe la promesa de "tu marca, no la mía".
+1. **CSS** ([src/styles/sala.css](src/styles/sala.css)): `:root` reescrito
+   con el contrato Fase A — 4 bases dinámicas (--sala-primary/-text/-tint y
+   accent), 20 derivados color-mix (hover/active/light/soft/shadow/dim/
+   glow/glow-strong/focus-ring/darkest × {primary, accent}), 4 derivados
+   error (-hover/-shadow/-dim/-glow), 1 ancla fija (--sala-neutral-dark
+   #0A0F0C para evitar marrón con primarios amarillos), y bloque
+   @supports fallback con literales SALA para navegadores sin color-mix
+   (Safari <16.2 / Chrome <111, <1% mercado MX). 21 instancias rgba
+   hardcoded migradas a vars derivadas.
 
-**Solución**:
-  1. Re-activar el mapeo en TenantProvider (líneas 89-100 comentadas).
-     Setear `document.documentElement.style.setProperty('--sala-primary', branding.color_primary)`
-     después de cargar el tenant. Mismo para color_bg y color_accent.
-  2. Agregar sección "COLORES" en AjustesMarca con 3 color pickers
-     (primary / bg / accent).
-  3. Auditar el codebase: cualquier hex `#3D6B52` hardcoded fuera de CSS
-     (ej. `Reportes.tsx: const SALVIA = '#3d6b52'`, scripts de íconos PWA,
-     onboarding default) debería seguir refiriendo a SALA-producto y no
-     al tenant. Distinguir bien.
-  4. Validar contraste WCAG en el editor: advertir si el tenant elige
-     un color con contraste bajo sobre fondo claro.
+2. **TenantProvider** ([src/shared/providers/TenantProvider.tsx](src/shared/providers/TenantProvider.tsx)):
+   `applyBranding()` exportado que escribe los 6 flags dinámicos al
+   :root al cargar tenant. Helpers `relativeLuminance`, `pickTextOn`
+   (umbral 0.55, decide texto blanco/casi-negro WCAG), `pickHoverTint`
+   (umbral 0.06, decide darken vs lighten — SALA L=0.121 cae en darken).
 
-**Cuando se ataque**: probable cambio amplio en CSS (deshardcodear
-verdes) + nuevo componente ColorPicker en AjustesMarca + tests visuales.
-Recomiendo atacar antes de Stripe / antes de vender a clientes reales.
+3. **AjustesMarca** ([src/admin/pages/AjustesMarca.tsx](src/admin/pages/AjustesMarca.tsx)):
+   sección COLORES nueva con 2 color pickers (primary + accent), preview
+   chip strip de los 8 derivados de cada base, preview de botones reales,
+   warning fuerte si contraste < 4.5:1 (WCAG AA texto), warning soft si
+   primario muy claro (L > 0.75), botón "Restablecer verde SALA".
+   **Preview en tiempo real**: al mover el picker, applyBranding aplica
+   los colores a toda la app sin guardar — el botón "Descartar" revierte
+   al estado persistido si el admin cambia de opinión.
+
+4. **Decisión arquitectónica**: solo `color_primary` y `color_accent`
+   fluyen con el tenant. `color_bg`, `--sala-surface` y neutros se
+   quedan fijos (patrón Stripe/Linear: marca en acentos, superficies
+   neutras). Cambiar el bg requeriría re-tunear text/borders enteros —
+   fuera de scope.
+
+5. **Recharts** ([src/admin/pages/Reportes.tsx](src/admin/pages/Reportes.tsx)):
+   recharts no entiende CSS vars, así que se agregó hook `useChartColors()`
+   que lee `tenant.branding.color_primary/color_accent` y devuelve hex.
+   Charts ya se tiñen con el color del tenant.
+
+6. **Tailwind config**: brand colors (sala.primary, ek-mustard, etc.)
+   eliminados del config — verificado con grep sistemático que 0
+   componentes usaban Tailwind brand classes. Tailwind ahora solo entrega
+   utilities ortogonales (layout/spacing/fonts/screens).
+
+**Validación de regresión cero** (script + 3 capas, ver
+[scripts/validate-color-regression.mjs](scripts/validate-color-regression.mjs)):
+con SALA verde #3D6B52, todos los derivados primary matchean los
+literales actuales dentro de ≤5 RGB units por canal o ≤3% alpha — la
+prueba matemática confirma regresión imperceptible. Caso especial: el
+único delta significativo (accent-hover Δ=32) corresponde a un valor
+hand-tuned que SOLO se usaba en una regla con bug semántico
+(.ek-cta--danger:hover usando accent-hover); el refactor aprovechó para
+fixearla y la "regresión" no se ve en ningún píxel real.
+
+**Cobertura de extremos** (validada con sanity-check del script):
+primarios navy (#0A1628 ultra-oscuro), amarillo (#F4D35E claro) y rojo
+(#E63946 saturado) producen derivados razonables — navy hovers con
+lighten, amarillo texto negro automático, rojo con todos los tonos en
+familia. El amarillo en -darkest queda olive oscuro (no marrón) gracias
+al ancla --sala-neutral-dark.
+
+**Pendientes documentados**:
+- D-018 sigue abierto (manifest PWA + meta tags dinámicos).
+- D-021 nueva (ver abajo): refuerzo de borde para -light con primarios muy
+  claros — Fase B del sistema de color.
 
 ## D-018: head injection dinámica (white-label — meta tags / OG / theme-color)
 
@@ -461,3 +500,46 @@ real. Estrategia sugerida:
      un cliente de Argentina/Uruguay/España que justifique multi-locale.
      Hoy se asume un solo idioma destino → mover strings es suficiente,
      no hace falta sistema de i18n completo.
+
+## D-021: refuerzo visual del -light con primarios muy claros (Fase B color)
+
+**Severidad**: baja — degradación visual cosmética, no funcional.
+
+**Estado**: el derivado `--sala-primary-light` (Fase A, D-017) es
+`color-mix(in srgb, var(--sala-primary) 10%, var(--sala-bg))` — mezcla 10%
+del primario sobre el fondo cremita. Funciona bien para primarios
+saturados (verde SALA, navy, rojo), pero con primarios MUY CLAROS
+(luminancia > 0.75: amarillo pastel, lila pastel, celeste claro), el
+`-light` resulta indistinguible del fondo de la app.
+
+Hoy hay un warning suave en AjustesMarca cuando el admin elige un
+primario con L > 0.75: *"Este color es muy claro — los fondos suaves
+podrían no diferenciarse bien del fondo de la app."* Eso educa, pero no
+arregla.
+
+**Mitigación propuesta (Fase B)**: cuando se detecte un primario claro,
+los elementos que hoy usan solo `background: var(--sala-primary-light)`
+deberían además agregar un borde sutil para mantener la silueta. Por
+ejemplo:
+
+```css
+.ek-status-pill--primary {
+  background: var(--sala-primary-light);
+  border: 0.5px solid var(--sala-primary-dim);  /* refuerza la silueta */
+}
+```
+
+Implementación: identificar las 5-10 reglas que usan `-light` como fondo
+sin border, agregarles `border: 0.5px solid var(--sala-primary-dim)` (o
+similar). El borde es invisible para primarios saturados (donde `-light`
+ya contrasta) y funciona como anchor visual para los pastel.
+
+Alternativa más compleja: precomputar JS-side un % de mezcla dinámico
+para `-light` (8% para colores oscuros, 25% para claros). Requiere otra
+var JS-decidida tipo `--sala-primary-light-mix`. Más correcto pero más
+complejo — solo si la Opción A (borde) no cubre el caso.
+
+**Cuando se ataque**: Fase B de elevación visual premium. En ese sprint
+ya estaremos auditando glows / shadows / gradientes para "elevar el
+diseño con técnicas premium" — agregar el border refuerzo cabe en el
+mismo paso.

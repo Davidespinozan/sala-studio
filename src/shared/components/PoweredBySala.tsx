@@ -16,13 +16,23 @@ import { SalaLogo } from '@shared/components/SalaLogo';
 interface Props {
   /** Alineación dentro de su contenedor. Default 'center'. */
   align?: 'center' | 'left';
+  /**
+   * Tono según el fondo donde se monta el footer.
+   *   - 'light' (default): fondo claro/cremita. Color tenue grayscale.
+   *   - 'dark': fondo oscuro (ej. sidebar admin con --sala-primary-darkest).
+   *     Color light apagado con suficiente contraste (≥4.5:1 sobre los 4
+   *     primarios validados en scripts/validate-sidebar-contrast.mjs).
+   */
+  tone?: 'light' | 'dark';
 }
 
-export function PoweredBySala({ align = 'center' }: Props = {}) {
+export function PoweredBySala({ align = 'center', tone = 'light' }: Props = {}) {
   const tenant = useTenant();
   const branding = (tenant.branding ?? {}) as Record<string, unknown>;
 
   if (branding.hide_powered_by === true) return null;
+
+  const isDark = tone === 'dark';
 
   return (
     <div
@@ -33,12 +43,12 @@ export function PoweredBySala({ align = 'center' }: Props = {}) {
         gap: '6px',
         padding: '12px 0',
         fontSize: '11px',
-        color: 'var(--sala-text-tertiary)',
+        color: isDark ? 'rgba(255, 255, 255, 0.60)' : 'var(--sala-text-tertiary)',
         letterSpacing: '0.02em',
         userSelect: 'none'
       }}
     >
-      <span style={{ opacity: 0.55, display: 'inline-flex' }}>
+      <span style={{ opacity: isDark ? 0.45 : 0.55, display: 'inline-flex' }}>
         <SalaLogo variant="isotipo" height={17} />
       </span>
       <span>
