@@ -9,6 +9,7 @@ import EstadoMembresiaBanner from './components/EstadoMembresiaBanner';
 import { BottomNav } from './components/BottomNav';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
+import { PwaInstallBanner } from '@shared/components/PwaInstallBanner';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Reservar = lazy(() => import('./pages/Reservar'));
@@ -83,6 +84,7 @@ export default function MemberLayout() {
       <PoweredBySala />
 
       <BottomNav />
+      <PwaInstallBanner />
     </div>
   );
 }

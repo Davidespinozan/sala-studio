@@ -336,10 +336,18 @@ Recomiendo atacar antes de Stripe / antes de vender a clientes reales.
   - `<meta property="og:description" content="Reserva clases, gestiona membresías…">`
   - **NO hay `<meta property="og:image">`** aunque AjustesMarca sube
     `branding.og_image_url` (otra pieza inerte).
+  - **Manifest PWA (`vite.config.ts` VitePWA.manifest)** también estático:
+    `name: 'SALA Studio'`, `short_name: 'SALA'`, `icons: /icons/icon-{192,512}.png`
+    (los de SALA). Cuando el socio de `gym-x.salastudio.app` toca "Instalar"
+    en el banner PWA (`<PwaInstallBanner>`), la app queda en su pantalla de
+    inicio con el ícono y nombre de SALA, no del gym. El banner solo invita
+    a instalar — la identidad de lo instalado depende de esta deuda.
 
 **Severidad**: white-label. Cuando un gimnasio comparte su URL por
 WhatsApp/redes, el preview dice "SALA Studio", no el gym. La status bar
 móvil es verde SALA siempre. El nombre del ícono PWA en iOS dice "SALA".
+Y al instalar como PWA, el home del socio muestra "SALA" + isotipo verde de
+SALA, no la marca del gym.
 
 **Solución**: inyectar / actualizar meta tags al cargar tenant
 (`TenantProvider` después del título). Lista mínima a manipular:
@@ -350,6 +358,11 @@ móvil es verde SALA siempre. El nombre del ícono PWA en iOS dice "SALA".
     `branding.tagline_seo` o derivado del landing_config
   - `<meta property="og:image">` con `branding.og_image_url`
   - `<link rel="icon">` con `branding.favicon_url` (D-016)
+  - Manifest PWA dinámico: servir `/manifest.webmanifest` desde un endpoint
+    (Netlify Function por subdominio) o generar uno por tenant con
+    `branding.logo_url`/`isotipo_url` como `icons` y `tenant.nombre` como
+    `name`/`short_name`. Esto es lo que define el ícono y nombre que
+    aparece en home tras instalar via `<PwaInstallBanner>`.
 
 **Caveat**: los meta OG los lee el crawler de WhatsApp/Twitter/etc. ANTES
 de que el JS de la app corra. Si la app es SPA pura, el crawler ve el HTML

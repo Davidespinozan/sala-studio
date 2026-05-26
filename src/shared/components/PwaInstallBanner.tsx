@@ -1,0 +1,240 @@
+import { useEffect, useState } from 'react';
+
+/**
+ * Banner sticky-bottom que invita al socio a instalar la app como PWA.
+ *
+ * Solo se muestra cuando TODOS los gates pasan, en este orden:
+ *   1. NO es contenedor Capacitor (futuro app nativa).
+ *   2. NO está ya instalada (display-mode standalone / navigator.standalone).
+ *   3. ES móvil (iOS o Android). Desktop fuera de scope.
+ *   4. NO fue descartada en los últimos 90 días.
+ *   5. Aparece con DELAY de 4 segundos post-montaje (no apenas el auth).
+ *
+ * Por plataforma:
+ *   - Android (Chromium): captura beforeinstallprompt (con preventDefault para
+ *     ocultar la mini-infobar de Chrome). Botón "Instalar" → event.prompt()
+ *     → escucha userChoice (accepted | dismissed).
+ *   - iOS Safari: instrucción inline "Tocá compartir ⎙ y elegí 'Agregar a inicio'".
+ *     No hay API para gatillar el flujo desde JS en WebKit.
+ *
+ * Persistencia: localStorage `sala-pwa-install-dismissed-at` (timestamp ISO),
+ * mismo patrón con try/catch que `src/admin/components/Sidebar.tsx`.
+ *
+ * Trade-off conocido (D-018): el ícono y nombre que se instalan son los de
+ * SALA, no los del tenant — requiere manifest dinámico por subdominio. El
+ * banner solo invita; la pieza de identidad la resuelve D-018.
+ */
+
+const DISMISSED_KEY = 'sala-pwa-install-dismissed-at';
+const RESHOW_DAYS = 90;
+const APPEAR_DELAY_MS = 4000;
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
+
+type Platform = 'ios' | 'android' | 'other';
+
+function isNativeCapacitor(): boolean {
+  if (typeof window === 'undefined') return false;
+  const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
+  return typeof cap?.isNativePlatform === 'function' && cap.isNativePlatform() === true;
+}
+
+function isStandalone(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches) {
+    return true;
+  }
+  if ((window.navigator as unknown as { standalone?: boolean }).standalone === true) {
+    return true;
+  }
+  return false;
+}
+
+function detectPlatform(): Platform {
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') return 'other';
+  const ua = navigator.userAgent;
+  const winMS = (window as unknown as { MSStream?: unknown }).MSStream;
+  if (/iPad|iPhone|iPod/.test(ua) && !winMS) return 'ios';
+  if (/Android/.test(ua)) return 'android';
+  return 'other';
+}
+
+function readDismissedAt(): Date | null {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(DISMISSED_KEY);
+    if (!raw) return null;
+    const d = new Date(raw);
+    return isNaN(d.getTime()) ? null : d;
+  } catch {
+    return null;
+  }
+}
+
+function writeDismissedAt(): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(DISMISSED_KEY, new Date().toISOString());
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+function dismissedRecently(): boolean {
+  const d = readDismissedAt();
+  if (!d) return false;
+  return Date.now() - d.getTime() < RESHOW_DAYS * 24 * 60 * 60 * 1000;
+}
+
+export function PwaInstallBanner() {
+  const [visible, setVisible] = useState(false);
+  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [platform, setPlatform] = useState<Platform>('other');
+
+  // Gate + setup. Corre una sola vez al montar.
+  useEffect(() => {
+    if (isNativeCapacitor()) return;
+    if (isStandalone()) return;
+    if (dismissedRecently()) return;
+
+    const p = detectPlatform();
+    if (p === 'other') return;
+    setPlatform(p);
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    if (p === 'ios') {
+      // iOS no expone API de instalación: mostramos instrucciones tras delay.
+      timer = setTimeout(() => {
+        if (!cancelled) setVisible(true);
+      }, APPEAR_DELAY_MS);
+      return () => {
+        cancelled = true;
+        if (timer) clearTimeout(timer);
+      };
+    }
+
+    // Android Chromium: esperamos beforeinstallprompt, luego delay.
+    const handler = (e: Event) => {
+      e.preventDefault(); // oculta la mini-infobar nativa de Chrome
+      if (cancelled) return;
+      setPromptEvent(e as BeforeInstallPromptEvent);
+      timer = setTimeout(() => {
+        if (!cancelled) setVisible(true);
+      }, APPEAR_DELAY_MS);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('beforeinstallprompt', handler);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
+  // Si el usuario instala desde otro path (eg. menú nativo del navegador),
+  // ocultar inmediatamente.
+  useEffect(() => {
+    const onInstalled = () => setVisible(false);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => window.removeEventListener('appinstalled', onInstalled);
+  }, []);
+
+  if (!visible) return null;
+
+  const handleDismiss = () => {
+    writeDismissedAt();
+    setVisible(false);
+  };
+
+  const handleInstall = async () => {
+    if (!promptEvent) return;
+    await promptEvent.prompt();
+    const { outcome } = await promptEvent.userChoice;
+    if (outcome === 'dismissed') writeDismissedAt();
+    // Si aceptó: el evento 'appinstalled' va a disparar y ocultar igual.
+    setPromptEvent(null);
+    setVisible(false);
+  };
+
+  return (
+    <div
+      role="region"
+      aria-label="Instalar aplicación"
+      style={{
+        position: 'fixed',
+        bottom: '96px',
+        left: '12px',
+        right: '12px',
+        marginInline: 'auto',
+        maxWidth: '480px',
+        background: 'var(--sala-surface)',
+        border: '0.5px solid var(--ek-line)',
+        borderRadius: '14px',
+        boxShadow: 'var(--ek-shadow-md)',
+        padding: '14px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        zIndex: 60
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p
+          style={{
+            fontFamily: 'var(--ek-font-display)',
+            fontSize: '14px',
+            fontWeight: 600,
+            color: 'var(--ek-ink)',
+            margin: 0,
+            marginBottom: '4px',
+            letterSpacing: '-0.01em'
+          }}
+        >
+          Instalá la app
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', margin: 0, lineHeight: 1.4 }}>
+          {platform === 'ios' ? (
+            <>
+              Tocá <span aria-hidden="true">⎙</span> y elegí "Agregar a inicio".
+            </>
+          ) : (
+            'Acceso directo desde tu pantalla de inicio.'
+          )}
+        </p>
+      </div>
+
+      {platform === 'android' && promptEvent && (
+        <button
+          type="button"
+          onClick={handleInstall}
+          className="ek-cta"
+          style={{ padding: '8px 14px', fontSize: '13px', whiteSpace: 'nowrap' }}
+        >
+          Instalar
+        </button>
+      )}
+
+      <button
+        type="button"
+        onClick={handleDismiss}
+        aria-label="Descartar"
+        style={{
+          background: 'transparent',
+          border: 'none',
+          color: 'var(--ek-ink-muted)',
+          cursor: 'pointer',
+          fontSize: '18px',
+          padding: '4px 6px',
+          lineHeight: 1,
+          flexShrink: 0
+        }}
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
