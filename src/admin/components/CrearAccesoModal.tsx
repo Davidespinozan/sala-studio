@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@shared/hooks/useToast';
 import { adminCreateUser } from '../hooks/useAdminData';
 
@@ -182,9 +183,9 @@ export default function CrearAccesoModal({ onClose, onSuccess }: Props) {
               onClick={() => setShowPassword((v) => !v)}
               className="ek-icon-btn"
               aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-              style={{ width: '44px', padding: 0, fontSize: '16px' }}
+              style={{ width: '44px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              {showPassword ? '🙈' : '👁'}
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
           <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>

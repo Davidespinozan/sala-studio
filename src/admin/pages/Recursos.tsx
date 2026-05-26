@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Pencil, Copy, Trash2, Check, Circle } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useSucursal } from '../providers/SucursalProvider';
@@ -479,9 +480,9 @@ function RecursoRow({
       </div>
       <CardMenuDropdown
         items={[
-          { label: 'Editar', icon: '✏️', onClick: onEdit },
-          { label: duplicating ? 'Duplicando…' : 'Duplicar', icon: '📋', onClick: onDuplicate, disabled: duplicating },
-          { label: 'Eliminar', icon: '🗑', onClick: onArchive, danger: true, divider: true }
+          { label: 'Editar', icon: <Pencil size={15} />, onClick: onEdit },
+          { label: duplicating ? 'Duplicando…' : 'Duplicar', icon: <Copy size={15} />, onClick: onDuplicate, disabled: duplicating },
+          { label: 'Eliminar', icon: <Trash2 size={15} />, onClick: onArchive, danger: true, divider: true }
         ]}
       />
     </div>
@@ -957,7 +958,9 @@ function MultiSelectTiers({
                 transition: 'all 0.18s ease'
               }}
             >
-              <span style={{ fontSize: '14px' }}>{selected ? '✓' : '○'}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+                {selected ? <Check size={14} /> : <Circle size={14} />}
+              </span>
               {opt.nombre}
             </button>
           );

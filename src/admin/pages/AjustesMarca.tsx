@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Image as ImageIcon, Folder } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
@@ -635,11 +636,11 @@ function DisabledPlaceholder({ current, kind }: { current: string | null; kind: 
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '22px',
+          color: 'var(--sala-text-tertiary)',
           flexShrink: 0
         }}
       >
-        {kind === 'image' ? '🖼' : '📁'}
+        {kind === 'image' ? <ImageIcon size={22} /> : <Folder size={22} />}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p

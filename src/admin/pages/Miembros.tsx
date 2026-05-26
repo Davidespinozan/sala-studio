@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { User, CreditCard, Lock, Unlock } from 'lucide-react';
 import { useMiembros } from '../hooks/useAdminData';
 import { NuevaPersonaModal } from '../components/NuevaPersonaModal';
 import CardMenuDropdown from '../components/CardMenuDropdown';
@@ -102,18 +103,18 @@ export default function Miembros() {
                         items={[
                           {
                             label: 'Ver perfil',
-                            icon: '👤',
+                            icon: <User size={15} />,
                             onClick: () => navigate(`/admin/miembros/${m.id}`)
                           },
                           {
                             label: 'Cambiar plan',
-                            icon: '💳',
+                            icon: <CreditCard size={15} />,
                             onClick: () => setCambiarPlanFor(m),
                             divider: true
                           },
                           {
                             label: estaBloqueado ? 'Desbloquear acceso' : 'Bloquear acceso',
-                            icon: estaBloqueado ? '🔓' : '🔒',
+                            icon: estaBloqueado ? <Unlock size={15} /> : <Lock size={15} />,
                             onClick: () => setBloquearFor(m),
                             danger: !estaBloqueado
                           }

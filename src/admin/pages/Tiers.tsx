@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Pencil, Copy, Trash2 } from 'lucide-react';
 import { useTiersAdmin, updateTier, insertTier } from '../hooks/useAdminData';
 import {
   archiveRecord,
@@ -462,9 +463,9 @@ function TierRow({
       </div>
       <CardMenuDropdown
         items={[
-          { label: 'Editar', icon: '✏️', onClick: onEdit },
-          { label: duplicating ? 'Duplicando…' : 'Duplicar', icon: '📋', onClick: onDuplicate, disabled: duplicating },
-          { label: 'Eliminar', icon: '🗑', onClick: onArchive, danger: true, divider: true }
+          { label: 'Editar', icon: <Pencil size={15} />, onClick: onEdit },
+          { label: duplicating ? 'Duplicando…' : 'Duplicar', icon: <Copy size={15} />, onClick: onDuplicate, disabled: duplicating },
+          { label: 'Eliminar', icon: <Trash2 size={15} />, onClick: onArchive, danger: true, divider: true }
         ]}
       />
     </div>

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 export interface DropdownItem {
   label: string;
-  icon: string;
+  /** Ícono del item. Lucide-react component (preferido) o string Unicode. */
+  icon: ReactNode;
   onClick: () => void;
   danger?: boolean;
   disabled?: boolean;
@@ -94,7 +95,12 @@ export default function CardMenuDropdown({ items }: Props) {
                   }}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <span aria-hidden="true">{item.icon}</span>
+                  <span
+                    aria-hidden="true"
+                    style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+                  >
+                    {item.icon}
+                  </span>
                   {item.label}
                 </button>
               </div>

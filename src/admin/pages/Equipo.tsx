@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { RefreshCcw, Ban, AlertTriangle } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
@@ -379,10 +380,10 @@ function PersonaCard({
       </div>
       <CardMenuDropdown
         items={[
-          { label: 'Cambiar rol', icon: '🔄', onClick: onCambiarRol },
-          { label: 'Revocar acceso', icon: '🚫', onClick: onRevoke, danger: true, divider: true },
+          { label: 'Cambiar rol', icon: <RefreshCcw size={15} />, onClick: onCambiarRol },
+          { label: 'Revocar acceso', icon: <Ban size={15} />, onClick: onRevoke, danger: true, divider: true },
           ...(esYo ? [] : [
-            { label: 'Eliminar definitivamente', icon: '⚠️', onClick: onEliminar, danger: true }
+            { label: 'Eliminar definitivamente', icon: <AlertTriangle size={15} />, onClick: onEliminar, danger: true }
           ])
         ]}
       />

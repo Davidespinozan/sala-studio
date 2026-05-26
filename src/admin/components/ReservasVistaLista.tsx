@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Eye, Check, AlertTriangle, Ban } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
@@ -575,12 +576,12 @@ function ReservaRow({
       </span>
       <CardMenuDropdown
         items={[
-          { label: 'Ver detalle', icon: '👁', onClick: onVerDetalle },
+          { label: 'Ver detalle', icon: <Eye size={15} />, onClick: onVerDetalle },
           ...(puedeMarcarAsistencia
             ? [
                 {
                   label: 'Marcar asistencia',
-                  icon: '✓',
+                  icon: <Check size={15} />,
                   onClick: onMarcarAsistencia,
                   disabled: actioning,
                   divider: true
@@ -591,7 +592,7 @@ function ReservaRow({
             ? [
                 {
                   label: 'Marcar no-show',
-                  icon: '⚠',
+                  icon: <AlertTriangle size={15} />,
                   onClick: onMarcarNoShow,
                   disabled: actioning
                 }
@@ -601,7 +602,7 @@ function ReservaRow({
             ? [
                 {
                   label: 'Cancelar reserva',
-                  icon: '🚫',
+                  icon: <Ban size={15} />,
                   onClick: onCancelar,
                   danger: true,
                   divider: true

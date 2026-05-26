@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useSucursal } from '../providers/SucursalProvider';
 import { useToast } from '@shared/hooks/useToast';
@@ -352,8 +353,8 @@ function HorarioRow({
         </span>
         <CardMenuDropdown
           items={[
-            { label: 'Editar', icon: '✏️', onClick: onEdit },
-            { label: 'Eliminar', icon: '🗑', onClick: onDelete, danger: true, divider: true }
+            { label: 'Editar', icon: <Pencil size={15} />, onClick: onEdit },
+            { label: 'Eliminar', icon: <Trash2 size={15} />, onClick: onDelete, danger: true, divider: true }
           ]}
         />
       </div>

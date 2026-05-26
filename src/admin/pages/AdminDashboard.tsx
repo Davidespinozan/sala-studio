@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Eye, Ban } from 'lucide-react';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
 import { useDashboardData, type DashboardData } from '../hooks/useAdminData';
@@ -192,12 +193,12 @@ function SeccionHoy({
                     items={[
                       {
                         label: 'Ver detalle',
-                        icon: '👁',
+                        icon: <Eye size={15} />,
                         onClick: () => toast.info('Para ver el detalle completo, andá a la pantalla de Reservas.')
                       },
                       {
                         label: 'Cancelar reserva',
-                        icon: '🚫',
+                        icon: <Ban size={15} />,
                         onClick: () =>
                           onCancelar({
                             id: r.id,

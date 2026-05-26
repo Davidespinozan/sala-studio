@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Check, AlertTriangle, Ban, RotateCcw } from 'lucide-react';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
 import { estadoCupos, type Clase } from '@member/logic/claseAdapter';
@@ -563,17 +564,17 @@ function InscritoRow({
         : '—';
 
   // Acciones disponibles según status
-  const items: Array<{ label: string; icon: string; onClick: () => void; danger?: boolean; divider?: boolean; disabled?: boolean }> = [];
+  const items: Array<{ label: string; icon: ReactNode; onClick: () => void; danger?: boolean; divider?: boolean; disabled?: boolean }> = [];
   if (inscrito.status === 'confirmada') {
     items.push(
-      { label: 'Marcar asistencia', icon: '✓', onClick: onAsistencia, disabled: actioning },
-      { label: 'Marcar no-show', icon: '⚠', onClick: onNoShow, disabled: actioning },
-      { label: 'Cancelar reserva', icon: '🚫', onClick: onCancelar, danger: true, divider: true, disabled: actioning }
+      { label: 'Marcar asistencia', icon: <Check size={15} />, onClick: onAsistencia, disabled: actioning },
+      { label: 'Marcar no-show', icon: <AlertTriangle size={15} />, onClick: onNoShow, disabled: actioning },
+      { label: 'Cancelar reserva', icon: <Ban size={15} />, onClick: onCancelar, danger: true, divider: true, disabled: actioning }
     );
   } else if (inscrito.status === 'completada') {
-    items.push({ label: 'Marcar como no-show', icon: '⚠', onClick: onNoShow, danger: true, disabled: actioning });
+    items.push({ label: 'Marcar como no-show', icon: <AlertTriangle size={15} />, onClick: onNoShow, danger: true, disabled: actioning });
   } else if (inscrito.status === 'no_show') {
-    items.push({ label: 'Revertir a confirmada', icon: '↺', onClick: onAsistencia, disabled: actioning });
+    items.push({ label: 'Revertir a confirmada', icon: <RotateCcw size={15} />, onClick: onAsistencia, disabled: actioning });
   }
 
   return (
