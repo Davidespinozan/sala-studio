@@ -105,7 +105,42 @@ estados que pasan, o agregar la lógica de gracia. Hoy es una línea: cambiar
 `('trialing', 'activa', 'past_due', 'congelada')` → `('trialing', 'activa', 'congelada')`
 en el WHERE del SELECT del gate (y dejar `congelada` con su error explícito).
 
-## D-011: asimetría de lista de espera — la promoción no debita crédito
+## D-011: asimetría de lista de espera — la promoción no debita crédito (RESUELTO)
+
+**Resuelto en**: `20260526100000_lista_espera_debita_credito.sql` (opción 1
+del diseño original + opción (c) para el 5º agujero descubierto durante el
+sprint).
+
+**Resumen de la resolución** — cerrados los 5 agujeros de balance:
+1. `anotar_lista_espera` ahora debita 1 crédito al anotarse (mismo gate que
+   `reservar_clase_atomic`: SIN_MEMBRESIA / VENCIDA / CONGELADA / SIN_CREDITOS;
+   solo rol miembro + tier creditos/hibrido; FOR UPDATE serializa).
+2. `salir_lista_espera` devuelve el crédito si había debitado (anti-doble por
+   `lista_espera_id`); bloquea CLASE_PASADA.
+3. `trg_limpiar_espera_clase_cancelada` amplificado: refund por entrada cuando
+   el admin cancela la clase.
+4. Nueva `expirar_listas_espera_vencidas()` (cron-callable, llamada desde
+   `cron-no-shows` cada hora): marca entradas 'esperando' con slot pasado
+   como 'expirada' y devuelve crédito si había débito.
+5. `cancelar_reserva_atomic` con fallback al origen lista_espera: si la
+   reserva vino de promoción (sin débito por reserva_id), busca el débito
+   por el `lista_espera_id` de la entrada con status='promovido' que apunta
+   a esa reserva. Devolución se inserta con AMBAS claves (reserva_id +
+   lista_espera_id) → anti-doble cierra por cualquier vía.
+
+**Ledger inmutable preservado** — se descartó re-vincular el débito (UPDATE
+de `reserva_id` en el ledger) porque viola `trg_membresia_mov_no_update`. El
+fallback de lectura es la solución limpia: el patrón append-only sigue intacto.
+
+**Tests**: `scripts/test_lista_espera_credito.sql` (15 casos: gate, refund,
+expiración cron, idempotencia, balance global, fallback de promovida,
+camino feliz normal). Los 19 SQL anteriores + 145 vitest siguen verdes (la
+shape jsonb de `cancelar_reserva_atomic` no cambia y el fallback solo corre
+cuando el primer count por reserva_id da 0).
+
+---
+
+**Histórico (problema y diagnóstico originales)**
 
 **Severidad**: **alta — prioritaria antes de cobrar créditos reales en
 producción**. Pierde dinero al gym (1 crédito por cada promoción exitosa).
@@ -118,31 +153,12 @@ reserva confirmada para el primero de la cola — pero **NO debita 1 crédito** 
 promovido. Resultado: el gym devolvió 1 crédito al cancelador y regaló 1 clase
 al promovido. Balance global: −1 crédito por cada promoción exitosa.
 
-**Por qué se aceptó así en Fase 2A.2**: el comentario en
-`20260524200000_reservar_clase_gate.sql` lo anota: *"_promover_entrada no
-debita: la idea es que el crédito ya se reservó cuando el socio se anotó.
-Pendiente de definir en Fase 2B."* Pero en Fase 2B tampoco se atacó —
-anotar_lista_espera tampoco debita al anotarse en cola.
-
-**Opciones para resolver**:
-1. **Debitar al anotarse en la lista de espera** (`anotar_lista_espera`): el
-   socio "reserva" su crédito desde la cola. Si nunca se promueve, devolver
-   automáticamente al expirar la clase (cron) o cuando el socio se desinscribe.
-   Pro: simétrico, ya hay un crédito en juego cuando se promueve. Con:
-   complica `anotar_lista_espera` y agrega un flujo de devolución de cola.
-2. **Debitar al promoverse** (en `_promover_entrada`): el helper actual
-   bypasea el gate. Habría que agregar el chequeo del saldo del promovido
-   ANTES de promover. Si está sin créditos, saltarlo y promover al siguiente.
-   Pro: el gate vive en un solo lugar conceptual. Con: complica el helper y
-   puede dejar la cola sin promover si nadie tiene saldo.
-
-**Recomendación**: opción 1 (debitar al anotarse). Es la convención típica
-de gyms: te anotás → ya "pagás" el lugar; si no se libera, te devuelven.
-
-**Cuando se ataque**: tocar `anotar_lista_espera` para que debite + crear
-flujo de devolución para entradas que expiran (clase pasada o socio se
-desinscribe). Tests para que la suma siempre cierre en cero (lo que el socio
-gastó debe matchear lo que se le devolvió).
+**5º agujero descubierto durante el sprint**: si B se anota (debita), es
+promovido (entrada 'promovido', reserva sin débito propio) y luego cancela
+A TIEMPO, el `cancelar_reserva_atomic` original buscaba débito por reserva_id
+y no encontraba → el SOCIO perdía el crédito que pagó al anotarse. Peor que
+el gym regalando: acá pierde el cliente. Cubierto por la opción (c) del
+fallback.
 
 ## D-012: mismatch de clave en `tenants.config.reserva.anticipacion_min_horas`
 
