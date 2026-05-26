@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Home, User, ClipboardList } from 'lucide-react';
 import { useAuth } from '@shared/hooks/useAuth';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
@@ -252,16 +253,19 @@ const SECTIONS: NavSection[] = [
 
 interface VerComoLink {
   label: string;
-  icon: string;
+  icon: ReactNode;
   href: string;
 }
 
+// Íconos lucide-react con stroke=currentColor — heredan el color del item
+// (rgba(255,255,255,0.70) inactivo, full white en hover). Tamaño 18px para
+// matchear los íconos SVG del resto del sidebar (Dashboard, Miembros, etc.).
 const VER_COMO_LINKS: VerComoLink[] = [
   // Signup excluido a propósito (Sprint D-Polish): admin ya lo ve en el
   // flow normal cuando un visitante hace click en una membresía desde Landing.
-  { label: 'Landing', icon: '🏠', href: '/?demo=admin-preview' },
-  { label: 'Miembro', icon: '👤', href: '/app?demo=admin-preview' },
-  { label: 'Recepción', icon: '📋', href: '/recepcion?demo=admin-preview' }
+  { label: 'Landing',   icon: <Home size={18} />,          href: '/?demo=admin-preview' },
+  { label: 'Miembro',   icon: <User size={18} />,          href: '/app?demo=admin-preview' },
+  { label: 'Recepción', icon: <ClipboardList size={18} />, href: '/recepcion?demo=admin-preview' }
 ];
 
 interface Props {
