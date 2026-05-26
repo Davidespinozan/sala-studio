@@ -414,3 +414,50 @@ prende el flag, o dejar de pagar y nadie se lo apaga.
 `if (suscripcionPremium(tenant.suscripcion))`. El campo manual
 `branding.hide_powered_by` puede quedar como override de soporte (gym
 beta-tester sin pagar pero acordado que no lleva footer) o eliminarse.
+
+## D-020: localizar TODA la app a español mexicano (hoy es voseo rioplatense)
+
+**Severidad**: alta para el mercado objetivo. Toda la UX habla en un
+dialecto que el cliente final no usa — siente "ajeno".
+
+**Estado actual**: la app entera usa **voseo rioplatense** (Argentina,
+Uruguay) en mensajes de cara al usuario. Ejemplos detectables con
+`grep -rn "tenés\|tocá\|elegí\|cancelá\|mirá\|recargá\|contactá" src/`:
+  - Errores RPC: `SIN_CREDITOS: "Te quedaste sin créditos en tu paquete"`,
+    `USUARIO_BLOQUEADO: "Tenés una restricción activa"`, etc.
+  - Login: `"Necesitás confirmar tu email primero"`.
+  - AjustesMarca: `"Recargá para ver los cambios"`.
+  - PwaInstallBanner: `"Instalá la app"`, `"Tocá ⎙ y elegí..."`.
+  - MemberLayout (status fail): `"Contactá al administrador"`.
+  - Mensajes inline en componentes de reservas/cancelaciones.
+
+**Mercado objetivo**: México (primer cliente real estimado en Culiacán,
+Sinaloa). Allá el voseo no se usa — el registro estándar es **tuteo
+mexicano**: instala/toca/elige/cancela/mira/recarga/contacta. El voseo
+genera fricción cultural inmediata ("esto no fue hecho para nosotros").
+
+**Alcance**: transversal. Toca al menos:
+  - Migraciones SQL (mensajes de `RAISE EXCEPTION` en RPCs — los más
+    visibles porque llegan al toast del cliente).
+  - Componentes React de los 4 layouts (member/admin/recepción/público).
+  - Textos de marketing/landing.
+  - Toast/error helpers (`traducirError`, `traducirErrorRPC`).
+
+**Por qué no se ataca acá**: es tarea transversal de pulido, no scope de
+un sprint funcional. Requiere pasada uniforme + revisión (no es
+"buscar-reemplazar tenés→tienes" porque hay matices: "podés" → "puedes",
+"querés" → "quieres", también imperativos sin acento: "mirá" → "mira",
+"contactá" → "contacta"). Y cada cambio en SQL es una migración nueva
+que debés ejecutar en Supabase.
+
+**Cuando se ataque**: sprint dedicado "L10n MX" antes del primer cliente
+real. Estrategia sugerida:
+  1. Pasada por SQL (mensajes de `RAISE EXCEPTION`) — una migración con
+     `CREATE OR REPLACE FUNCTION` por cada RPC tocada. Tests SQL
+     existentes siguen verdes (matchean por prefijo `'SIN_CREDITOS%'`).
+  2. Pasada por React (search & replace con revisión humana caso por
+     caso — los falsos positivos son raros pero existen).
+  3. Considerar i18n real (`react-i18next`) si en algún momento aparece
+     un cliente de Argentina/Uruguay/España que justifique multi-locale.
+     Hoy se asume un solo idioma destino → mover strings es suficiente,
+     no hace falta sistema de i18n completo.

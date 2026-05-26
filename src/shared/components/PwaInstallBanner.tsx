@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Upload } from 'lucide-react';
 
 /**
  * Banner sticky-bottom que invita al socio a instalar la app como PWA.
@@ -6,7 +7,7 @@ import { useEffect, useState } from 'react';
  * Solo se muestra cuando TODOS los gates pasan, en este orden:
  *   1. NO es contenedor Capacitor (futuro app nativa).
  *   2. NO está ya instalada (display-mode standalone / navigator.standalone).
- *   3. ES móvil (iOS o Android). Desktop fuera de scope.
+ *   3. ES móvil (iOS Safari, iOS Chrome o Android). Desktop fuera de scope.
  *   4. NO fue descartada en los últimos 90 días.
  *   5. Aparece con DELAY de 4 segundos post-montaje (no apenas el auth).
  *
@@ -14,8 +15,16 @@ import { useEffect, useState } from 'react';
  *   - Android (Chromium): captura beforeinstallprompt (con preventDefault para
  *     ocultar la mini-infobar de Chrome). Botón "Instalar" → event.prompt()
  *     → escucha userChoice (accepted | dismissed).
- *   - iOS Safari: instrucción inline "Tocá compartir ⎙ y elegí 'Agregar a inicio'".
+ *   - iOS Safari: instrucción inline "Toca el botón de compartir ⬆️ en Safari
+ *     y elige 'Agregar a inicio'" — con ícono <Upload> de lucide-react que
+ *     replica visualmente el botón nativo (cuadrado abierto + flecha arriba).
  *     No hay API para gatillar el flujo desde JS en WebKit.
+ *   - iOS Chrome (UA contiene "CriOS"): Apple no permite instalación PWA
+ *     desde WebView/Chrome iOS. Mensaje guía: "Para instalar la app, abre
+ *     esta página en Safari" (sin ícono, sin botón funcional, solo ✕).
+ *
+ * Textos en tuteo MEXICANO (mercado objetivo: Culiacán, MX). Para resto de
+ * la app sigue habiendo voseo rioplatense — ver D-020.
  *
  * Persistencia: localStorage `sala-pwa-install-dismissed-at` (timestamp ISO),
  * mismo patrón con try/catch que `src/admin/components/Sidebar.tsx`.
@@ -34,7 +43,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
-type Platform = 'ios' | 'android' | 'other';
+type Platform = 'ios-safari' | 'ios-chrome' | 'android' | 'other';
 
 function isNativeCapacitor(): boolean {
   if (typeof window === 'undefined') return false;
@@ -57,7 +66,12 @@ function detectPlatform(): Platform {
   if (typeof navigator === 'undefined' || typeof window === 'undefined') return 'other';
   const ua = navigator.userAgent;
   const winMS = (window as unknown as { MSStream?: unknown }).MSStream;
-  if (/iPad|iPhone|iPod/.test(ua) && !winMS) return 'ios';
+  if (/iPad|iPhone|iPod/.test(ua) && !winMS) {
+    // Chrome iOS se identifica con "CriOS" en el UA. Apple no permite
+    // instalación PWA fuera de Safari, así que el branch muestra un
+    // mensaje guía distinto ("abre en Safari").
+    return /CriOS/.test(ua) ? 'ios-chrome' : 'ios-safari';
+  }
   if (/Android/.test(ua)) return 'android';
   return 'other';
 }
@@ -107,8 +121,11 @@ export function PwaInstallBanner() {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
-    if (p === 'ios') {
-      // iOS no expone API de instalación: mostramos instrucciones tras delay.
+    if (p === 'ios-safari' || p === 'ios-chrome') {
+      // iOS no expone API de instalación: mostramos texto tras delay.
+      // ios-safari → instrucción de "compartir + Agregar a inicio".
+      // ios-chrome → instrucción de "abrir en Safari" (Apple no permite
+      // instalación PWA desde Chrome iOS).
       timer = setTimeout(() => {
         if (!cancelled) setVisible(true);
       }, APPEAR_DELAY_MS);
@@ -194,15 +211,25 @@ export function PwaInstallBanner() {
             letterSpacing: '-0.01em'
           }}
         >
-          Instalá la app
+          Instala la app
         </p>
         <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', margin: 0, lineHeight: 1.4 }}>
-          {platform === 'ios' ? (
+          {platform === 'ios-safari' && (
             <>
-              Tocá <span aria-hidden="true">⎙</span> y elegí "Agregar a inicio".
+              Toca el botón de compartir{' '}
+              <Upload
+                size={14}
+                aria-hidden="true"
+                style={{ display: 'inline-block', verticalAlign: '-3px' }}
+              />
+              {' '}en Safari y elige "Agregar a inicio".
             </>
-          ) : (
-            'Acceso directo desde tu pantalla de inicio.'
+          )}
+          {platform === 'ios-chrome' && (
+            <>Para instalar la app, abre esta página en Safari.</>
+          )}
+          {platform === 'android' && (
+            <>Acceso directo desde tu pantalla de inicio.</>
           )}
         </p>
       </div>
