@@ -53,6 +53,24 @@ function isValidHex(s: string): boolean {
   return /^#[0-9a-f]{6}$/i.test(s);
 }
 
+/**
+ * Normaliza un input hex que el usuario puede haber tipeado de varias formas:
+ *   "#3D6B52" / "3D6B52" / "#3d6b52" / "3d6b52" / "#FFF" / "fff" / "FFF"
+ *
+ * Acepta: 3 o 6 dígitos hex, con o sin '#', case-insensitive.
+ * Expande la forma corta (#RGB → #RRGGBB).
+ * Devuelve hex canónico "#RRGGBB" (uppercase) o null si el formato es inválido.
+ */
+function normalizeHex(input: string): string | null {
+  const trimmed = input.trim().replace(/^#/, '');
+  if (/^[0-9a-f]{6}$/i.test(trimmed)) return '#' + trimmed.toUpperCase();
+  if (/^[0-9a-f]{3}$/i.test(trimmed)) {
+    const expanded = trimmed.split('').map((c) => c + c).join('');
+    return '#' + expanded.toUpperCase();
+  }
+  return null;
+}
+
 export default function AjustesMarca() {
   const tenant = useTenant();
   const toast = useToast();
@@ -335,6 +353,38 @@ function ColorPickerRow({
   value: string;
   onChange: (hex: string) => void;
 }) {
+  // Estado local del input de texto. value es el hex commiteado (lo que ve el
+  // resto de la app); inputValue es lo que el usuario está tipeando (puede ser
+  // inválido temporariamente). Se sincronizan en commit (Enter/blur) o cuando
+  // value cambia desde afuera (picker visual, reset).
+  const [inputValue, setInputValue] = useState<string>(value);
+  const [inputError, setInputError] = useState<boolean>(false);
+
+  // Sync desde el padre → input. Si value cambió externamente (picker/reset) y
+  // el input no normaliza al mismo color, reflejarlo. Si el usuario está
+  // tipeando algo válido que matchea el value commiteado, no-op (no piso lo
+  // que está escribiendo).
+  useEffect(() => {
+    const inputNormalized = normalizeHex(inputValue);
+    if (inputNormalized?.toLowerCase() !== value.toLowerCase()) {
+      setInputValue(value);
+      setInputError(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  function commitInput() {
+    const normalized = normalizeHex(inputValue);
+    if (normalized) {
+      setInputError(false);
+      setInputValue(normalized); // normaliza la vista a #RRGGBB uppercase
+      if (normalized.toLowerCase() !== value.toLowerCase()) onChange(normalized);
+    } else {
+      setInputError(true);
+      // NO llama onChange — queda el último value válido
+    }
+  }
+
   const lum = relativeLuminance(value);
   const textOn = pickTextOn(value);
   const ratio = contrastRatio(value, textOn);
@@ -360,7 +410,7 @@ function ColorPickerRow({
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value.toUpperCase())}
-          aria-label={label}
+          aria-label={`${label} (selector visual)`}
           style={{
             width: '56px',
             height: '40px',
@@ -371,21 +421,62 @@ function ColorPickerRow({
             background: 'transparent'
           }}
         />
-        <code
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => {
+            setInputValue(e.target.value);
+            if (inputError) setInputError(false); // limpiar error mientras corrige
+          }}
+          onBlur={commitInput}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commitInput();
+              (e.target as HTMLInputElement).blur();
+            } else if (e.key === 'Escape') {
+              // Cancelar edición: revertir al último value válido
+              setInputValue(value);
+              setInputError(false);
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
+          spellCheck={false}
+          autoComplete="off"
+          aria-label={`${label} en código hex`}
+          aria-invalid={inputError}
+          placeholder="#3D6B52"
           style={{
             fontFamily: 'var(--ek-font-mono)',
             fontSize: '14px',
-            color: 'var(--sala-text-primary)',
+            color: inputError ? 'var(--sala-error)' : 'var(--sala-text-primary)',
             background: 'var(--sala-surface)',
-            border: '0.5px solid var(--ek-line)',
+            border: inputError
+              ? '1px solid var(--sala-error)'
+              : '0.5px solid var(--ek-line)',
             padding: '8px 12px',
             borderRadius: '8px',
-            letterSpacing: '0.04em'
+            letterSpacing: '0.04em',
+            width: '110px',
+            outline: 'none',
+            textTransform: 'uppercase'
+          }}
+        />
+      </div>
+      {inputError && (
+        <p
+          role="alert"
+          style={{
+            fontSize: '12px',
+            color: 'var(--sala-error)',
+            margin: 0,
+            marginTop: '8px',
+            lineHeight: 1.4
           }}
         >
-          {value.toUpperCase()}
-        </code>
-      </div>
+          Formato hex inválido. Ejemplo: <code style={{ fontFamily: 'var(--ek-font-mono)' }}>#3D6B52</code>
+        </p>
+      )}
       {contrastFails && (
         <p
           style={{
