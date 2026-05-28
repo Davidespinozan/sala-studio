@@ -209,9 +209,13 @@ html {
 
 body {
   margin: 0;
+  /* Fase B Round 2: fondo no-plano con 3 radials sutiles teñidos del tenant.
+     Primary 7% top-right + accent 5% bottom-left + primary 4% center-mid.
+     Todos los colores derivan del tenant — atmósfera de marca, no decoración. */
   background:
-    radial-gradient(ellipse 800px 500px at top right, color-mix(in srgb, var(--sala-primary) 4%, transparent), transparent 50%),
-    radial-gradient(ellipse 600px 400px at bottom left, color-mix(in srgb, var(--sala-accent) 3%, transparent), transparent 50%),
+    radial-gradient(ellipse 900px 600px at top right, color-mix(in srgb, var(--sala-primary) 7%, transparent), transparent 55%),
+    radial-gradient(ellipse 700px 500px at bottom left, color-mix(in srgb, var(--sala-accent) 5%, transparent), transparent 55%),
+    radial-gradient(ellipse 600px 500px at 30% 55%, color-mix(in srgb, var(--sala-primary) 4%, transparent), transparent 60%),
     var(--sala-bg);
   background-attachment: fixed;
   color: var(--ek-ink);
@@ -425,7 +429,12 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     border: 0.5px solid var(--ek-line);
     border-radius: var(--ek-r-card);
     padding: 24px;
-    box-shadow: var(--ek-shadow-card);
+    /* Fase B Round 2: profundidad teñida. Capa neutra base (grounding) +
+       capa amplia teñida del primary del tenant. La carta "flota" sobre el
+       fondo y hereda la atmósfera de marca del gym. */
+    box-shadow:
+      var(--ek-shadow-card),
+      0 8px 24px var(--sala-primary-shadow);
     color: var(--ek-ink);
   }
 
@@ -470,6 +479,11 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     border: 0.5px solid var(--ek-line);
     border-radius: var(--ek-r-md);
     padding: 16px;
+    /* Round 2: mismo patrón que .ek-card pero más sutil (sombra teñida
+       más chica) — los stat-cards suelen ir en grids densos. */
+    box-shadow:
+      var(--ek-shadow-card),
+      0 4px 12px var(--sala-primary-shadow);
   }
 
   .ek-stat-card--accent { border-color: var(--ek-mustard-dim); }
@@ -1938,15 +1952,18 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     background: transparent;
   }
 
-  /* 3. Cards con border-glow salvia al hover */
+  /* 3. Cards con profundidad teñida al hover (Fase B Round 2).
+     Antes: shift de border-color + halo soft. Ahora: el border se queda igual
+     (el peso visual lo hace la sombra) y amplificamos la sombra teñida
+     (--sala-primary-shadow 16% → --sala-primary-dim 24%) con más spread.
+     La carta "flota más alto" sin gritar. */
   .ek-card {
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: box-shadow 0.2s ease;
   }
   .ek-card:hover {
-    border-color: var(--sala-primary-glow-strong);
     box-shadow:
-      0 4px 16px rgba(26, 31, 28, 0.08),
-      0 0 24px var(--sala-primary-soft);
+      var(--ek-shadow-hero),
+      0 12px 32px var(--sala-primary-dim);
   }
 
   /* ============================================================================
