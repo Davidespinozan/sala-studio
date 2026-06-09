@@ -41,17 +41,17 @@ export function DayTabSelector({ fechas, selectedFechaISO, onSelect }: Props) {
         const num = f.date.getDate();
 
         const bg = selected
-          ? 'var(--sala-primary)'
+          ? 'var(--grad-accent)'
           : 'var(--sala-surface)';
         const color = selected
-          ? 'var(--sala-text-on-primary)'
+          ? 'var(--sala-text-on-accent)'
           : esHoy
-            ? 'var(--sala-primary)'
+            ? 'var(--sala-accent)'
             : 'var(--sala-text-secondary)';
         const border = selected
-          ? 'var(--sala-primary)'
+          ? 'var(--sala-accent)'
           : esHoy
-            ? 'var(--sala-primary)'
+            ? 'var(--sala-accent)'
             : 'var(--sala-border)';
 
         return (
@@ -76,7 +76,9 @@ export function DayTabSelector({ fechas, selectedFechaISO, onSelect }: Props) {
               cursor: 'pointer',
               fontFamily: 'inherit',
               transition: 'background 0.18s ease, border-color 0.18s ease, color 0.18s ease',
-              boxShadow: 'none'
+              boxShadow: selected
+                ? '0 2px 10px var(--sala-accent-dim), inset 0 1px 0 rgba(255, 255, 255, 0.16)'
+                : 'none'
             }}
           >
             <span

@@ -1005,11 +1005,12 @@ function StickyAction({
     padding: '14px 24px',
     fontSize: '15px',
     fontWeight: 700,
-    borderRadius: '14px',
+    borderRadius: '999px',
     border: '1px solid transparent',
     cursor: 'pointer',
     fontFamily: 'inherit',
-    transition: 'background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease'
+    transition:
+      'background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.22s ease, transform 0.16s ease, filter 0.18s ease'
   };
 
   if (cancelada) {
@@ -1125,13 +1126,14 @@ function StickyAction({
     return (
       <button
         type="button"
+        className="ek-lift"
         onClick={onReservar}
         style={{
           ...baseFullCTA,
-          background: 'var(--sala-accent)',
+          background: 'var(--grad-accent)',
           color: 'var(--sala-text-on-accent)',
           borderColor: 'var(--sala-accent)',
-          boxShadow: '0 4px 16px rgba(232, 101, 74, 0.24)'
+          boxShadow: '0 4px 16px var(--sala-accent-dim), inset 0 1px 0 rgba(255, 255, 255, 0.16)'
         }}
       >
         Reservar (últimos lugares)
@@ -1142,13 +1144,14 @@ function StickyAction({
   return (
     <button
       type="button"
+      className="ek-lift"
       onClick={onReservar}
       style={{
         ...baseFullCTA,
-        background: 'var(--sala-primary)',
+        background: 'var(--grad-primary)',
         color: 'var(--sala-text-on-primary)',
         borderColor: 'var(--sala-primary)',
-        boxShadow: '0 4px 16px rgba(61, 107, 82, 0.24)'
+        boxShadow: '0 4px 16px var(--sala-primary-dim), inset 0 1px 0 rgba(255, 255, 255, 0.16)'
       }}
     >
       Reservar

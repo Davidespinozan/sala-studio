@@ -227,7 +227,8 @@ function ActionButton({
     alignItems: 'center',
     justifyContent: 'center',
     gap: '5px',
-    transition: 'background 0.18s ease, border-color 0.18s ease, color 0.18s ease'
+    transition:
+      'background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.16s ease, filter 0.18s ease'
   };
 
   if (cancelada) {
@@ -309,6 +310,7 @@ function ActionButton({
   return (
     <button
       type="button"
+      className="ek-lift"
       onClick={(e) => {
         e.stopPropagation();
         onReservar();
@@ -316,9 +318,12 @@ function ActionButton({
       disabled={reservando}
       style={{
         ...baseStyle,
-        background: pocos ? 'var(--sala-accent)' : 'var(--sala-primary)',
+        background: pocos ? 'var(--grad-accent)' : 'var(--grad-primary)',
         color: 'var(--sala-text-on-primary)',
         borderColor: pocos ? 'var(--sala-accent)' : 'var(--sala-primary)',
+        boxShadow: pocos
+          ? '0 4px 14px var(--sala-accent-dim), inset 0 1px 0 rgba(255, 255, 255, 0.16)'
+          : '0 4px 14px var(--sala-primary-dim), inset 0 1px 0 rgba(255, 255, 255, 0.16)',
         opacity: reservando ? 0.6 : 1
       }}
     >

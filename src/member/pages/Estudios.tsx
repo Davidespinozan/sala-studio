@@ -1,4 +1,4 @@
-import { ArrowRight, Star } from 'lucide-react';
+import { ArrowRight, Dumbbell, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
@@ -61,22 +61,24 @@ export default function Estudios() {
             <Link
               key={r.id}
               to={`/app/estudios/${r.slug}`}
-              className="ek-card ek-card-interactive"
+              className="ek-card-interactive"
               style={{
                 padding: 0,
                 overflow: 'hidden',
                 textDecoration: 'none',
-                color: 'inherit',
-                borderRadius: 'var(--ek-r-md)'
+                borderRadius: 'var(--ek-r-md)',
+                background: 'linear-gradient(160deg, var(--sala-primary-darkest) 0%, var(--sala-neutral-dark) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: '0 10px 28px rgba(10, 15, 12, 0.22)'
               }}
             >
               <div style={{
-                background: 'linear-gradient(135deg, var(--ek-bg-elevated) 0%, var(--ek-bg) 100%)',
                 aspectRatio: '16 / 10',
                 position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                background: r.foto_url ? 'transparent' : 'rgba(255, 255, 255, 0.04)'
               }}>
                 {r.foto_url ? (
                   <img
@@ -89,17 +91,40 @@ export default function Estudios() {
                     }}
                   />
                 ) : (
-                  <span style={{
-                    fontSize: '10px',
-                    color: 'var(--ek-ink-faint)',
-                    letterSpacing: '0.18em',
-                    fontWeight: 600
-                  }}>FOTO PRÓXIMAMENTE</span>
+                  <Dumbbell size={48} strokeWidth={1.25} style={{ color: 'var(--sala-warning)', opacity: 0.6 }} />
                 )}
 
+                {/* Scrim inferior para profundidad y legibilidad del badge */}
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'linear-gradient(to top, rgba(10, 15, 12, 0.55) 0%, transparent 55%)',
+                    pointerEvents: 'none'
+                  }}
+                />
+
                 <span
-                  className={esPro ? 'ek-badge ek-badge--outline' : 'ek-badge'}
-                  style={{ position: 'absolute', top: '12px', left: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  style={{
+                    position: 'absolute',
+                    top: '12px',
+                    left: '12px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 11px',
+                    borderRadius: '999px',
+                    background: 'rgba(10, 15, 12, 0.55)',
+                    backdropFilter: 'blur(6px)',
+                    WebkitBackdropFilter: 'blur(6px)',
+                    border: '1px solid rgba(255, 255, 255, 0.14)',
+                    color: esPro ? 'var(--sala-warning)' : 'rgba(255, 255, 255, 0.9)',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase'
+                  }}
                 >
                   {esPro ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> PRO</> : 'BÁSICA'}
                 </span>
@@ -112,13 +137,14 @@ export default function Estudios() {
                   fontWeight: 700,
                   letterSpacing: '-0.03em',
                   margin: 0,
-                  marginBottom: '6px'
+                  marginBottom: '6px',
+                  color: 'rgba(255, 255, 255, 0.96)'
                 }}>{r.nombre}</h3>
 
                 {r.descripcion && (
                   <p style={{
                     fontSize: '13px',
-                    color: 'var(--ek-ink-muted)',
+                    color: 'rgba(255, 255, 255, 0.6)',
                     margin: 0,
                     marginBottom: '14px',
                     lineHeight: 1.4
@@ -128,7 +154,18 @@ export default function Estudios() {
                 {tiposContenido.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
                     {tiposContenido.slice(0, 3).map((tipo) => (
-                      <span key={tipo} className="ek-badge ek-badge--neutral">
+                      <span
+                        key={tipo}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '999px',
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          color: 'rgba(255, 255, 255, 0.82)',
+                          fontSize: '11px',
+                          fontWeight: 600
+                        }}
+                      >
                         {tipo}
                       </span>
                     ))}
@@ -140,14 +177,14 @@ export default function Estudios() {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   fontSize: '12px',
-                  color: 'var(--ek-ink-muted)'
+                  color: 'rgba(255, 255, 255, 0.5)'
                 }}>
                   <span>
                     {(r.capacidad_personas ?? 0) > 0
                       ? `Hasta ${r.capacidad_personas} personas`
                       : 'Capacidad por confirmar'}
                   </span>
-                  <span style={{ color: 'var(--ek-mustard)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ color: 'var(--sala-warning)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     Ver detalle
                     <ArrowRight size={14} strokeWidth={2.25} />
                   </span>

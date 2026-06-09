@@ -10,9 +10,16 @@ interface ImageUploaderProps {
   onError?: (error: string) => void;
   label?: string;
   helperText?: string;
+  /**
+   * Permite subir SVG además de raster. Pensado para logos/isotipos: un SVG
+   * es vectorial y se ve nítido en cualquier densidad de pantalla (retina),
+   * a diferencia de un PNG chico que se pixela al escalar. Off por defecto
+   * (las fotos de clase/instructor siguen siendo solo raster).
+   */
+  allowSvg?: boolean;
 }
 
-const MIME_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp'];
+const MIME_RASTER = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 5 * 1024 * 1024;
 
 export default function ImageUploader({
@@ -22,8 +29,10 @@ export default function ImageUploader({
   onUploaded,
   onError,
   label = 'Imagen',
-  helperText
+  helperText,
+  allowSvg = false
 }: ImageUploaderProps) {
+  const mimePermitidos = allowSvg ? [...MIME_RASTER, 'image/svg+xml'] : MIME_RASTER;
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl);
   const [error, setError] = useState<string | null>(null);
@@ -32,8 +41,10 @@ export default function ImageUploader({
   const handleFile = async (file: File) => {
     setError(null);
 
-    if (!MIME_PERMITIDOS.includes(file.type)) {
-      const msg = 'Solo se aceptan imágenes JPG, PNG o WEBP.';
+    if (!mimePermitidos.includes(file.type)) {
+      const msg = allowSvg
+        ? 'Solo se aceptan imágenes JPG, PNG, WEBP o SVG.'
+        : 'Solo se aceptan imágenes JPG, PNG o WEBP.';
       setError(msg);
       onError?.(msg);
       return;
@@ -184,7 +195,7 @@ export default function ImageUploader({
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={mimePermitidos.join(',')}
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) handleFile(file);

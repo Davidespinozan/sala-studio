@@ -284,6 +284,19 @@ export default function Reservar() {
   return (
     <div className="ek-container" style={{ paddingTop: '12px', paddingBottom: '40px' }}>
       <header style={{ marginBottom: '20px' }}>
+        <p
+          style={{
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'var(--sala-accent)',
+            margin: 0,
+            marginBottom: '8px'
+          }}
+        >
+          Elegí tu clase
+        </p>
         <h1
           style={{
             fontFamily: 'var(--ek-font-display)',
@@ -405,21 +418,26 @@ function SalaChip({
   return (
     <button
       type="button"
+      className="ek-lift"
       onClick={onClick}
       style={{
         flexShrink: 0,
         padding: '8px 16px',
         minHeight: '36px',
-        background: active ? 'var(--sala-primary)' : 'var(--sala-surface)',
-        color: active ? 'var(--sala-text-on-primary)' : 'var(--sala-text-secondary)',
-        border: `1px solid ${active ? 'var(--sala-primary)' : 'var(--sala-border)'}`,
+        background: active ? 'var(--grad-accent)' : 'var(--sala-surface)',
+        color: active ? 'var(--sala-text-on-accent)' : 'var(--sala-text-secondary)',
+        border: `1px solid ${active ? 'var(--sala-accent)' : 'var(--sala-border)'}`,
         borderRadius: '999px',
         fontSize: '13px',
         fontWeight: 600,
         cursor: 'pointer',
         fontFamily: 'inherit',
         whiteSpace: 'nowrap',
-        transition: 'background 0.18s ease, border-color 0.18s ease, color 0.18s ease'
+        boxShadow: active
+          ? '0 2px 10px var(--sala-accent-dim), inset 0 1px 0 rgba(255, 255, 255, 0.16)'
+          : 'none',
+        transition:
+          'background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.16s ease, filter 0.18s ease'
       }}
     >
       {label}

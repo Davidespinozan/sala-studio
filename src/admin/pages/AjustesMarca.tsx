@@ -194,7 +194,8 @@ export default function AjustesMarca() {
           currentUrl={draft.logo_url_dark}
           onUploaded={(url) => setDraft({ ...draft, logo_url_dark: url || null })}
           label=""
-          helperText="PNG / WEBP / SVG. Máx 2MB."
+          allowSvg
+          helperText="Preferí SVG: se ve nítido en cualquier pantalla. PNG/WEBP también (mínimo 1024px de ancho para no pixelarse en móviles retina). Máx 2MB."
         />
         {!draft.logo_url_dark && (
           <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
@@ -213,7 +214,8 @@ export default function AjustesMarca() {
           currentUrl={draft.isotipo_url}
           onUploaded={(url) => setDraft({ ...draft, isotipo_url: url || null })}
           label=""
-          helperText="Símbolo cuadrado (sin texto). PNG o SVG, fondo transparente, 512×512 mínimo. Aparece en el login y espacios chicos."
+          allowSvg
+          helperText="Símbolo cuadrado (sin texto). Preferí SVG; si es PNG, fondo transparente y 512×512 mínimo. Aparece en el login y espacios chicos."
         />
         {!draft.isotipo_url && (
           <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
