@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Upload } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 
 /**
  * Banner sticky-bottom que invita al socio a instalar la app como PWA.
@@ -254,13 +254,14 @@ export function PwaInstallBanner() {
           border: 'none',
           color: 'var(--ek-ink-muted)',
           cursor: 'pointer',
-          fontSize: '18px',
+          display: 'inline-flex',
+          alignItems: 'center',
           padding: '4px 6px',
           lineHeight: 1,
           flexShrink: 0
         }}
       >
-        ✕
+        <X size={18} strokeWidth={2.25} />
       </button>
     </div>
   );

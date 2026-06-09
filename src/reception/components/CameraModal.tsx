@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 
 interface Props {
@@ -65,7 +66,7 @@ export function CameraModal({ onClose, onScan }: Props) {
   return (
     <div className="rec-camera-modal" onClick={onClose}>
       <div className="rec-camera-modal-inner" onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} className="rec-camera-close">✕</button>
+        <button onClick={onClose} className="rec-camera-close" aria-label="Cerrar" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} strokeWidth={2.25} /></button>
         <div className="rec-camera-wrap">
           {cameraError ? (
             <div className="rec-camera-error">

@@ -1,4 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Bike,
+  Dumbbell,
+  Flower2,
+  Footprints,
+  Music,
+  Swords,
+  type LucideIcon
+} from 'lucide-react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
@@ -38,16 +49,16 @@ interface RecursoFetched {
   equipo_incluido: string[] | null;
 }
 
-/** Emoji decorativo según disciplina, para placeholder cuando no hay foto. */
-function emojiFor(disciplina: string): string {
+/** Icono decorativo según disciplina, para placeholder cuando no hay foto. */
+function iconFor(disciplina: string): LucideIcon {
   const d = disciplina.toLowerCase();
-  if (d.includes('yoga') || d.includes('pilates') || d.includes('flow') || d.includes('stretch')) return '🧘';
-  if (d.includes('spinning') || d.includes('cycling') || d.includes('bici') || d.includes('indoor')) return '🚴';
-  if (d.includes('crossfit') || d.includes('hiit') || d.includes('funcional') || d.includes('fuerza')) return '💪';
-  if (d.includes('baile') || d.includes('dance') || d.includes('zumba')) return '💃';
-  if (d.includes('boxeo') || d.includes('box')) return '🥊';
-  if (d.includes('correr') || d.includes('running')) return '🏃';
-  return '✦';
+  if (d.includes('yoga') || d.includes('pilates') || d.includes('flow') || d.includes('stretch')) return Flower2;
+  if (d.includes('spinning') || d.includes('cycling') || d.includes('bici') || d.includes('indoor')) return Bike;
+  if (d.includes('crossfit') || d.includes('hiit') || d.includes('funcional') || d.includes('fuerza')) return Dumbbell;
+  if (d.includes('baile') || d.includes('dance') || d.includes('zumba')) return Music;
+  if (d.includes('boxeo') || d.includes('box')) return Swords;
+  if (d.includes('correr') || d.includes('running')) return Footprints;
+  return Dumbbell;
 }
 
 function tierTieneAcceso(tiers: string[] | null | undefined, tier: string | null | undefined): boolean {
@@ -364,10 +375,13 @@ export default function ClaseDetalle() {
               fontSize: '14px',
               fontWeight: 600,
               textDecoration: 'none',
-              alignItems: 'center'
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
             }}
           >
-            Ver clases disponibles →
+            Ver clases disponibles
+            <ArrowRight size={16} strokeWidth={2.25} />
           </Link>
         </div>
       </div>
@@ -697,9 +711,10 @@ export default function ClaseDetalle() {
               Tu plan actual no incluye acceso a esta sala.{' '}
               <Link
                 to="/app/perfil"
-                style={{ color: 'var(--sala-primary)', fontWeight: 600 }}
+                style={{ color: 'var(--sala-primary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
               >
-                Ver mi membresía →
+                Ver mi membresía
+                <ArrowRight size={14} strokeWidth={2.25} />
               </Link>
             </p>
           </div>
@@ -787,7 +802,7 @@ function BackButton({ onClick, inline = false }: { onClick: () => void; inline?:
   if (inline) {
     return (
       <button type="button" onClick={onClick} aria-label="Volver" style={baseStyle}>
-        ←
+        <ArrowLeft size={20} strokeWidth={2.25} />
       </button>
     );
   }
@@ -805,7 +820,7 @@ function BackButton({ onClick, inline = false }: { onClick: () => void; inline?:
         zIndex: 30
       }}
     >
-      ←
+      <ArrowLeft size={20} strokeWidth={2.25} />
     </button>
   );
 }
@@ -844,7 +859,8 @@ function HeroImage({
     );
   }
 
-  // Placeholder con gradient y emoji
+  // Placeholder con gradient e icono de disciplina
+  const Icon = iconFor(disciplina);
   return (
     <div
       style={{
@@ -858,16 +874,12 @@ function HeroImage({
         position: 'relative'
       }}
     >
-      <span
+      <Icon
         aria-hidden="true"
-        style={{
-          fontSize: 'clamp(64px, 16vw, 96px)',
-          opacity: 0.65,
-          filter: 'saturate(0.7)'
-        }}
-      >
-        {emojiFor(disciplina)}
-      </span>
+        size={84}
+        strokeWidth={1.25}
+        style={{ color: 'var(--sala-primary)', opacity: 0.55 }}
+      />
     </div>
   );
 }

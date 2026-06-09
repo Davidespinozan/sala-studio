@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Check } from 'lucide-react';
 import { useReservasHoy, checkInManual, type ReservaConJoin } from '../hooks/useReservasHoy';
 
 interface Props {
@@ -235,7 +236,7 @@ function ReservaCard({
       color: 'var(--ek-bg)'
     },
     completada: {
-      label: '✓ OK',
+      label: 'OK',
       bg: 'var(--ek-success-soft)',
       color: 'var(--ek-success)'
     },
@@ -389,8 +390,9 @@ function ManualCheckInModal({
 
         {yaCheckIn ? (
           <>
-            <p style={{ color: 'var(--ek-success)', marginTop: '1rem', fontWeight: 600 }}>
-              ✓ Ya hizo check-in
+            <p style={{ color: 'var(--ek-success)', marginTop: '1rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <Check size={15} strokeWidth={2.5} />
+              Ya hizo check-in
               {(() => {
                 const m = (reserva as { check_in_method?: string }).check_in_method;
                 return m ? ` (${m})` : null;

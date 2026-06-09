@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ArrowRight, Check, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { useLandingConfig } from '@shared/hooks/useLandingConfig';
@@ -532,9 +533,9 @@ export default function Landing() {
                   )}
                   <span
                     className={s.tier === 'pro' ? 'ek-badge ek-badge--outline' : 'ek-badge'}
-                    style={{ position: 'absolute', top: '14px', left: '14px' }}
+                    style={{ position: 'absolute', top: '14px', left: '14px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                   >
-                    {s.tier === 'pro' ? '★ PRO' : 'BÁSICA'}
+                    {s.tier === 'pro' ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> PRO</> : 'BÁSICA'}
                   </span>
                 </div>
                 <div style={{ padding: '20px' }}>
@@ -564,9 +565,13 @@ export default function Landing() {
                     margin: 0,
                     letterSpacing: '0.08em',
                     textTransform: 'uppercase',
-                    fontWeight: 600
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}>
-                    Ver detalle →
+                    Ver detalle
+                    <ArrowRight size={12} strokeWidth={2.5} />
                   </p>
                 </div>
               </button>
@@ -676,10 +681,14 @@ export default function Landing() {
                         textTransform: 'uppercase',
                         padding: '6px 14px',
                         borderRadius: '999px',
-                        boxShadow: '0 4px 12px rgba(61, 107, 82, 0.32)'
+                        boxShadow: '0 4px 12px rgba(61, 107, 82, 0.32)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px'
                       }}
                     >
-                      ★ Recomendada
+                      <Star size={12} strokeWidth={2.5} fill="currentColor" />
+                      Recomendada
                     </span>
                   )}
                   <p
@@ -727,7 +736,7 @@ export default function Landing() {
                           fontSize: '14px'
                         }}
                       >
-                        <span style={{ color: 'var(--ek-mustard)' }}>✓</span>
+                        <Check size={16} strokeWidth={2.5} style={{ color: 'var(--ek-mustard)', flexShrink: 0, marginTop: '1px' }} />
                         {b}
                       </li>
                     ))}

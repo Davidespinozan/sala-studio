@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Clipboard, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
 import { cancelarReserva } from '../lib/crudHelpers';
@@ -248,9 +249,10 @@ export default function CancelarReservaModal({ reserva, onClose, onCancelled }: 
             type="button"
             onClick={handleCopy}
             className="ek-icon-btn"
-            style={{ width: 'auto', padding: '8px 14px', fontSize: '12px' }}
+            style={{ width: 'auto', padding: '8px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            {copiado ? '✓ Copiado' : '📋 Copiar mensaje'}
+            {copiado ? <ClipboardCheck size={14} strokeWidth={2.25} /> : <Clipboard size={14} strokeWidth={2.25} />}
+            {copiado ? 'Copiado' : 'Copiar mensaje'}
           </button>
         </div>
 

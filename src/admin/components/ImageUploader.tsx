@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 
 interface ImageUploaderProps {
@@ -120,11 +121,13 @@ export default function ImageUploader({
                 height: '32px',
                 padding: 0,
                 background: 'rgba(26, 31, 28, 0.85)',
-                fontSize: '16px'
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
               aria-label="Quitar imagen"
             >
-              ✕
+              <X size={16} strokeWidth={2.25} />
             </button>
           </div>
         ) : (

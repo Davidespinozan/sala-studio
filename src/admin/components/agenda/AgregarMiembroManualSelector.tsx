@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import type { Clase } from '@member/logic/claseAdapter';
@@ -129,12 +130,13 @@ export function AgregarMiembroManualSelector({
             border: 'none',
             color: 'var(--sala-text-tertiary)',
             cursor: 'pointer',
-            fontSize: '14px',
+            display: 'inline-flex',
+            alignItems: 'center',
             padding: '4px 8px',
             fontFamily: 'inherit'
           }}
         >
-          ✕
+          <X size={16} strokeWidth={2.25} />
         </button>
       </div>
 

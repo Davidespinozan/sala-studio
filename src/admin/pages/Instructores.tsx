@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { X } from 'lucide-react';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useSucursal } from '../providers/SucursalProvider';
 import { useToast } from '@shared/hooks/useToast';
@@ -488,13 +489,14 @@ function ChipInput({
                   border: 'none',
                   color: 'var(--sala-primary)',
                   cursor: 'pointer',
-                  fontSize: '12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
                   padding: 0,
                   lineHeight: 1,
                   fontFamily: 'inherit'
                 }}
               >
-                ✕
+                <X size={14} strokeWidth={2.5} />
               </button>
             </span>
           ))}

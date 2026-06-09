@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { estadoCupos, type Clase } from '@member/logic/claseAdapter';
 
@@ -82,6 +83,9 @@ export function ClaseCard({ clase, ya_reservada }: Props) {
           margin: 0,
           marginTop: 'auto',
           fontVariantNumeric: 'tabular-nums',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
           color: esCancelada
             ? 'var(--sala-text-tertiary)'
             : llena
@@ -98,7 +102,7 @@ export function ClaseCard({ clase, ya_reservada }: Props) {
           : llena
             ? 'Llena'
             : ya_reservada
-              ? 'Reservaste ✓'
+              ? <><Check size={13} strokeWidth={2.5} /> Reservaste</>
               : pocos
                 ? `¡${clase.cupoMax - clase.cuposReservados} lugares!`
                 : `${clase.cuposReservados}/${clase.cupoMax} cupos`}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
@@ -182,11 +183,17 @@ export default function CambiarRolModal({
               borderRadius: 'var(--ek-r-sm)',
               margin: 0,
               marginBottom: '16px',
-              lineHeight: 1.5
+              lineHeight: 1.5,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px'
             }}
           >
-            ⚠️ Cambiar a Administrador le dará acceso completo al sistema, incluyendo gestión
-            de equipo y reglas de negocio.
+            <AlertTriangle size={15} strokeWidth={2.25} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <span>
+              Cambiar a Administrador le dará acceso completo al sistema, incluyendo gestión
+              de equipo y reglas de negocio.
+            </span>
           </p>
         )}
 

@@ -1,4 +1,5 @@
 import { useEffect, useState, FormEvent } from 'react';
+import { ArrowLeft, Check, Star } from 'lucide-react';
 import { useNavigate, useSearchParams, Link, Navigate } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
@@ -197,9 +198,12 @@ export default function Signup() {
         color: 'var(--ek-ink-muted)',
         textDecoration: 'none',
         marginBottom: '32px',
-        display: 'inline-block'
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '5px'
       }}>
-        ← Volver a SALA
+        <ArrowLeft size={14} strokeWidth={2.25} />
+        Volver a SALA
       </Link>
 
       {/* Plan resumen */}
@@ -208,8 +212,10 @@ export default function Signup() {
         marginBottom: '32px',
         borderColor: plan.tier === 'pro' ? 'var(--ek-mustard)' : 'var(--ek-line)'
       }}>
-        <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '8px' }}>
-          {plan.tier === 'pro' ? '★ PRO · MEMBRESÍA' : 'MEMBRESÍA BÁSICA'}
+        <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '8px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+          {plan.tier === 'pro'
+            ? <><Star size={12} strokeWidth={2.5} fill="currentColor" /> PRO · MEMBRESÍA</>
+            : 'MEMBRESÍA BÁSICA'}
         </p>
         <p style={{
           fontFamily: 'var(--ek-font-display)',
@@ -224,8 +230,8 @@ export default function Signup() {
         </p>
         <ul style={{ listStyle: 'none', padding: 0, margin: '16px 0 0 0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {plan.beneficios.map((b) => (
-            <li key={b} style={{ display: 'flex', gap: '8px', fontSize: '13px' }}>
-              <span style={{ color: 'var(--ek-mustard)' }}>✓</span>{b}
+            <li key={b} style={{ display: 'flex', gap: '8px', fontSize: '13px', alignItems: 'flex-start' }}>
+              <Check size={15} strokeWidth={2.5} style={{ color: 'var(--ek-mustard)', flexShrink: 0, marginTop: '1px' }} />{b}
             </li>
           ))}
         </ul>

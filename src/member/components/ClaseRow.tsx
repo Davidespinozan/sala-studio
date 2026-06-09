@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { estadoCupos, type Clase } from '@member/logic/claseAdapter';
 import { CupoBar } from './CupoBar';
@@ -222,6 +223,10 @@ function ActionButton({
     border: '1px solid transparent',
     fontFamily: 'inherit',
     whiteSpace: 'nowrap',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '5px',
     transition: 'background 0.18s ease, border-color 0.18s ease, color 0.18s ease'
   };
 
@@ -256,7 +261,8 @@ function ActionButton({
           borderColor: 'var(--sala-primary)'
         }}
       >
-        Reservado ✓
+        Reservado
+        <Check size={15} strokeWidth={2.5} />
       </button>
     );
   }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, ClipboardList } from 'lucide-react';
+import { Home, User, ClipboardList, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '@shared/hooks/useAuth';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
@@ -455,10 +455,14 @@ export function Sidebar({ onNavigate }: Props = {}) {
             width: '100%',
             padding: '10px',
             fontSize: '13px',
-            textAlign: 'center'
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
           }}
         >
-          Cerrar sesión →
+          <LogOut size={15} strokeWidth={2.25} />
+          Cerrar sesión
         </button>
         <PoweredBySala align="left" tone="dark" />
       </div>
@@ -500,13 +504,13 @@ function SectionToggle({
       <span
         aria-hidden="true"
         style={{
-          fontSize: '10px',
+          display: 'inline-flex',
           transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
           transition: 'transform 0.18s ease',
           color: 'rgba(255, 255, 255, 0.50)'
         }}
       >
-        ▾
+        <ChevronDown size={14} strokeWidth={2.25} />
       </span>
     </button>
   );

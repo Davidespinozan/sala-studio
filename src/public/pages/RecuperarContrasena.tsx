@@ -1,4 +1,5 @@
 import { useState, FormEvent } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { AuthShell } from '../components/AuthShell';
@@ -56,9 +57,10 @@ export default function RecuperarContrasena() {
           </p>
           <Link
             to="/login"
-            style={{ fontSize: '13px', color: 'var(--ek-mustard)', textDecoration: 'none' }}
+            style={{ fontSize: '13px', color: 'var(--ek-mustard)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
           >
-            ← Volver al login
+            <ArrowLeft size={14} strokeWidth={2.25} />
+            Volver al login
           </Link>
         </div>
       ) : (
@@ -101,10 +103,14 @@ export default function RecuperarContrasena() {
               fontSize: '13px',
               color: 'var(--ek-mustard)',
               textDecoration: 'none',
-              textAlign: 'center'
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '5px'
             }}
           >
-            ← Volver al login
+            <ArrowLeft size={14} strokeWidth={2.25} />
+            Volver al login
           </Link>
         </form>
       )}

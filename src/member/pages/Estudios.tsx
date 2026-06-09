@@ -1,3 +1,4 @@
+import { ArrowRight, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
@@ -98,9 +99,9 @@ export default function Estudios() {
 
                 <span
                   className={esPro ? 'ek-badge ek-badge--outline' : 'ek-badge'}
-                  style={{ position: 'absolute', top: '12px', left: '12px' }}
+                  style={{ position: 'absolute', top: '12px', left: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                 >
-                  {esPro ? '★ PRO' : 'BÁSICA'}
+                  {esPro ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> PRO</> : 'BÁSICA'}
                 </span>
               </div>
 
@@ -146,8 +147,9 @@ export default function Estudios() {
                       ? `Hasta ${r.capacidad_personas} personas`
                       : 'Capacidad por confirmar'}
                   </span>
-                  <span style={{ color: 'var(--ek-mustard)', fontWeight: 600 }}>
-                    Ver detalle →
+                  <span style={{ color: 'var(--ek-mustard)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    Ver detalle
+                    <ArrowRight size={14} strokeWidth={2.25} />
                   </span>
                 </div>
               </div>

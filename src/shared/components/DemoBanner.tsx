@@ -1,3 +1,4 @@
+import { ArrowRight } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 
 export type DemoVista = 'Landing' | 'Miembro' | 'Recepción';
@@ -66,10 +67,14 @@ export function DemoBanner({ vista }: DemoBannerProps) {
           fontSize: '12px',
           fontWeight: 700,
           cursor: 'pointer',
-          whiteSpace: 'nowrap'
+          whiteSpace: 'nowrap',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px'
         }}
       >
-        Volver al admin →
+        Volver al admin
+        <ArrowRight size={14} strokeWidth={2.25} />
       </button>
     </div>
   );

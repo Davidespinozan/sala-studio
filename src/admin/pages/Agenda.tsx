@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useSucursal } from '../providers/SucursalProvider';
 import { getSucursalTimezone, getTenantTimezone, hoyEnTimezone } from '@shared/lib/timezone';
@@ -163,9 +164,10 @@ export default function Agenda() {
             type="button"
             onClick={() => navSemana(-1)}
             className="ek-icon-btn"
-            style={{ width: 'auto', padding: '8px 14px', fontSize: '13px' }}
+            style={{ width: 'auto', padding: '8px 14px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
           >
-            ← Anterior
+            <ChevronLeft size={16} strokeWidth={2.25} />
+            Anterior
           </button>
           <p
             style={{
@@ -185,9 +187,10 @@ export default function Agenda() {
             type="button"
             onClick={() => navSemana(1)}
             className="ek-icon-btn"
-            style={{ width: 'auto', padding: '8px 14px', fontSize: '13px' }}
+            style={{ width: 'auto', padding: '8px 14px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
           >
-            Siguiente →
+            Siguiente
+            <ChevronRight size={16} strokeWidth={2.25} />
           </button>
         </div>
 

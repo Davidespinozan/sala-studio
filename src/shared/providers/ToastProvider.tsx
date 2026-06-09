@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { AlertTriangle, CheckCircle2, Info, X, XCircle, type LucideIcon } from 'lucide-react';
 
 export type ToastVariant = 'success' | 'error' | 'warning' | 'info';
 
@@ -25,30 +26,30 @@ const DEFAULT_DURATION: Record<ToastVariant, number> = {
   info: 3000
 };
 
-const VARIANT_STYLES: Record<ToastVariant, { bg: string; border: string; color: string; icon: string }> = {
+const VARIANT_STYLES: Record<ToastVariant, { bg: string; border: string; color: string; Icon: LucideIcon }> = {
   success: {
     bg: 'var(--sala-success-bg)',
     border: 'var(--sala-success)',
     color: 'var(--sala-success)',
-    icon: '✓'
+    Icon: CheckCircle2
   },
   error: {
     bg: 'var(--sala-error-bg)',
     border: 'var(--sala-error)',
     color: 'var(--sala-error)',
-    icon: '✕'
+    Icon: XCircle
   },
   warning: {
     bg: 'var(--sala-warning-bg)',
     border: 'var(--sala-warning)',
     color: 'var(--sala-warning)',
-    icon: '⚠'
+    Icon: AlertTriangle
   },
   info: {
     bg: 'var(--sala-primary-light)',
     border: 'var(--sala-primary)',
     color: 'var(--sala-primary)',
-    icon: 'ℹ'
+    Icon: Info
   }
 };
 
@@ -115,6 +116,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       >
         {toasts.map((t) => {
           const style = VARIANT_STYLES[t.variant];
+          const Icon = style.Icon;
           return (
             <div
               key={t.id}
@@ -135,7 +137,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 animation: 'ek-toast-slide 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
             >
-              <span style={{ fontWeight: 700, lineHeight: 1.4 }}>{style.icon}</span>
+              <Icon size={16} strokeWidth={2.25} style={{ flexShrink: 0, marginTop: '1px' }} />
               <span style={{ flex: 1, color: 'var(--ek-ink)' }}>{t.message}</span>
               <button
                 type="button"
@@ -146,12 +148,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   border: 'none',
                   color: 'var(--ek-ink-muted)',
                   cursor: 'pointer',
-                  fontSize: '14px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
                   padding: 0,
                   lineHeight: 1
                 }}
               >
-                ✕
+                <X size={15} strokeWidth={2.25} />
               </button>
             </div>
           );

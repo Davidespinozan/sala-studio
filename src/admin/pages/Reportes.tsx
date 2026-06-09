@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -459,7 +460,7 @@ function BloqueMiembrosRiesgo({ miembros }: { miembros: MiembroRiesgo[] }) {
           Activos sin reservar ni asistir hace 21+ días — contactalos antes de perderlos.
         </p>
         {miembros.length === 0 ? (
-          <EmptyChart mensaje="Nadie en riesgo. Todos los miembros activos reservaron hace poco. 🎉" />
+          <EmptyChart mensaje="Nadie en riesgo. Todos los miembros activos reservaron hace poco." />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {miembros.map((m) => (
@@ -642,24 +643,28 @@ function DeltaBadge({ actual, anterior, inversa = false, modo = 'relativo' }: Co
     const d = Math.round((actual - anterior) * 10) / 10;
     if (d === 0) return <DeltaIgual />;
     subio = d > 0;
-    texto = `${subio ? '↑' : '↓'} ${Math.abs(d)} pts`;
+    texto = `${Math.abs(d)} pts`;
   } else {
     if (anterior === 0) {
       if (actual === 0) return <DeltaIgual />;
       subio = true;
-      texto = '↑ nuevo';
+      texto = 'nuevo';
     } else {
       const pct = ((actual - anterior) / anterior) * 100;
       if (Math.round(pct) === 0) return <DeltaIgual />;
       subio = pct > 0;
-      texto = `${subio ? '↑' : '↓'} ${Math.abs(Math.round(pct))}%`;
+      texto = `${Math.abs(Math.round(pct))}%`;
     }
   }
 
   const esBueno = inversa ? !subio : subio;
+  const Flecha = subio ? ArrowUp : ArrowDown;
   return (
     <p style={{ fontSize: '11px', fontWeight: 600, margin: '4px 0 0' }}>
-      <span style={{ color: esBueno ? salvia : coral }}>{texto}</span>{' '}
+      <span style={{ color: esBueno ? salvia : coral, display: 'inline-flex', alignItems: 'center', gap: '2px', verticalAlign: 'middle' }}>
+        <Flecha size={12} strokeWidth={2.5} />
+        {texto}
+      </span>{' '}
       <span style={{ color: 'var(--sala-text-tertiary)', fontWeight: 500 }}>vs. anterior</span>
     </p>
   );
@@ -672,10 +677,14 @@ function DeltaIgual() {
         fontSize: '11px',
         fontWeight: 500,
         color: 'var(--sala-text-tertiary)',
-        margin: '4px 0 0'
+        margin: '4px 0 0',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '3px'
       }}
     >
-      → sin cambios vs. anterior
+      <Minus size={12} strokeWidth={2.5} />
+      sin cambios vs. anterior
     </p>
   );
 }

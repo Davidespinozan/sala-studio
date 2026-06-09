@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, Check, AlertTriangle, Ban } from 'lucide-react';
+import { Eye, Check, AlertTriangle, Ban, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
@@ -465,9 +465,10 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
                 onClick={() => setPagina((p) => Math.max(1, p - 1))}
                 disabled={paginaActual === 1}
                 className="ek-icon-btn"
-                style={{ width: 'auto', padding: '8px 14px', fontSize: '12px' }}
+                style={{ width: 'auto', padding: '8px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               >
-                ← Anterior
+                <ChevronLeft size={15} strokeWidth={2.25} />
+                Anterior
               </button>
               <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', margin: 0 }}>
                 Página {paginaActual} de {totalPaginas}
@@ -477,9 +478,10 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
                 onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
                 disabled={paginaActual === totalPaginas}
                 className="ek-icon-btn"
-                style={{ width: 'auto', padding: '8px 14px', fontSize: '12px' }}
+                style={{ width: 'auto', padding: '8px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               >
-                Siguiente →
+                Siguiente
+                <ChevronRight size={15} strokeWidth={2.25} />
               </button>
             </div>
           )}

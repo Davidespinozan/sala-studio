@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pencil, Copy, Trash2, Check, Circle } from 'lucide-react';
+import { Pencil, Copy, Trash2, Check, Circle, ChevronDown, ChevronRight, X, RotateCcw } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useSucursal } from '../providers/SucursalProvider';
@@ -267,10 +267,14 @@ export default function Recursos() {
                   width: 'auto',
                   padding: '8px 14px',
                   fontSize: '12px',
-                  marginBottom: '12px'
+                  marginBottom: '12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
                 }}
               >
-                {mostrarArchivados ? '▾' : '▸'} Ver eliminadas ({archivados.length})
+                {mostrarArchivados ? <ChevronDown size={14} strokeWidth={2.25} /> : <ChevronRight size={14} strokeWidth={2.25} />}
+                Ver eliminadas ({archivados.length})
               </button>
 
               {mostrarArchivados && (
@@ -535,8 +539,8 @@ function RecursoArchivedRow({
       </div>
       <CardMenuDropdown
         items={[
-          { label: restoring ? 'Recuperando…' : 'Recuperar', icon: '♻️', onClick: onRestore, disabled: restoring },
-          { label: 'Eliminar permanentemente', icon: '⚠️', onClick: onHardDelete, danger: true, divider: true }
+          { label: restoring ? 'Recuperando…' : 'Recuperar', icon: <RotateCcw size={15} strokeWidth={2} />, onClick: onRestore, disabled: restoring },
+          { label: 'Eliminar permanentemente', icon: <Trash2 size={15} strokeWidth={2} />, onClick: onHardDelete, danger: true, divider: true }
         ]}
       />
     </div>
@@ -859,16 +863,16 @@ function ListaEditable({
                 borderRadius: 'var(--ek-r-sm)'
               }}
             >
-              <span style={{ color: 'var(--ek-mustard)', fontSize: '12px' }}>✓</span>
+              <Check size={14} strokeWidth={2.5} style={{ color: 'var(--ek-mustard)', flexShrink: 0 }} />
               <span style={{ flex: 1, fontSize: '13px' }}>{item}</span>
               <button
                 type="button"
                 onClick={() => onChange(value.filter((_, i) => i !== idx))}
                 className="ek-icon-btn"
-                style={{ padding: '4px 8px', fontSize: '11px', color: 'var(--ek-danger)' }}
+                style={{ padding: '4px 8px', color: 'var(--ek-danger)', display: 'inline-flex', alignItems: 'center' }}
                 aria-label="Eliminar"
               >
-                ✕
+                <X size={14} strokeWidth={2.25} />
               </button>
             </div>
           ))}

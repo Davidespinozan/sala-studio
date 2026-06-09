@@ -1,3 +1,4 @@
+import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { type Clase } from '@member/logic/claseAdapter';
 
@@ -125,10 +126,12 @@ export function ProximaClaseHero({ clase, reservaId }: Props) {
             fontSize: '13px',
             fontWeight: 600,
             textDecoration: 'none',
-            boxShadow: '0 2px 8px rgba(61, 107, 82, 0.16)'
+            boxShadow: '0 2px 8px rgba(61, 107, 82, 0.16)',
+            gap: '6px'
           }}
         >
-          Mi QR →
+          Mi QR
+          <ArrowRight size={16} strokeWidth={2.25} />
         </Link>
       </div>
     </div>

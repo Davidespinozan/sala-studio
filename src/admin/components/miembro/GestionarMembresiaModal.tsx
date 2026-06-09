@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Circle, CircleDot } from 'lucide-react';
 import { useToast } from '@shared/hooks/useToast';
 import {
   useTiersAdmin,
@@ -238,12 +239,14 @@ export function GestionarMembresiaModal({
                   </div>
                   <span
                     style={{
-                      fontSize: '14px',
-                      color: selected ? 'var(--sala-primary)' : 'var(--sala-text-tertiary)',
-                      fontWeight: 700
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      color: selected ? 'var(--sala-primary)' : 'var(--sala-text-tertiary)'
                     }}
                   >
-                    {selected ? '●' : '○'}
+                    {selected
+                      ? <CircleDot size={18} strokeWidth={2.25} />
+                      : <Circle size={18} strokeWidth={2.25} />}
                   </span>
                 </button>
               );

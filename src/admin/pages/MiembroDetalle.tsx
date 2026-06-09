@@ -1,5 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, ArrowLeft, Check } from 'lucide-react';
 import {
   useMiembroDetalle,
   useTiersAdmin,
@@ -150,8 +151,9 @@ export default function MiembroDetalle() {
 
   return (
     <div className="adm-page">
-      <Link to="/admin/miembros" className="adm-link" style={{ marginBottom: '12px', display: 'inline-block' }}>
-        ← Volver a Miembros
+      <Link to="/admin/miembros" className="adm-link" style={{ marginBottom: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+        <ArrowLeft size={15} strokeWidth={2.25} />
+        Volver a Miembros
       </Link>
 
       <MiembroHero
@@ -520,8 +522,9 @@ function CambiarEstadoControl({
         {saving ? '…' : 'Cambiar estado'}
       </button>
       {saved && (
-        <span style={{ color: 'var(--sala-success)', fontSize: '0.8125rem', flexBasis: '100%', marginTop: '0.5rem' }}>
-          ✓ Estado actualizado
+        <span style={{ color: 'var(--sala-success)', fontSize: '0.8125rem', flexBasis: '100%', marginTop: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <Check size={14} strokeWidth={2.5} />
+          Estado actualizado
         </span>
       )}
       {error && <p className="ek-error-text">{error}</p>}
@@ -588,8 +591,9 @@ function CambiarRolControl({
       </button>
       {error && <p className="ek-error-text">{error}</p>}
       {needsConfirm && nuevoRol === 'admin' && (
-        <p style={{ fontSize: '0.8125rem', color: 'var(--sala-error)', flexBasis: '100%', marginTop: '0.5rem' }}>
-          ⚠️ Promover a admin da acceso TOTAL al negocio. Click "Confirmar admin" para proceder.
+        <p style={{ fontSize: '0.8125rem', color: 'var(--sala-error)', flexBasis: '100%', marginTop: '0.5rem', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+          <AlertTriangle size={14} strokeWidth={2.25} style={{ flexShrink: 0, marginTop: '2px' }} />
+          <span>Promover a admin da acceso TOTAL al negocio. Click "Confirmar admin" para proceder.</span>
         </p>
       )}
     </div>
@@ -742,7 +746,7 @@ function EditarDatosForm({
         <button onClick={handleSave} disabled={saving || !isDirty} className="ek-cta">
           {saving ? 'Guardando…' : 'Guardar cambios'}
         </button>
-        {saved && <span style={{ color: 'var(--sala-success)', fontSize: '0.875rem' }}>✓ Guardado</span>}
+        {saved && <span style={{ color: 'var(--sala-success)', fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Check size={14} strokeWidth={2.5} />Guardado</span>}
         {error && <span style={{ color: 'var(--sala-error)', fontSize: '0.875rem' }}>{error}</span>}
       </div>
     </div>
@@ -772,8 +776,9 @@ function ResetPasswordControl({ email }: { email: string }) {
 
   if (sent) {
     return (
-      <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--sala-success)' }}>
-        ✓ Email de recuperación enviado a {email}
+      <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--sala-success)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+        <Check size={14} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+        Email de recuperación enviado a {email}
       </p>
     );
   }

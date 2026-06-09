@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { MoreHorizontal } from 'lucide-react';
 
 export interface DropdownItem {
   label: string;
@@ -34,9 +35,9 @@ export default function CardMenuDropdown({ items }: Props) {
         className="ek-icon-btn"
         aria-label="Acciones"
         aria-expanded={open}
-        style={{ width: '32px', height: '32px', padding: 0, fontSize: '18px', lineHeight: 1 }}
+        style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
       >
-        ⋯
+        <MoreHorizontal size={18} strokeWidth={2.25} />
       </button>
       {open && (
         <>

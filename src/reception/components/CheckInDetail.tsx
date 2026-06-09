@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AlertTriangle, Check } from 'lucide-react';
 
 interface MiembroData {
   id: string;
@@ -58,7 +59,7 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, errorMes
   if (kind === 'error') {
     return (
       <div className="rec-detail rec-detail--error">
-        <p className="rec-detail-eyebrow">⚠ NO PUEDE ENTRAR</p>
+        <p className="rec-detail-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><AlertTriangle size={15} strokeWidth={2.5} />NO PUEDE ENTRAR</p>
         <p className="rec-detail-error-message">{errorMessage ?? 'QR no válido'}</p>
         <p style={{ color: 'var(--sala-text-secondary)', fontSize: '0.875rem', marginTop: '1rem' }}>
           Si necesitás anular o aclarar, avisá a admin.
@@ -81,12 +82,12 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, errorMes
     hour: '2-digit', minute: '2-digit', hour12: false
   });
 
-  const tierLabel = miembro.membresia_tier === 'pro' ? '★ PRO' : miembro.membresia_tier === 'basica' ? 'BÁSICA' : 'SIN PLAN';
+  const tierLabel = miembro.membresia_tier === 'pro' ? 'PRO' : miembro.membresia_tier === 'basica' ? 'BÁSICA' : 'SIN PLAN';
   const tierColor = miembro.membresia_tier === 'pro' ? 'var(--sala-primary)' : 'var(--sala-text-secondary)';
 
   return (
     <div className="rec-detail rec-detail--success">
-      <p className="rec-detail-eyebrow">✓ CHECK-IN OK</p>
+      <p className="rec-detail-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Check size={15} strokeWidth={2.5} />CHECK-IN OK</p>
 
       <div className="rec-detail-header">
         <Avatar nombre={miembro.nombre ?? miembro.email} url={miembro.avatar_url} />

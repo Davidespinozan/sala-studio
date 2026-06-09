@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Image as ImageIcon, Folder } from 'lucide-react';
+import { Image as ImageIcon, Folder, AlertTriangle } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
@@ -490,7 +490,7 @@ function ColorPickerRow({
             lineHeight: 1.4
           }}
         >
-          <span aria-hidden="true">⚠️</span>
+          <AlertTriangle size={14} strokeWidth={2.25} style={{ flexShrink: 0, marginTop: '2px' }} />
           El texto sobre este color puede no leerse bien en tamaños pequeños (contraste {ratio.toFixed(1)}:1 vs el mínimo recomendado 4.5:1). Considerá un tono más oscuro.
         </p>
       )}

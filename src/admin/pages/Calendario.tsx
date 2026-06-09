@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useReservasRango, useRecursosAdmin } from '../hooks/useAdminData';
 import { formatHora } from '@member/logic/reservaLogic';
 import DetalleReservaModal from '../components/DetalleReservaModal';
@@ -178,8 +179,10 @@ function VistaCalendario({
         <button
           onClick={() => setWeekStart(addDays(weekStart, -7))}
           className="adm-link-btn"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
         >
-          ← Semana anterior
+          <ChevronLeft size={16} strokeWidth={2.25} />
+          Semana anterior
         </button>
         <span className="adm-week-label">
           {weekStart.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} —{' '}
@@ -192,8 +195,10 @@ function VistaCalendario({
         <button
           onClick={() => setWeekStart(addDays(weekStart, 7))}
           className="adm-link-btn"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
         >
-          Semana siguiente →
+          Semana siguiente
+          <ChevronRight size={16} strokeWidth={2.25} />
         </button>
       </div>
 

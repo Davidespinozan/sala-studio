@@ -1,3 +1,4 @@
+import { ArrowLeft, ArrowRight, Check, Star } from 'lucide-react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
@@ -69,9 +70,10 @@ export default function EstudioDetalle() {
       <button
         onClick={() => navigate(-1)}
         className="ek-icon-btn"
-        style={{ marginBottom: '16px', width: 'auto', padding: '8px 14px', fontSize: '13px' }}
+        style={{ marginBottom: '16px', width: 'auto', padding: '8px 14px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
       >
-        ← Volver
+        <ArrowLeft size={16} strokeWidth={2.25} />
+        Volver
       </button>
 
       {/* Foto grande */}
@@ -104,9 +106,9 @@ export default function EstudioDetalle() {
 
         <span
           className={esPro ? 'ek-badge ek-badge--outline' : 'ek-badge'}
-          style={{ position: 'absolute', top: '16px', left: '16px' }}
+          style={{ position: 'absolute', top: '16px', left: '16px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
         >
-          {esPro ? '★ PRO' : 'BÁSICA'}
+          {esPro ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> PRO</> : 'BÁSICA'}
         </span>
       </div>
 
@@ -180,7 +182,7 @@ export default function EstudioDetalle() {
                   color: 'var(--ek-ink)'
                 }}
               >
-                <span style={{ color: 'var(--ek-mustard)', marginTop: '2px' }}>✓</span>
+                <Check size={16} strokeWidth={2.5} style={{ color: 'var(--ek-mustard)', marginTop: '1px', flexShrink: 0 }} />
                 {item}
               </li>
             ))}
@@ -202,9 +204,10 @@ export default function EstudioDetalle() {
           <Link
             to={`/app/reservar?recurso=${recurso.slug}`}
             className="ek-cta ek-cta--full"
-            style={{ minHeight: '52px', fontSize: '15px' }}
+            style={{ minHeight: '52px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
-            Reservar →
+            Reservar
+            <ArrowRight size={18} strokeWidth={2.25} />
           </Link>
         ) : (
           <div className="ek-card" style={{

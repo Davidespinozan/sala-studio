@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ArrowDown, ArrowRight, Clock, Sparkles, type LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
@@ -327,9 +328,10 @@ export default function Dashboard() {
             No hay más clases hoy. Mirá la{' '}
             <Link
               to="/app/reservar"
-              style={{ color: 'var(--sala-primary)', fontWeight: 600, textDecoration: 'none' }}
+              style={{ color: 'var(--sala-primary)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
             >
-              agenda completa →
+              agenda completa
+              <ArrowRight size={14} strokeWidth={2.25} />
             </Link>
           </p>
         ) : (
@@ -371,7 +373,7 @@ export default function Dashboard() {
             to="/app/historial"
             label="Mis reservas"
             value="Ver historial"
-            icon="◷"
+            icon={Clock}
           />
         </div>
       </section>
@@ -454,7 +456,10 @@ function SectionHeader({
             textDecoration: 'none'
           }}
         >
-          {linkLabel} →
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            {linkLabel}
+            <ArrowRight size={13} strokeWidth={2.25} />
+          </span>
         </Link>
       )}
     </div>
@@ -553,7 +558,8 @@ function EmptyProximaClaseInline() {
       >
         No tenés clases reservadas.
       </span>{' '}
-      Mirá las opciones de hoy ↓
+      Mirá las opciones de hoy
+      <ArrowDown size={14} strokeWidth={2.25} style={{ display: 'inline', verticalAlign: 'text-bottom', marginLeft: '3px' }} />
     </p>
   );
 }
@@ -567,8 +573,9 @@ function QuickAccessCard({
   to: string;
   label: string;
   value: string;
-  icon: string;
+  icon: LucideIcon;
 }) {
+  const Icon = icon;
   return (
     <Link
       to={to}
@@ -586,16 +593,7 @@ function QuickAccessCard({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span
-          aria-hidden="true"
-          style={{
-            fontSize: '14px',
-            color: 'var(--sala-primary)',
-            fontWeight: 700
-          }}
-        >
-          {icon}
-        </span>
+        <Icon aria-hidden="true" size={16} strokeWidth={2.25} style={{ color: 'var(--sala-primary)' }} />
         <span
           style={{
             fontSize: '11px',
@@ -693,16 +691,12 @@ function MembresiaCard() {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span
+        <Sparkles
           aria-hidden="true"
-          style={{
-            fontSize: '14px',
-            color: problema ? eyebrowColor : 'var(--sala-primary)',
-            fontWeight: 700
-          }}
-        >
-          ✦
-        </span>
+          size={16}
+          strokeWidth={2.25}
+          style={{ color: problema ? eyebrowColor : 'var(--sala-primary)' }}
+        />
         <span
           style={{
             fontSize: '11px',

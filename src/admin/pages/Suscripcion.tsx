@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Check } from 'lucide-react';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useSuscripcion } from '../hooks/useSuscripcion';
 import { CheckoutModalMock } from '../components/CheckoutModalMock';
@@ -220,7 +221,7 @@ function PlanCard({
               lineHeight: 1.4
             }}
           >
-            <span style={{ color: 'var(--sala-primary)', fontWeight: 700, flexShrink: 0 }}>✓</span>
+            <Check size={16} strokeWidth={2.5} style={{ color: 'var(--sala-primary)', flexShrink: 0, marginTop: '1px' }} />
             {f}
           </li>
         ))}

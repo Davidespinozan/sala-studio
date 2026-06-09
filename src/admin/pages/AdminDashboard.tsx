@@ -1,6 +1,17 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, Ban } from 'lucide-react';
+import {
+  ArrowRight,
+  Ban,
+  CloudSun,
+  Eye,
+  Moon,
+  PartyPopper,
+  Sun,
+  TrendingDown,
+  TrendingUp,
+  type LucideIcon
+} from 'lucide-react';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
 import { useDashboardData, type DashboardData } from '../hooks/useAdminData';
@@ -17,11 +28,11 @@ function capitalizar(s: string | null | undefined): string {
     .join(' ');
 }
 
-function saludoTiming(d: Date = new Date()): { texto: string; emoji: string } {
+function saludoTiming(d: Date = new Date()): { texto: string; Icon: LucideIcon } {
   const h = d.getHours();
-  if (h >= 5 && h < 12) return { texto: 'Buenos días', emoji: '☀️' };
-  if (h >= 12 && h < 19) return { texto: 'Buenas tardes', emoji: '🌤' };
-  return { texto: 'Buenas noches', emoji: '🌙' };
+  if (h >= 5 && h < 12) return { texto: 'Buenos días', Icon: Sun };
+  if (h >= 12 && h < 19) return { texto: 'Buenas tardes', Icon: CloudSun };
+  return { texto: 'Buenas noches', Icon: Moon };
 }
 
 function nombreMes(d: Date): string {
@@ -57,8 +68,9 @@ export default function AdminDashboard() {
       <div className="adm-hero">
         <p className="adm-hero-eyebrow">Panel de control</p>
         <h1 className="adm-hero-title">Hoy en SALA</h1>
-        <p className="adm-hero-subtitle">
-          {saludo.texto}{nombre ? `, ${nombre}` : ''} {saludo.emoji}
+        <p className="adm-hero-subtitle" style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+          {saludo.texto}{nombre ? `, ${nombre}` : ''}
+          <saludo.Icon size={17} strokeWidth={2.25} style={{ color: 'var(--ek-mustard)' }} />
         </p>
       </div>
 
@@ -119,7 +131,7 @@ function SeccionHoy({
       </p>
       {total === 0 ? (
         <p style={{ marginBottom: '0', fontSize: '14px', color: 'var(--sala-text-secondary)' }}>
-          Día tranquilo. Mirá la <Link to="/admin/calendario" style={{ color: 'var(--sala-primary)', fontWeight: 600 }}>agenda completa →</Link>
+          Día tranquilo. Mirá la <Link to="/admin/calendario" style={{ color: 'var(--sala-primary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'bottom' }}>agenda completa<ArrowRight size={14} strokeWidth={2.25} /></Link>
         </p>
       ) : (
         <>
@@ -220,15 +232,18 @@ function SeccionHoy({
             <Link
               to="/admin/calendario"
               style={{
-                display: 'inline-block',
+                display: 'inline-flex',
                 marginTop: '14px',
                 fontSize: '13px',
                 color: 'var(--ek-mustard)',
                 textDecoration: 'none',
-                fontWeight: 600
+                fontWeight: 600,
+                alignItems: 'center',
+                gap: '5px'
               }}
             >
-              Ver todas las {total} reservas →
+              Ver todas las {total} reservas
+              <ArrowRight size={14} strokeWidth={2.25} />
             </Link>
           )}
         </>
@@ -328,15 +343,16 @@ function MetricaCard({
 }) {
   let tendenciaTexto = '';
   let tendenciaColor = 'var(--ek-ink-faint)';
+  let TendenciaIcon: LucideIcon = PartyPopper;
 
   if (tendencia === null) {
-    tendenciaTexto = 'Primer mes 🎉';
+    tendenciaTexto = 'Primer mes';
   } else {
     const abs = Math.abs(tendencia).toFixed(0);
-    const flecha = tendencia >= 0 ? '↑' : '↓';
+    TendenciaIcon = tendencia >= 0 ? TrendingUp : TrendingDown;
     const positivo = tendenciaInversa ? tendencia <= 0 : tendencia >= 0;
     tendenciaColor = positivo ? 'var(--ek-success)' : 'var(--ek-danger)';
-    tendenciaTexto = `${flecha} ${abs}% vs ${mesAnteriorNombre}`;
+    tendenciaTexto = `${abs}% vs ${mesAnteriorNombre}`;
   }
 
   return (
@@ -357,7 +373,8 @@ function MetricaCard({
       >
         {valor}
       </p>
-      <p style={{ fontSize: '12px', color: tendenciaColor, margin: 0, fontWeight: 600 }}>
+      <p style={{ fontSize: '12px', color: tendenciaColor, margin: 0, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+        <TendenciaIcon size={13} strokeWidth={2.5} />
         {tendenciaTexto}
       </p>
       {subtexto && (

@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Pencil } from 'lucide-react';
 import { Check, AlertTriangle, Ban, RotateCcw } from 'lucide-react';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
@@ -225,9 +226,10 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
               type="button"
               onClick={() => setShowEditar(true)}
               className="ek-icon-btn"
-              style={{ width: 'auto', padding: '8px 14px', fontSize: '12px', flexShrink: 0 }}
+              style={{ width: 'auto', padding: '8px 14px', fontSize: '12px', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
-              ✏️ Editar
+              <Pencil size={14} strokeWidth={2} />
+              Editar
             </button>
           )}
         </div>

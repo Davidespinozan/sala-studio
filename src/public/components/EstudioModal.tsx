@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Check, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export interface EstudioInfo {
@@ -136,9 +137,9 @@ export default function EstudioModal({ estudio, onClose }: Props) {
 
           <span
             className={esPro ? 'ek-badge ek-badge--outline' : 'ek-badge'}
-            style={{ position: 'absolute', top: '16px', left: '16px' }}
+            style={{ position: 'absolute', top: '16px', left: '16px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
           >
-            {esPro ? '★ PRO' : 'BÁSICA'}
+            {esPro ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> PRO</> : 'BÁSICA'}
           </span>
         </div>
 
@@ -211,7 +212,7 @@ export default function EstudioModal({ estudio, onClose }: Props) {
                     lineHeight: 1.5
                   }}
                 >
-                  <span style={{ color: 'var(--ek-mustard)', flexShrink: 0 }}>✓</span>
+                  <Check size={16} strokeWidth={2.5} style={{ color: 'var(--ek-mustard)', flexShrink: 0, marginTop: '1px' }} />
                   {item}
                 </li>
               ))}

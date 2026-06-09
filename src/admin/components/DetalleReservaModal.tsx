@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AlertTriangle, Check, X, type LucideIcon } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useToast } from '@shared/hooks/useToast';
 
@@ -66,12 +67,12 @@ function formatearCreatedAt(iso: string): string {
   });
 }
 
-const STATUS_LABEL: Record<string, { texto: string; color: string; icon: string }> = {
-  confirmada: { texto: 'Confirmada', color: 'var(--ek-success)', icon: '✓' },
-  completada: { texto: 'Completada', color: 'var(--ek-success)', icon: '✓' },
-  cancelada: { texto: 'Cancelada por el miembro', color: 'var(--ek-danger)', icon: '✕' },
-  cancelada_admin: { texto: 'Cancelada por admin', color: 'var(--ek-danger)', icon: '✕' },
-  no_show: { texto: 'No-show', color: 'var(--ek-mustard)', icon: '⚠' }
+const STATUS_LABEL: Record<string, { texto: string; color: string; Icon: LucideIcon }> = {
+  confirmada: { texto: 'Confirmada', color: 'var(--ek-success)', Icon: Check },
+  completada: { texto: 'Completada', color: 'var(--ek-success)', Icon: Check },
+  cancelada: { texto: 'Cancelada por el miembro', color: 'var(--ek-danger)', Icon: X },
+  cancelada_admin: { texto: 'Cancelada por admin', color: 'var(--ek-danger)', Icon: X },
+  no_show: { texto: 'No-show', color: 'var(--ek-mustard)', Icon: AlertTriangle }
 };
 
 export default function DetalleReservaModal({ reservaId, onClose, onCancelar }: Props) {
@@ -153,7 +154,7 @@ export default function DetalleReservaModal({ reservaId, onClose, onCancelar }: 
 
   if (!reservaId) return null;
 
-  const status = data ? STATUS_LABEL[data.status] ?? { texto: data.status, color: 'var(--ek-ink-muted)', icon: '·' } : null;
+  const status = data ? STATUS_LABEL[data.status] ?? { texto: data.status, color: 'var(--ek-ink-muted)', Icon: null } : null;
   const esFutura = data ? new Date(data.slot_inicio).getTime() > Date.now() : false;
   const esConfirmada = data ? data.status === 'confirmada' : false;
   const puedeCancelar = esFutura && esConfirmada;
@@ -246,10 +247,14 @@ export default function DetalleReservaModal({ reservaId, onClose, onCancelar }: 
                   fontWeight: 600,
                   margin: 0,
                   marginBottom: '4px',
-                  color: status.color
+                  color: status.color,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                {status.icon} {status.texto}
+                {status.Icon && <status.Icon size={16} strokeWidth={2.5} />}
+                {status.texto}
               </p>
               {yaCancelada && data.cancelada_at && (
                 <>

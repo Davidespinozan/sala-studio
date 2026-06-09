@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AlertTriangle, CheckCircle2, Clipboard, ClipboardCheck } from 'lucide-react';
 import { useToast } from '@shared/hooks/useToast';
 
 export interface CredencialesCreadas {
@@ -94,9 +95,10 @@ export default function CredencialesCreadasModal({ isOpen, credenciales, onClose
       >
         <p
           className="ek-eyebrow ek-eyebrow--mustard"
-          style={{ marginBottom: '6px', color: 'var(--ek-success)' }}
+          style={{ marginBottom: '6px', color: 'var(--ek-success)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
         >
-          ✓ ACCESO CREADO
+          <CheckCircle2 size={14} strokeWidth={2.5} />
+          ACCESO CREADO
         </p>
         <h3
           id="cred-creadas-title"
@@ -139,10 +141,15 @@ export default function CredencialesCreadasModal({ isOpen, credenciales, onClose
           style={{
             padding: '12px',
             fontSize: '14px',
-            marginBottom: '16px'
+            marginBottom: '16px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
           }}
         >
-          {copiado ? '✓ Copiado' : '📋 Copiar credenciales'}
+          {copiado ? <ClipboardCheck size={16} strokeWidth={2.25} /> : <Clipboard size={16} strokeWidth={2.25} />}
+          {copiado ? 'Copiado' : 'Copiar credenciales'}
         </button>
 
         <p
@@ -154,11 +161,17 @@ export default function CredencialesCreadasModal({ isOpen, credenciales, onClose
             borderRadius: 'var(--ek-r-sm)',
             margin: 0,
             marginBottom: '10px',
-            lineHeight: 1.5
+            lineHeight: 1.5,
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px'
           }}
         >
-          ⚠️ Por seguridad, no podrás volver a ver esta contraseña. Si la persona la pierde,
-          puede recuperarla desde el login con &quot;Olvidé mi contraseña&quot;.
+          <AlertTriangle size={15} strokeWidth={2.25} style={{ flexShrink: 0, marginTop: '1px' }} />
+          <span>
+            Por seguridad, no podrás volver a ver esta contraseña. Si la persona la pierde,
+            puede recuperarla desde el login con &quot;Olvidé mi contraseña&quot;.
+          </span>
         </p>
 
         <p

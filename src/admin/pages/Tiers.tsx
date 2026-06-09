@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pencil, Copy, Trash2 } from 'lucide-react';
+import { Pencil, Copy, Trash2, ChevronDown, ChevronRight, Star, Check, ArrowUp, ArrowDown, X, RotateCcw } from 'lucide-react';
 import { useTiersAdmin, updateTier, insertTier } from '../hooks/useAdminData';
 import {
   archiveRecord,
@@ -244,10 +244,14 @@ export default function Tiers() {
                   width: 'auto',
                   padding: '8px 14px',
                   fontSize: '12px',
-                  marginBottom: '12px'
+                  marginBottom: '12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
                 }}
               >
-                {mostrarArchivados ? '▾' : '▸'} Ver eliminados ({archivados.length})
+                {mostrarArchivados ? <ChevronDown size={14} strokeWidth={2.25} /> : <ChevronRight size={14} strokeWidth={2.25} />}
+                Ver eliminados ({archivados.length})
               </button>
 
               {mostrarArchivados && (
@@ -411,10 +415,14 @@ function TierRow({
                 fontSize: '10px',
                 fontWeight: 700,
                 padding: '3px 8px',
-                letterSpacing: '0.05em'
+                letterSpacing: '0.05em',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              ★ RECOMENDADO
+              <Star size={11} strokeWidth={2.5} fill="currentColor" />
+              RECOMENDADO
             </span>
           )}
         </div>
@@ -517,8 +525,8 @@ function TierArchivedRow({
       </div>
       <CardMenuDropdown
         items={[
-          { label: restoring ? 'Recuperando…' : 'Recuperar', icon: '♻️', onClick: onRestore, disabled: restoring },
-          { label: 'Eliminar permanentemente', icon: '⚠️', onClick: onHardDelete, danger: true, divider: true }
+          { label: restoring ? 'Recuperando…' : 'Recuperar', icon: <RotateCcw size={15} strokeWidth={2} />, onClick: onRestore, disabled: restoring },
+          { label: 'Eliminar permanentemente', icon: <Trash2 size={15} strokeWidth={2} />, onClick: onHardDelete, danger: true, divider: true }
         ]}
       />
     </div>
@@ -835,8 +843,8 @@ function BeneficiosEditor({
             borderRadius: 'var(--ek-r-sm)'
           }}
         >
-          <span style={{ color: 'var(--ek-mustard)', textAlign: 'center', fontSize: '14px' }}>
-            ✓
+          <span style={{ color: 'var(--ek-mustard)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Check size={15} strokeWidth={2.5} />
           </span>
 
           <input
@@ -852,10 +860,10 @@ function BeneficiosEditor({
             onClick={() => mover(idx, 'up')}
             disabled={idx === 0}
             className="ek-icon-btn"
-            style={{ padding: '4px 8px', fontSize: '12px', opacity: idx === 0 ? 0.3 : 1 }}
+            style={{ padding: '4px 8px', opacity: idx === 0 ? 0.3 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="Subir"
           >
-            ↑
+            <ArrowUp size={15} strokeWidth={2.25} />
           </button>
           <button
             type="button"
@@ -864,21 +872,23 @@ function BeneficiosEditor({
             className="ek-icon-btn"
             style={{
               padding: '4px 8px',
-              fontSize: '12px',
-              opacity: idx === value.length - 1 ? 0.3 : 1
+              opacity: idx === value.length - 1 ? 0.3 : 1,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
             aria-label="Bajar"
           >
-            ↓
+            <ArrowDown size={15} strokeWidth={2.25} />
           </button>
           <button
             type="button"
             onClick={() => eliminar(idx)}
             className="ek-icon-btn"
-            style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--ek-danger)' }}
+            style={{ padding: '4px 8px', color: 'var(--ek-danger)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="Eliminar"
           >
-            ✕
+            <X size={15} strokeWidth={2.25} />
           </button>
         </div>
       ))}

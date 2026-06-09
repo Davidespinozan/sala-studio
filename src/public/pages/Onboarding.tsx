@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { TIMEZONE_OPTIONS } from '@shared/lib/timezone';
@@ -94,9 +95,10 @@ export default function Onboarding() {
     <div style={{ maxWidth: '520px', margin: '0 auto', padding: '40px 24px 80px', minHeight: '100vh' }}>
       <Link
         to="/"
-        style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', textDecoration: 'none' }}
+        style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
       >
-        ← Volver a SALA
+        <ArrowLeft size={14} strokeWidth={2.25} />
+        Volver a SALA
       </Link>
 
       <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: '24px 0 4px' }}>
@@ -329,10 +331,10 @@ function PasoGym({
     };
   }, [value.slug]);
 
-  const dispMsg: Record<Disponibilidad, { texto: string; color: string } | null> = {
+  const dispMsg: Record<Disponibilidad, { texto: string; color: string; ok?: boolean } | null> = {
     idle: null,
     checking: { texto: 'Verificando…', color: 'var(--ek-ink-faint)' },
-    disponible: { texto: '✓ Disponible', color: 'var(--sala-success)' },
+    disponible: { texto: 'Disponible', color: 'var(--sala-success)', ok: true },
     tomado: { texto: 'Ese subdominio ya está en uso', color: 'var(--sala-error)' },
     invalido: { texto: validarSubdominio(value.slug).error ?? 'Subdominio inválido', color: 'var(--sala-error)' }
   };
@@ -365,7 +367,8 @@ function PasoGym({
           />
         </div>
         {msg && (
-          <span style={{ fontSize: '12px', fontWeight: 600, color: msg.color }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: msg.color, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            {msg.ok && <Check size={13} strokeWidth={2.5} />}
             {msg.texto}
           </span>
         )}
@@ -518,12 +521,10 @@ function PlanColumna({
             color: 'var(--ek-bg)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '11px',
-            fontWeight: 700
+            justifyContent: 'center'
           }}
         >
-          ✓
+          <Check size={12} strokeWidth={3} />
         </span>
       )}
 
@@ -567,7 +568,7 @@ function PlanColumna({
               color: 'var(--ek-ink)'
             }}
           >
-            <span style={{ color: 'var(--ek-mustard)', flexShrink: 0 }}>✓</span>
+            <Check size={15} strokeWidth={2.5} style={{ color: 'var(--ek-mustard)', flexShrink: 0, marginTop: '1px' }} />
             <span>{f}</span>
           </li>
         ))}
@@ -717,7 +718,7 @@ function PasoListo({ state, slug }: { state: OnboardingState; slug: string }) {
           margin: '0 0 12px'
         }}
       >
-        ¡Tu gym está listo! 🎉
+        ¡Tu gym está listo!
       </h1>
       <p className="ek-body-muted" style={{ margin: '0 0 24px' }}>
         Creamos <strong>{state.gym.gymNombre}</strong> con tu plan, tu primera sala
@@ -743,9 +744,10 @@ function PasoListo({ state, slug }: { state: OnboardingState; slug: string }) {
       <a
         href={url}
         className="ek-cta ek-cta--full"
-        style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '16px' }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none', padding: '16px' }}
       >
-        Ir a mi gym →
+        Ir a mi gym
+        <ArrowRight size={18} strokeWidth={2.25} />
       </a>
       <p
         style={{

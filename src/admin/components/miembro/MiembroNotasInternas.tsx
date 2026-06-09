@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Check } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useToast } from '@shared/hooks/useToast';
 
@@ -74,8 +75,9 @@ export function MiembroNotasInternas({ usuarioId, notasIniciales, onSaved }: Pro
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {saved && (
-            <span style={{ color: 'var(--sala-success)', fontSize: '13px', fontWeight: 600 }}>
-              ✓ Guardado
+            <span style={{ color: 'var(--sala-success)', fontSize: '13px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <Check size={14} strokeWidth={2.5} />
+              Guardado
             </span>
           )}
           <button

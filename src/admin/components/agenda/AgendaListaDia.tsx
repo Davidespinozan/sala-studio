@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { estadoCupos, type Clase } from '@member/logic/claseAdapter';
 import { DayTabSelector } from '@member/components/DayTabSelector';
 
@@ -216,10 +217,14 @@ function ClaseRowAdminMobile({ clase, onClick }: { clase: Clase; onClick: () => 
             fontWeight: 600,
             letterSpacing: '0.06em',
             textTransform: 'uppercase',
-            color: 'var(--sala-primary)'
+            color: 'var(--sala-primary)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px'
           }}
         >
-          Ver inscritos →
+          Ver inscritos
+          <ArrowRight size={12} strokeWidth={2.5} />
         </span>
       </div>
     </button>

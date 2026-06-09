@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useParams, Link } from 'react-router-dom';
 import QRCodeStyling from 'qr-code-styling';
 import { supabase } from '@shared/lib/supabase';
@@ -84,7 +85,7 @@ export default function MiQR() {
   if (error) {
     return (
       <div className="ek-container">
-        <Link to="/app/historial" className="adm-link">← Volver</Link>
+        <Link to="/app/historial" className="adm-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><ArrowLeft size={15} strokeWidth={2.25} />Volver</Link>
         <p className="ek-error-text" style={{ marginTop: '1rem' }}>{error}</p>
       </div>
     );
@@ -93,7 +94,7 @@ export default function MiQR() {
   return (
     <div className="ek-container">
       <div className="ek-stack-xl">
-        <Link to="/app/historial" className="adm-link">← Volver al historial</Link>
+        <Link to="/app/historial" className="adm-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><ArrowLeft size={15} strokeWidth={2.25} />Volver al historial</Link>
 
         <div className="ek-stack-md">
           <p className="ek-eyebrow ek-eyebrow--mustard">TU QR DE ACCESO</p>

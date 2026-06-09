@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { X } from 'lucide-react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { useAdminGuard } from './hooks/useAdminGuard';
@@ -53,10 +54,13 @@ export default function AdminLayout() {
                 width: '36px',
                 height: '36px',
                 padding: 0,
-                zIndex: 2
+                zIndex: 2,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              ✕
+              <X size={18} strokeWidth={2.25} />
             </button>
             <Sidebar onNavigate={() => setDrawerOpen(false)} />
           </div>
