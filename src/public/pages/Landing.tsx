@@ -281,6 +281,8 @@ export default function Landing() {
   };
 
   const estudiosInfo = estudios.map(aEstudioInfo);
+  // Con 3+ salas, carrusel horizontal (en vez de apilar filas en desktop).
+  const salasScroll = estudiosInfo.length >= 3;
 
   return (
     <div style={{
@@ -500,11 +502,26 @@ export default function Landing() {
             ))}
           </div>
         ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '20px'
-          }}>
+          <div
+            style={
+              salasScroll
+                ? {
+                    display: 'flex',
+                    gap: '20px',
+                    overflowX: 'auto',
+                    scrollSnapType: 'x mandatory',
+                    paddingBottom: '12px',
+                    marginInline: '-24px',
+                    paddingInline: '24px',
+                    scrollbarWidth: 'thin'
+                  }
+                : {
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                    gap: '20px'
+                  }
+            }
+          >
             {estudiosInfo.map((s) => (
               <button
                 key={s.slug}
@@ -521,7 +538,10 @@ export default function Landing() {
                   color: 'rgba(255, 255, 255, 0.96)',
                   boxShadow: '0 10px 28px rgba(10, 15, 12, 0.22)',
                   transition: 'transform 0.2s ease, filter 0.2s ease',
-                  font: 'inherit'
+                  font: 'inherit',
+                  ...(salasScroll
+                    ? { flex: '0 0 clamp(280px, 80vw, 340px)', scrollSnapAlign: 'start' }
+                    : {})
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-2px)';
