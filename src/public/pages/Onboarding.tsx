@@ -36,9 +36,12 @@ const ESTADO_INICIAL: OnboardingState = {
 
 /** URL del gym recién creado (subdominio). En dev, *.localhost resuelve solo. */
 function urlDelGym(slug: string): string {
-  if (typeof window === 'undefined') return `https://${slug}.salastudio.com/admin`;
+  if (typeof window === 'undefined') return `https://${slug}.salastudio.app/admin`;
   const { protocol, host } = window.location;
-  return `${protocol}//${slug}.${host}/admin`;
+  // Dominio base = host sin el prefijo 'www.'. Sin esto, correr el onboarding
+  // en www.salastudio.app armaba {slug}.www.salastudio.app (subdominio roto).
+  const base = host.replace(/^www\./, '');
+  return `${protocol}//${slug}.${base}/admin`;
 }
 
 export default function Onboarding() {
@@ -339,7 +342,8 @@ function PasoGym({
     invalido: { texto: validarSubdominio(value.slug).error ?? 'Subdominio inválido', color: 'var(--sala-error)' }
   };
   const msg = dispMsg[disp];
-  const hostEjemplo = typeof window !== 'undefined' ? window.location.host : 'salastudio.com';
+  const hostEjemplo =
+    typeof window !== 'undefined' ? window.location.host.replace(/^www\./, '') : 'salastudio.app';
 
   return (
     <div className="ek-stack-md">
