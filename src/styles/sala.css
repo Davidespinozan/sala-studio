@@ -51,18 +51,17 @@
   --sala-accent-text:       #FFFFFF;
   --sala-accent-tint:       #000000;
 
-  /* === SEMÁNTICOS → MARCA ===
-     Regla del producto: SOLO primario y acento, nunca otros colores. Los
-     estados (error/warning/éxito) NO usan rojo/ámbar/rosa: error hereda el
-     ACENTO del tenant, warning/éxito heredan el PRIMARIO. En SALA (acento =
-     primario) todo queda monocromo. La distinción de estado se comunica por
-     ícono y texto, no por color ajeno a la marca. */
-  --sala-warning:           var(--sala-primary);
-  --sala-warning-bg:        var(--sala-primary-light);
-  --sala-error:             var(--sala-accent);
-  --sala-error-bg:          var(--sala-accent-light);
+  /* === SEMÁNTICOS — DEFAULTS = PERSONALIDAD DE SALA ===
+     Estos son los valores de la marca SALA (su landing de producto y el
+     onboarding, todo lo PRE-compra del tenant). Para los TENANTS, applyBranding
+     los remapea a la marca del gym (warning→primario, error→acento) → monocromo.
+     Así SALA conserva su paleta y el tenant queda "solo primario+acento". */
+  --sala-warning:           #C8941F;
+  --sala-warning-bg:        #FAF2DC;
+  --sala-error:             #C44A35;
+  --sala-error-bg:          #FCE5DF;
 
-  /* success se alinea con primary del tenant: el "OK" hereda la marca */
+  /* success se alinea con primary: el "OK" hereda la marca en ambos casos */
   --sala-success:           var(--sala-primary);
   --sala-success-bg:        var(--sala-primary-light);
 
@@ -174,6 +173,9 @@
      Las clases tipográficas centrales multiplican su tamaño por esto. */
   --sala-font-scale: 1;
 
+  /* Easing premium consistente para toda la capa de movimiento. */
+  --ease-premium: cubic-bezier(0.23, 1, 0.32, 1);
+
   /* Radii */
   --ek-r-pill:  9999px;
   --ek-r-card:  28px;
@@ -228,13 +230,14 @@
     --sala-accent-focus-ring:    rgba(61, 107, 82, 0.55);
     --sala-accent-darkest:       #17261E;
 
-    /* Error/warning derivados → marca (espejo de accent/primary, sin coral/ámbar) */
-    --sala-error-hover:          #2F5440;
-    --sala-error-shadow:         rgba(61, 107, 82, 0.16);
-    --sala-error-dim:            rgba(61, 107, 82, 0.24);
-    --sala-error-glow:           rgba(61, 107, 82, 0.30);
-    --sala-warning-dim:          rgba(61, 107, 82, 0.24);
-    --sala-warning-glow:         rgba(61, 107, 82, 0.30);
+    /* Error/warning derivados — defaults SALA (coral/ámbar); el tenant los
+       remapea vía applyBranding. Fallback para navegadores sin color-mix. */
+    --sala-error-hover:          #993A29;
+    --sala-error-shadow:         rgba(196, 74, 53, 0.16);
+    --sala-error-dim:            rgba(196, 74, 53, 0.24);
+    --sala-error-glow:           rgba(196, 74, 53, 0.30);
+    --sala-warning-dim:          rgba(200, 148, 31, 0.24);
+    --sala-warning-glow:         rgba(200, 148, 31, 0.30);
 
     /* Gradientes de marca (literales SALA) */
     --grad-primary: linear-gradient(135deg, #4A7D62 0%, #3D6B52 52%, #294938 100%);
@@ -2174,3 +2177,98 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   .ek-input[type="time"], .ek-input[type="date"] {
     font-variant-numeric: tabular-nums;
   }
+
+/* ============================================================================
+   PERSONALIDAD DE SALA (superficies PRE-compra: landing de producto, onboarding)
+   ----------------------------------------------------------------------------
+   applyBranding remapea los estados a monocromo (warning→primario, error→acento)
+   para los TENANTS. Las superficies propias de SALA usan .sala-brand para
+   conservar su paleta semántica (ámbar/coral). Los derivados color-mix
+   (--sala-*-dim, etc.) recalculan solos dentro de este subárbol.
+   ============================================================================ */
+.sala-brand {
+  --sala-warning:    #C8941F;
+  --sala-warning-bg: #FAF2DC;
+  --sala-error:      #C44A35;
+  --sala-error-bg:   #FCE5DF;
+}
+
+/* ============================================================================
+   CAPA DE MOVIMIENTO PREMIUM (portable, marca-aware, accesible)
+   ----------------------------------------------------------------------------
+   Reglas de oro: easing único (--ease-premium), solo transform/opacity,
+   sutileza, y respeto total a prefers-reduced-motion (al final del archivo).
+   Colores siempre de marca (acento) — nada hardcodeado.
+   ============================================================================ */
+
+/* 3. Scroll reveal — aparecen al entrar al viewport (lo añade <Reveal>). */
+.reveal {
+  opacity: 0;
+  transform: translateY(34px);
+  transition:
+    opacity 0.8s var(--ease-premium),
+    transform 0.8s var(--ease-premium);
+  will-change: transform, opacity;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+.reveal-delay-1 { transition-delay: 0.10s; }
+.reveal-delay-2 { transition-delay: 0.20s; }
+.reveal-delay-3 { transition-delay: 0.30s; }
+
+/* 5. Entrada al montar — sube + aparece, con stagger por hijo. */
+@keyframes ek-rise-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+.rise-in { animation: ek-rise-in 0.5s var(--ease-premium) backwards; }
+.rise-in:nth-child(1) { animation-delay: 0.04s; }
+.rise-in:nth-child(2) { animation-delay: 0.09s; }
+.rise-in:nth-child(3) { animation-delay: 0.14s; }
+.rise-in:nth-child(4) { animation-delay: 0.19s; }
+.rise-in:nth-child(5) { animation-delay: 0.24s; }
+
+/* 7. Glow pulsante para indicadores "en vivo" (usa el ACENTO de la marca). */
+@keyframes ek-pulse-ring {
+  0%   { box-shadow: 0 0 0 0 var(--sala-accent-glow); }
+  70%  { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.ek-pulse { animation: ek-pulse-ring 1.6s var(--ease-premium) infinite; }
+
+/* 9. Hint de scroll — bounce sutil. */
+@keyframes ek-hint-bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.55; }
+  50%      { transform: translateY(6px); opacity: 1; }
+}
+.scroll-cue { animation: ek-hint-bounce 1.8s var(--ease-premium) infinite; }
+
+/* 4. Orbs/blobs flotantes de fondo (marca, muy difuminados, lentos). */
+@keyframes ek-float-orb {
+  0%, 100% { transform: translate(0, 0); }
+  33%      { transform: translate(28px, -36px); }
+  66%      { transform: translate(-22px, 20px); }
+}
+.ek-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(64px);
+  opacity: 0.42;
+  background: radial-gradient(circle, var(--sala-accent), transparent 70%);
+  animation: ek-float-orb 20s var(--ease-premium) infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Accesibilidad OBLIGATORIA: si el usuario pide menos movimiento, todo off. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal { opacity: 1 !important; transform: none !important; }
+}

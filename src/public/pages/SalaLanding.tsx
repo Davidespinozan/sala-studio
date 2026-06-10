@@ -96,7 +96,7 @@ export default function SalaLanding() {
   const moneda = detectarMoneda();
 
   return (
-    <div style={{ background: 'var(--sala-bg)', minHeight: '100vh' }}>
+    <div className="sala-brand" style={{ background: 'var(--sala-bg)', minHeight: '100vh' }}>
       <Header />
       <Hero />
       <Features />

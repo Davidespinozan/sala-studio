@@ -96,7 +96,7 @@ export default function Onboarding() {
   }
 
   return (
-    <div style={{ maxWidth: '520px', margin: '0 auto', padding: '40px 24px 80px', minHeight: '100vh' }}>
+    <div className="sala-brand" style={{ maxWidth: '520px', margin: '0 auto', padding: '40px 24px 80px', minHeight: '100vh' }}>
       <Link
         to="/"
         style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
