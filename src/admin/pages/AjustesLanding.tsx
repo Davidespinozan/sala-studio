@@ -4,6 +4,7 @@ import { useToast } from '@shared/hooks/useToast';
 import { useTenant } from '@shared/hooks/useTenant';
 import Toggle from '../components/Toggle';
 import ImageUploader from '../components/ImageUploader';
+import LandingPreview from '../components/LandingPreview';
 
 type HeroLayout = 'contenido' | 'completo';
 type HeroDraft = {
@@ -298,6 +299,15 @@ export default function AjustesLanding() {
         subtitle="Edita el contenido que ven los visitantes en tu página pública."
         dirty={dirty}
       />
+
+      <div style={{ position: 'sticky', top: '8px', zIndex: 5, marginBottom: '20px' }}>
+        <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '8px' }}>
+          VISTA PREVIA EN VIVO
+        </p>
+        <div style={{ maxHeight: '46vh', overflow: 'hidden', borderRadius: '14px' }}>
+          <LandingPreview hero={draft.hero} postHero={draft.post_hero} />
+        </div>
+      </div>
 
       <Section title="HERO" description="La primera impresión cuando alguien visita tu landing.">
         <ImageUploader

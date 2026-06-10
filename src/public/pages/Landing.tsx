@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowRight, Check, Dumbbell, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
-import { useLandingConfig, type LandingPostHero } from '@shared/hooks/useLandingConfig';
+import { useLandingConfig, type LandingPostHero, type LandingHero } from '@shared/hooks/useLandingConfig';
 import { useTenant } from '@shared/hooks/useTenant';
 import EstudioModal, { type EstudioInfo } from '../components/EstudioModal';
 import Footer from '../components/Footer';
@@ -246,7 +246,158 @@ function parseBeneficios(raw: unknown): string[] {
 }
 
 // ── Sección post-hero: 3 variantes visuales del mismo contenido ──────────────
-function SeccionPostHero({ data }: { data: LandingPostHero }) {
+/**
+ * Hero de la landing, reutilizable (lo usa la Landing real y el preview en vivo
+ * del admin). Con `preview` true, el full-bleed llena el contenedor (en vez de
+ * romper a 100vw) y las alturas se acotan para el panel.
+ */
+export function HeroView({ hero, preview = false }: { hero: LandingHero; preview?: boolean }) {
+  const heroDesktop = hero.image_url || hero.image_url_mobile;
+  const heroMobile = hero.image_url_mobile || hero.image_url;
+  const hasImg = !!(hero.image_url || hero.image_url_mobile);
+  const tituloColor = hasImg ? 'rgba(255, 255, 255, 0.98)' : 'var(--sala-text-primary)';
+  const subColor = hasImg ? 'rgba(255, 255, 255, 0.88)' : 'var(--ek-ink-muted)';
+  // Sobre imagen, el acento va en un tono CLARO de la marca (el primary
+  // oscuro era casi ilegible sobre la foto).
+  const accentColor = hasImg ? 'color-mix(in srgb, var(--sala-primary), white 62%)' : 'var(--ek-mustard)';
+
+  const inner = (
+    <>
+      {hero.eyebrow && (
+        <p
+          className="ek-eyebrow ek-eyebrow--mustard"
+          style={{ marginBottom: '20px', ...(hasImg ? { color: 'rgba(255, 255, 255, 0.72)' } : {}) }}
+        >
+          {hero.eyebrow}
+        </p>
+      )}
+      <h1 style={{
+        fontFamily: 'var(--ek-font-display)',
+        fontSize: 'clamp(42px, 8.5vw, 80px)',
+        fontWeight: 700,
+        letterSpacing: '-0.04em',
+        lineHeight: 0.98,
+        margin: 0,
+        marginBottom: '24px',
+        color: tituloColor,
+        textShadow: hasImg ? '0 2px 24px rgba(10, 15, 12, 0.45)' : 'none'
+      }}>
+        {hero.titulo}
+        {hero.titulo_accent && (
+          <>
+            {hero.titulo && <br />}
+            <span style={{ color: accentColor }}>{hero.titulo_accent}</span>
+          </>
+        )}
+      </h1>
+      {hero.subtitulo && (
+        <p style={{
+          fontSize: 'clamp(16px, 2vw, 20px)',
+          color: subColor,
+          maxWidth: '600px',
+          lineHeight: 1.5,
+          marginBottom: '40px'
+        }}>
+          {hero.subtitulo}
+        </p>
+      )}
+      <a
+        href={hero.cta_link || '#membresias'}
+        className="ek-cta ek-lift"
+        style={{ padding: hasImg ? '17px 34px' : '16px 28px', fontSize: '16px', display: 'inline-flex', alignItems: 'center' }}
+      >
+        {hero.cta_texto}
+      </a>
+    </>
+  );
+
+  // Estilo del hero con imagen, elegible desde admin:
+  //   'completo'  → full-bleed de borde a borde (rompe el contenedor 1200)
+  //   'contenido' → card con esquinas redondeadas flotando sobre el fondo
+  const fullBleed = hero.layout === 'completo';
+
+  if (!hasImg) {
+    return (
+      <section style={{
+        minHeight: preview ? '420px' : '90vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        position: 'relative',
+        padding: '40px 0'
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: '20%',
+          right: '-200px',
+          width: '500px',
+          height: '500px',
+          background: 'radial-gradient(circle, var(--sala-primary-soft), transparent 70%)',
+          borderRadius: '50%',
+          pointerEvents: 'none'
+        }} />
+        {inner}
+      </section>
+    );
+  }
+
+  return (
+    <section
+      style={
+        fullBleed && !preview
+          ? { padding: 0, width: '100vw', marginLeft: 'calc(50% - 50vw)' }
+          : fullBleed
+            ? { padding: 0 }
+            : { padding: '40px 0' }
+      }
+    >
+      <div className="landing-hero-card" style={{
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: fullBleed ? 0 : 'var(--ek-r-card)',
+        minHeight: preview
+          ? (fullBleed ? '460px' : '420px')
+          : (fullBleed ? 'clamp(560px, 92vh, 760px)' : 'clamp(520px, 80vh, 600px)'),
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+        padding: fullBleed ? 0 : 'clamp(28px, 5vw, 56px)',
+        boxShadow: fullBleed ? 'none' : '0 24px 60px rgba(10, 15, 12, 0.28)'
+      }}>
+        <picture>
+          <source media="(max-width: 640px)" srcSet={heroMobile} />
+          <img
+            src={heroDesktop}
+            alt=""
+            aria-hidden="true"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        </picture>
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(to top, rgba(10, 15, 12, 0.92) 0%, rgba(10, 15, 12, 0.6) 45%, rgba(10, 15, 12, 0.42) 100%)'
+          }}
+        />
+        {/* En full-bleed la imagen ocupa todo el ancho, pero el texto se alinea
+            con el contenido del resto de la página (maxWidth 1200, centrado). */}
+        <div
+          style={
+            fullBleed
+              ? { position: 'relative', width: '100%', maxWidth: '1200px', margin: '0 auto', padding: 'clamp(40px, 6vw, 72px) 24px' }
+              : { position: 'relative' }
+          }
+        >
+          {inner}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function SeccionPostHero({ data }: { data: LandingPostHero }) {
   if (data.variante === 'ninguna') return null;
   const items = data.items.filter((it) => it.titulo.trim() || it.texto.trim());
   if (!items.length) return null;
@@ -405,143 +556,7 @@ export default function Landing() {
       {/* ============================================================
           HERO
           ============================================================ */}
-      {(() => {
-        // Imagen por dispositivo: cada una cae a la otra si falta.
-        const heroDesktop = hero.image_url || hero.image_url_mobile;
-        const heroMobile = hero.image_url_mobile || hero.image_url;
-        const hasImg = !!(hero.image_url || hero.image_url_mobile);
-        const tituloColor = hasImg ? 'rgba(255, 255, 255, 0.98)' : 'var(--sala-text-primary)';
-        const subColor = hasImg ? 'rgba(255, 255, 255, 0.88)' : 'var(--ek-ink-muted)';
-        // Sobre imagen, el acento va en un tono CLARO de la marca (el primary
-        // oscuro era casi ilegible sobre la foto).
-        const accentColor = hasImg ? 'color-mix(in srgb, var(--sala-primary), white 62%)' : 'var(--ek-mustard)';
-
-        const inner = (
-          <>
-            {hero.eyebrow && (
-              <p
-                className="ek-eyebrow ek-eyebrow--mustard"
-                style={{ marginBottom: '20px', ...(hasImg ? { color: 'rgba(255, 255, 255, 0.72)' } : {}) }}
-              >
-                {hero.eyebrow}
-              </p>
-            )}
-            <h1 style={{
-              fontFamily: 'var(--ek-font-display)',
-              fontSize: 'clamp(42px, 8.5vw, 80px)',
-              fontWeight: 700,
-              letterSpacing: '-0.04em',
-              lineHeight: 0.98,
-              margin: 0,
-              marginBottom: '24px',
-              color: tituloColor,
-              textShadow: hasImg ? '0 2px 24px rgba(10, 15, 12, 0.45)' : 'none'
-            }}>
-              {hero.titulo}
-              {hero.titulo_accent && (
-                <>
-                  {hero.titulo && <br />}
-                  <span style={{ color: accentColor }}>{hero.titulo_accent}</span>
-                </>
-              )}
-            </h1>
-            {hero.subtitulo && (
-              <p style={{
-                fontSize: 'clamp(16px, 2vw, 20px)',
-                color: subColor,
-                maxWidth: '600px',
-                lineHeight: 1.5,
-                marginBottom: '40px'
-              }}>
-                {hero.subtitulo}
-              </p>
-            )}
-            <a
-              href={hero.cta_link || '#membresias'}
-              className="ek-cta ek-lift"
-              style={{ padding: hasImg ? '17px 34px' : '16px 28px', fontSize: '16px', display: 'inline-flex', alignItems: 'center' }}
-            >
-              {hero.cta_texto}
-            </a>
-          </>
-        );
-
-        // Estilo del hero con imagen, elegible desde admin:
-        //   'completo'  → full-bleed de borde a borde (rompe el contenedor 1200)
-        //   'contenido' → card con esquinas redondeadas flotando sobre el fondo
-        const fullBleed = hero.layout === 'completo';
-        return hasImg ? (
-          <section
-            style={
-              fullBleed
-                ? { padding: 0, width: '100vw', marginLeft: 'calc(50% - 50vw)' }
-                : { padding: '40px 0' }
-            }
-          >
-            <div className="landing-hero-card" style={{
-              position: 'relative',
-              overflow: 'hidden',
-              borderRadius: fullBleed ? 0 : 'var(--ek-r-card)',
-              minHeight: fullBleed ? 'clamp(560px, 92vh, 760px)' : 'clamp(520px, 80vh, 600px)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-end',
-              padding: fullBleed ? 0 : 'clamp(28px, 5vw, 56px)',
-              boxShadow: fullBleed ? 'none' : '0 24px 60px rgba(10, 15, 12, 0.28)'
-            }}>
-              <picture>
-                <source media="(max-width: 640px)" srcSet={heroMobile} />
-                <img
-                  src={heroDesktop}
-                  alt=""
-                  aria-hidden="true"
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              </picture>
-              <div
-                aria-hidden="true"
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'linear-gradient(to top, rgba(10, 15, 12, 0.92) 0%, rgba(10, 15, 12, 0.6) 45%, rgba(10, 15, 12, 0.42) 100%)'
-                }}
-              />
-              {/* En full-bleed la imagen ocupa 100vw, pero el texto se alinea con
-                  el contenido del resto de la página (maxWidth 1200, centrado). */}
-              <div
-                style={
-                  fullBleed
-                    ? { position: 'relative', width: '100%', maxWidth: '1200px', margin: '0 auto', padding: 'clamp(40px, 6vw, 72px) 24px' }
-                    : { position: 'relative' }
-                }
-              >
-                {inner}
-              </div>
-            </div>
-          </section>
-        ) : (
-          <section style={{
-            minHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            position: 'relative',
-            padding: '40px 0'
-          }}>
-            <div style={{
-              position: 'absolute',
-              top: '20%',
-              right: '-200px',
-              width: '500px',
-              height: '500px',
-              background: 'radial-gradient(circle, var(--sala-primary-soft), transparent 70%)',
-              borderRadius: '50%',
-              pointerEvents: 'none'
-            }} />
-            {inner}
-          </section>
-        );
-      })()}
+      <HeroView hero={hero} />
 
       {/* ============================================================
           SECCIÓN POST-HERO (variante elegible desde admin)
