@@ -7,16 +7,23 @@
  *
  * Verde oficial #3D6B52 sobre fondo transparente en ambos casos.
  *
- * Fallback si LOGO_SVG_DISPONIBLE=false (no debería ocurrir hoy, los
- * dos SVGs están en public/): wordmark de texto "SALA" + eyebrow "STUDIO".
+ * Fallback si LOGO_SVG_DISPONIBLE=false: wordmark de texto "SALA" +
+ * eyebrow "STUDIO", dibujado con la tipografía de marca. Nítido a cualquier
+ * densidad, tintable y sin peso de archivo.
+ *
+ * NOTA (jun-2026): los SVG en public/ (logo-sala.svg, isotipo-sala.svg) NO son
+ * vectoriales — son un PNG raster con una SOMBRA gris bakeada, envuelto en
+ * <svg>. Eso causaba pixelado en pantallas retina + un halo/contorno gris en
+ * cualquier fondo. Hasta tener un logo vectorial limpio de verdad, usamos el
+ * fallback de texto (LOGO_SVG_DISPONIBLE=false). Para volver al archivo,
+ * reemplazá public/logo-sala.svg por un SVG vectorial real y poné el flag en true.
  *
  * Usado como FALLBACK del TenantLogo cuando el tenant no subió su
  * propia versión de la pieza. La aplicación NO usa SalaLogo
- * directamente — siempre va a través de TenantLogo. Queda preservado
- * para el futuro "Powered by SALA" / landing del producto SALA.
+ * directamente — siempre va a través de TenantLogo.
  */
 
-const LOGO_SVG_DISPONIBLE = true;
+const LOGO_SVG_DISPONIBLE = false;
 const LOGO_COMPLETO_SRC = '/logo-sala.svg';
 const LOGO_ISOTIPO_SRC = '/isotipo-sala.svg';
 
