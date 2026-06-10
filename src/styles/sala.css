@@ -51,11 +51,16 @@
   --sala-accent-text:       #FFFFFF;
   --sala-accent-tint:       #000000;
 
-  /* === SEMÁNTICOS FIJOS === */
-  --sala-warning:           #C8941F;
-  --sala-warning-bg:        #FAF2DC;
-  --sala-error:             #C44A35;
-  --sala-error-bg:          #FCE5DF;
+  /* === SEMÁNTICOS → MARCA ===
+     Regla del producto: SOLO primario y acento, nunca otros colores. Los
+     estados (error/warning/éxito) NO usan rojo/ámbar/rosa: error hereda el
+     ACENTO del tenant, warning/éxito heredan el PRIMARIO. En SALA (acento =
+     primario) todo queda monocromo. La distinción de estado se comunica por
+     ícono y texto, no por color ajeno a la marca. */
+  --sala-warning:           var(--sala-primary);
+  --sala-warning-bg:        var(--sala-primary-light);
+  --sala-error:             var(--sala-accent);
+  --sala-error-bg:          var(--sala-accent-light);
 
   /* success se alinea con primary del tenant: el "OK" hereda la marca */
   --sala-success:           var(--sala-primary);
@@ -106,8 +111,8 @@
      casi-negro y un naranja/violeta terminaba pareciendo café/gris. */
   --grad-immersive: linear-gradient(
     160deg,
-    color-mix(in srgb, var(--sala-primary) 58%, var(--sala-neutral-dark)) 0%,
-    color-mix(in srgb, var(--sala-primary) 34%, var(--sala-neutral-dark)) 100%
+    color-mix(in srgb, var(--sala-primary) 80%, var(--sala-neutral-dark)) 0%,
+    color-mix(in srgb, var(--sala-primary) 60%, var(--sala-neutral-dark)) 100%
   );
 
   /* === DERIVADOS ERROR/WARNING (semánticos fijos, no dinámicos) === */
@@ -220,18 +225,18 @@
     --sala-accent-focus-ring:    rgba(61, 107, 82, 0.55);
     --sala-accent-darkest:       #17261E;
 
-    /* Error derivados */
-    --sala-error-hover:          #993A29;
-    --sala-error-shadow:         rgba(196, 74, 53, 0.16);
-    --sala-error-dim:            rgba(196, 74, 53, 0.24);
-    --sala-error-glow:           rgba(196, 74, 53, 0.30);
-    --sala-warning-dim:          rgba(200, 148, 31, 0.24);
-    --sala-warning-glow:         rgba(200, 148, 31, 0.30);
+    /* Error/warning derivados → marca (espejo de accent/primary, sin coral/ámbar) */
+    --sala-error-hover:          #2F5440;
+    --sala-error-shadow:         rgba(61, 107, 82, 0.16);
+    --sala-error-dim:            rgba(61, 107, 82, 0.24);
+    --sala-error-glow:           rgba(61, 107, 82, 0.30);
+    --sala-warning-dim:          rgba(61, 107, 82, 0.24);
+    --sala-warning-glow:         rgba(61, 107, 82, 0.30);
 
     /* Gradientes de marca (literales SALA) */
     --grad-primary: linear-gradient(135deg, #4A7D62 0%, #3D6B52 52%, #294938 100%);
     --grad-accent:  linear-gradient(135deg, #4A7D62 0%, #3D6B52 52%, #294938 100%);
-    --grad-immersive: linear-gradient(160deg, #264232 0%, #1A2C22 100%);
+    --grad-immersive: linear-gradient(160deg, #315541 0%, #274434 100%);
   }
 }
 
@@ -418,10 +423,13 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: rgba(250, 250, 247, 0.85);
+    /* Tinte CLARO de la marca: el header (donde va el logo) hereda el color
+       elegido, como el sidebar/nav. Claro —no inmersivo— porque los logos
+       suelen ser oscuros sobre transparente y se perderían en un fondo oscuro. */
+    background: var(--sala-primary-light);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--sala-border-strong);
+    border-bottom: 1px solid var(--sala-primary-soft);
     padding: 14px 0;
   }
 

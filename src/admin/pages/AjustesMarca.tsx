@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Image as ImageIcon, Folder, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant, useTenantRefetch } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
@@ -211,7 +211,7 @@ export default function AjustesMarca() {
 
       <Section
         title="ISOTIPO (SÍMBOLO CUADRADO)"
-        description="Solo el símbolo de tu marca, sin texto, cuadrado. Aparece en el login y espacios chicos."
+        description="Solo el símbolo de tu marca, sin texto, cuadrado. Aparece en el login, espacios chicos y se usa también como favicon (pestaña del navegador) e ícono de la app (PWA)."
       >
         <ImageUploader
           bucket="logos"
@@ -250,17 +250,17 @@ export default function AjustesMarca() {
       <Section
         title="IMAGEN PARA REDES (OPEN GRAPH)"
         description="Aparecerá cuando alguien comparta tu landing en WhatsApp, Twitter, Facebook. Recomendado: 1200×630px JPG/PNG."
-        proximamente="Sistema en desarrollo (D-018) — todavía no se aplica al compartir. Esperá a habilitarlo."
       >
-        <DisabledPlaceholder current={draft.og_image_url} kind="image" />
-      </Section>
-
-      <Section
-        title="FAVICON"
-        description="Aparecerá en la pestaña del navegador. Recomendado: 32×32px o 64×64px PNG transparente."
-        proximamente="Sistema en desarrollo (D-016) — la pestaña todavía muestra el favicon de SALA. Esperá a habilitarlo."
-      >
-        <DisabledPlaceholder current={draft.favicon_url} kind="image" />
+        <ImageUploader
+          bucket="logos"
+          pathPrefix={`${tenant.slug}/og`}
+          currentUrl={draft.og_image_url}
+          onUploaded={(url) => setDraft({ ...draft, og_image_url: url || null })}
+          label=""
+          previewFit="cover"
+          cropAspect={1200 / 630}
+          helperText="Imagen horizontal 1200×630px (JPG/PNG). Es la miniatura que se ve al compartir el link de tu landing."
+        />
       </Section>
 
       <div style={{ display: 'flex', gap: '10px', position: 'sticky', bottom: '12px' }}>
@@ -287,9 +287,8 @@ export default function AjustesMarca() {
       </div>
 
       <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '16px' }}>
-        Nota: los colores aplican en tiempo real al toda la app. OG image y favicon
-        dinámicos requieren recargar la página para verse — la sincronización en
-        tiempo real con &lt;meta&gt; tags llega en sprint posterior.
+        Nota: los colores aplican en tiempo real en toda la app. El favicon (pestaña
+        del navegador) y la imagen para redes se actualizan al recargar la página.
       </p>
     </div>
   );
@@ -705,60 +704,3 @@ function Section({
   );
 }
 
-/**
- * Placeholder visual mientras la pieza de marca no se aplica aún (D-016/D-018).
- * Mantiene el aspecto del uploader pero sin permitir subir, para evitar UX
- * engañosa ("subí mi favicon" → no pasa nada en la pestaña).
- */
-function DisabledPlaceholder({ current, kind }: { current: string | null; kind: 'image' }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '14px',
-        padding: '14px 16px',
-        background: 'var(--sala-surface)',
-        border: '1px dashed var(--sala-border-strong)',
-        borderRadius: '12px',
-        cursor: 'not-allowed'
-      }}
-    >
-      <div
-        aria-hidden="true"
-        style={{
-          width: '48px',
-          height: '48px',
-          background: 'var(--sala-bg)',
-          border: '1px solid var(--sala-border)',
-          borderRadius: '10px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--sala-text-tertiary)',
-          flexShrink: 0
-        }}
-      >
-        {kind === 'image' ? <ImageIcon size={22} /> : <Folder size={22} />}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p
-          style={{
-            fontSize: '13px',
-            color: 'var(--sala-text-primary)',
-            margin: 0,
-            marginBottom: '4px',
-            fontWeight: 600
-          }}
-        >
-          Carga deshabilitada por ahora
-        </p>
-        <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', margin: 0, lineHeight: 1.4 }}>
-          {current
-            ? 'Hay un archivo subido pero todavía no se aplica al sistema. Lo activamos cuando habilitemos esta pieza.'
-            : 'Cuando habilitemos esta pieza vas a poder subir tu archivo desde acá.'}
-        </p>
-      </div>
-    </div>
-  );
-}

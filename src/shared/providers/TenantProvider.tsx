@@ -97,6 +97,54 @@ export function applyBranding(branding: BrandingColors | null | undefined): void
 }
 
 /**
+ * Aplica el branding del tenant al <head>: favicon (= isotipo, o favicon_url si
+ * lo definió), apple-touch-icon, y meta OG/Twitter (título + imagen social).
+ * Así el isotipo aparece en la pestaña del navegador, al instalar la PWA, y al
+ * compartir el link en redes — no solo dentro de la app.
+ */
+function applyTenantHead(branding: BrandingColors | null | undefined, nombre: string | null): void {
+  if (typeof document === 'undefined') return;
+  const b = (branding ?? {}) as Record<string, unknown>;
+  const favicon =
+    (typeof b.favicon_url === 'string' && b.favicon_url) ||
+    (typeof b.isotipo_url === 'string' && b.isotipo_url) ||
+    null;
+
+  if (favicon) {
+    document.head
+      .querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')
+      .forEach((el) => el.remove());
+    (['icon', 'apple-touch-icon'] as const).forEach((rel) => {
+      const link = document.createElement('link');
+      link.setAttribute('rel', rel);
+      link.setAttribute('href', favicon);
+      document.head.appendChild(link);
+    });
+  }
+
+  const setMeta = (attr: 'property' | 'name', key: string, content: string) => {
+    let el = document.head.querySelector(`meta[${attr}="${key}"]`);
+    if (!el) {
+      el = document.createElement('meta');
+      el.setAttribute(attr, key);
+      document.head.appendChild(el);
+    }
+    el.setAttribute('content', content);
+  };
+
+  if (nombre) {
+    setMeta('property', 'og:title', nombre);
+    setMeta('name', 'twitter:title', nombre);
+  }
+  const og = typeof b.og_image_url === 'string' ? b.og_image_url : null;
+  if (og) {
+    setMeta('property', 'og:image', og);
+    setMeta('name', 'twitter:image', og);
+    setMeta('name', 'twitter:card', 'summary_large_image');
+  }
+}
+
+/**
  * Revierte el applyBranding — borra los overrides inline para volver al
  * valor declarado en el :root. Usado por AjustesMarca al cancelar el
  * preview en tiempo real (vuelve al estado persistido).
@@ -188,6 +236,9 @@ export function TenantProvider({ children }: TenantProviderProps) {
     // derivados se recalculan vía color-mix() en sala.css.
     applyBranding(data.branding as BrandingColors | null);
     if (data.nombre) document.title = data.nombre;
+    // Favicon (= isotipo), apple-touch-icon y meta OG/Twitter desde el branding:
+    // el isotipo del tenant aparece en la pestaña, en la PWA y al compartir el link.
+    applyTenantHead(data.branding as BrandingColors | null, data.nombre ?? null);
   }, []);
 
   const fetchTenant = useCallback(async (): Promise<Tenant> => {

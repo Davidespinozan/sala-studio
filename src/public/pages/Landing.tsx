@@ -278,7 +278,7 @@ function SeccionPostHero({ data }: { data: LandingPostHero }) {
   // VARIANTE C — banda inmersiva de marca (destacados)
   if (data.variante === 'destacados') {
     return (
-      <section style={{ padding: '80px 0' }}>
+      <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
         <div style={{
           background: 'var(--grad-immersive)',
           borderRadius: 'var(--ek-r-card)',
@@ -311,7 +311,7 @@ function SeccionPostHero({ data }: { data: LandingPostHero }) {
   // VARIANTE B — beneficios (icono en círculo tintado)
   if (data.variante === 'beneficios') {
     return (
-      <section style={{ padding: '80px 0' }}>
+      <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
         {data.eyebrow && <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>{data.eyebrow}</p>}
         {tituloH2(false)}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
@@ -335,7 +335,7 @@ function SeccionPostHero({ data }: { data: LandingPostHero }) {
 
   // VARIANTE A — pasos (numerados)
   return (
-    <section style={{ padding: '80px 0' }}>
+    <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
       {data.eyebrow && <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>{data.eyebrow}</p>}
       {tituloH2(false)}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
@@ -411,30 +411,37 @@ export default function Landing() {
         const heroMobile = hero.image_url_mobile || hero.image_url;
         const hasImg = !!(hero.image_url || hero.image_url_mobile);
         const tituloColor = hasImg ? 'rgba(255, 255, 255, 0.98)' : 'var(--sala-text-primary)';
-        const subColor = hasImg ? 'rgba(255, 255, 255, 0.85)' : 'var(--ek-ink-muted)';
+        const subColor = hasImg ? 'rgba(255, 255, 255, 0.88)' : 'var(--ek-ink-muted)';
+        // Sobre imagen, el acento va en un tono CLARO de la marca (el primary
+        // oscuro era casi ilegible sobre la foto).
+        const accentColor = hasImg ? 'color-mix(in srgb, var(--sala-primary), white 62%)' : 'var(--ek-mustard)';
 
         const inner = (
           <>
             {hero.eyebrow && (
-              <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '20px' }}>
+              <p
+                className="ek-eyebrow ek-eyebrow--mustard"
+                style={{ marginBottom: '20px', ...(hasImg ? { color: 'rgba(255, 255, 255, 0.72)' } : {}) }}
+              >
                 {hero.eyebrow}
               </p>
             )}
             <h1 style={{
               fontFamily: 'var(--ek-font-display)',
-              fontSize: 'clamp(48px, 10vw, 96px)',
+              fontSize: 'clamp(42px, 8.5vw, 80px)',
               fontWeight: 700,
-              letterSpacing: '-0.05em',
-              lineHeight: 0.95,
+              letterSpacing: '-0.04em',
+              lineHeight: 0.98,
               margin: 0,
               marginBottom: '24px',
-              color: tituloColor
+              color: tituloColor,
+              textShadow: hasImg ? '0 2px 24px rgba(10, 15, 12, 0.45)' : 'none'
             }}>
               {hero.titulo}
               {hero.titulo_accent && (
                 <>
                   {hero.titulo && <br />}
-                  <span style={{ color: 'var(--ek-mustard)' }}>{hero.titulo_accent}</span>
+                  <span style={{ color: accentColor }}>{hero.titulo_accent}</span>
                 </>
               )}
             </h1>
@@ -452,7 +459,7 @@ export default function Landing() {
             <a
               href={hero.cta_link || '#membresias'}
               className="ek-cta ek-lift"
-              style={{ padding: '16px 28px', fontSize: '15px', display: 'inline-flex', alignItems: 'center' }}
+              style={{ padding: hasImg ? '17px 34px' : '16px 28px', fontSize: '16px', display: 'inline-flex', alignItems: 'center' }}
             >
               {hero.cta_texto}
             </a>
@@ -486,7 +493,7 @@ export default function Landing() {
                 style={{
                   position: 'absolute',
                   inset: 0,
-                  background: 'linear-gradient(to top, rgba(10, 15, 12, 0.88) 0%, rgba(10, 15, 12, 0.3) 55%, rgba(10, 15, 12, 0.5) 100%)'
+                  background: 'linear-gradient(to top, rgba(10, 15, 12, 0.92) 0%, rgba(10, 15, 12, 0.6) 45%, rgba(10, 15, 12, 0.42) 100%)'
                 }}
               />
               <div style={{ position: 'relative' }}>{inner}</div>
@@ -524,7 +531,7 @@ export default function Landing() {
       {/* ============================================================
           ESTUDIOS
           ============================================================ */}
-      <section style={{ padding: '80px 0' }}>
+      <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>NUESTRAS SALAS</p>
         <h2 style={{
           fontFamily: 'var(--ek-font-display)',
@@ -700,7 +707,7 @@ export default function Landing() {
           INSTRUCTORES (S6-5 · toggle desde admin)
           ============================================================ */}
       {mostrarInstructores && instructores.length > 0 && (
-        <section style={{ padding: '80px 0' }}>
+        <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
           <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>NUESTRO EQUIPO</p>
           <h2 style={{
             fontFamily: 'var(--ek-font-display)',
@@ -732,7 +739,7 @@ export default function Landing() {
       {/* ============================================================
           MEMBRESÍAS
           ============================================================ */}
-      <section id="membresias" style={{ padding: '80px 0' }}>
+      <section id="membresias" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>MEMBRESÍAS</p>
         <h2 style={{
           fontFamily: 'var(--ek-font-display)',
@@ -894,7 +901,7 @@ export default function Landing() {
       {/* ============================================================
           FAQ
           ============================================================ */}
-      <section style={{ padding: '80px 0' }}>
+      <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>PREGUNTAS FRECUENTES</p>
         <h2 style={{
           fontFamily: 'var(--ek-font-display)',

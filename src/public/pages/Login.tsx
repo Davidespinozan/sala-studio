@@ -3,9 +3,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
+import { useTenant } from '@shared/hooks/useTenant';
 
 export default function Login() {
   const navigate = useNavigate();
+  const tenant = useTenant();
+  const tieneIsotipo =
+    typeof (tenant.branding as Record<string, unknown> | null)?.isotipo_url === 'string';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,7 +50,11 @@ export default function Login() {
     }}>
       <div style={{ maxWidth: '400px', width: '100%' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px' }}>
-          <TenantLogo variant="isotipo" height={132} />
+          {tieneIsotipo ? (
+            <TenantLogo variant="isotipo" height={112} />
+          ) : (
+            <TenantLogo variant="completo" height={60} fallbackFontSize={42} showSuffix />
+          )}
         </div>
 
         <div

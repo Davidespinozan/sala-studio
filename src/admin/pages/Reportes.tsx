@@ -25,7 +25,10 @@ import {
 import { useTenant } from '@shared/hooks/useTenant';
 
 const SALA_DEFAULT_PRIMARY = '#3D6B52';
-const SALA_DEFAULT_ACCENT  = '#C44A35';
+// Sin acento propio (regla: solo primario/acento), el default del acento es el
+// propio primario — nunca coral. Para distinguir series, los charts usan
+// salviaLight como segundo tono del mismo hue.
+const SALA_DEFAULT_ACCENT  = '#3D6B52';
 // SALVIA_LIGHT se queda hardcoded — recharts necesita un hex liso y el
 // derivado --sala-primary-light depende de color-mix() que recharts no
 // entiende. Si se vuelve un problema con tenants no-verdes, derivarlo
