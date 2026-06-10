@@ -68,11 +68,18 @@ export default function Footer() {
   return (
     <footer
       style={{
-        padding: '40px 0',
-        borderTop: '0.5px solid var(--ek-line)',
-        marginTop: '40px'
+        /* Banda full-bleed con tinte de marca (primario). Rompe el contenedor
+           1200 para ir de borde a borde; el contenido se re-centra adentro. */
+        background: 'var(--sala-primary-light)',
+        borderTop: '1px solid var(--sala-primary-soft)',
+        marginTop: '48px',
+        paddingTop: '40px',
+        paddingBottom: '40px',
+        width: '100vw',
+        marginLeft: 'calc(50% - 50vw)'
       }}
     >
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
       <div
         style={{
           display: 'grid',
@@ -215,6 +222,7 @@ export default function Footer() {
           © {new Date().getFullYear()} {tenant.nombre || 'SALA Studio'}. {footer.copyright}
         </p>
         <PoweredBySala align="left" />
+      </div>
       </div>
     </footer>
   );

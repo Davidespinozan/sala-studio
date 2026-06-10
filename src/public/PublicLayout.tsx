@@ -22,7 +22,8 @@ export default function PublicLayout() {
       <header
         style={{
           padding: '1rem 1.25rem',
-          borderBottom: '1px solid var(--ek-line)',
+          background: 'var(--sala-primary-light)',
+          borderBottom: '1px solid var(--sala-primary-soft)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'

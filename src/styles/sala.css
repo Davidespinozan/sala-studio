@@ -551,9 +551,11 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .ek-cta,
   .ek-btn-primary {
-    background: var(--grad-primary);
-    color: var(--sala-text-on-primary);
-    border: 0.5px solid var(--sala-primary);
+    /* Botón de ACCIÓN → color de ACENTO (primario = marca/estructura, acento =
+       acción). En monocromo (acento==primario) se ve igual. */
+    background: var(--grad-accent);
+    color: var(--sala-text-on-accent);
+    border: 0.5px solid var(--sala-accent);
     border-radius: 999px;
     padding: 12px 24px;
     font-family: var(--ek-font-body);
@@ -562,7 +564,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     letter-spacing: -0.01em;
     min-height: 44px;
     /* Glow de color del propio botón + línea interna de relieve premium */
-    box-shadow: 0 4px 14px var(--sala-primary-dim), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    box-shadow: 0 4px 14px var(--sala-accent-dim), inset 0 1px 0 rgba(255, 255, 255, 0.16);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -575,17 +577,17 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .ek-cta:hover,
   .ek-btn-primary:hover {
-    border-color: var(--sala-primary-active);
+    border-color: var(--sala-accent-active);
     transform: translateY(-2px);
     filter: brightness(1.05);
-    box-shadow: 0 8px 24px var(--sala-primary-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 24px var(--sala-accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
   .ek-cta:active,
   .ek-btn-primary:active {
     transform: scale(0.96);
     filter: brightness(0.98);
-    box-shadow: 0 2px 10px var(--sala-primary-glow), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    box-shadow: 0 2px 10px var(--sala-accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   }
 
   .ek-cta:disabled,
