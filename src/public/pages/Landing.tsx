@@ -291,69 +291,110 @@ export default function Landing() {
       {/* ============================================================
           HERO
           ============================================================ */}
-      <section style={{
-        minHeight: '90vh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        position: 'relative',
-        padding: '40px 0'
-      }}>
-        <div style={{
-          position: 'absolute',
-          top: '20%',
-          right: '-200px',
-          width: '500px',
-          height: '500px',
-          background: 'radial-gradient(circle, var(--sala-primary-soft), transparent 70%)',
-          borderRadius: '50%',
-          pointerEvents: 'none'
-        }} />
+      {(() => {
+        const heroImg = hero.image_url;
+        const tituloColor = heroImg ? 'rgba(255, 255, 255, 0.98)' : 'var(--sala-text-primary)';
+        const subColor = heroImg ? 'rgba(255, 255, 255, 0.85)' : 'var(--ek-ink-muted)';
 
-        {hero.eyebrow && (
-          <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '20px' }}>
-            {hero.eyebrow}
-          </p>
-        )}
+        const inner = (
+          <>
+            {hero.eyebrow && (
+              <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '20px' }}>
+                {hero.eyebrow}
+              </p>
+            )}
+            <h1 style={{
+              fontFamily: 'var(--ek-font-display)',
+              fontSize: 'clamp(48px, 10vw, 96px)',
+              fontWeight: 700,
+              letterSpacing: '-0.05em',
+              lineHeight: 0.95,
+              margin: 0,
+              marginBottom: '24px',
+              color: tituloColor
+            }}>
+              {hero.titulo}
+              {hero.titulo_accent && (
+                <>
+                  {hero.titulo && <br />}
+                  <span style={{ color: 'var(--ek-mustard)' }}>{hero.titulo_accent}</span>
+                </>
+              )}
+            </h1>
+            {hero.subtitulo && (
+              <p style={{
+                fontSize: 'clamp(16px, 2vw, 20px)',
+                color: subColor,
+                maxWidth: '600px',
+                lineHeight: 1.5,
+                marginBottom: '40px'
+              }}>
+                {hero.subtitulo}
+              </p>
+            )}
+            <a
+              href={hero.cta_link || '#membresias'}
+              className="ek-cta ek-lift"
+              style={{ padding: '16px 28px', fontSize: '15px', display: 'inline-flex', alignItems: 'center' }}
+            >
+              {hero.cta_texto}
+            </a>
+          </>
+        );
 
-        <h1 style={{
-          fontFamily: 'var(--ek-font-display)',
-          fontSize: 'clamp(48px, 10vw, 96px)',
-          fontWeight: 700,
-          letterSpacing: '-0.05em',
-          lineHeight: 0.95,
-          margin: 0,
-          marginBottom: '24px'
-        }}>
-          {hero.titulo}
-          {hero.titulo_accent && (
-            <>
-              {hero.titulo && <br />}
-              <span style={{ color: 'var(--ek-mustard)' }}>{hero.titulo_accent}</span>
-            </>
-          )}
-        </h1>
-
-        {hero.subtitulo && (
-          <p style={{
-            fontSize: 'clamp(16px, 2vw, 20px)',
-            color: 'var(--ek-ink-muted)',
-            maxWidth: '600px',
-            lineHeight: 1.5,
-            marginBottom: '40px'
+        return heroImg ? (
+          <section style={{ padding: '40px 0' }}>
+            <div style={{
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: 'var(--ek-r-card)',
+              minHeight: 'clamp(440px, 70vh, 640px)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-end',
+              padding: 'clamp(28px, 5vw, 56px)',
+              boxShadow: '0 24px 60px rgba(10, 15, 12, 0.28)'
+            }}>
+              <img
+                src={heroImg}
+                alt=""
+                aria-hidden="true"
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+              <div
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(to top, rgba(10, 15, 12, 0.88) 0%, rgba(10, 15, 12, 0.3) 55%, rgba(10, 15, 12, 0.5) 100%)'
+                }}
+              />
+              <div style={{ position: 'relative' }}>{inner}</div>
+            </div>
+          </section>
+        ) : (
+          <section style={{
+            minHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            position: 'relative',
+            padding: '40px 0'
           }}>
-            {hero.subtitulo}
-          </p>
-        )}
-
-        <a
-          href={hero.cta_link || '#membresias'}
-          className="ek-cta"
-          style={{ padding: '16px 28px', fontSize: '15px', display: 'inline-block' }}
-        >
-          {hero.cta_texto}
-        </a>
-      </section>
+            <div style={{
+              position: 'absolute',
+              top: '20%',
+              right: '-200px',
+              width: '500px',
+              height: '500px',
+              background: 'radial-gradient(circle, var(--sala-primary-soft), transparent 70%)',
+              borderRadius: '50%',
+              pointerEvents: 'none'
+            }} />
+            {inner}
+          </section>
+        );
+      })()}
 
       {/* ============================================================
           CÓMO FUNCIONA

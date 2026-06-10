@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTenantConfigEditor } from '../hooks/useTenantConfigEditor';
 import { useToast } from '@shared/hooks/useToast';
+import { useTenant } from '@shared/hooks/useTenant';
 import Toggle from '../components/Toggle';
+import ImageUploader from '../components/ImageUploader';
 
 type HeroDraft = {
   eyebrow: string;
@@ -10,6 +12,7 @@ type HeroDraft = {
   subtitulo: string;
   cta_texto: string;
   cta_link: string;
+  image_url: string;
 };
 
 type CtaFinalDraft = {
@@ -34,7 +37,7 @@ type LandingDraft = {
 };
 
 const EMPTY: LandingDraft = {
-  hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta_link: '' },
+  hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta_link: '', image_url: '' },
   cta_final: { eyebrow: '', titulo: '', subtitulo: '', cta_texto: '' },
   footer: { tagline: '', copyright: '', direccion: '', email: '' },
   mostrar_instructores: false
@@ -52,7 +55,8 @@ function readLanding(config: Record<string, unknown> | null): LandingDraft {
       titulo_accent: String(hero.titulo_accent ?? ''),
       subtitulo: String(hero.subtitulo ?? ''),
       cta_texto: String(hero.cta_texto ?? ''),
-      cta_link: String(hero.cta_link ?? '')
+      cta_link: String(hero.cta_link ?? ''),
+      image_url: String(hero.image_url ?? '')
     },
     cta_final: {
       eyebrow: String(ctaFinal.eyebrow ?? ''),
@@ -173,6 +177,7 @@ function Section({
 export default function AjustesLanding() {
   const { config, isLoading, isSaving, saveTopLevel } = useTenantConfigEditor();
   const toast = useToast();
+  const tenant = useTenant();
   const [draft, setDraft] = useState<LandingDraft>(EMPTY);
   const [original, setOriginal] = useState<LandingDraft>(EMPTY);
 
@@ -229,6 +234,15 @@ export default function AjustesLanding() {
       />
 
       <Section title="HERO" description="La primera impresión cuando alguien visita tu landing.">
+        <ImageUploader
+          bucket="estudios"
+          pathPrefix={`${tenant.slug}/hero`}
+          currentUrl={draft.hero.image_url || null}
+          onUploaded={(url) => setDraft({ ...draft, hero: { ...draft.hero, image_url: url } })}
+          label="Imagen de fondo (opcional)"
+          cropAspect={16 / 9}
+          helperText="Foto de fondo del hero. Vas a poder recortarla (16:9). Sin imagen, el hero queda de texto sobre fondo claro."
+        />
         <FormField
           label="Etiqueta superior"
           helper="Texto pequeño que aparece arriba del título principal."
