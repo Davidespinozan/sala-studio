@@ -357,7 +357,8 @@ function InstructorModal({
             currentUrl={fotoUrl || null}
             onUploaded={setFotoUrl}
             label="Foto del instructor"
-            helperText="JPG, PNG o WEBP. Máx 5MB. Cuadrada recomendada."
+            cropAspect={3 / 4}
+            helperText="JPG, PNG o WEBP. Máx 5MB. Vas a poder recortarla (vertical) al subirla."
           />
         </div>
 

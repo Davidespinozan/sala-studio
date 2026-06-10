@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import Cropper, { type Area } from 'react-easy-crop';
 import { X } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 
@@ -26,10 +28,49 @@ interface ImageUploaderProps {
   fallbackPreviewUrl?: string;
   /** object-fit del preview. 'contain' para logos (se ve completo), 'cover' para fotos. Default 'cover'. */
   previewFit?: 'cover' | 'contain';
+  /**
+   * Si se pasa, al elegir una imagen se abre un recorte (zoom + arrastrar) al
+   * aspect ratio dado (ancho/alto), y se sube ya recortada. Ej: salas 16/10,
+   * instructores 3/4. Sin esto, la imagen se sube tal cual. No aplica a SVG.
+   */
+  cropAspect?: number;
 }
 
 const MIME_RASTER = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 5 * 1024 * 1024;
+/** Lado máximo del recorte exportado — evita subir imágenes enormes. */
+const CROP_MAX_DIM = 1600;
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.addEventListener('load', () => resolve(img));
+    img.addEventListener('error', () => reject(new Error('No se pudo leer la imagen.')));
+    img.src = src;
+  });
+}
+
+/** Recorta el área seleccionada a un canvas y devuelve un Blob (jpeg/png). */
+async function getCroppedBlob(src: string, area: Area, mime: string): Promise<Blob> {
+  const image = await loadImage(src);
+  let scale = 1;
+  const lado = Math.max(area.width, area.height);
+  if (lado > CROP_MAX_DIM) scale = CROP_MAX_DIM / lado;
+  const outW = Math.max(1, Math.round(area.width * scale));
+  const outH = Math.max(1, Math.round(area.height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = outW;
+  canvas.height = outH;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('No se pudo procesar la imagen.');
+  ctx.drawImage(image, area.x, area.y, area.width, area.height, 0, 0, outW, outH);
+
+  const outMime = mime === 'image/png' ? 'image/png' : 'image/jpeg';
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No se pudo generar la imagen.'))), outMime, 0.9);
+  });
+}
 
 export default function ImageUploader({
   bucket,
@@ -41,13 +82,21 @@ export default function ImageUploader({
   helperText,
   allowSvg = false,
   fallbackPreviewUrl,
-  previewFit = 'cover'
+  previewFit = 'cover',
+  cropAspect
 }: ImageUploaderProps) {
   const mimePermitidos = allowSvg ? [...MIME_RASTER, 'image/svg+xml'] : MIME_RASTER;
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Estado del recorte
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropMime, setCropMime] = useState<string>('image/jpeg');
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [areaPixels, setAreaPixels] = useState<Area | null>(null);
 
   // currentUrl llega async (el draft de marca se carga después del mount). Sin
   // esto el preview se quedaba pegado en el fallback "Por defecto" aunque ya
@@ -56,11 +105,32 @@ export default function ImageUploader({
     setPreviewUrl(currentUrl);
   }, [currentUrl]);
 
-  // Lo que se muestra: imagen propia subida, o el fallback (placeholder real).
   const shownUrl = previewUrl ?? fallbackPreviewUrl ?? null;
   const esFallback = !previewUrl && !!fallbackPreviewUrl;
+  const previewAspect = cropAspect ?? 16 / 10;
 
-  const handleFile = async (file: File) => {
+  async function uploadBlob(data: Blob, ext: string) {
+    setIsUploading(true);
+    try {
+      const fileName = `${pathPrefix}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, data, { cacheControl: '3600', upsert: false, contentType: data.type });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
+      setPreviewUrl(urlData.publicUrl);
+      onUploaded(urlData.publicUrl);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'No pudimos subir la imagen. Probá con otra.';
+      setError(msg);
+      onError?.(msg);
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  const handleFile = (file: File) => {
     setError(null);
 
     if (!mimePermitidos.includes(file.type)) {
@@ -71,7 +141,6 @@ export default function ImageUploader({
       onError?.(msg);
       return;
     }
-
     if (file.size > MAX_BYTES) {
       const msg = 'La imagen no puede pesar más de 5MB.';
       setError(msg);
@@ -79,31 +148,40 @@ export default function ImageUploader({
       return;
     }
 
-    setIsUploading(true);
+    const ext = file.name.split('.').pop()?.toLowerCase() || (file.type === 'image/png' ? 'png' : 'jpg');
 
-    try {
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${pathPrefix}-${Date.now()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, file, { cacheControl: '3600', upsert: false });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
-
-      const publicUrl = urlData.publicUrl;
-      setPreviewUrl(publicUrl);
-      onUploaded(publicUrl);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'No pudimos subir la imagen. Probá con otra.';
-      setError(msg);
-      onError?.(msg);
-    } finally {
-      setIsUploading(false);
+    // Con cropAspect (y no SVG) → abrir recorte. Si no, subir tal cual.
+    if (cropAspect && file.type !== 'image/svg+xml') {
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setAreaPixels(null);
+      setCropMime(file.type);
+      setCropSrc(URL.createObjectURL(file));
+    } else {
+      void uploadBlob(file, ext);
     }
   };
+
+  function closeCropper() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    if (inputRef.current) inputRef.current.value = '';
+  }
+
+  async function confirmCrop() {
+    if (!cropSrc || !areaPixels) return;
+    try {
+      const blob = await getCroppedBlob(cropSrc, areaPixels, cropMime);
+      const ext = blob.type === 'image/png' ? 'png' : 'jpg';
+      closeCropper();
+      await uploadBlob(blob, ext);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'No pudimos recortar la imagen.';
+      setError(msg);
+      onError?.(msg);
+      closeCropper();
+    }
+  }
 
   const handleClick = () => inputRef.current?.click();
 
@@ -135,7 +213,7 @@ export default function ImageUploader({
               alt="Preview"
               style={{
                 width: '100%',
-                aspectRatio: '16 / 10',
+                aspectRatio: previewAspect,
                 objectFit: previewFit,
                 borderRadius: 'var(--ek-r-sm)',
                 background: 'var(--ek-bg-elevated)',
@@ -187,7 +265,7 @@ export default function ImageUploader({
         ) : (
           <div
             style={{
-              aspectRatio: '16 / 10',
+              aspectRatio: previewAspect,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -254,6 +332,103 @@ export default function ImageUploader({
           </p>
         )}
       </div>
+
+      {/* Modal de recorte */}
+      {cropSrc &&
+        createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 200,
+              background: 'rgba(10, 15, 12, 0.7)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 'max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))'
+            }}
+            onClick={closeCropper}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: '100%',
+                maxWidth: '440px',
+                background: 'var(--sala-surface)',
+                borderRadius: 'var(--ek-r-card)',
+                padding: '18px',
+                boxShadow: 'var(--ek-shadow-modal)'
+              }}
+            >
+              <p
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: 'var(--sala-primary)',
+                  margin: '0 0 12px'
+                }}
+              >
+                Ajustá el encuadre
+              </p>
+
+              <div
+                style={{
+                  position: 'relative',
+                  width: '100%',
+                  height: '300px',
+                  background: 'var(--sala-neutral-dark)',
+                  borderRadius: 'var(--ek-r-sm)',
+                  overflow: 'hidden'
+                }}
+              >
+                <Cropper
+                  image={cropSrc}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={cropAspect ?? 16 / 10}
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={(_area, areaPx) => setAreaPixels(areaPx)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '14px 0 4px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', fontWeight: 600 }}>Zoom</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.01}
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  style={{ flex: 1, accentColor: 'var(--sala-primary)' }}
+                  aria-label="Zoom"
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+                <button
+                  type="button"
+                  onClick={closeCropper}
+                  className="ek-cta ek-cta--secondary"
+                  style={{ flex: 1 }}
+                >
+                  Cancelar
+                </button>
+                <button type="button" onClick={confirmCrop} className="ek-cta ek-lift" style={{ flex: 1 }}>
+                  Recortar y subir
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

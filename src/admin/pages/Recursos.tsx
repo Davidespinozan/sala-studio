@@ -741,7 +741,8 @@ function EditarRecursoModal({
             currentUrl={fotoUrl || null}
             onUploaded={setFotoUrl}
             label="Foto de la sala"
-            helperText="JPG, PNG o WEBP. Máx 5MB. Aspecto 16:10 recomendado."
+            cropAspect={16 / 10}
+            helperText="JPG, PNG o WEBP. Máx 5MB. Vas a poder recortarla al subirla."
           />
         </div>
 
