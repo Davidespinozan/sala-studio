@@ -25,7 +25,7 @@ export default function PublicLayout() {
           background: 'var(--grad-immersive)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: enLogin ? 'center' : 'space-between',
           alignItems: 'center'
         }}
       >

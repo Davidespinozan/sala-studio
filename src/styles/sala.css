@@ -296,9 +296,24 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 }
 
 /* Hero de la landing: en móvil el texto sube al centro (en desktop queda
-   abajo). Antes quedaba pegado al fondo y se veía muy abajo en vertical. */
+   abajo) y la altura se acota (la imagen no necesita ser tan larga). */
 @media (max-width: 640px) {
-  .landing-hero-card { justify-content: center !important; }
+  .landing-hero-card {
+    justify-content: center !important;
+    min-height: 440px !important;
+  }
+}
+
+/* Planes/membresías de la landing: 2 columnas lado a lado en ≥640px, 1 en
+   móvil. Ancho acotado para que las dos cards queden proporcionadas. */
+.landing-planes-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  max-width: 820px;
+}
+@media (min-width: 640px) {
+  .landing-planes-grid { grid-template-columns: 1fr 1fr; }
 }
 
 /* ============================================================================

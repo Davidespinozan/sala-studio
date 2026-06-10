@@ -762,12 +762,19 @@ export default function Landing() {
           </p>
 
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-            gap: '14px'
+            display: 'flex',
+            gap: '14px',
+            overflowX: 'auto',
+            scrollSnapType: 'x mandatory',
+            paddingBottom: '12px',
+            marginInline: '-24px',
+            paddingInline: '24px',
+            scrollbarWidth: 'thin'
           }}>
             {instructores.map((i) => (
-              <InstructorLandingCard key={i.id} instructor={i} />
+              <div key={i.id} style={{ flex: '0 0 160px', scrollSnapAlign: 'start' }}>
+                <InstructorLandingCard instructor={i} />
+              </div>
             ))}
           </div>
         </section>
@@ -792,23 +799,13 @@ export default function Landing() {
         </h2>
 
         {tiersLoading ? (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
-            gap: '20px',
-            maxWidth: '880px'
-          }}>
+          <div className="landing-planes-grid">
             {[1, 2].map((n) => (
               <div key={n} className="ek-skeleton" style={{ height: '480px', borderRadius: 'var(--ek-r-card)' }} />
             ))}
           </div>
         ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
-            gap: '20px',
-            maxWidth: '880px'
-          }}>
+          <div className="landing-planes-grid">
             {tiers.map((tier) => {
               const esPro = tier.slug === 'pro';
               const beneficios = parseBeneficios(tier.beneficios);
