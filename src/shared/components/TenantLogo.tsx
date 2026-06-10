@@ -78,7 +78,8 @@ export function TenantLogo({
         style={{
           height: `${height}px`,
           width: 'auto',
-          display: 'block'
+          display: 'block',
+          borderRadius: variant === 'isotipo' ? '22%' : `${Math.max(6, Math.round(height * 0.16))}px`
         }}
       />
     );

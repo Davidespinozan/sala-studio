@@ -91,7 +91,7 @@ export default function AdminLayout() {
             </svg>
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <TenantLogo variant="completo" height={20} fallbackFontSize={17} showSuffix={false} />
+            <TenantLogo variant="completo" height={26} fallbackFontSize={22} showSuffix={false} />
             <span className="ek-eyebrow" style={{ fontSize: '9px' }}>ADMIN</span>
           </div>
           <div style={{ width: '40px' }} />

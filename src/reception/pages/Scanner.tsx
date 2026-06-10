@@ -80,7 +80,7 @@ export default function Scanner() {
             >
               RECEPCIÓN
             </p>
-            <TenantLogo variant="completo" height={22} fallbackFontSize={18} showSuffix={true} />
+            <TenantLogo variant="completo" height={29} fallbackFontSize={24} showSuffix={true} />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

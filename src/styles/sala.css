@@ -25,8 +25,12 @@
    ============================================================================ */
 
 :root {
-  /* === NEUTROS FIJOS (no fluyen con tenant) === */
+  /* === NEUTROS (bg con tinte sutil del tenant; surface queda blanco) === */
+  /* Fallback crema para navegadores sin color-mix; si lo soportan, el fondo
+     toma un tinte 6% de la marca → los bordes/overscroll dejan de verse "SALA
+     crema" y pasan a la atmósfera del tenant. */
   --sala-bg:                #FAFAF7;
+  --sala-bg:                color-mix(in srgb, var(--sala-primary) 6%, #FAFAF7);
   --sala-surface:           #FFFFFF;
   --sala-border:            #E8E6E0;
   --sala-border-strong:     #D4D0C8;

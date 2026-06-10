@@ -46,10 +46,17 @@ export default function Login() {
     }}>
       <div style={{ maxWidth: '400px', width: '100%' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px' }}>
-          <TenantLogo variant="isotipo" height={80} />
+          <TenantLogo variant="isotipo" height={104} />
         </div>
 
-        <div className="ek-card">
+        <div
+          className="ek-card"
+          style={{
+            background: 'linear-gradient(160deg, var(--sala-surface) 0%, var(--sala-primary-light) 100%)',
+            border: '1px solid var(--sala-primary-soft)',
+            boxShadow: '0 12px 32px var(--sala-primary-dim)'
+          }}
+        >
           <form onSubmit={handleSubmit} className="ek-stack-md">
             <div className="ek-form-field">
               <label htmlFor="email" className="ek-label">Email</label>
