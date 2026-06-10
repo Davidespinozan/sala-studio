@@ -142,6 +142,49 @@ function applyTenantHead(branding: BrandingColors | null | undefined, nombre: st
     setMeta('name', 'twitter:image', og);
     setMeta('name', 'twitter:card', 'summary_large_image');
   }
+
+  // PWA: manifest dinámico. Sin esto, "Agregar a pantalla de inicio" sugiere el
+  // nombre/ícono de SALA (manifest estático del build). Generamos uno en runtime
+  // con el NOMBRE, el ícono (isotipo) y los colores del tenant, vía blob URL.
+  if (typeof window !== 'undefined' && (nombre || favicon)) {
+    const origin = window.location.origin;
+    const primary = typeof b.color_primary === 'string' ? b.color_primary : '#3D6B52';
+    const bgColor = typeof b.color_bg === 'string' ? b.color_bg : '#F5F1E8';
+    const isotipo = typeof b.isotipo_url === 'string' ? b.isotipo_url : favicon;
+    const iconType = isotipo && isotipo.toLowerCase().endsWith('.svg') ? 'image/svg+xml' : 'image/png';
+    const nombreApp = nombre || 'Studio';
+    const manifest = {
+      name: nombreApp,
+      short_name: nombreApp.slice(0, 18),
+      start_url: `${origin}/`,
+      scope: `${origin}/`,
+      display: 'standalone',
+      background_color: bgColor,
+      theme_color: primary,
+      icons: isotipo
+        ? [
+            { src: isotipo, sizes: '192x192', type: iconType, purpose: 'any' },
+            { src: isotipo, sizes: '512x512', type: iconType, purpose: 'any' },
+            { src: isotipo, sizes: 'any', type: iconType, purpose: 'maskable' }
+          ]
+        : []
+    };
+    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+    const url = URL.createObjectURL(blob);
+    let link = document.head.querySelector('link[rel="manifest"]') as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'manifest';
+      document.head.appendChild(link);
+    }
+    // Revoca el blob anterior que generamos (evita fuga de memoria entre refetch).
+    if (link.dataset.dynamic === 'true' && link.href.startsWith('blob:')) {
+      URL.revokeObjectURL(link.href);
+    }
+    link.href = url;
+    link.dataset.dynamic = 'true';
+    setMeta('name', 'theme-color', primary);
+  }
 }
 
 /**
