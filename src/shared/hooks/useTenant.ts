@@ -1,1 +1,1 @@
-export { useTenant } from '@shared/providers/TenantProvider';
+export { useTenant, useTenantRefetch } from '@shared/providers/TenantProvider';

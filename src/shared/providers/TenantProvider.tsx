@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
@@ -9,6 +9,8 @@ interface TenantContextValue {
   tenant: Tenant | null;
   isLoading: boolean;
   error: Error | null;
+  /** Re-lee el tenant desde la DB y re-aplica branding (colores + logo). */
+  refetch: () => Promise<void>;
 }
 
 // ============================================================================
@@ -109,7 +111,8 @@ export function restoreBranding(branding: BrandingColors | null | undefined): vo
 const TenantContext = createContext<TenantContextValue>({
   tenant: null,
   isLoading: true,
-  error: null
+  error: null,
+  refetch: async () => {}
 });
 
 /**
@@ -173,60 +176,59 @@ export function TenantProvider({ children }: TenantProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  /**
+   * Aplica un tenant cargado al estado + branding (colores y, vía el objeto
+   * tenant, el logo que renderiza TenantLogo). Reutilizable por carga inicial
+   * y por refetch (ej. después de guardar la marca en /admin/ajustes/marca).
+   */
+  const aplicarTenant = useCallback((data: Tenant) => {
+    setTenant(data);
+    // D-017 RESUELTO: aplicar color dinámico del tenant al :root.
+    // Pisa --sala-primary/-text/-tint y --sala-accent/-text/-tint; los 20
+    // derivados se recalculan vía color-mix() en sala.css.
+    applyBranding(data.branding as BrandingColors | null);
+    if (data.nombre) document.title = data.nombre;
+  }, []);
+
+  const fetchTenant = useCallback(async (): Promise<Tenant> => {
+    const slug = resolveTenantSlug();
+    const { data, error: queryError } = await supabase
+      .from('tenants')
+      .select('*')
+      .eq('slug', slug)
+      .eq('status', 'activo')
+      .maybeSingle();
+    if (queryError) throw new Error(`No se pudo cargar el tenant: ${queryError.message}`);
+    if (!data) throw new Error(`Tenant '${slug}' no encontrado o inactivo`);
+    return data;
+  }, []);
+
+  /** Re-lee el tenant y re-aplica branding. No rompe la pantalla si falla. */
+  const refetch = useCallback(async () => {
+    try {
+      aplicarTenant(await fetchTenant());
+    } catch (err) {
+      console.error('[tenant] refetch error:', err);
+    }
+  }, [aplicarTenant, fetchTenant]);
+
   useEffect(() => {
     let isMounted = true;
-
-    async function loadTenant() {
-      try {
-        const slug = resolveTenantSlug();
-        const { data, error: queryError } = await supabase
-          .from('tenants')
-          .select('*')
-          .eq('slug', slug)
-          .eq('status', 'activo')
-          .maybeSingle();
-
+    fetchTenant()
+      .then((data) => {
         if (!isMounted) return;
-
-        if (queryError) {
-          setError(new Error(`No se pudo cargar el tenant: ${queryError.message}`));
-          setIsLoading(false);
-          return;
-        }
-
-        if (!data) {
-          setError(new Error(`Tenant '${slug}' no encontrado o inactivo`));
-          setIsLoading(false);
-          return;
-        }
-
-        setTenant(data);
+        aplicarTenant(data);
         setIsLoading(false);
-
-        // D-017 RESUELTO: aplicar color dinámico del tenant al :root.
-        // Pisa --sala-primary/-text/-tint y --sala-accent/-text/-tint;
-        // los 20 derivados se recalculan vía color-mix() en sala.css.
-        // Solo --sala-primary y --sala-accent del tenant fluyen — bg y
-        // neutros se quedan fijos (decisión del contrato Fase A).
-        applyBranding(data.branding as BrandingColors | null);
-
-        // Setear título dinámico
-        if (data.nombre) {
-          document.title = data.nombre;
-        }
-      } catch (err) {
+      })
+      .catch((err) => {
         if (!isMounted) return;
         setError(err instanceof Error ? err : new Error(String(err)));
         setIsLoading(false);
-      }
-    }
-
-    loadTenant();
-
+      });
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [fetchTenant, aplicarTenant]);
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -262,7 +264,7 @@ export function TenantProvider({ children }: TenantProviderProps) {
   }
 
   return (
-    <TenantContext.Provider value={{ tenant, isLoading: false, error: null }}>
+    <TenantContext.Provider value={{ tenant, isLoading: false, error: null, refetch }}>
       {children}
     </TenantContext.Provider>
   );
@@ -274,4 +276,9 @@ export function useTenant(): Tenant {
     throw new Error('useTenant() llamado fuera de <TenantProvider>');
   }
   return tenant;
+}
+
+/** Devuelve la función para re-leer el tenant (colores + logo) tras un cambio. */
+export function useTenantRefetch(): () => Promise<void> {
+  return useContext(TenantContext).refetch;
 }

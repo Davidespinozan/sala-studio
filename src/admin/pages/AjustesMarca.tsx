@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Image as ImageIcon, Folder, AlertTriangle } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
-import { useTenant } from '@shared/hooks/useTenant';
+import { useTenant, useTenantRefetch } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import {
   applyBranding,
@@ -73,6 +73,7 @@ function normalizeHex(input: string): string | null {
 
 export default function AjustesMarca() {
   const tenant = useTenant();
+  const refetchTenant = useTenantRefetch();
   const toast = useToast();
   const [draft, setDraft] = useState<BrandingDraft>(EMPTY);
   const [persisted, setPersisted] = useState<BrandingDraft>(EMPTY);
@@ -162,7 +163,10 @@ export default function AjustesMarca() {
     }
     setOriginalJson(JSON.stringify(draft));
     setPersisted(draft);
-    toast.success('Marca actualizada. Los colores ya aplican en toda la app.');
+    // Re-lee el tenant para que el LOGO (que sale de tenant.branding, no de
+    // CSS vars) se actualice en toda la app sin recargar la página.
+    await refetchTenant();
+    toast.success('Marca actualizada. Ya aplica en toda la app.');
   }
 
   return (
