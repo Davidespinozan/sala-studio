@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowRight, Check, Dumbbell, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
-import { useLandingConfig } from '@shared/hooks/useLandingConfig';
+import { useLandingConfig, type LandingPostHero } from '@shared/hooks/useLandingConfig';
 import { useTenant } from '@shared/hooks/useTenant';
 import EstudioModal, { type EstudioInfo } from '../components/EstudioModal';
 import Footer from '../components/Footer';
@@ -245,6 +245,118 @@ function parseBeneficios(raw: unknown): string[] {
   return [];
 }
 
+// ── Sección post-hero: 3 variantes visuales del mismo contenido ──────────────
+function SeccionPostHero({ data }: { data: LandingPostHero }) {
+  if (data.variante === 'ninguna') return null;
+  const items = data.items.filter((it) => it.titulo.trim() || it.texto.trim());
+  if (!items.length) return null;
+
+  const tituloH2 = (light: boolean) =>
+    (data.titulo || data.titulo_accent) && (
+      <h2 style={{
+        fontFamily: 'var(--ek-font-display)',
+        fontSize: 'clamp(32px, 6vw, 52px)',
+        fontWeight: 700,
+        letterSpacing: '-0.04em',
+        lineHeight: 1.05,
+        margin: 0,
+        marginBottom: '40px',
+        color: light ? 'rgba(255, 255, 255, 0.97)' : 'var(--sala-text-primary)'
+      }}>
+        {data.titulo}
+        {data.titulo_accent && (
+          <>
+            {data.titulo && <br />}
+            <span style={{ color: light ? 'rgba(255, 255, 255, 0.7)' : 'var(--ek-mustard)' }}>
+              {data.titulo_accent}
+            </span>
+          </>
+        )}
+      </h2>
+    );
+
+  // VARIANTE C — banda inmersiva de marca (destacados)
+  if (data.variante === 'destacados') {
+    return (
+      <section style={{ padding: '80px 0' }}>
+        <div style={{
+          background: 'var(--grad-immersive)',
+          borderRadius: 'var(--ek-r-card)',
+          padding: 'clamp(36px, 5vw, 64px)',
+          boxShadow: '0 24px 60px rgba(10, 15, 12, 0.28)'
+        }}>
+          {data.eyebrow && (
+            <p style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.55)', margin: '0 0 12px' }}>
+              {data.eyebrow}
+            </p>
+          )}
+          {tituloH2(true)}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '28px' }}>
+            {items.map((it, i) => (
+              <div key={i}>
+                <p style={{ fontFamily: 'var(--ek-font-display)', fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: 'rgba(255, 255, 255, 0.97)' }}>
+                  {it.titulo}
+                </p>
+                <p style={{ fontSize: '14px', lineHeight: 1.5, margin: '8px 0 0', color: 'rgba(255, 255, 255, 0.6)' }}>
+                  {it.texto}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // VARIANTE B — beneficios (icono en círculo tintado)
+  if (data.variante === 'beneficios') {
+    return (
+      <section style={{ padding: '80px 0' }}>
+        {data.eyebrow && <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>{data.eyebrow}</p>}
+        {tituloH2(false)}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
+          {items.map((it, i) => (
+            <div key={i} className="ek-card">
+              <div aria-hidden="true" style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--sala-primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
+                <Check size={22} strokeWidth={2.5} style={{ color: 'var(--sala-primary)' }} />
+              </div>
+              <h3 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', margin: '0 0 6px', color: 'var(--sala-text-primary)' }}>
+                {it.titulo}
+              </h3>
+              <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                {it.texto}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  // VARIANTE A — pasos (numerados)
+  return (
+    <section style={{ padding: '80px 0' }}>
+      {data.eyebrow && <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>{data.eyebrow}</p>}
+      {tituloH2(false)}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
+        {items.map((it, i) => (
+          <div key={i} className="ek-card">
+            <p style={{ fontFamily: 'var(--ek-font-display)', fontSize: '34px', fontWeight: 700, color: 'var(--ek-mustard)', margin: '0 0 12px', letterSpacing: '-0.04em' }}>
+              {String(i + 1).padStart(2, '0')}
+            </p>
+            <h3 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', margin: '0 0 8px', color: 'var(--sala-text-primary)' }}>
+              {it.titulo}
+            </h3>
+            <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', lineHeight: 1.5, margin: 0 }}>
+              {it.texto}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function formatearPesos(centavos: number): string {
   return `$${Math.round(centavos / 100).toLocaleString('es-MX')}`;
 }
@@ -254,7 +366,7 @@ export default function Landing() {
   const { estudios, isLoading: estudiosLoading } = useEstudiosPublicos();
   const { tiers, isLoading: tiersLoading } = useTiersPublicos();
   const { instructores } = useInstructoresPublicos();
-  const { hero, cta_final, whatsappUrl, mostrarInstructores } = useLandingConfig();
+  const { hero, post_hero, cta_final, whatsappUrl, mostrarInstructores } = useLandingConfig();
   const ctaWhatsappUrl = whatsappUrl();
 
   const precioPro = tiers.find((t) => t.slug === 'pro')?.precio_centavos;
@@ -405,71 +517,9 @@ export default function Landing() {
       })()}
 
       {/* ============================================================
-          CÓMO FUNCIONA
+          SECCIÓN POST-HERO (variante elegible desde admin)
           ============================================================ */}
-      <section style={{ padding: '80px 0' }}>
-        <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>CÓMO FUNCIONA</p>
-        <h2 style={{
-          fontFamily: 'var(--ek-font-display)',
-          fontSize: 'clamp(36px, 6vw, 56px)',
-          fontWeight: 700,
-          letterSpacing: '-0.04em',
-          margin: 0,
-          marginBottom: '48px'
-        }}>
-          De cero a tu primera clase.<br />
-          <span style={{ color: 'var(--ek-mustard)' }}>En tres pasos.</span>
-        </h2>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: '20px'
-        }}>
-          {[
-            {
-              n: '01',
-              title: 'Elegí tu plan',
-              body: 'Pickeá la membresía que va con tu ritmo. Sin permanencia mínima rara, sin letra chica. Cancelás cuando quieras pasado el commitment.'
-            },
-            {
-              n: '02',
-              title: 'Reservá desde la app',
-              body: 'Elegí sala, día y horario en segundos. Sin llamadas, sin esperar. Hasta 30 días de anticipación.'
-            },
-            {
-              n: '03',
-              title: 'Llegá y entrená',
-              body: 'Mostrá tu QR en recepción y listo. Las salas ya están montadas con todo el equipo. Solo traés tus ganas.'
-            }
-          ].map((paso) => (
-            <div key={paso.n} className="ek-card">
-              <p style={{
-                fontFamily: 'var(--ek-font-display)',
-                fontSize: '32px',
-                fontWeight: 700,
-                color: 'var(--ek-mustard)',
-                margin: 0,
-                marginBottom: '12px',
-                letterSpacing: '-0.04em'
-              }}>{paso.n}</p>
-              <h3 style={{
-                fontFamily: 'var(--ek-font-display)',
-                fontSize: '20px',
-                fontWeight: 600,
-                margin: 0,
-                marginBottom: '8px'
-              }}>{paso.title}</h3>
-              <p style={{
-                fontSize: '14px',
-                color: 'var(--ek-ink-muted)',
-                lineHeight: 1.5,
-                margin: 0
-              }}>{paso.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <SeccionPostHero data={post_hero} />
 
       {/* ============================================================
           ESTUDIOS

@@ -87,6 +87,52 @@ function parseObject<T extends object>(value: unknown, fallback: T): T {
   return { ...fallback, ...(value as Partial<T>) };
 }
 
+// ── Sección post-hero: 3 variantes visuales + ocultar, contenido editable ──
+export type PostHeroVariante = 'pasos' | 'beneficios' | 'destacados' | 'ninguna';
+export type PostHeroItem = { titulo: string; texto: string };
+export type LandingPostHero = {
+  variante: PostHeroVariante;
+  eyebrow: string;
+  titulo: string;
+  titulo_accent: string;
+  items: PostHeroItem[];
+};
+
+const POST_HERO_DEFAULT: LandingPostHero = {
+  variante: 'pasos',
+  eyebrow: 'CÓMO FUNCIONA',
+  titulo: 'De cero a tu primera clase.',
+  titulo_accent: 'En tres pasos.',
+  items: [
+    { titulo: 'Elegí tu plan', texto: 'Pickeá la membresía que va con tu ritmo. Sin permanencia rara, sin letra chica.' },
+    { titulo: 'Reservá desde la app', texto: 'Elegí sala, día y horario en segundos. Sin llamadas, sin esperar.' },
+    { titulo: 'Llegá y entrená', texto: 'Mostrá tu QR en recepción y listo. Las salas ya están montadas con todo el equipo.' }
+  ]
+};
+
+const POST_HERO_VARIANTES: PostHeroVariante[] = ['pasos', 'beneficios', 'destacados', 'ninguna'];
+
+function parsePostHero(value: unknown): LandingPostHero {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return POST_HERO_DEFAULT;
+  const v = value as Record<string, unknown>;
+  const variante = POST_HERO_VARIANTES.includes(v.variante as PostHeroVariante)
+    ? (v.variante as PostHeroVariante)
+    : POST_HERO_DEFAULT.variante;
+  const items = Array.isArray(v.items)
+    ? (v.items as unknown[]).slice(0, 4).map((it) => {
+        const o = (it ?? {}) as Record<string, unknown>;
+        return { titulo: String(o.titulo ?? ''), texto: String(o.texto ?? '') };
+      })
+    : POST_HERO_DEFAULT.items;
+  return {
+    variante,
+    eyebrow: String(v.eyebrow ?? POST_HERO_DEFAULT.eyebrow),
+    titulo: String(v.titulo ?? POST_HERO_DEFAULT.titulo),
+    titulo_accent: String(v.titulo_accent ?? POST_HERO_DEFAULT.titulo_accent),
+    items: items.length ? items : POST_HERO_DEFAULT.items
+  };
+}
+
 export function useLandingConfig() {
   const tenant = useTenant();
   const config = (tenant.config ?? {}) as Record<string, unknown>;
@@ -94,6 +140,7 @@ export function useLandingConfig() {
   const contactoRaw = (config.contacto ?? {}) as Record<string, unknown>;
 
   const hero = parseObject(landing.hero, HERO_DEFAULT);
+  const post_hero = parsePostHero(landing.post_hero);
   const cta_final = parseObject(landing.cta_final, CTA_FINAL_DEFAULT);
 
   const footerBase = parseObject(landing.footer, FOOTER_DEFAULT);
@@ -121,6 +168,7 @@ export function useLandingConfig() {
 
   return {
     hero,
+    post_hero,
     cta_final,
     footer,
     contacto,

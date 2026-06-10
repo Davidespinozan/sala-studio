@@ -30,8 +30,37 @@ type FooterDraft = {
   email: string;
 };
 
+type PostHeroVar = 'pasos' | 'beneficios' | 'destacados' | 'ninguna';
+type PostHeroDraft = {
+  variante: PostHeroVar;
+  eyebrow: string;
+  titulo: string;
+  titulo_accent: string;
+  items: { titulo: string; texto: string }[];
+};
+
+const POST_HERO_VAR_OPTS: { value: PostHeroVar; label: string }[] = [
+  { value: 'pasos', label: 'Pasos' },
+  { value: 'beneficios', label: 'Beneficios' },
+  { value: 'destacados', label: 'Destacados' },
+  { value: 'ninguna', label: 'Ocultar' }
+];
+
+const POST_HERO_DEFAULT: PostHeroDraft = {
+  variante: 'pasos',
+  eyebrow: 'CÓMO FUNCIONA',
+  titulo: 'De cero a tu primera clase.',
+  titulo_accent: 'En tres pasos.',
+  items: [
+    { titulo: 'Elegí tu plan', texto: 'Pickeá la membresía que va con tu ritmo. Sin permanencia rara, sin letra chica.' },
+    { titulo: 'Reservá desde la app', texto: 'Elegí sala, día y horario en segundos. Sin llamadas, sin esperar.' },
+    { titulo: 'Llegá y entrená', texto: 'Mostrá tu QR en recepción y listo. Las salas ya están montadas con todo el equipo.' }
+  ]
+};
+
 type LandingDraft = {
   hero: HeroDraft;
+  post_hero: PostHeroDraft;
   cta_final: CtaFinalDraft;
   footer: FooterDraft;
   mostrar_instructores: boolean;
@@ -39,6 +68,7 @@ type LandingDraft = {
 
 const EMPTY: LandingDraft = {
   hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta_link: '', image_url: '', image_url_mobile: '' },
+  post_hero: POST_HERO_DEFAULT,
   cta_final: { eyebrow: '', titulo: '', subtitulo: '', cta_texto: '' },
   footer: { tagline: '', copyright: '', direccion: '', email: '' },
   mostrar_instructores: false
@@ -49,6 +79,30 @@ function readLanding(config: Record<string, unknown> | null): LandingDraft {
   const hero = (landing.hero ?? {}) as Record<string, unknown>;
   const ctaFinal = (landing.cta_final ?? {}) as Record<string, unknown>;
   const footer = (landing.footer ?? {}) as Record<string, unknown>;
+
+  // post_hero: si no hay nada guardado, mostrar el default editable.
+  let post_hero: PostHeroDraft;
+  if (!landing.post_hero || typeof landing.post_hero !== 'object') {
+    post_hero = POST_HERO_DEFAULT;
+  } else {
+    const ph = landing.post_hero as Record<string, unknown>;
+    const phItems = Array.isArray(ph.items) ? ph.items : [];
+    const items = [0, 1, 2].map((i) => {
+      const o = (phItems[i] ?? {}) as Record<string, unknown>;
+      return { titulo: String(o.titulo ?? ''), texto: String(o.texto ?? '') };
+    });
+    const variante = POST_HERO_VAR_OPTS.some((v) => v.value === ph.variante)
+      ? (ph.variante as PostHeroVar)
+      : 'pasos';
+    post_hero = {
+      variante,
+      eyebrow: String(ph.eyebrow ?? ''),
+      titulo: String(ph.titulo ?? ''),
+      titulo_accent: String(ph.titulo_accent ?? ''),
+      items
+    };
+  }
+
   return {
     hero: {
       eyebrow: String(hero.eyebrow ?? ''),
@@ -72,6 +126,7 @@ function readLanding(config: Record<string, unknown> | null): LandingDraft {
       direccion: footer.direccion == null ? '' : String(footer.direccion),
       email: footer.email == null ? '' : String(footer.email)
     },
+    post_hero,
     mostrar_instructores: landing.mostrar_instructores === true
   };
 }
@@ -195,6 +250,7 @@ export default function AjustesLanding() {
   async function handleSave() {
     const payload = {
       hero: { ...draft.hero },
+      post_hero: { ...draft.post_hero },
       cta_final: { ...draft.cta_final },
       footer: {
         ...(((config?.landing as { footer?: Record<string, unknown> })?.footer) ?? {}),
@@ -324,6 +380,102 @@ export default function AjustesLanding() {
             placeholder="#membresias"
           />
         </FormField>
+      </Section>
+
+      <Section
+        title="SECCIÓN DESPUÉS DEL HERO"
+        description="Elegí el formato de la sección que va abajo del hero (o ocultala). El contenido es el mismo para los tres formatos."
+      >
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+          {POST_HERO_VAR_OPTS.map((opt) => {
+            const active = draft.post_hero.variante === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setDraft({ ...draft, post_hero: { ...draft.post_hero, variante: opt.value } })}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '999px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  background: active ? 'var(--grad-primary)' : 'var(--sala-surface)',
+                  color: active ? 'var(--sala-text-on-primary)' : 'var(--sala-text-secondary)',
+                  border: `1px solid ${active ? 'var(--sala-primary)' : 'var(--sala-border)'}`
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {draft.post_hero.variante !== 'ninguna' && (
+          <>
+            <FormField label="Etiqueta superior">
+              <input
+                value={draft.post_hero.eyebrow}
+                onChange={(e) => setDraft({ ...draft, post_hero: { ...draft.post_hero, eyebrow: e.target.value } })}
+                className="ek-input"
+                placeholder="CÓMO FUNCIONA"
+              />
+            </FormField>
+            <FormField label="Título">
+              <input
+                value={draft.post_hero.titulo}
+                onChange={(e) => setDraft({ ...draft, post_hero: { ...draft.post_hero, titulo: e.target.value } })}
+                className="ek-input"
+                placeholder="De cero a tu primera clase."
+              />
+            </FormField>
+            <FormField label="Título (palabra destacada)" helper="Se muestra en el color de acento.">
+              <input
+                value={draft.post_hero.titulo_accent}
+                onChange={(e) => setDraft({ ...draft, post_hero: { ...draft.post_hero, titulo_accent: e.target.value } })}
+                className="ek-input"
+                placeholder="En tres pasos."
+              />
+            </FormField>
+
+            {draft.post_hero.items.map((it, i) => (
+              <div key={i} style={{ borderTop: '1px solid var(--sala-border)', paddingTop: '14px', marginTop: '6px' }}>
+                <FormField label={`Ítem ${i + 1} — título`}>
+                  <input
+                    value={it.titulo}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        post_hero: {
+                          ...draft.post_hero,
+                          items: draft.post_hero.items.map((x, idx) => (idx === i ? { ...x, titulo: e.target.value } : x))
+                        }
+                      })
+                    }
+                    className="ek-input"
+                  />
+                </FormField>
+                <FormField label={`Ítem ${i + 1} — texto`}>
+                  <textarea
+                    value={it.texto}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        post_hero: {
+                          ...draft.post_hero,
+                          items: draft.post_hero.items.map((x, idx) => (idx === i ? { ...x, texto: e.target.value } : x))
+                        }
+                      })
+                    }
+                    className="ek-input"
+                    rows={2}
+                  />
+                </FormField>
+              </div>
+            ))}
+          </>
+        )}
       </Section>
 
       <Section
