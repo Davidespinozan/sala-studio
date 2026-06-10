@@ -604,6 +604,7 @@ export default function Landing() {
                     display: 'flex',
                     gap: '20px',
                     overflowX: 'auto',
+                    justifyContent: 'safe center',
                     scrollSnapType: 'x mandatory',
                     paddingBottom: '12px',
                     marginInline: '-24px',
@@ -613,7 +614,8 @@ export default function Landing() {
                 : {
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                    gap: '20px'
+                    gap: '20px',
+                    justifyContent: 'center'
                   }
             }
           >
