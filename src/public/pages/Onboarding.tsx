@@ -22,6 +22,7 @@ import {
   sugerirSubdominio,
   construirPayloadOnboarding,
   COLOR_PRIMARIO_DEFAULT,
+  COLOR_ACENTO_DEFAULT,
   type OnboardingState
 } from '../lib/onboardingLogic';
 
@@ -31,7 +32,7 @@ const ESTADO_INICIAL: OnboardingState = {
   cuenta: { nombre: '', email: '', password: '' },
   gym: { gymNombre: '', slug: '', timezone: 'America/Mexico_City' },
   tier: null,
-  setup: { colorPrimario: COLOR_PRIMARIO_DEFAULT, logoUrl: null, salaNombre: '', salaCupo: 15 }
+  setup: { colorPrimario: COLOR_PRIMARIO_DEFAULT, colorAcento: COLOR_ACENTO_DEFAULT, logoUrl: null, salaNombre: '', salaCupo: 15 }
 };
 
 /** URL del gym recién creado (subdominio). En dev, *.localhost resuelve solo. */
@@ -663,21 +664,38 @@ function PasoSetup({
       <p className="ek-body-muted" style={{ margin: 0 }}>
         Últimos toques. Podés cambiar todo después desde el panel.
       </p>
-      <Campo label="Color primario">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <input
-            type="color"
-            value={value.colorPrimario}
-            onChange={(e) => onChange({ ...value, colorPrimario: e.target.value })}
-            style={{ width: '48px', height: '40px', border: 'none', background: 'none', cursor: 'pointer' }}
-          />
-          <span style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', fontFamily: 'var(--ek-font-mono)' }}>
-            {value.colorPrimario}
-          </span>
-        </div>
-      </Campo>
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+        <Campo label="Color primario">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <input
+              type="color"
+              value={value.colorPrimario}
+              onChange={(e) => onChange({ ...value, colorPrimario: e.target.value })}
+              style={{ width: '48px', height: '40px', border: 'none', background: 'none', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', fontFamily: 'var(--ek-font-mono)' }}>
+              {value.colorPrimario}
+            </span>
+          </div>
+        </Campo>
+        <Campo label="Color de acento">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <input
+              type="color"
+              value={value.colorAcento}
+              onChange={(e) => onChange({ ...value, colorAcento: e.target.value })}
+              style={{ width: '48px', height: '40px', border: 'none', background: 'none', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', fontFamily: 'var(--ek-font-mono)' }}>
+              {value.colorAcento}
+            </span>
+          </div>
+        </Campo>
+      </div>
       <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', margin: 0 }}>
-        El logo lo subís más tarde desde Ajustes › Marca.
+        El primario es tu color base; el acento es el toque que resalta detalles
+        (planes destacados, estados, etc.). Si querés, dejá el acento igual al
+        primario. El logo lo subís más tarde desde Ajustes › Marca.
       </p>
       <Campo label="Tu primera sala">
         <input

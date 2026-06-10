@@ -49,6 +49,7 @@ interface Body {
   moneda: string;
   precioCentavos: number;
   colorPrimario: string;
+  colorAcento?: string;
   logoUrl: string | null;
   salaNombre: string;
   salaCupo: number;
@@ -137,6 +138,7 @@ export const handler: Handler = async (event) => {
       p_moneda: b.moneda,
       p_precio_centavos: b.precioCentavos,
       p_color_primario: b.colorPrimario || '#3d6b52',
+      p_color_acento: b.colorAcento || null,
       p_logo_url: b.logoUrl || null,
       p_sala_nombre: b.salaNombre.trim(),
       p_sala_cupo: b.salaCupo

@@ -19,6 +19,10 @@ export const PASSWORD_MIN = 8;
 /** Color primario por defecto (Salvia). */
 export const COLOR_PRIMARIO_DEFAULT = '#3d6b52';
 
+/** Color de acento por defecto. Igual al primario → marca monocroma segura
+ *  hasta que el dueño elija un acento distinto en el wizard. */
+export const COLOR_ACENTO_DEFAULT = '#3d6b52';
+
 /** Subdominios que no se pueden usar (técnicos / reservados de la plataforma). */
 export const SUBDOMINIOS_RESERVADOS = new Set<string>([
   'admin', 'www', 'app', 'api', 'mail', 'ftp', 'blog', 'dev', 'staging',
@@ -50,6 +54,7 @@ export interface DatosGym {
 
 export interface DatosSetup {
   colorPrimario: string;
+  colorAcento: string;
   logoUrl: string | null;
   salaNombre: string;
   salaCupo: number;
@@ -173,6 +178,7 @@ export interface OnboardingPayload {
   /** Precio del SaaS en centavos: tier × moneda. */
   precioCentavos: number;
   colorPrimario: string;
+  colorAcento: string;
   logoUrl: string | null;
   salaNombre: string;
   salaCupo: number;
@@ -199,6 +205,7 @@ export function construirPayloadOnboarding(state: OnboardingState): OnboardingPa
     moneda,
     precioCentavos: precioCentavos(state.tier, moneda),
     colorPrimario: state.setup.colorPrimario,
+    colorAcento: state.setup.colorAcento,
     logoUrl: state.setup.logoUrl,
     salaNombre: state.setup.salaNombre.trim(),
     salaCupo: state.setup.salaCupo

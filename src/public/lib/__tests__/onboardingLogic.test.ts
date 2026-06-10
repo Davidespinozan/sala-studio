@@ -21,7 +21,7 @@ function estadoValido(overrides: Partial<OnboardingState> = {}): OnboardingState
     cuenta: { nombre: 'Ana Ruiz', email: 'ana@yogasol.com', password: 'segura123' },
     gym: { gymNombre: 'Yoga Sol', slug: 'yogasol', timezone: 'America/Mexico_City' },
     tier: 'pro',
-    setup: { colorPrimario: COLOR_PRIMARIO_DEFAULT, logoUrl: null, salaNombre: 'Sala Principal', salaCupo: 15 },
+    setup: { colorPrimario: COLOR_PRIMARIO_DEFAULT, colorAcento: COLOR_PRIMARIO_DEFAULT, logoUrl: null, salaNombre: 'Sala Principal', salaCupo: 15 },
     ...overrides
   };
 }
@@ -198,14 +198,14 @@ describe('validarPasoSetup', () => {
     expect(validarPasoSetup(estadoValido().setup).ok).toBe(true);
   });
   it('rechaza sala sin nombre', () => {
-    expect(validarPasoSetup({ colorPrimario: '#000', logoUrl: null, salaNombre: '  ', salaCupo: 10 }).ok).toBe(false);
+    expect(validarPasoSetup({ colorPrimario: '#000', colorAcento: '#000', logoUrl: null, salaNombre: '  ', salaCupo: 10 }).ok).toBe(false);
   });
   it('rechaza cupo 0 o negativo', () => {
-    expect(validarPasoSetup({ colorPrimario: '#000', logoUrl: null, salaNombre: 'Sala', salaCupo: 0 }).ok).toBe(false);
-    expect(validarPasoSetup({ colorPrimario: '#000', logoUrl: null, salaNombre: 'Sala', salaCupo: -3 }).ok).toBe(false);
+    expect(validarPasoSetup({ colorPrimario: '#000', colorAcento: '#000', logoUrl: null, salaNombre: 'Sala', salaCupo: 0 }).ok).toBe(false);
+    expect(validarPasoSetup({ colorPrimario: '#000', colorAcento: '#000', logoUrl: null, salaNombre: 'Sala', salaCupo: -3 }).ok).toBe(false);
   });
   it('rechaza cupo no entero', () => {
-    expect(validarPasoSetup({ colorPrimario: '#000', logoUrl: null, salaNombre: 'Sala', salaCupo: 8.5 }).ok).toBe(false);
+    expect(validarPasoSetup({ colorPrimario: '#000', colorAcento: '#000', logoUrl: null, salaNombre: 'Sala', salaCupo: 8.5 }).ok).toBe(false);
   });
 });
 
