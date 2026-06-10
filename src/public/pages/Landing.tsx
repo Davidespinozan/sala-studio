@@ -292,9 +292,12 @@ export default function Landing() {
           HERO
           ============================================================ */}
       {(() => {
-        const heroImg = hero.image_url;
-        const tituloColor = heroImg ? 'rgba(255, 255, 255, 0.98)' : 'var(--sala-text-primary)';
-        const subColor = heroImg ? 'rgba(255, 255, 255, 0.85)' : 'var(--ek-ink-muted)';
+        // Imagen por dispositivo: cada una cae a la otra si falta.
+        const heroDesktop = hero.image_url || hero.image_url_mobile;
+        const heroMobile = hero.image_url_mobile || hero.image_url;
+        const hasImg = !!(hero.image_url || hero.image_url_mobile);
+        const tituloColor = hasImg ? 'rgba(255, 255, 255, 0.98)' : 'var(--sala-text-primary)';
+        const subColor = hasImg ? 'rgba(255, 255, 255, 0.85)' : 'var(--ek-ink-muted)';
 
         const inner = (
           <>
@@ -342,25 +345,28 @@ export default function Landing() {
           </>
         );
 
-        return heroImg ? (
+        return hasImg ? (
           <section style={{ padding: '40px 0' }}>
             <div style={{
               position: 'relative',
               overflow: 'hidden',
               borderRadius: 'var(--ek-r-card)',
-              minHeight: 'clamp(440px, 70vh, 640px)',
+              minHeight: 'clamp(520px, 80vh, 600px)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'flex-end',
               padding: 'clamp(28px, 5vw, 56px)',
               boxShadow: '0 24px 60px rgba(10, 15, 12, 0.28)'
             }}>
-              <img
-                src={heroImg}
-                alt=""
-                aria-hidden="true"
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-              />
+              <picture>
+                <source media="(max-width: 640px)" srcSet={heroMobile} />
+                <img
+                  src={heroDesktop}
+                  alt=""
+                  aria-hidden="true"
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </picture>
               <div
                 aria-hidden="true"
                 style={{

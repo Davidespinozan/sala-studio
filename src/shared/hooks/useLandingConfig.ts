@@ -7,8 +7,10 @@ type LandingHero = {
   subtitulo: string;
   cta_texto: string;
   cta_link: string;
-  /** Imagen de fondo del hero (opcional). Vacío = hero de texto sobre crema. */
+  /** Imagen de fondo del hero para DESKTOP (16:9). Vacío = hero de texto. */
   image_url: string;
+  /** Imagen de fondo del hero para MÓVIL (3:4 vertical). Cae a la desktop si falta. */
+  image_url_mobile: string;
 };
 
 type LandingCtaFinal = {
@@ -49,7 +51,8 @@ const HERO_DEFAULT: LandingHero = {
   subtitulo: '',
   cta_texto: 'Ver membresías',
   cta_link: '#membresias',
-  image_url: ''
+  image_url: '',
+  image_url_mobile: ''
 };
 
 const CTA_FINAL_DEFAULT: LandingCtaFinal = {

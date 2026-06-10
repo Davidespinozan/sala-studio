@@ -13,6 +13,7 @@ type HeroDraft = {
   cta_texto: string;
   cta_link: string;
   image_url: string;
+  image_url_mobile: string;
 };
 
 type CtaFinalDraft = {
@@ -37,7 +38,7 @@ type LandingDraft = {
 };
 
 const EMPTY: LandingDraft = {
-  hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta_link: '', image_url: '' },
+  hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta_link: '', image_url: '', image_url_mobile: '' },
   cta_final: { eyebrow: '', titulo: '', subtitulo: '', cta_texto: '' },
   footer: { tagline: '', copyright: '', direccion: '', email: '' },
   mostrar_instructores: false
@@ -56,7 +57,8 @@ function readLanding(config: Record<string, unknown> | null): LandingDraft {
       subtitulo: String(hero.subtitulo ?? ''),
       cta_texto: String(hero.cta_texto ?? ''),
       cta_link: String(hero.cta_link ?? ''),
-      image_url: String(hero.image_url ?? '')
+      image_url: String(hero.image_url ?? ''),
+      image_url_mobile: String(hero.image_url_mobile ?? '')
     },
     cta_final: {
       eyebrow: String(ctaFinal.eyebrow ?? ''),
@@ -236,12 +238,21 @@ export default function AjustesLanding() {
       <Section title="HERO" description="La primera impresión cuando alguien visita tu landing.">
         <ImageUploader
           bucket="estudios"
-          pathPrefix={`${tenant.slug}/hero`}
+          pathPrefix={`${tenant.slug}/hero-desktop`}
           currentUrl={draft.hero.image_url || null}
           onUploaded={(url) => setDraft({ ...draft, hero: { ...draft.hero, image_url: url } })}
-          label="Imagen de fondo (opcional)"
+          label="Imagen de fondo — Desktop (opcional)"
           cropAspect={16 / 9}
-          helperText="Foto de fondo del hero. Vas a poder recortarla (16:9). Sin imagen, el hero queda de texto sobre fondo claro."
+          helperText="Foto horizontal para pantallas grandes. Recorte 16:9. Sin imagen, el hero queda de texto sobre fondo claro."
+        />
+        <ImageUploader
+          bucket="estudios"
+          pathPrefix={`${tenant.slug}/hero-mobile`}
+          currentUrl={draft.hero.image_url_mobile || null}
+          onUploaded={(url) => setDraft({ ...draft, hero: { ...draft.hero, image_url_mobile: url } })}
+          label="Imagen de fondo — Móvil (opcional)"
+          cropAspect={3 / 4}
+          helperText="Foto vertical para celulares. Recorte 3:4. Si no subís una, en móvil se usa la de desktop."
         />
         <FormField
           label="Etiqueta superior"
