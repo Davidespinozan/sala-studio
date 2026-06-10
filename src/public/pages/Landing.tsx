@@ -750,6 +750,7 @@ export default function Landing() {
             fontSize: 'clamp(36px, 6vw, 56px)',
             fontWeight: 700,
             letterSpacing: '-0.04em',
+            lineHeight: 1.05,
             margin: 0,
             marginBottom: '16px'
           }}>
@@ -782,6 +783,7 @@ export default function Landing() {
           fontSize: 'clamp(36px, 6vw, 56px)',
           fontWeight: 700,
           letterSpacing: '-0.04em',
+          lineHeight: 1.05,
           margin: 0,
           marginBottom: '48px'
         }}>
@@ -946,6 +948,7 @@ export default function Landing() {
           fontSize: 'clamp(36px, 6vw, 56px)',
           fontWeight: 700,
           letterSpacing: '-0.04em',
+          lineHeight: 1.05,
           margin: 0,
           marginBottom: '48px'
         }}>
