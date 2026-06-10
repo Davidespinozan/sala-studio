@@ -341,7 +341,7 @@ function SeccionPostHero({ data }: { data: LandingPostHero }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
         {items.map((it, i) => (
           <div key={i} className="ek-card">
-            <p style={{ fontFamily: 'var(--ek-font-display)', fontSize: '34px', fontWeight: 700, color: 'var(--ek-mustard)', margin: '0 0 12px', letterSpacing: '-0.04em' }}>
+            <p style={{ fontFamily: 'var(--ek-font-display)', fontSize: '34px', fontWeight: 700, color: 'var(--sala-accent)', margin: '0 0 12px', letterSpacing: '-0.04em' }}>
               {String(i + 1).padStart(2, '0')}
             </p>
             <h3 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', margin: '0 0 8px', color: 'var(--sala-text-primary)' }}>

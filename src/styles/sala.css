@@ -534,7 +534,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
       0 4px 12px var(--sala-primary-shadow);
   }
 
-  .ek-stat-card--accent { border-color: var(--ek-mustard-dim); }
+  .ek-stat-card--accent { border-color: var(--sala-accent-dim); }
 
   /* ============================================================================
      BUTTONS
@@ -1138,7 +1138,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   .rec-card:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .rec-reserva-card--llegando,
-  .rec-card--highlight { border-color: var(--ek-mustard-dim); }
+  .rec-card--highlight { border-color: var(--sala-accent-dim); }
 
   .rec-reserva-time,
   .rec-card-hora {

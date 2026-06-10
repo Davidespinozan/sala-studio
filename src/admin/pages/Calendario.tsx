@@ -102,8 +102,8 @@ function VistaToggle({ value, onChange }: { value: Vista; onChange: (v: Vista) =
     gap: '6px'
   };
   const activeBtn: React.CSSProperties = {
-    background: 'var(--ek-mustard)',
-    color: 'var(--ek-bg)'
+    background: 'var(--sala-accent)',
+    color: 'var(--sala-accent-text)'
   };
   return (
     <div

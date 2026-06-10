@@ -267,7 +267,7 @@ function ReservaCard({
         textAlign: 'left',
         background: 'var(--ek-bg-soft)',
         border: highlight
-          ? '0.5px solid var(--ek-mustard-dim)'
+          ? '0.5px solid var(--sala-accent-dim)'
           : '0.5px solid var(--ek-line)',
         borderRadius: 'var(--ek-r-md)',
         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -275,7 +275,7 @@ function ReservaCard({
         color: 'inherit',
         width: '100%',
         opacity: disabled ? 0.55 : 1,
-        boxShadow: highlight ? '0 0 0 1px var(--ek-mustard-dim)' : 'none'
+        boxShadow: highlight ? '0 0 0 1px var(--sala-accent-dim)' : 'none'
       }}
     >
       <div

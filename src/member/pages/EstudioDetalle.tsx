@@ -211,11 +211,11 @@ export default function EstudioDetalle() {
           </Link>
         ) : (
           <div className="ek-card" style={{
-            borderColor: 'var(--ek-mustard-dim)',
-            background: 'var(--ek-mustard-soft)',
+            borderColor: 'var(--sala-accent-dim)',
+            background: 'var(--sala-accent-soft)',
             textAlign: 'center'
           }}>
-            <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '8px' }}>
+            <p className="ek-eyebrow" style={{ marginBottom: '8px', color: 'var(--sala-accent)' }}>
               PLAN PRO REQUERIDO
             </p>
             <p className="ek-body" style={{ marginBottom: '14px' }}>

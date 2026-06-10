@@ -375,7 +375,7 @@ function TierRow({
       }}
       style={{
         background: 'var(--ek-bg-soft)',
-        border: esPro ? '0.5px solid var(--ek-mustard-dim)' : '0.5px solid var(--ek-line)',
+        border: esPro ? '0.5px solid var(--sala-accent-dim)' : '0.5px solid var(--ek-line)',
         borderRadius: '16px',
         padding: '20px',
         display: 'flex',
@@ -383,7 +383,7 @@ function TierRow({
         gap: '16px',
         cursor: 'pointer',
         transition: 'background 0.18s ease, border-color 0.18s ease',
-        boxShadow: esPro ? '0 0 0 1px var(--ek-mustard-dim)' : 'none'
+        boxShadow: esPro ? '0 0 0 1px var(--sala-accent-dim)' : 'none'
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = 'var(--ek-mustard-soft)';
@@ -410,8 +410,8 @@ function TierRow({
             <span
               className="ek-badge"
               style={{
-                backgroundColor: 'var(--ek-mustard-soft)',
-                color: 'var(--ek-mustard)',
+                backgroundColor: 'var(--sala-accent-soft)',
+                color: 'var(--sala-accent)',
                 fontSize: '10px',
                 fontWeight: 700,
                 padding: '3px 8px',
