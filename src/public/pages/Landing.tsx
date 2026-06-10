@@ -768,6 +768,7 @@ export default function Landing() {
             display: 'flex',
             gap: '14px',
             overflowX: 'auto',
+            justifyContent: 'safe center',
             scrollSnapType: 'x mandatory',
             paddingBottom: '12px',
             marginInline: '-24px',
@@ -775,7 +776,7 @@ export default function Landing() {
             scrollbarWidth: 'thin'
           }}>
             {instructores.map((i) => (
-              <div key={i.id} style={{ flex: '0 0 160px', scrollSnapAlign: 'start' }}>
+              <div key={i.id} className="landing-instructor-item">
                 <InstructorLandingCard instructor={i} />
               </div>
             ))}
@@ -817,9 +818,8 @@ export default function Landing() {
               return (
                 <div
                   key={tier.slug}
-                  className="ek-card"
+                  className="ek-card landing-plan-card"
                   style={{
-                    padding: '32px',
                     position: 'relative',
                     display: 'flex',
                     flexDirection: 'column',
@@ -872,7 +872,7 @@ export default function Landing() {
                   </p>
                   <p style={{
                     fontFamily: 'var(--ek-font-display)',
-                    fontSize: '48px',
+                    fontSize: 'clamp(30px, 7vw, 48px)',
                     fontWeight: 700,
                     margin: 0,
                     letterSpacing: '-0.03em',

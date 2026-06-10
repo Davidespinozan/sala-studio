@@ -308,13 +308,28 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
    móvil. Ancho acotado para que las dos cards queden proporcionadas. */
 .landing-planes-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
+  grid-template-columns: 1fr 1fr; /* 2 columnas también en móvil */
+  gap: 14px;
   max-width: 820px;
   margin: 0 auto;
 }
 @media (min-width: 640px) {
-  .landing-planes-grid { grid-template-columns: 1fr 1fr; }
+  .landing-planes-grid { gap: 20px; }
+}
+
+/* Card de instructor en el carrusel: 160px en móvil, +15% (~184px) en desktop. */
+.landing-instructor-item {
+  flex: 0 0 160px;
+  scroll-snap-align: start;
+}
+@media (min-width: 768px) {
+  .landing-instructor-item { flex-basis: 184px; }
+}
+
+/* Card de plan: padding compacto en móvil (2 columnas), amplio en desktop. */
+.landing-plan-card { padding: 18px; }
+@media (min-width: 640px) {
+  .landing-plan-card { padding: 32px; }
 }
 
 /* ============================================================================
