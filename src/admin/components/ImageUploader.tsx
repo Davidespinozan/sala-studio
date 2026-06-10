@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 
@@ -48,6 +48,13 @@ export default function ImageUploader({
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // currentUrl llega async (el draft de marca se carga después del mount). Sin
+  // esto el preview se quedaba pegado en el fallback "Por defecto" aunque ya
+  // hubiera un logo subido.
+  useEffect(() => {
+    setPreviewUrl(currentUrl);
+  }, [currentUrl]);
 
   // Lo que se muestra: imagen propia subida, o el fallback (placeholder real).
   const shownUrl = previewUrl ?? fallbackPreviewUrl ?? null;

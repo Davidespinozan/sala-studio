@@ -69,6 +69,9 @@ export function TenantLogo({
           : null;
 
   if (url) {
+    // Mismo sizing que SalaLogo: alto fijo + ancho auto, sin maxWidth ni
+    // object-fit. Antes el maxWidth:200 + contain letterboxeaba los logos
+    // anchos y los hacía aparecer más chicos que el default de SALA.
     return (
       <img
         src={url}
@@ -76,8 +79,6 @@ export function TenantLogo({
         style={{
           height: `${height}px`,
           width: 'auto',
-          objectFit: 'contain',
-          maxWidth: '200px',
           display: 'block'
         }}
       />
