@@ -97,11 +97,13 @@
     var(--sala-accent-active) 100%
   );
 
-  /* === DERIVADOS ERROR (semántico fijo, no dinámico) === */
+  /* === DERIVADOS ERROR/WARNING (semánticos fijos, no dinámicos) === */
   --sala-error-hover:          color-mix(in srgb, var(--sala-error), black 22%);
   --sala-error-shadow:         color-mix(in srgb, var(--sala-error) 16%, transparent);
   --sala-error-dim:            color-mix(in srgb, var(--sala-error) 24%, transparent);
   --sala-error-glow:            color-mix(in srgb, var(--sala-error) 30%, transparent);
+  --sala-warning-dim:          color-mix(in srgb, var(--sala-warning) 24%, transparent);
+  --sala-warning-glow:         color-mix(in srgb, var(--sala-warning) 30%, transparent);
 
   /* Compat alias text-on-* (consumidores existentes) */
   --sala-text-on-primary:   var(--sala-primary-text);
@@ -210,6 +212,8 @@
     --sala-error-shadow:         rgba(196, 74, 53, 0.16);
     --sala-error-dim:            rgba(196, 74, 53, 0.24);
     --sala-error-glow:           rgba(196, 74, 53, 0.30);
+    --sala-warning-dim:          rgba(200, 148, 31, 0.24);
+    --sala-warning-glow:         rgba(200, 148, 31, 0.30);
 
     /* Gradientes de marca (literales SALA) */
     --grad-primary: linear-gradient(135deg, #4A7D62 0%, #3D6B52 52%, #294938 100%);

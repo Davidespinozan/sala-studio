@@ -679,7 +679,7 @@ function Section({
               background: 'var(--sala-warning-bg)',
               padding: '3px 8px',
               borderRadius: '999px',
-              border: '1px solid rgba(200, 148, 31, 0.3)'
+              border: '1px solid var(--sala-warning-glow)'
             }}
           >
             Próximamente

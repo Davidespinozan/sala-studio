@@ -239,7 +239,7 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
           <div
             style={{
               background: 'var(--sala-error-bg)',
-              border: '1px solid rgba(196, 74, 53, 0.30)',
+              border: '1px solid var(--sala-error-glow)',
               borderRadius: '12px',
               padding: '12px 14px',
               marginBottom: '16px'

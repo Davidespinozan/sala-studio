@@ -265,7 +265,7 @@ export function GestionarMembresiaModal({
                   : 'var(--sala-success-bg)',
               border: `1px solid ${
                 preview.modo === 'cambio_de_tipo' && descripcion.advertencia
-                  ? 'rgba(200, 148, 31, 0.3)'
+                  ? 'var(--sala-warning-glow)'
                   : 'var(--sala-success)'
               }`,
               borderRadius: '12px',

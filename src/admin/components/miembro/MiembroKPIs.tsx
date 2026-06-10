@@ -89,7 +89,7 @@ function Card({
     <div
       style={{
         background: 'var(--sala-surface)',
-        border: `1px solid ${alert ? 'rgba(232, 101, 74, 0.30)' : 'var(--sala-border)'}`,
+        border: `1px solid ${alert ? 'var(--sala-warning-glow)' : 'var(--sala-border)'}`,
         borderRadius: '14px',
         padding: '16px 18px',
         boxShadow: '0 1px 3px rgba(26, 31, 28, 0.04)'

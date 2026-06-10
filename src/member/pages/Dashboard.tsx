@@ -231,7 +231,7 @@ export default function Dashboard() {
         <div
           style={{
             background: 'var(--sala-error-bg)',
-            border: '1px solid rgba(196, 74, 53, 0.3)',
+            border: '1px solid var(--sala-error-glow)',
             borderRadius: '14px',
             padding: '14px 16px',
             marginBottom: '24px'
@@ -383,7 +383,7 @@ export default function Dashboard() {
         <section
           style={{
             background: 'var(--sala-warning-bg)',
-            border: '1px solid rgba(200, 148, 31, 0.3)',
+            border: '1px solid var(--sala-warning-glow)',
             borderRadius: '14px',
             padding: '14px 16px',
             marginBottom: '24px'
@@ -670,8 +670,8 @@ function MembresiaCard() {
     : 'var(--sala-text-tertiary)';
   const borderColor = problema
     ? estado === 'vencida' || estado === 'sin_membresia'
-      ? 'rgba(196, 74, 53, 0.4)'
-      : 'rgba(200, 148, 31, 0.4)'
+      ? 'var(--sala-error-glow)'
+      : 'var(--sala-warning-glow)'
     : 'var(--sala-border)';
 
   return (

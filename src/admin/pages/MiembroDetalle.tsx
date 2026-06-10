@@ -283,7 +283,7 @@ export default function MiembroDetalle() {
           marginTop: '24px',
           padding: '20px 24px',
           background: 'var(--sala-error-bg)',
-          border: '1px solid rgba(196, 74, 53, 0.30)',
+          border: '1px solid var(--sala-error-glow)',
           borderRadius: '14px'
         }}
       >

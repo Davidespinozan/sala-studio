@@ -336,7 +336,7 @@ function AvisoLimite({ fuerte, texto }: { fuerte: boolean; texto: string }) {
         padding: '10px 12px',
         borderRadius: '10px',
         background: fuerte ? 'var(--sala-error-bg)' : 'var(--sala-warning-bg)',
-        border: `1px solid ${fuerte ? 'var(--sala-error)' : 'rgba(200, 148, 31, 0.35)'}`
+        border: `1px solid ${fuerte ? 'var(--sala-error)' : 'var(--sala-warning-glow)'}`
       }}
     >
       <p

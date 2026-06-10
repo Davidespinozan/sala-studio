@@ -30,12 +30,12 @@ export default function EstadoMembresiaBanner() {
     variant === 'error'
       ? {
           bg: 'var(--sala-error-bg)',
-          border: 'rgba(196, 74, 53, 0.3)',
+          border: 'var(--sala-error-glow)',
           eye: 'var(--sala-error)'
         }
       : {
           bg: 'var(--sala-warning-bg)',
-          border: 'rgba(200, 148, 31, 0.3)',
+          border: 'var(--sala-warning-glow)',
           eye: 'var(--sala-warning)'
         };
 
