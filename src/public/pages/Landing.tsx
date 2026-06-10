@@ -466,18 +466,28 @@ export default function Landing() {
           </>
         );
 
+        // Estilo del hero con imagen, elegible desde admin:
+        //   'completo'  → full-bleed de borde a borde (rompe el contenedor 1200)
+        //   'contenido' → card con esquinas redondeadas flotando sobre el fondo
+        const fullBleed = hero.layout === 'completo';
         return hasImg ? (
-          <section style={{ padding: '40px 0' }}>
+          <section
+            style={
+              fullBleed
+                ? { padding: 0, width: '100vw', marginLeft: 'calc(50% - 50vw)' }
+                : { padding: '40px 0' }
+            }
+          >
             <div style={{
               position: 'relative',
               overflow: 'hidden',
-              borderRadius: 'var(--ek-r-card)',
-              minHeight: 'clamp(520px, 80vh, 600px)',
+              borderRadius: fullBleed ? 0 : 'var(--ek-r-card)',
+              minHeight: fullBleed ? 'clamp(560px, 92vh, 760px)' : 'clamp(520px, 80vh, 600px)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'flex-end',
-              padding: 'clamp(28px, 5vw, 56px)',
-              boxShadow: '0 24px 60px rgba(10, 15, 12, 0.28)'
+              padding: fullBleed ? 0 : 'clamp(28px, 5vw, 56px)',
+              boxShadow: fullBleed ? 'none' : '0 24px 60px rgba(10, 15, 12, 0.28)'
             }}>
               <picture>
                 <source media="(max-width: 640px)" srcSet={heroMobile} />
@@ -496,7 +506,17 @@ export default function Landing() {
                   background: 'linear-gradient(to top, rgba(10, 15, 12, 0.92) 0%, rgba(10, 15, 12, 0.6) 45%, rgba(10, 15, 12, 0.42) 100%)'
                 }}
               />
-              <div style={{ position: 'relative' }}>{inner}</div>
+              {/* En full-bleed la imagen ocupa 100vw, pero el texto se alinea con
+                  el contenido del resto de la página (maxWidth 1200, centrado). */}
+              <div
+                style={
+                  fullBleed
+                    ? { position: 'relative', width: '100%', maxWidth: '1200px', margin: '0 auto', padding: 'clamp(40px, 6vw, 72px) 24px' }
+                    : { position: 'relative' }
+                }
+              >
+                {inner}
+              </div>
             </div>
           </section>
         ) : (

@@ -1,5 +1,9 @@
 import { useTenant } from '@shared/hooks/useTenant';
 
+/** Estilo del hero CON imagen: 'contenido' = card con esquinas redondeadas
+ *  (flota sobre el fondo); 'completo' = full-bleed de borde a borde. */
+export type LandingHeroLayout = 'contenido' | 'completo';
+
 type LandingHero = {
   eyebrow: string;
   titulo: string;
@@ -11,6 +15,8 @@ type LandingHero = {
   image_url: string;
   /** Imagen de fondo del hero para MÓVIL (3:4 vertical). Cae a la desktop si falta. */
   image_url_mobile: string;
+  /** Estilo del hero con imagen. Default 'contenido'. */
+  layout: LandingHeroLayout;
 };
 
 type LandingCtaFinal = {
@@ -52,7 +58,8 @@ const HERO_DEFAULT: LandingHero = {
   cta_texto: 'Ver membresías',
   cta_link: '#membresias',
   image_url: '',
-  image_url_mobile: ''
+  image_url_mobile: '',
+  layout: 'contenido'
 };
 
 const CTA_FINAL_DEFAULT: LandingCtaFinal = {

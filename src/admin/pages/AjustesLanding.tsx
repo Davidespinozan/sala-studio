@@ -5,6 +5,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import Toggle from '../components/Toggle';
 import ImageUploader from '../components/ImageUploader';
 
+type HeroLayout = 'contenido' | 'completo';
 type HeroDraft = {
   eyebrow: string;
   titulo: string;
@@ -14,7 +15,13 @@ type HeroDraft = {
   cta_link: string;
   image_url: string;
   image_url_mobile: string;
+  layout: HeroLayout;
 };
+
+const HERO_LAYOUT_OPTS: { value: HeroLayout; label: string; hint: string }[] = [
+  { value: 'contenido', label: 'Contenido', hint: 'Card con esquinas redondeadas, flota sobre el fondo' },
+  { value: 'completo', label: 'Completo', hint: 'Imagen full-bleed, de borde a borde' }
+];
 
 type CtaFinalDraft = {
   eyebrow: string;
@@ -67,7 +74,7 @@ type LandingDraft = {
 };
 
 const EMPTY: LandingDraft = {
-  hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta_link: '', image_url: '', image_url_mobile: '' },
+  hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta_link: '', image_url: '', image_url_mobile: '', layout: 'contenido' },
   post_hero: POST_HERO_DEFAULT,
   cta_final: { eyebrow: '', titulo: '', subtitulo: '', cta_texto: '' },
   footer: { tagline: '', copyright: '', direccion: '', email: '' },
@@ -112,7 +119,8 @@ function readLanding(config: Record<string, unknown> | null): LandingDraft {
       cta_texto: String(hero.cta_texto ?? ''),
       cta_link: String(hero.cta_link ?? ''),
       image_url: String(hero.image_url ?? ''),
-      image_url_mobile: String(hero.image_url_mobile ?? '')
+      image_url_mobile: String(hero.image_url_mobile ?? ''),
+      layout: hero.layout === 'completo' ? 'completo' : 'contenido'
     },
     cta_final: {
       eyebrow: String(ctaFinal.eyebrow ?? ''),
@@ -310,6 +318,37 @@ export default function AjustesLanding() {
           cropAspect={3 / 4}
           helperText="Foto vertical para celulares. Recorte 3:4. Si no subís una, en móvil se usa la de desktop."
         />
+        <FormField
+          label="Estilo del hero"
+          helper="Cómo se muestra la imagen del hero. Solo aplica cuando subís una imagen de fondo."
+        >
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {HERO_LAYOUT_OPTS.map((opt) => {
+              const active = draft.hero.layout === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  title={opt.hint}
+                  onClick={() => setDraft({ ...draft, hero: { ...draft.hero, layout: opt.value } })}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '999px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    background: active ? 'var(--grad-primary)' : 'var(--sala-surface)',
+                    color: active ? 'var(--sala-text-on-primary)' : 'var(--sala-text-secondary)',
+                    border: `1px solid ${active ? 'var(--sala-primary)' : 'var(--sala-border)'}`
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </FormField>
         <FormField
           label="Etiqueta superior"
           helper="Texto pequeño que aparece arriba del título principal."
