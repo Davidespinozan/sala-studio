@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState, ReactNode 
 import { supabase } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
+import { getFont, getScaleValue, buildFontsHref } from '@shared/lib/fonts';
 
 type Tenant = Database['public']['Tables']['tenants']['Row'];
 
@@ -67,6 +68,10 @@ export function contrastRatio(hexA: string, hexB: string): number {
 interface BrandingColors {
   color_primary?: string | null;
   color_accent?: string | null;
+  /** Tipografía de marca (claves de shared/lib/fonts) + escala de tamaño. */
+  font_display?: string | null;
+  font_body?: string | null;
+  font_scale?: string | null;
 }
 
 /**
@@ -188,6 +193,48 @@ function applyTenantHead(branding: BrandingColors | null | undefined, nombre: st
 }
 
 /**
+ * Aplica la TIPOGRAFÍA del tenant: pisa --ek-font-display / --ek-font-body con
+ * las fuentes elegidas (curadas, ver shared/lib/fonts), inyecta el <link> de
+ * Google Fonts, y setea --sala-font-scale (escala global de tamaño). Si el
+ * tenant no eligió fuente, se quita el override → vuelve al default del :root.
+ */
+export function applyTypography(branding: BrandingColors | null | undefined): void {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  const b = (branding ?? {}) as Record<string, unknown>;
+  const display = getFont(typeof b.font_display === 'string' ? b.font_display : null);
+  const body = getFont(typeof b.font_body === 'string' ? b.font_body : null);
+  const scale = getScaleValue(typeof b.font_scale === 'string' ? b.font_scale : null);
+
+  if (display) root.style.setProperty('--ek-font-display', display.stack);
+  else root.style.removeProperty('--ek-font-display');
+
+  if (body) {
+    root.style.setProperty('--ek-font-body', body.stack);
+    root.style.setProperty('--ek-font-sans', body.stack);
+  } else {
+    root.style.removeProperty('--ek-font-body');
+    root.style.removeProperty('--ek-font-sans');
+  }
+
+  root.style.setProperty('--sala-font-scale', String(scale));
+
+  const href = buildFontsHref([display?.google, body?.google]);
+  let link = document.getElementById('tenant-fonts') as HTMLLinkElement | null;
+  if (href) {
+    if (!link) {
+      link = document.createElement('link');
+      link.id = 'tenant-fonts';
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    if (link.href !== href) link.href = href;
+  } else if (link) {
+    link.remove();
+  }
+}
+
+/**
  * Revierte el applyBranding — borra los overrides inline para volver al
  * valor declarado en el :root. Usado por AjustesMarca al cancelar el
  * preview en tiempo real (vuelve al estado persistido).
@@ -282,6 +329,7 @@ export function TenantProvider({ children }: TenantProviderProps) {
     // Favicon (= isotipo), apple-touch-icon y meta OG/Twitter desde el branding:
     // el isotipo del tenant aparece en la pestaña, en la PWA y al compartir el link.
     applyTenantHead(data.branding as BrandingColors | null, data.nombre ?? null);
+    applyTypography(data.branding as BrandingColors | null);
   }, []);
 
   const fetchTenant = useCallback(async (): Promise<Tenant> => {

@@ -170,6 +170,9 @@
   --ek-font-body:    'Inter', system-ui, sans-serif;
   --ek-font-sans:    var(--ek-font-body); /* alias compat */
   --ek-font-mono:    'JetBrains Mono', 'Courier New', monospace;
+  /* Escala global de tamaño de letra (la setea applyTypography por tenant).
+     Las clases tipográficas centrales multiplican su tamaño por esto. */
+  --sala-font-scale: 1;
 
   /* Radii */
   --ek-r-pill:  9999px;
@@ -265,7 +268,7 @@ body {
   background-attachment: fixed;
   color: var(--ek-ink);
   font-family: var(--ek-font-body);
-  font-size: 15px;
+  font-size: calc(15px * var(--sala-font-scale));
   line-height: 1.5;
   min-height: 100vh;
   overscroll-behavior-x: none;
@@ -298,7 +301,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .ek-display-xl {
     font-family: var(--ek-font-display);
-    font-size: clamp(28px, 8vw, 40px);
+    font-size: clamp(calc(28px * var(--sala-font-scale)), calc(8vw * var(--sala-font-scale)), calc(40px * var(--sala-font-scale)));
     font-weight: 700;
     letter-spacing: -0.04em;
     line-height: 1.05;
@@ -307,7 +310,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .ek-display-lg {
     font-family: var(--ek-font-display);
-    font-size: 28px;
+    font-size: calc(28px * var(--sala-font-scale));
     font-weight: 700;
     letter-spacing: -0.04em;
     line-height: 1.1;
@@ -316,7 +319,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .ek-display-md {
     font-family: var(--ek-font-display);
-    font-size: 22px;
+    font-size: calc(22px * var(--sala-font-scale));
     font-weight: 600;
     letter-spacing: -0.03em;
     line-height: 1.2;
@@ -325,7 +328,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .ek-display-sm {
     font-family: var(--ek-font-display);
-    font-size: 18px;
+    font-size: calc(18px * var(--sala-font-scale));
     font-weight: 600;
     letter-spacing: -0.03em;
     color: var(--ek-ink);
@@ -333,7 +336,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .ek-h1 {
     font-family: var(--ek-font-display);
-    font-size: 28px;
+    font-size: calc(28px * var(--sala-font-scale));
     font-weight: 700;
     letter-spacing: -0.04em;
     color: var(--ek-ink);
@@ -342,7 +345,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .ek-h2 {
     font-family: var(--ek-font-display);
-    font-size: 22px;
+    font-size: calc(22px * var(--sala-font-scale));
     font-weight: 600;
     letter-spacing: -0.03em;
     color: var(--ek-ink);
@@ -351,7 +354,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .ek-h3 {
     font-family: var(--ek-font-display);
-    font-size: 18px;
+    font-size: calc(18px * var(--sala-font-scale));
     font-weight: 600;
     letter-spacing: -0.03em;
     color: var(--ek-ink);
@@ -360,7 +363,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .ek-eyebrow {
     font-family: var(--ek-font-body);
-    font-size: 11px;
+    font-size: calc(11px * var(--sala-font-scale));
     font-weight: 700;
     letter-spacing: 0.22em;
     text-transform: uppercase;
@@ -373,16 +376,16 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .ek-kpi {
     font-family: var(--ek-font-display);
-    font-size: 36px;
+    font-size: calc(36px * var(--sala-font-scale));
     font-weight: 700;
     letter-spacing: -0.05em;
     line-height: 1;
     color: var(--ek-ink);
   }
 
-  .ek-body { color: var(--ek-ink); font-size: 15px; }
-  .ek-body-muted { color: var(--ek-ink-muted); font-size: 14px; }
-  .ek-body-faint { color: var(--ek-ink-faint); font-size: 13px; }
+  .ek-body { color: var(--ek-ink); font-size: calc(15px * var(--sala-font-scale)); }
+  .ek-body-muted { color: var(--ek-ink-muted); font-size: calc(14px * var(--sala-font-scale)); }
+  .ek-body-faint { color: var(--ek-ink-faint); font-size: calc(13px * var(--sala-font-scale)); }
 
   /* ============================================================================
      LAYOUT

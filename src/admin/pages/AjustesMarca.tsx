@@ -5,10 +5,12 @@ import { useTenant, useTenantRefetch } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import {
   applyBranding,
+  applyTypography,
   contrastRatio,
   pickTextOn,
   relativeLuminance
 } from '@shared/providers/TenantProvider';
+import { FONT_OPTIONS, FONT_SCALES } from '@shared/lib/fonts';
 import ImageUploader from '../components/ImageUploader';
 
 const SALA_DEFAULT_PRIMARY = '#3D6B52';
@@ -21,6 +23,9 @@ type BrandingDraft = {
   favicon_url: string | null;
   color_primary: string;
   color_accent: string;
+  font_display: string;
+  font_body: string;
+  font_scale: string;
 };
 
 const EMPTY: BrandingDraft = {
@@ -29,7 +34,10 @@ const EMPTY: BrandingDraft = {
   og_image_url: null,
   favicon_url: null,
   color_primary: SALA_DEFAULT_PRIMARY,
-  color_accent: SALA_DEFAULT_ACCENT
+  color_accent: SALA_DEFAULT_ACCENT,
+  font_display: '',
+  font_body: '',
+  font_scale: 'normal'
 };
 
 function readBranding(branding: unknown): BrandingDraft {
@@ -45,7 +53,10 @@ function readBranding(branding: unknown): BrandingDraft {
     og_image_url: typeof b.og_image_url === 'string' ? b.og_image_url : null,
     favicon_url: typeof b.favicon_url === 'string' ? b.favicon_url : null,
     color_primary: typeof b.color_primary === 'string' ? b.color_primary : SALA_DEFAULT_PRIMARY,
-    color_accent:  typeof b.color_accent  === 'string' ? b.color_accent  : SALA_DEFAULT_ACCENT
+    color_accent:  typeof b.color_accent  === 'string' ? b.color_accent  : SALA_DEFAULT_ACCENT,
+    font_display: typeof b.font_display === 'string' ? b.font_display : '',
+    font_body:    typeof b.font_body    === 'string' ? b.font_body    : '',
+    font_scale:   typeof b.font_scale   === 'string' ? b.font_scale   : 'normal'
   };
 }
 
@@ -110,6 +121,15 @@ export default function AjustesMarca() {
     });
   }, [draft.color_primary, draft.color_accent]);
 
+  // Preview en tiempo real de la TIPOGRAFÍA (fuente display/body + escala).
+  useEffect(() => {
+    applyTypography({
+      font_display: draft.font_display,
+      font_body: draft.font_body,
+      font_scale: draft.font_scale
+    });
+  }, [draft.font_display, draft.font_body, draft.font_scale]);
+
   // Cleanup — si el admin sale de la pantalla SIN guardar, restaurar al
   // estado persistido para que el preview no quede pegado.
   useEffect(() => {
@@ -118,8 +138,13 @@ export default function AjustesMarca() {
         color_primary: persisted.color_primary,
         color_accent: persisted.color_accent
       });
+      applyTypography({
+        font_display: persisted.font_display,
+        font_body: persisted.font_body,
+        font_scale: persisted.font_scale
+      });
     };
-  }, [persisted.color_primary, persisted.color_accent]);
+  }, [persisted.color_primary, persisted.color_accent, persisted.font_display, persisted.font_body, persisted.font_scale]);
 
   const dirty = JSON.stringify(draft) !== originalJson;
 
@@ -244,6 +269,20 @@ export default function AjustesMarca() {
             if (isValidHex(c)) setDraft({ ...draft, color_accent: c });
           }}
           onReset={resetColorsToSALA}
+        />
+      </Section>
+
+      <Section
+        title="TIPOGRAFÍA"
+        description="Elegí las fuentes de tu marca y el tamaño general del texto. Aplica a toda la app y se previsualiza en tiempo real."
+      >
+        <TipografiaEditor
+          fontDisplay={draft.font_display}
+          fontBody={draft.font_body}
+          fontScale={draft.font_scale}
+          onDisplayChange={(v) => setDraft({ ...draft, font_display: v })}
+          onBodyChange={(v) => setDraft({ ...draft, font_body: v })}
+          onScaleChange={(v) => setDraft({ ...draft, font_scale: v })}
         />
       </Section>
 
@@ -631,6 +670,88 @@ function RealButtonPreview({ primary, accent }: { primary: string; accent: strin
         >
           Texto sobre accent-darkest ({accent.toUpperCase()})
         </div>
+      </div>
+    </div>
+  );
+}
+
+function TipografiaEditor({
+  fontDisplay,
+  fontBody,
+  fontScale,
+  onDisplayChange,
+  onBodyChange,
+  onScaleChange
+}: {
+  fontDisplay: string;
+  fontBody: string;
+  fontScale: string;
+  onDisplayChange: (v: string) => void;
+  onBodyChange: (v: string) => void;
+  onScaleChange: (v: string) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+        <label className="ek-form-field">
+          <span className="ek-label">Fuente de títulos</span>
+          <select className="ek-input" value={fontDisplay} onChange={(e) => onDisplayChange(e.target.value)}>
+            <option value="">Por defecto (Space Grotesk)</option>
+            {FONT_OPTIONS.map((f) => (
+              <option key={f.key} value={f.key}>{f.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="ek-form-field">
+          <span className="ek-label">Fuente de texto</span>
+          <select className="ek-input" value={fontBody} onChange={(e) => onBodyChange(e.target.value)}>
+            <option value="">Por defecto (Inter)</option>
+            {FONT_OPTIONS.map((f) => (
+              <option key={f.key} value={f.key}>{f.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div>
+        <span className="ek-label" style={{ display: 'block', marginBottom: '8px' }}>Tamaño del texto</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {FONT_SCALES.map((s) => {
+            const active = (fontScale || 'normal') === s.key;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => onScaleChange(s.key)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '999px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  background: active ? 'var(--grad-primary)' : 'var(--sala-surface)',
+                  color: active ? 'var(--sala-text-on-primary)' : 'var(--sala-text-secondary)',
+                  border: `1px solid ${active ? 'var(--sala-primary)' : 'var(--sala-border)'}`
+                }}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Vista previa en vivo: usa --ek-font-display/-body y --sala-font-scale,
+          que applyTypography ya actualizó al cambiar el draft. */}
+      <div className="ek-card" style={{ padding: '20px', background: 'var(--sala-surface)' }}>
+        <p className="ek-eyebrow" style={{ marginBottom: '10px' }}>VISTA PREVIA</p>
+        <p style={{ fontFamily: 'var(--ek-font-display)', fontSize: 'calc(28px * var(--sala-font-scale))', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.1, margin: '0 0 8px', color: 'var(--sala-text-primary)' }}>
+          Tu marca, tu estilo.
+        </p>
+        <p style={{ fontFamily: 'var(--ek-font-body)', fontSize: 'calc(15px * var(--sala-font-scale))', lineHeight: 1.5, margin: 0, color: 'var(--sala-text-secondary)' }}>
+          Así se verá el texto en toda la app: títulos, botones, tarjetas y descripciones como esta.
+        </p>
       </div>
     </div>
   );
