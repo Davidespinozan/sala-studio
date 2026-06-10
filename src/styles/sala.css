@@ -2187,10 +2187,20 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
    (--sala-*-dim, etc.) recalculan solos dentro de este subárbol.
    ============================================================================ */
 .sala-brand {
-  --sala-warning:    #C8941F;
-  --sala-warning-bg: #FAF2DC;
-  --sala-error:      #C44A35;
-  --sala-error-bg:   #FCE5DF;
+  /* Paleta OFICIAL de SALA, fija — independiente del tenant que applyBranding
+     haya cargado en el :root (en marketing/localhost se carga sala-demo). Todos
+     los derivados (light/soft/dim/glow/active/gradientes/bg) recalculan solos
+     dentro de este subárbol porque son color-mix/var de estas bases. */
+  --sala-primary:      #3D6B52;
+  --sala-primary-text: #FFFFFF;
+  --sala-primary-tint: #000000;
+  --sala-accent:       #3D6B52;
+  --sala-accent-text:  #FFFFFF;
+  --sala-accent-tint:  #000000;
+  --sala-warning:      #C8941F;
+  --sala-warning-bg:   #FAF2DC;
+  --sala-error:        #C44A35;
+  --sala-error-bg:     #FCE5DF;
 }
 
 /* ============================================================================
