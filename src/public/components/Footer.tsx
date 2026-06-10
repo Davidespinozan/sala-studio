@@ -68,10 +68,11 @@ export default function Footer() {
   return (
     <footer
       style={{
-        /* Banda full-bleed con tinte de marca (primario). Rompe el contenedor
-           1200 para ir de borde a borde; el contenido se re-centra adentro. */
-        background: 'var(--sala-primary-light)',
-        borderTop: '1px solid var(--sala-primary-soft)',
+        /* Banda full-bleed con el color principal (inmersivo). Rompe el
+           contenedor 1200 para ir de borde a borde; el contenido se re-centra
+           adentro y va en texto claro. */
+        background: 'var(--grad-immersive)',
+        borderTop: '1px solid rgba(255, 255, 255, 0.12)',
         marginTop: '48px',
         paddingTop: '40px',
         paddingBottom: '40px',
@@ -104,12 +105,12 @@ export default function Footer() {
                   fontSize: '20px',
                   fontWeight: 700,
                   letterSpacing: '-0.04em',
-                  color: 'var(--ek-mustard)'
+                  color: 'rgba(255, 255, 255, 0.96)'
                 }}
               >
                 {brandShort}
               </span>
-              {footer.tagline && <span className="ek-eyebrow">{footer.tagline}</span>}
+              {footer.tagline && <span className="ek-eyebrow" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{footer.tagline}</span>}
             </div>
           )}
           {redesActivas.length > 0 && (
@@ -122,23 +123,23 @@ export default function Footer() {
                   rel="noopener noreferrer"
                   aria-label={label}
                   style={{
-                    color: 'var(--ek-ink-muted)',
+                    color: 'rgba(255, 255, 255, 0.7)',
                     display: 'inline-flex',
                     width: '36px',
                     height: '36px',
                     alignItems: 'center',
                     justifyContent: 'center',
                     borderRadius: '50%',
-                    border: '0.5px solid var(--ek-line)',
+                    border: '0.5px solid rgba(255, 255, 255, 0.25)',
                     transition: 'color 0.18s ease, border-color 0.18s ease'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'var(--ek-mustard)';
-                    e.currentTarget.style.borderColor = 'var(--ek-mustard-dim)';
+                    e.currentTarget.style.color = 'rgba(255, 255, 255, 0.98)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--ek-ink-muted)';
-                    e.currentTarget.style.borderColor = 'var(--ek-line)';
+                    e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                   }}
                 >
                   <Icon />
@@ -151,14 +152,14 @@ export default function Footer() {
         {/* Contacto */}
         {hayContacto && (
           <div>
-            <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>CONTACTO</p>
+            <p className="ek-eyebrow" style={{ marginBottom: '12px', color: 'rgba(255, 255, 255, 0.55)' }}>CONTACTO</p>
             {footer.email && (
               <a
                 href={`mailto:${footer.email}`}
                 style={{
                   display: 'block',
                   fontSize: '13px',
-                  color: 'var(--ek-ink-muted)',
+                  color: 'rgba(255, 255, 255, 0.75)',
                   textDecoration: 'none',
                   marginBottom: '6px'
                 }}
@@ -170,7 +171,7 @@ export default function Footer() {
               <p
                 style={{
                   fontSize: '13px',
-                  color: 'var(--ek-ink-muted)',
+                  color: 'rgba(255, 255, 255, 0.75)',
                   margin: 0,
                   lineHeight: 1.5
                 }}
@@ -183,17 +184,17 @@ export default function Footer() {
 
         {/* Navegación */}
         <div>
-          <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>NAVEGACIÓN</p>
+          <p className="ek-eyebrow" style={{ marginBottom: '12px', color: 'rgba(255, 255, 255, 0.55)' }}>NAVEGACIÓN</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <a
               href="/login"
-              style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', textDecoration: 'none' }}
+              style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.75)', textDecoration: 'none' }}
             >
               Iniciar sesión
             </a>
             <a
               href="#contacto"
-              style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', textDecoration: 'none' }}
+              style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.75)', textDecoration: 'none' }}
             >
               Contacto
             </a>
@@ -214,14 +215,14 @@ export default function Footer() {
         <p
           style={{
             fontSize: '11px',
-            color: 'var(--ek-ink-faint)',
+            color: 'rgba(255, 255, 255, 0.5)',
             margin: 0,
             letterSpacing: '0.04em'
           }}
         >
           © {new Date().getFullYear()} {tenant.nombre || 'SALA Studio'}. {footer.copyright}
         </p>
-        <PoweredBySala align="left" />
+        <PoweredBySala align="left" tone="dark" />
       </div>
       </div>
     </footer>

@@ -22,8 +22,8 @@ export default function PublicLayout() {
       <header
         style={{
           padding: '1rem 1.25rem',
-          background: 'var(--sala-primary-light)',
-          borderBottom: '1px solid var(--sala-primary-soft)',
+          background: 'var(--grad-immersive)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
@@ -40,7 +40,7 @@ export default function PublicLayout() {
               </Link>
               <button
                 onClick={signOut}
-                style={{ fontSize: '0.875rem', color: 'var(--ek-ink-muted)' }}
+                style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.8)' }}
               >
                 Salir
               </button>
