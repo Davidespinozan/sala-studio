@@ -130,7 +130,7 @@ function Header() {
         borderBottom: '1px solid var(--sala-border)'
       }}
     >
-      <SalaLogo variant="completo" height={34} showStudio />
+      <SalaLogo variant="completo" height={44} showStudio />
       <nav style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
         <Link
           to="/login"
@@ -637,7 +637,7 @@ function Footer() {
         gap: '16px'
       }}
     >
-      <SalaLogo variant="completo" height={28} showStudio />
+      <SalaLogo variant="completo" height={36} showStudio />
       <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: 0 }}>
         © 2026 SALA Studio · Plataforma para estudios y gimnasios
       </p>

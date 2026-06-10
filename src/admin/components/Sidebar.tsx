@@ -328,7 +328,7 @@ export function Sidebar({ onNavigate }: Props = {}) {
   return (
     <aside className="adm-sidebar">
       <div className="adm-sidebar-brand">
-        <TenantLogo variant="completo" height={47} fallbackFontSize={26} showSuffix={true} />
+        <TenantLogo variant="completo" height={60} fallbackFontSize={32} showSuffix={true} />
         <span
           className="ek-badge"
           style={{

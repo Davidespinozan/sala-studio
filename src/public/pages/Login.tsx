@@ -46,7 +46,7 @@ export default function Login() {
     }}>
       <div style={{ maxWidth: '400px', width: '100%' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px' }}>
-          <TenantLogo variant="isotipo" height={104} />
+          <TenantLogo variant="isotipo" height={132} />
         </div>
 
         <div
