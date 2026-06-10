@@ -76,7 +76,9 @@ export function applyBranding(branding: BrandingColors | null | undefined): void
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
   const primary = (branding?.color_primary as string | undefined) || '#3D6B52';
-  const accent = (branding?.color_accent as string | undefined) || '#E8654A';
+  // Sin accent explícito → acento = primary (paleta monocromática). Un tenant
+  // puede setear su propio color_accent para volver a un esquema de 2 colores.
+  const accent = (branding?.color_accent as string | undefined) || primary;
 
   if (!hexToRgb(primary) || !hexToRgb(accent)) {
     // Datos inválidos en DB — preserva defaults del :root.
@@ -120,10 +122,32 @@ const TenantContext = createContext<TenantContextValue>({
  *
  * Para SaaS multi-tenant en producción, el subdominio decide.
  */
+/**
+ * Hosts de MARKETING (producto SALA), no de un tenant. En la raíz se muestra
+ * la landing de SALA (/para-gimnasios → onboarding), no la página de un gym.
+ * Extendé esta lista si agregás otro dominio raíz.
+ */
+const MARKETING_HOSTS = new Set([
+  'salastudio.app',
+  'www.salastudio.app'
+]);
+
+/** true si estamos en el dominio raíz de SALA (no en un subdominio de tenant). */
+export function isMarketingRoot(): boolean {
+  if (typeof window === 'undefined') return false;
+  return MARKETING_HOSTS.has(window.location.hostname);
+}
+
 function resolveTenantSlug(): string {
   if (typeof window === 'undefined') return 'sala-demo';
 
   const host = window.location.hostname;
+
+  // Dominio raíz de marketing → carga sala-demo (provee la marca SALA para la
+  // landing de producto; el routing decide mostrar SalaLanding en "/").
+  if (MARKETING_HOSTS.has(host)) {
+    return 'sala-demo';
+  }
 
   // localhost / 127.0.0.1 / preview deploys → default sala-demo
   if (host === 'localhost' || host.startsWith('127.') || host.endsWith('.netlify.app')) {

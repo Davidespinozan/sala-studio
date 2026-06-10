@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Check, Star } from 'lucide-react';
+import { ArrowRight, Check, Dumbbell, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { useLandingConfig } from '@shared/hooks/useLandingConfig';
@@ -131,9 +131,9 @@ function useInstructoresPublicos() {
   return { instructores, isLoading };
 }
 
-/** Card horizontal compacta de instructor para la landing pública. */
+/** Tile retrato compacto de instructor: la foto domina, nombre + especialidad
+ *  sobre un scrim. Moderno y de poco espacio. */
 function InstructorLandingCard({ instructor }: { instructor: InstructorPublico }) {
-  const bio = instructor.bio?.trim() ?? '';
   const inicial =
     instructor.nombre
       .split(/\s+/)
@@ -144,105 +144,85 @@ function InstructorLandingCard({ instructor }: { instructor: InstructorPublico }
 
   return (
     <div
-      className="ek-card"
+      className="ek-lift"
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
-        padding: '18px',
-        border: '0.5px solid var(--ek-line)',
-        background: 'var(--ek-bg-soft)'
+        position: 'relative',
+        aspectRatio: '3 / 4',
+        borderRadius: 'var(--ek-r-md)',
+        overflow: 'hidden',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        background: 'linear-gradient(160deg, var(--sala-primary-darkest) 0%, var(--sala-neutral-dark) 100%)',
+        boxShadow: '0 8px 22px rgba(10, 15, 12, 0.18)'
       }}
     >
       {instructor.foto_url ? (
         <img
           src={instructor.foto_url}
           alt={instructor.nombre}
-          style={{
-            width: '72px',
-            height: '72px',
-            borderRadius: '50%',
-            objectFit: 'cover',
-            flexShrink: 0
-          }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         />
       ) : (
         <div
           aria-hidden="true"
           style={{
-            width: '72px',
-            height: '72px',
-            borderRadius: '50%',
-            background: 'var(--ek-mustard-soft)',
-            color: 'var(--ek-mustard)',
+            position: 'absolute',
+            inset: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontFamily: 'var(--ek-font-display)',
-            fontSize: '24px',
+            fontSize: 'clamp(36px, 8vw, 52px)',
             fontWeight: 700,
-            flexShrink: 0
+            letterSpacing: '-0.03em',
+            color: 'rgba(255, 255, 255, 0.9)',
+            opacity: 0.85
           }}
         >
           {inicial}
         </div>
       )}
 
-      <div style={{ flex: 1, minWidth: 0 }}>
+      {/* Scrim inferior para legibilidad del texto */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'linear-gradient(to top, rgba(10, 15, 12, 0.88) 0%, rgba(10, 15, 12, 0.15) 42%, transparent 68%)',
+          pointerEvents: 'none'
+        }}
+      />
+
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px' }}>
         <h3
           style={{
             fontFamily: 'var(--ek-font-display)',
-            fontSize: '18px',
-            fontWeight: 600,
+            fontSize: '16px',
+            fontWeight: 700,
             letterSpacing: '-0.02em',
+            lineHeight: 1.15,
             margin: 0,
-            color: 'var(--ek-ink)'
+            color: 'rgba(255, 255, 255, 0.97)'
           }}
         >
           {instructor.nombre}
         </h3>
-
         {instructor.especialidades.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '6px',
-              marginTop: '6px'
-            }}
-          >
-            {instructor.especialidades.map((e) => (
-              <span
-                key={e}
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: 'var(--ek-mustard)',
-                  background: 'var(--ek-mustard-soft)',
-                  padding: '2px 8px',
-                  borderRadius: '999px'
-                }}
-              >
-                {e}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {bio && (
           <p
             style={{
-              fontSize: '13px',
-              color: 'var(--ek-ink-muted)',
-              margin: '8px 0 0',
-              lineHeight: 1.5,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden'
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'rgba(255, 255, 255, 0.9)',
+              margin: '5px 0 0',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
             }}
           >
-            {bio}
+            {instructor.especialidades.join(' · ')}
           </p>
         )}
       </div>
@@ -325,7 +305,7 @@ export default function Landing() {
           right: '-200px',
           width: '500px',
           height: '500px',
-          background: 'radial-gradient(circle, rgba(61, 107, 82, 0.12), transparent 70%)',
+          background: 'radial-gradient(circle, var(--sala-primary-soft), transparent 70%)',
           borderRadius: '50%',
           pointerEvents: 'none'
         }} />
@@ -488,26 +468,31 @@ export default function Landing() {
                   overflow: 'hidden',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  border: '0.5px solid var(--ek-line)',
-                  background: 'var(--ek-bg-soft)',
-                  color: 'var(--ek-ink)',
-                  transition: 'transform 0.2s ease, border-color 0.2s ease',
+                  borderRadius: 'var(--ek-r-card)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: 'linear-gradient(160deg, var(--sala-primary-darkest) 0%, var(--sala-neutral-dark) 100%)',
+                  color: 'rgba(255, 255, 255, 0.96)',
+                  boxShadow: '0 10px 28px rgba(10, 15, 12, 0.22)',
+                  transition: 'transform 0.2s ease, filter 0.2s ease',
                   font: 'inherit'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.borderColor = 'var(--ek-mustard-dim)';
+                  e.currentTarget.style.filter = 'brightness(1.08)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.borderColor = 'var(--ek-line)';
+                  e.currentTarget.style.filter = 'brightness(1)';
                 }}
               >
                 <div style={{
-                  background: 'linear-gradient(135deg, var(--ek-bg-elevated) 0%, var(--ek-bg) 100%)',
                   aspectRatio: '16 / 10',
                   position: 'relative',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: s.fotoUrl ? 'transparent' : 'rgba(255, 255, 255, 0.04)'
                 }}>
                   {s.fotoUrl ? (
                     <img
@@ -516,24 +501,37 @@ export default function Landing() {
                       style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     />
                   ) : (
-                    <div style={{
-                      width: '100%',
-                      height: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <span style={{
-                        fontSize: '10px',
-                        color: 'var(--ek-ink-faint)',
-                        letterSpacing: '0.2em',
-                        fontWeight: 600
-                      }}>FOTO PRÓXIMAMENTE</span>
-                    </div>
+                    <Dumbbell size={48} strokeWidth={1.25} style={{ color: 'rgba(255, 255, 255, 0.9)', opacity: 0.6 }} />
                   )}
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'linear-gradient(to top, rgba(10, 15, 12, 0.55) 0%, transparent 55%)',
+                      pointerEvents: 'none'
+                    }}
+                  />
                   <span
-                    className={s.tier === 'pro' ? 'ek-badge ek-badge--outline' : 'ek-badge'}
-                    style={{ position: 'absolute', top: '14px', left: '14px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    style={{
+                      position: 'absolute',
+                      top: '14px',
+                      left: '14px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '5px 11px',
+                      borderRadius: '999px',
+                      background: 'rgba(10, 15, 12, 0.55)',
+                      backdropFilter: 'blur(6px)',
+                      WebkitBackdropFilter: 'blur(6px)',
+                      border: '1px solid rgba(255, 255, 255, 0.14)',
+                      color: s.tier === 'pro' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase'
+                    }}
                   >
                     {s.tier === 'pro' ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> PRO</> : 'BÁSICA'}
                   </span>
@@ -544,28 +542,29 @@ export default function Landing() {
                     fontSize: '24px',
                     fontWeight: 700,
                     margin: 0,
-                    marginBottom: '6px'
+                    marginBottom: '6px',
+                    color: 'rgba(255, 255, 255, 0.96)'
                   }}>{s.nombre}</h3>
                   <p style={{
                     fontSize: '13px',
-                    color: 'var(--ek-ink-muted)',
+                    color: 'rgba(255, 255, 255, 0.6)',
                     margin: 0,
                     marginBottom: '6px'
                   }}>{s.capacidad}</p>
                   <p style={{
                     fontSize: '12px',
-                    color: 'var(--ek-mustard)',
+                    color: 'rgba(255, 255, 255, 0.9)',
                     margin: 0,
                     marginBottom: '12px',
                     fontWeight: 600
                   }}>{s.contenido.join(' · ')}</p>
                   <p style={{
                     fontSize: '11px',
-                    color: 'var(--ek-ink-faint)',
+                    color: 'rgba(255, 255, 255, 0.9)',
                     margin: 0,
                     letterSpacing: '0.08em',
                     textTransform: 'uppercase',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px'
@@ -603,8 +602,8 @@ export default function Landing() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))',
-            gap: '16px'
+            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+            gap: '14px'
           }}>
             {instructores.map((i) => (
               <InstructorLandingCard key={i.id} instructor={i} />
@@ -657,14 +656,17 @@ export default function Landing() {
                   style={{
                     padding: '32px',
                     position: 'relative',
-                    ...(esPro && {
-                      borderColor: 'var(--sala-primary)',
-                      borderWidth: '2px',
-                      background: 'linear-gradient(180deg, var(--sala-primary-light) 0%, var(--sala-surface) 60%)',
-                      boxShadow:
-                        '0 0 0 1px var(--sala-primary), 0 20px 40px rgba(61, 107, 82, 0.18)',
-                      transform: 'translateY(-4px)'
-                    })
+                    display: 'flex',
+                    flexDirection: 'column',
+                    ...(esPro
+                      ? {
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          background:
+                            'linear-gradient(160deg, var(--sala-primary-darkest) 0%, var(--sala-neutral-dark) 100%)',
+                          boxShadow: '0 20px 44px var(--sala-primary-dim)',
+                          transform: 'translateY(-4px)'
+                        }
+                      : {})
                   }}
                 >
                   {esPro && (
@@ -673,15 +675,15 @@ export default function Landing() {
                         position: 'absolute',
                         top: '-12px',
                         left: '32px',
-                        background: 'var(--sala-primary)',
-                        color: 'var(--sala-text-on-primary)',
+                        background: 'rgba(10, 15, 12, 0.92)',
+                        border: '1px solid rgba(255, 255, 255, 0.16)',
+                        color: 'rgba(255, 255, 255, 0.9)',
                         fontSize: '10px',
-                        fontWeight: 700,
-                        letterSpacing: '0.18em',
+                        fontWeight: 800,
+                        letterSpacing: '0.12em',
                         textTransform: 'uppercase',
                         padding: '6px 14px',
                         borderRadius: '999px',
-                        boxShadow: '0 4px 12px rgba(61, 107, 82, 0.32)',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '5px'
@@ -692,8 +694,14 @@ export default function Landing() {
                     </span>
                   )}
                   <p
-                    className={esPro ? 'ek-eyebrow ek-eyebrow--mustard' : 'ek-eyebrow'}
-                    style={{ marginBottom: '12px' }}
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      letterSpacing: '0.16em',
+                      textTransform: 'uppercase',
+                      margin: '0 0 12px',
+                      color: esPro ? 'rgba(255, 255, 255, 0.9)' : 'var(--sala-primary)'
+                    }}
                   >
                     {esPro ? 'PLAN PRO' : tier.nombre.toUpperCase()}
                   </p>
@@ -703,14 +711,21 @@ export default function Landing() {
                     fontWeight: 700,
                     margin: 0,
                     letterSpacing: '-0.03em',
-                    lineHeight: 1
+                    lineHeight: 1,
+                    color: esPro ? 'rgba(255, 255, 255, 0.97)' : 'var(--sala-text-primary)'
                   }}>
                     {formatearPesos(tier.precio_centavos)}
-                    <span style={{ fontSize: '16px', color: 'var(--ek-ink-muted)', fontWeight: 500 }}>
+                    <span style={{ fontSize: '16px', color: esPro ? 'rgba(255, 255, 255, 0.5)' : 'var(--sala-text-tertiary)', fontWeight: 500 }}>
                       /mes
                     </span>
                   </p>
-                  <p className="ek-body-muted" style={{ marginTop: '8px', marginBottom: '24px' }}>
+                  <p style={{
+                    fontSize: '14px',
+                    lineHeight: 1.5,
+                    marginTop: '8px',
+                    marginBottom: '24px',
+                    color: esPro ? 'rgba(255, 255, 255, 0.62)' : 'var(--sala-text-secondary)'
+                  }}>
                     {tier.descripcion ??
                       (esPro
                         ? 'Para los que entrenan en serio. Acceso completo.'
@@ -723,7 +738,8 @@ export default function Landing() {
                       margin: 0,
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '10px'
+                      gap: '10px',
+                      flex: 1
                     }}
                   >
                     {beneficios.map((b) => (
@@ -733,10 +749,11 @@ export default function Landing() {
                           display: 'flex',
                           alignItems: 'flex-start',
                           gap: '8px',
-                          fontSize: '14px'
+                          fontSize: '14px',
+                          color: esPro ? 'rgba(255, 255, 255, 0.85)' : 'var(--sala-text-primary)'
                         }}
                       >
-                        <Check size={16} strokeWidth={2.5} style={{ color: 'var(--ek-mustard)', flexShrink: 0, marginTop: '1px' }} />
+                        <Check size={16} strokeWidth={2.5} style={{ color: esPro ? 'rgba(255, 255, 255, 0.9)' : 'var(--sala-primary)', flexShrink: 0, marginTop: '1px' }} />
                         {b}
                       </li>
                     ))}
@@ -744,7 +761,7 @@ export default function Landing() {
                   <Link
                     to={`/signup?tier=${tier.slug}`}
                     className={
-                      esPro ? 'ek-cta ek-cta--full' : 'ek-cta ek-cta--secondary ek-cta--full'
+                      esPro ? 'ek-cta ek-lift ek-cta--full' : 'ek-cta ek-cta--secondary ek-lift ek-cta--full'
                     }
                     style={{ marginTop: '28px' }}
                   >
@@ -845,7 +862,7 @@ export default function Landing() {
             right: '-100px',
             width: '300px',
             height: '300px',
-            background: 'radial-gradient(circle, rgba(61, 107, 82, 0.1), transparent 70%)',
+            background: 'radial-gradient(circle, var(--sala-primary-soft), transparent 70%)',
             borderRadius: '50%',
             pointerEvents: 'none'
           }} />

@@ -12,7 +12,7 @@ import {
 import ImageUploader from '../components/ImageUploader';
 
 const SALA_DEFAULT_PRIMARY = '#3D6B52';
-const SALA_DEFAULT_ACCENT  = '#E8654A';
+const SALA_DEFAULT_ACCENT  = '#3D6B52';
 
 type BrandingDraft = {
   logo_url_dark: string | null;
@@ -195,6 +195,8 @@ export default function AjustesMarca() {
           onUploaded={(url) => setDraft({ ...draft, logo_url_dark: url || null })}
           label=""
           allowSvg
+          fallbackPreviewUrl="/logo-sala.png"
+          previewFit="contain"
           helperText="Preferí SVG: se ve nítido en cualquier pantalla. PNG/WEBP también (mínimo 1024px de ancho para no pixelarse en móviles retina). Máx 2MB."
         />
         {!draft.logo_url_dark && (
@@ -215,6 +217,8 @@ export default function AjustesMarca() {
           onUploaded={(url) => setDraft({ ...draft, isotipo_url: url || null })}
           label=""
           allowSvg
+          fallbackPreviewUrl="/isotipo-sala.png"
+          previewFit="contain"
           helperText="Símbolo cuadrado (sin texto). Preferí SVG; si es PNG, fondo transparente y 512×512 mínimo. Aparece en el login y espacios chicos."
         />
         {!draft.isotipo_url && (

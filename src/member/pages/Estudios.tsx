@@ -91,7 +91,7 @@ export default function Estudios() {
                     }}
                   />
                 ) : (
-                  <Dumbbell size={48} strokeWidth={1.25} style={{ color: 'var(--sala-warning)', opacity: 0.6 }} />
+                  <Dumbbell size={48} strokeWidth={1.25} style={{ color: 'rgba(255, 255, 255, 0.9)', opacity: 0.6 }} />
                 )}
 
                 {/* Scrim inferior para profundidad y legibilidad del badge */}
@@ -119,7 +119,7 @@ export default function Estudios() {
                     backdropFilter: 'blur(6px)',
                     WebkitBackdropFilter: 'blur(6px)',
                     border: '1px solid rgba(255, 255, 255, 0.14)',
-                    color: esPro ? 'var(--sala-warning)' : 'rgba(255, 255, 255, 0.9)',
+                    color: esPro ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.9)',
                     fontSize: '10px',
                     fontWeight: 800,
                     letterSpacing: '0.08em',
@@ -184,7 +184,7 @@ export default function Estudios() {
                       ? `Hasta ${r.capacidad_personas} personas`
                       : 'Capacidad por confirmar'}
                   </span>
-                  <span style={{ color: 'var(--sala-warning)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.9)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     Ver detalle
                     <ArrowRight size={14} strokeWidth={2.25} />
                   </span>

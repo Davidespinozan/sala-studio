@@ -35,7 +35,9 @@ export function PoweredBySala({ align = 'center', tone = 'light' }: Props = {}) 
   const isDark = tone === 'dark';
 
   return (
-    <div
+    <a
+      href="/para-gimnasios"
+      title="Conocé SALA — creá tu propio gym"
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -45,7 +47,7 @@ export function PoweredBySala({ align = 'center', tone = 'light' }: Props = {}) 
         fontSize: '11px',
         color: isDark ? 'rgba(255, 255, 255, 0.60)' : 'var(--sala-text-tertiary)',
         letterSpacing: '0.02em',
-        userSelect: 'none'
+        textDecoration: 'none'
       }}
     >
       <span style={{ opacity: isDark ? 0.45 : 0.55, display: 'inline-flex' }}>
@@ -54,6 +56,6 @@ export function PoweredBySala({ align = 'center', tone = 'light' }: Props = {}) 
       <span>
         Powered by <strong style={{ fontWeight: 600 }}>SALA</strong>
       </span>
-    </div>
+    </a>
   );
 }

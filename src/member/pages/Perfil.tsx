@@ -334,7 +334,7 @@ function PlanHero({
                 borderRadius: '999px',
                 background: 'rgba(255, 255, 255, 0.08)',
                 border: '1px solid rgba(255, 255, 255, 0.14)',
-                color: 'var(--sala-warning)',
+                color: 'rgba(255, 255, 255, 0.92)',
                 fontSize: '11px',
                 fontWeight: 800,
                 letterSpacing: '0.1em',
@@ -357,7 +357,7 @@ function PlanHero({
               {esCreditos ? (
                 <>
                   Te quedan{' '}
-                  <strong style={{ color: 'var(--sala-warning)', fontWeight: 800 }}>
+                  <strong style={{ color: 'rgba(255, 255, 255, 0.97)', fontWeight: 800 }}>
                     {membresia.creditos_restantes ?? 0}{' '}
                     {(membresia.creditos_restantes ?? 0) === 1 ? 'clase' : 'clases'}
                   </strong>
@@ -366,7 +366,7 @@ function PlanHero({
               ) : membresia.periodo_actual_fin ? (
                 <>
                   {estado === 'vencida' ? 'Tu plan venció el ' : 'Tu plan se renueva el '}
-                  <strong style={{ color: 'var(--sala-warning)', fontWeight: 800 }}>
+                  <strong style={{ color: 'rgba(255, 255, 255, 0.97)', fontWeight: 800 }}>
                     {formatearFechaCorta(membresia.periodo_actual_fin)}
                   </strong>
                   .
@@ -695,7 +695,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
           strokeWidth={2.25}
           style={{
             flexShrink: 0,
-            color: 'var(--sala-warning)',
+            color: 'var(--sala-accent)',
             transition: 'transform 0.2s ease',
             transform: open ? 'rotate(45deg)' : 'rotate(0deg)'
           }}

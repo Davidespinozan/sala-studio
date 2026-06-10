@@ -41,7 +41,9 @@
   --sala-primary-text:      #FFFFFF;   /* JS-decidido por luminance WCAG */
   --sala-primary-tint:      #000000;   /* JS-decidido: black=darken, white=lighten */
 
-  --sala-accent:            #E8654A;
+  /* Paleta monocromática: accent = primary por defecto (sin segundo color).
+     applyBranding lo sobreescribe si el tenant define su propio color_accent. */
+  --sala-accent:            #3D6B52;
   --sala-accent-text:       #FFFFFF;
   --sala-accent-tint:       #000000;
 
@@ -191,17 +193,17 @@
     --sala-primary-focus-ring:   rgba(61, 107, 82, 0.55);
     --sala-primary-darkest:      #17261E;
 
-    /* Accent derivados */
-    --sala-accent-hover:         #B54F3A;
-    --sala-accent-active:        #9E4532;
-    --sala-accent-light:         #FCE8E2;
-    --sala-accent-soft:          rgba(232, 101, 74, 0.12);
-    --sala-accent-shadow:        rgba(232, 101, 74, 0.16);
-    --sala-accent-dim:           rgba(232, 101, 74, 0.24);
-    --sala-accent-glow:          rgba(232, 101, 74, 0.30);
-    --sala-accent-glow-strong:   rgba(232, 101, 74, 0.42);
-    --sala-accent-focus-ring:    rgba(232, 101, 74, 0.55);
-    --sala-accent-darkest:       #42251C;
+    /* Accent derivados — monocromático: espejo del primary (salvia). */
+    --sala-accent-hover:         #2F5440;
+    --sala-accent-active:        #294938;
+    --sala-accent-light:         #E8F0EB;
+    --sala-accent-soft:          rgba(61, 107, 82, 0.12);
+    --sala-accent-shadow:        rgba(61, 107, 82, 0.16);
+    --sala-accent-dim:           rgba(61, 107, 82, 0.24);
+    --sala-accent-glow:          rgba(61, 107, 82, 0.30);
+    --sala-accent-glow-strong:   rgba(61, 107, 82, 0.42);
+    --sala-accent-focus-ring:    rgba(61, 107, 82, 0.55);
+    --sala-accent-darkest:       #17261E;
 
     /* Error derivados */
     --sala-error-hover:          #993A29;
@@ -211,7 +213,7 @@
 
     /* Gradientes de marca (literales SALA) */
     --grad-primary: linear-gradient(135deg, #4A7D62 0%, #3D6B52 52%, #294938 100%);
-    --grad-accent:  linear-gradient(135deg, #EC7B63 0%, #E8654A 52%, #9E4532 100%);
+    --grad-accent:  linear-gradient(135deg, #4A7D62 0%, #3D6B52 52%, #294938 100%);
   }
 }
 

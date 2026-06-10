@@ -17,6 +17,15 @@ interface ImageUploaderProps {
    * (las fotos de clase/instructor siguen siendo solo raster).
    */
   allowSvg?: boolean;
+  /**
+   * Imagen a mostrar en el preview cuando NO hay una subida propia (currentUrl
+   * null). Sirve para mostrar el placeholder real — ej. el logo de SALA que se
+   * ve hoy en la app — y dejar claro que al subir uno se reemplaza. No se trata
+   * como valor guardado: no aparece el botón de quitar.
+   */
+  fallbackPreviewUrl?: string;
+  /** object-fit del preview. 'contain' para logos (se ve completo), 'cover' para fotos. Default 'cover'. */
+  previewFit?: 'cover' | 'contain';
 }
 
 const MIME_RASTER = ['image/jpeg', 'image/png', 'image/webp'];
@@ -30,13 +39,19 @@ export default function ImageUploader({
   onError,
   label = 'Imagen',
   helperText,
-  allowSvg = false
+  allowSvg = false,
+  fallbackPreviewUrl,
+  previewFit = 'cover'
 }: ImageUploaderProps) {
   const mimePermitidos = allowSvg ? [...MIME_RASTER, 'image/svg+xml'] : MIME_RASTER;
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Lo que se muestra: imagen propia subida, o el fallback (placeholder real).
+  const shownUrl = previewUrl ?? fallbackPreviewUrl ?? null;
+  const esFallback = !previewUrl && !!fallbackPreviewUrl;
 
   const handleFile = async (file: File) => {
     setError(null);
@@ -106,40 +121,61 @@ export default function ImageUploader({
           borderRadius: 'var(--ek-r-md)'
         }}
       >
-        {previewUrl ? (
+        {shownUrl ? (
           <div style={{ position: 'relative' }}>
             <img
-              src={previewUrl}
+              src={shownUrl}
               alt="Preview"
               style={{
                 width: '100%',
                 aspectRatio: '16 / 10',
-                objectFit: 'cover',
+                objectFit: previewFit,
                 borderRadius: 'var(--ek-r-sm)',
                 background: 'var(--ek-bg-elevated)',
-                display: 'block'
+                display: 'block',
+                padding: previewFit === 'contain' ? '16px' : 0
               }}
             />
-            <button
-              type="button"
-              onClick={handleClear}
-              className="ek-icon-btn"
-              style={{
-                position: 'absolute',
-                top: '8px',
-                right: '8px',
-                width: '32px',
-                height: '32px',
-                padding: 0,
-                background: 'rgba(26, 31, 28, 0.85)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              aria-label="Quitar imagen"
-            >
-              <X size={16} strokeWidth={2.25} />
-            </button>
+            {esFallback ? (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '8px',
+                  left: '8px',
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  background: 'rgba(26, 31, 28, 0.7)',
+                  color: '#fff',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase'
+                }}
+              >
+                Por defecto
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="ek-icon-btn"
+                style={{
+                  position: 'absolute',
+                  top: '8px',
+                  right: '8px',
+                  width: '32px',
+                  height: '32px',
+                  padding: 0,
+                  background: 'rgba(26, 31, 28, 0.85)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                aria-label="Quitar imagen"
+              >
+                <X size={16} strokeWidth={2.25} />
+              </button>
+            )}
           </div>
         ) : (
           <div
