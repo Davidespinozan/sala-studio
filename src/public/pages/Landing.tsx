@@ -478,7 +478,7 @@ export default function Landing() {
                 : { padding: '40px 0' }
             }
           >
-            <div style={{
+            <div className="landing-hero-card" style={{
               position: 'relative',
               overflow: 'hidden',
               borderRadius: fullBleed ? 0 : 'var(--ek-r-card)',
@@ -558,6 +558,7 @@ export default function Landing() {
           fontSize: 'clamp(36px, 6vw, 56px)',
           fontWeight: 700,
           letterSpacing: '-0.04em',
+          lineHeight: 1.05,
           margin: 0,
           marginBottom: '16px'
         }}>

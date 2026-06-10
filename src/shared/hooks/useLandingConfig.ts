@@ -4,7 +4,7 @@ import { useTenant } from '@shared/hooks/useTenant';
  *  (flota sobre el fondo); 'completo' = full-bleed de borde a borde. */
 export type LandingHeroLayout = 'contenido' | 'completo';
 
-type LandingHero = {
+export type LandingHero = {
   eyebrow: string;
   titulo: string;
   titulo_accent: string;

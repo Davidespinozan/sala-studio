@@ -295,6 +295,12 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   border-radius: 8px;
 }
 
+/* Hero de la landing: en móvil el texto sube al centro (en desktop queda
+   abajo). Antes quedaba pegado al fondo y se veía muy abajo en vertical. */
+@media (max-width: 640px) {
+  .landing-hero-card { justify-content: center !important; }
+}
+
 /* ============================================================================
    TYPOGRAPHY
      ============================================================================ */
