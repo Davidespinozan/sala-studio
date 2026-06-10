@@ -61,7 +61,7 @@ export default function MemberLayout() {
       <NotificacionesBanner />
       <EstadoMembresiaBanner />
       <header className="ek-header-glass">
-        <div className="ek-header-inner">
+        <div className="ek-header-inner" style={{ justifyContent: 'center' }}>
           <Link to="/app" style={{ textDecoration: 'none', display: 'inline-block' }}>
             <TenantLogo variant="completo" height={48} fallbackFontSize={34} showSuffix={true} />
           </Link>

@@ -464,7 +464,7 @@ export function Sidebar({ onNavigate }: Props = {}) {
           <LogOut size={15} strokeWidth={2.25} />
           Cerrar sesión
         </button>
-        <PoweredBySala align="left" tone="dark" />
+        <PoweredBySala align="center" tone="dark" />
       </div>
     </aside>
   );

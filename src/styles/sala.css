@@ -762,10 +762,9 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     left: 0;
     right: 0;
     z-index: 20;
-    background: rgba(250, 250, 247, 0.92);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border-top: 0.5px solid var(--ek-line);
+    /* Mismo color de marca que el sidebar admin (no oscurecido a negro). */
+    background: var(--grad-immersive);
+    border-top: 0.5px solid rgba(255, 255, 255, 0.08);
     padding: 8px env(safe-area-inset-left, 8px) calc(8px + env(safe-area-inset-bottom, 0px));
   }
 
@@ -797,23 +796,23 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--ek-ink-faint);
+    color: rgba(255, 255, 255, 0.55);
   }
 
-  .ek-bottom-nav-item--active { background: var(--ek-mustard-soft); }
+  .ek-bottom-nav-item--active { background: rgba(255, 255, 255, 0.14); }
   .ek-bottom-nav-item--active .ek-bottom-nav-item-label {
-    color: var(--ek-mustard);
+    color: rgba(255, 255, 255, 0.98);
     font-weight: 700;
   }
 
   .ek-bottom-nav-icon {
     width: 22px;
     height: 22px;
-    color: var(--ek-ink-faint);
+    color: rgba(255, 255, 255, 0.55);
     stroke-width: 2;
   }
 
-  .ek-bottom-nav-item--active .ek-bottom-nav-icon { color: var(--ek-mustard); }
+  .ek-bottom-nav-item--active .ek-bottom-nav-icon { color: rgba(255, 255, 255, 0.98); }
 
   /* ============================================================================
      MODAL
@@ -1517,9 +1516,9 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
       width: 240px;
       flex-shrink: 0;
       border-right: 0.5px solid rgba(255, 255, 255, 0.08);
-      /* Fase B Round 1: sidebar dark teñido del primary del tenant.
-         Cada gym tiene su atmósfera profunda (white-label). */
-      background: var(--sala-primary-darkest);
+      /* Sidebar con el color de marca (no oscurecido a casi-negro): mantiene
+         el hue del tenant pero queda lo bastante oscuro para texto blanco. */
+      background: var(--grad-immersive);
       box-shadow: 2px 0 24px rgba(0, 0, 0, 0.20);
       position: sticky;
       top: 0;
@@ -1535,11 +1534,12 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   }
 
   .adm-sidebar-brand {
-    padding: 0 20px 24px;
+    padding: 4px 20px 24px;
     border-bottom: 0.5px solid rgba(255, 255, 255, 0.10);
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
     margin-bottom: 24px;
   }
 
@@ -1652,8 +1652,8 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     bottom: 0;
     width: 280px;
     max-width: 80%;
-    /* Drawer hereda mismo dark teñido del sidebar desktop */
-    background: var(--sala-primary-darkest);
+    /* Drawer hereda el mismo color de marca del sidebar desktop */
+    background: var(--grad-immersive);
     border-right: 0.5px solid rgba(255, 255, 255, 0.10);
     animation: ek-slide-in-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     overflow-y: auto;
