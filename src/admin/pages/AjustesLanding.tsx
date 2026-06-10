@@ -307,6 +307,7 @@ export default function AjustesLanding() {
           onUploaded={(url) => setDraft({ ...draft, hero: { ...draft.hero, image_url: url } })}
           label="Imagen de fondo — Desktop (opcional)"
           cropAspect={16 / 9}
+          previewMaxHeight={200}
           helperText="Foto horizontal para pantallas grandes. Recorte 16:9. Sin imagen, el hero queda de texto sobre fondo claro."
         />
         <ImageUploader
@@ -316,6 +317,7 @@ export default function AjustesLanding() {
           onUploaded={(url) => setDraft({ ...draft, hero: { ...draft.hero, image_url_mobile: url } })}
           label="Imagen de fondo — Móvil (opcional)"
           cropAspect={3 / 4}
+          previewMaxHeight={220}
           helperText="Foto vertical para celulares. Recorte 3:4. Si no subís una, en móvil se usa la de desktop."
         />
         <FormField
@@ -395,7 +397,10 @@ export default function AjustesLanding() {
           />
         </FormField>
 
-        <FormField label="Texto del botón principal">
+        <FormField
+          label="Texto del botón principal"
+          helper="El botón lleva automáticamente a la sección de membresías."
+        >
           <input
             value={draft.hero.cta_texto}
             onChange={(e) =>
@@ -403,20 +408,6 @@ export default function AjustesLanding() {
             }
             className="ek-input"
             placeholder="Ver membresías →"
-          />
-        </FormField>
-
-        <FormField
-          label="A dónde lleva el botón"
-          helper="Puede ser anchor (#nombre) o URL completa (https://...)."
-        >
-          <input
-            value={draft.hero.cta_link}
-            onChange={(e) =>
-              setDraft({ ...draft, hero: { ...draft.hero, cta_link: e.target.value } })
-            }
-            className="ek-input"
-            placeholder="#membresias"
           />
         </FormField>
       </Section>

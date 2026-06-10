@@ -776,8 +776,9 @@ export default function Landing() {
         {tiersLoading ? (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '20px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
+            gap: '20px',
+            maxWidth: '880px'
           }}>
             {[1, 2].map((n) => (
               <div key={n} className="ek-skeleton" style={{ height: '480px', borderRadius: 'var(--ek-r-card)' }} />
@@ -786,8 +787,9 @@ export default function Landing() {
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '20px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
+            gap: '20px',
+            maxWidth: '880px'
           }}>
             {tiers.map((tier) => {
               const esPro = tier.slug === 'pro';

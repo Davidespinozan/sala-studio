@@ -34,6 +34,11 @@ interface ImageUploaderProps {
    * instructores 3/4. Sin esto, la imagen se sube tal cual. No aplica a SVG.
    */
   cropAspect?: number;
+  /**
+   * Alto máximo (px) del preview. Evita que un preview vertical (ej. 3:4) se
+   * estire a lo alto y quede desproporcionado en el formulario. Default 300.
+   */
+  previewMaxHeight?: number;
 }
 
 const MIME_RASTER = ['image/jpeg', 'image/png', 'image/webp'];
@@ -83,7 +88,8 @@ export default function ImageUploader({
   allowSvg = false,
   fallbackPreviewUrl,
   previewFit = 'cover',
-  cropAspect
+  cropAspect,
+  previewMaxHeight = 300
 }: ImageUploaderProps) {
   const mimePermitidos = allowSvg ? [...MIME_RASTER, 'image/svg+xml'] : MIME_RASTER;
   const [isUploading, setIsUploading] = useState(false);
@@ -108,6 +114,8 @@ export default function ImageUploader({
   const shownUrl = previewUrl ?? fallbackPreviewUrl ?? null;
   const esFallback = !previewUrl && !!fallbackPreviewUrl;
   const previewAspect = cropAspect ?? 16 / 10;
+  // Ancho máximo derivado del alto tope: así un preview vertical no se estira.
+  const previewMaxWidth = Math.round(previewMaxHeight * previewAspect);
 
   async function uploadBlob(data: Blob, ext: string) {
     setIsUploading(true);
@@ -207,7 +215,7 @@ export default function ImageUploader({
         }}
       >
         {shownUrl ? (
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: `${previewMaxWidth}px`, margin: '0 auto' }}>
             <img
               src={shownUrl}
               alt="Preview"
