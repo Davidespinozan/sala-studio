@@ -1,5 +1,4 @@
 import { useTenant } from '@shared/hooks/useTenant';
-import { SalaLogo } from '@shared/components/SalaLogo';
 
 /**
  * Logo del TENANT (gimnasio cliente). Sistema de DOS PIEZAS:
@@ -85,13 +84,57 @@ export function TenantLogo({
     );
   }
 
-  // Fallback: SalaLogo con la MISMA variant (no mezclar piezas).
+  // Fallback SIN logo subido: wordmark con el NOMBRE DEL TENANT (no la marca
+  // SALA — eso confundía: un gym nuevo con sus colores veía el logo de SALA).
+  const nombre = (tenant.nombre ?? '').trim() || 'Studio';
+  const tokens = nombre.split(/\s+/).filter(Boolean);
+
+  if (variant === 'isotipo') {
+    const inicial = tokens.slice(0, 1).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
+    return (
+      <div
+        style={{
+          width: `${height}px`,
+          height: `${height}px`,
+          borderRadius: '22%',
+          background: 'var(--sala-primary)',
+          color: 'var(--sala-primary-text)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: 'var(--ek-font-display)',
+          fontSize: `${Math.round(height * 0.5)}px`,
+          fontWeight: 700,
+          letterSpacing: '-0.04em'
+        }}
+      >
+        {inicial}
+      </div>
+    );
+  }
+
+  const first = tokens[0] ?? nombre;
+  const rest = tokens.slice(1).join(' ');
   return (
-    <SalaLogo
-      variant={variant}
-      height={height}
-      fallbackFontSize={fallbackFontSize}
-      showStudio={showSuffix}
-    />
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', minWidth: 0 }}>
+      <span
+        style={{
+          fontFamily: 'var(--ek-font-display)',
+          fontSize: `${fallbackFontSize}px`,
+          fontWeight: 700,
+          letterSpacing: '-0.04em',
+          color: 'var(--sala-primary)',
+          lineHeight: 1,
+          whiteSpace: 'nowrap'
+        }}
+      >
+        {first}
+      </span>
+      {showSuffix && rest && (
+        <span className="ek-eyebrow" style={{ paddingTop: '4px', whiteSpace: 'nowrap' }}>
+          {rest.toUpperCase()}
+        </span>
+      )}
+    </div>
   );
 }

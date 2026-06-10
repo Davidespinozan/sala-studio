@@ -96,6 +96,15 @@
     var(--sala-accent) 52%,
     var(--sala-accent-active) 100%
   );
+  /* Gradiente para superficies INMERSIVAS (cards/heroes oscuros). Mantiene el
+     HUE de la marca (no se desvanece a negro): tono oscuro y saturado de la
+     marca arriba → un poco más oscuro abajo. Antes se mezclaba al 25% con
+     casi-negro y un naranja/violeta terminaba pareciendo café/gris. */
+  --grad-immersive: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--sala-primary) 58%, var(--sala-neutral-dark)) 0%,
+    color-mix(in srgb, var(--sala-primary) 34%, var(--sala-neutral-dark)) 100%
+  );
 
   /* === DERIVADOS ERROR/WARNING (semánticos fijos, no dinámicos) === */
   --sala-error-hover:          color-mix(in srgb, var(--sala-error), black 22%);
@@ -218,6 +227,7 @@
     /* Gradientes de marca (literales SALA) */
     --grad-primary: linear-gradient(135deg, #4A7D62 0%, #3D6B52 52%, #294938 100%);
     --grad-accent:  linear-gradient(135deg, #4A7D62 0%, #3D6B52 52%, #294938 100%);
+    --grad-immersive: linear-gradient(160deg, #264232 0%, #1A2C22 100%);
   }
 }
 

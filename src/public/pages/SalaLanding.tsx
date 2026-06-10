@@ -160,7 +160,7 @@ function Hero() {
           overflow: 'hidden',
           borderRadius: 'var(--ek-r-card)',
           padding: 'clamp(40px, 7vw, 88px) clamp(24px, 5vw, 64px)',
-          background: 'linear-gradient(160deg, var(--sala-primary-darkest) 0%, var(--sala-neutral-dark) 100%)',
+          background: 'var(--grad-immersive)',
           boxShadow: '0 24px 60px rgba(10, 15, 12, 0.32)',
           textAlign: 'center'
         }}
@@ -415,7 +415,7 @@ function Pricing({ moneda }: { moneda: MonedaSaas }) {
                 display: 'flex',
                 flexDirection: 'column',
                 background: destacado
-                  ? 'linear-gradient(160deg, var(--sala-primary-darkest) 0%, var(--sala-neutral-dark) 100%)'
+                  ? 'var(--grad-immersive)'
                   : 'var(--sala-surface)',
                 border: destacado ? '1px solid rgba(255,255,255,0.1)' : '1px solid var(--sala-border)',
                 boxShadow: destacado ? '0 12px 32px rgba(10,15,12,0.24)' : undefined
@@ -590,7 +590,7 @@ function CtaFinal() {
           textAlign: 'center',
           borderRadius: 'var(--ek-r-card)',
           padding: 'clamp(40px, 6vw, 72px) clamp(24px, 5vw, 48px)',
-          background: 'linear-gradient(160deg, var(--sala-primary-darkest) 0%, var(--sala-neutral-dark) 100%)',
+          background: 'var(--grad-immersive)',
           boxShadow: '0 24px 60px rgba(10, 15, 12, 0.32)'
         }}
       >

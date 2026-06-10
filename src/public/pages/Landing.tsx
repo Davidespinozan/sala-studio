@@ -151,7 +151,7 @@ function InstructorLandingCard({ instructor }: { instructor: InstructorPublico }
         borderRadius: 'var(--ek-r-md)',
         overflow: 'hidden',
         border: '1px solid rgba(255, 255, 255, 0.08)',
-        background: 'linear-gradient(160deg, var(--sala-primary-darkest) 0%, var(--sala-neutral-dark) 100%)',
+        background: 'var(--grad-immersive)',
         boxShadow: '0 8px 22px rgba(10, 15, 12, 0.18)'
       }}
     >
@@ -534,7 +534,7 @@ export default function Landing() {
                   textAlign: 'left',
                   borderRadius: 'var(--ek-r-card)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  background: 'linear-gradient(160deg, var(--sala-primary-darkest) 0%, var(--sala-neutral-dark) 100%)',
+                  background: 'var(--grad-immersive)',
                   color: 'rgba(255, 255, 255, 0.96)',
                   boxShadow: '0 10px 28px rgba(10, 15, 12, 0.22)',
                   transition: 'transform 0.2s ease, filter 0.2s ease',
@@ -729,7 +729,7 @@ export default function Landing() {
                       ? {
                           border: '1px solid rgba(255, 255, 255, 0.1)',
                           background:
-                            'linear-gradient(160deg, var(--sala-primary-darkest) 0%, var(--sala-neutral-dark) 100%)',
+                            'var(--grad-immersive)',
                           boxShadow: '0 20px 44px var(--sala-primary-dim)',
                           transform: 'translateY(-4px)'
                         }

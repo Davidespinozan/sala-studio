@@ -67,7 +67,7 @@ export default function Estudios() {
                 overflow: 'hidden',
                 textDecoration: 'none',
                 borderRadius: 'var(--ek-r-md)',
-                background: 'linear-gradient(160deg, var(--sala-primary-darkest) 0%, var(--sala-neutral-dark) 100%)',
+                background: 'var(--grad-immersive)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
                 boxShadow: '0 10px 28px rgba(10, 15, 12, 0.22)'
               }}

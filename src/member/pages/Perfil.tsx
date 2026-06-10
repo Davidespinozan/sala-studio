@@ -318,7 +318,7 @@ function PlanHero({
         style={{
           borderRadius: 'var(--ek-r-card)',
           padding: '24px',
-          background: 'linear-gradient(155deg, var(--sala-primary-darkest) 0%, var(--sala-neutral-dark) 100%)',
+          background: 'var(--grad-immersive)',
           boxShadow: '0 12px 32px rgba(10, 15, 12, 0.28)',
           overflow: 'hidden'
         }}
