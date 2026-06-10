@@ -1,31 +1,29 @@
 /**
  * Logo de marca SALA Studio en dos variantes:
- *   - 'completo': logo horizontal (símbolo + wordmark) en /logo-sala.svg.
+ *   - 'completo': logo horizontal (símbolo + wordmark) en /logo-sala.png.
  *     Para headers horizontales con espacio para wordmark.
- *   - 'isotipo': solo el símbolo cuadrado en /isotipo-sala.svg.
+ *   - 'isotipo': solo el símbolo cuadrado en /isotipo-sala.png.
  *     Para espacios chicos/cuadrados/centrados (login, ícono).
  *
  * Verde oficial #3D6B52 sobre fondo transparente en ambos casos.
  *
  * Fallback si LOGO_SVG_DISPONIBLE=false: wordmark de texto "SALA" +
- * eyebrow "STUDIO", dibujado con la tipografía de marca. Nítido a cualquier
- * densidad, tintable y sin peso de archivo.
+ * eyebrow "STUDIO", dibujado con la tipografía de marca.
  *
- * NOTA (jun-2026): los SVG en public/ (logo-sala.svg, isotipo-sala.svg) NO son
- * vectoriales — son un PNG raster con una SOMBRA gris bakeada, envuelto en
- * <svg>. Eso causaba pixelado en pantallas retina + un halo/contorno gris en
- * cualquier fondo. Hasta tener un logo vectorial limpio de verdad, usamos el
- * fallback de texto (LOGO_SVG_DISPONIBLE=false). Para volver al archivo,
- * reemplazá public/logo-sala.svg por un SVG vectorial real y poné el flag en true.
+ * NOTA (jun-2026): los .svg originales NO eran vectoriales — eran un PNG raster
+ * con una SOMBRA gris bakeada envuelto en <svg> (causaba pixelado en retina +
+ * halo gris en cualquier fondo). Se rescató el logo real de adentro de esos
+ * archivos, normalizado al verde de marca, transparente y SIN sombra →
+ * public/logo-sala.png + isotipo-sala.png (alta resolución, ~40KB c/u).
  *
  * Usado como FALLBACK del TenantLogo cuando el tenant no subió su
  * propia versión de la pieza. La aplicación NO usa SalaLogo
  * directamente — siempre va a través de TenantLogo.
  */
 
-const LOGO_SVG_DISPONIBLE = false;
-const LOGO_COMPLETO_SRC = '/logo-sala.svg';
-const LOGO_ISOTIPO_SRC = '/isotipo-sala.svg';
+const LOGO_SVG_DISPONIBLE = true;
+const LOGO_COMPLETO_SRC = '/logo-sala.png';
+const LOGO_ISOTIPO_SRC = '/isotipo-sala.png';
 
 interface SalaLogoProps {
   /** Variante: 'completo' (horizontal) o 'isotipo' (cuadrado). Default 'completo'. */
