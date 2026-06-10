@@ -412,6 +412,7 @@ export function SeccionPostHero({ data }: { data: LandingPostHero }) {
         lineHeight: 1.05,
         margin: 0,
         marginBottom: '40px',
+        textAlign: 'center',
         color: light ? 'rgba(255, 255, 255, 0.97)' : 'var(--sala-text-primary)'
       }}>
         {data.titulo}
@@ -437,7 +438,7 @@ export function SeccionPostHero({ data }: { data: LandingPostHero }) {
           boxShadow: '0 24px 60px rgba(10, 15, 12, 0.28)'
         }}>
           {data.eyebrow && (
-            <p style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.55)', margin: '0 0 12px' }}>
+            <p style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.55)', margin: '0 0 12px', textAlign: 'center' }}>
               {data.eyebrow}
             </p>
           )}
@@ -463,7 +464,7 @@ export function SeccionPostHero({ data }: { data: LandingPostHero }) {
   if (data.variante === 'beneficios') {
     return (
       <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
-        {data.eyebrow && <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>{data.eyebrow}</p>}
+        {data.eyebrow && <p className="ek-eyebrow" style={{ marginBottom: '12px', textAlign: 'center' }}>{data.eyebrow}</p>}
         {tituloH2(false)}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
           {items.map((it, i) => (
@@ -567,7 +568,7 @@ export default function Landing() {
           ESTUDIOS
           ============================================================ */}
       <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
-        <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>NUESTRAS SALAS</p>
+        <p className="ek-eyebrow" style={{ marginBottom: '12px', textAlign: 'center' }}>NUESTRAS SALAS</p>
         <h2 style={{
           fontFamily: 'var(--ek-font-display)',
           fontSize: 'clamp(36px, 6vw, 56px)',
@@ -575,12 +576,13 @@ export default function Landing() {
           letterSpacing: '-0.04em',
           lineHeight: 1.05,
           margin: 0,
-          marginBottom: '16px'
+          marginBottom: '16px',
+          textAlign: 'center'
         }}>
           Varias disciplinas.<br />
           <span style={{ color: 'var(--ek-mustard)' }}>Un solo lugar.</span>
         </h2>
-        <p className="ek-body-muted" style={{ marginBottom: '40px', maxWidth: '600px' }}>
+        <p className="ek-body-muted" style={{ margin: '0 auto 40px', maxWidth: '600px', textAlign: 'center' }}>
           Cada sala diseñada para una disciplina distinta. Elegí la que va con vos.
         </p>
 
@@ -744,7 +746,7 @@ export default function Landing() {
           ============================================================ */}
       {mostrarInstructores && instructores.length > 0 && (
         <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
-          <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>NUESTRO EQUIPO</p>
+          <p className="ek-eyebrow" style={{ marginBottom: '12px', textAlign: 'center' }}>NUESTRO EQUIPO</p>
           <h2 style={{
             fontFamily: 'var(--ek-font-display)',
             fontSize: 'clamp(36px, 6vw, 56px)',
@@ -752,12 +754,13 @@ export default function Landing() {
             letterSpacing: '-0.04em',
             lineHeight: 1.05,
             margin: 0,
-            marginBottom: '16px'
+            marginBottom: '16px',
+            textAlign: 'center'
           }}>
             Conocé a nuestros<br />
             <span style={{ color: 'var(--ek-mustard)' }}>instructores.</span>
           </h2>
-          <p className="ek-body-muted" style={{ marginBottom: '40px', maxWidth: '600px' }}>
+          <p className="ek-body-muted" style={{ margin: '0 auto 40px', maxWidth: '600px', textAlign: 'center' }}>
             El equipo que te va a acompañar en cada clase.
           </p>
 
@@ -784,7 +787,7 @@ export default function Landing() {
           MEMBRESÍAS
           ============================================================ */}
       <section id="membresias" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
-        <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>MEMBRESÍAS</p>
+        <p className="ek-eyebrow" style={{ marginBottom: '12px', textAlign: 'center' }}>MEMBRESÍAS</p>
         <h2 style={{
           fontFamily: 'var(--ek-font-display)',
           fontSize: 'clamp(36px, 6vw, 56px)',
@@ -792,7 +795,8 @@ export default function Landing() {
           letterSpacing: '-0.04em',
           lineHeight: 1.05,
           margin: 0,
-          marginBottom: '48px'
+          marginBottom: '48px',
+          textAlign: 'center'
         }}>
           Elige tu nivel.<br />
           <span style={{ color: 'var(--ek-mustard)' }}>Crece desde el día uno.</span>
