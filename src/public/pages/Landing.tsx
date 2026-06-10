@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Check, Dumbbell, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
@@ -6,6 +6,7 @@ import { useLandingConfig, type LandingPostHero, type LandingHero } from '@share
 import { useTenant } from '@shared/hooks/useTenant';
 import EstudioModal, { type EstudioInfo } from '../components/EstudioModal';
 import Footer from '../components/Footer';
+import { MagneticButton } from '@shared/components/MagneticButton';
 
 interface EstudioPublico {
   id: string;
@@ -301,13 +302,23 @@ export function HeroView({ hero, preview = false }: { hero: LandingHero; preview
           {hero.subtitulo}
         </p>
       )}
-      <a
-        href={hero.cta_link || '#membresias'}
-        className="ek-cta ek-lift"
-        style={{ padding: hasImg ? '17px 34px' : '16px 28px', fontSize: '16px', display: 'inline-flex', alignItems: 'center' }}
-      >
-        {hero.cta_texto}
-      </a>
+      {preview ? (
+        <a
+          href={hero.cta_link || '#membresias'}
+          className="ek-cta ek-lift"
+          style={{ padding: hasImg ? '17px 34px' : '16px 28px', fontSize: '16px', display: 'inline-flex', alignItems: 'center' }}
+        >
+          {hero.cta_texto}
+        </a>
+      ) : (
+        <MagneticButton
+          href={hero.cta_link || '#membresias'}
+          className="ek-cta"
+          style={{ padding: hasImg ? '17px 34px' : '16px 28px', fontSize: '16px' }}
+        >
+          {hero.cta_texto}
+        </MagneticButton>
+      )}
     </>
   );
 
@@ -548,8 +559,37 @@ export default function Landing() {
   // Con 3+ salas, carrusel horizontal (en vez de apilar filas en desktop).
   const salasScroll = estudiosInfo.length >= 3;
 
+  // Scroll reveal: cada sección .reveal aparece al entrar al viewport. Un solo
+  // observer; respeta prefers-reduced-motion y cae a "todo visible" si no hay
+  // IntersectionObserver. Re-corre cuando carga contenido (secciones async).
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const els = Array.from(root.querySelectorAll<HTMLElement>('.reveal:not(.visible)'));
+    if (els.length === 0) return;
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduced || typeof IntersectionObserver === 'undefined') {
+      els.forEach((el) => el.classList.add('visible'));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('visible');
+            io.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [estudiosLoading, tiersLoading, instructores.length, mostrarInstructores]);
+
   return (
-    <div style={{
+    <div ref={rootRef} style={{
       maxWidth: '1200px',
       margin: '0 auto',
       padding: '0 24px'
@@ -562,12 +602,12 @@ export default function Landing() {
       {/* ============================================================
           SECCIÓN POST-HERO (variante elegible desde admin)
           ============================================================ */}
-      <SeccionPostHero data={post_hero} />
+      <div className="reveal"><SeccionPostHero data={post_hero} /></div>
 
       {/* ============================================================
           ESTUDIOS
           ============================================================ */}
-      <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
+      <section className="reveal" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '12px', textAlign: 'center' }}>NUESTRAS SALAS</p>
         <h2 style={{
           fontFamily: 'var(--ek-font-display)',
@@ -747,7 +787,7 @@ export default function Landing() {
           INSTRUCTORES (S6-5 · toggle desde admin)
           ============================================================ */}
       {mostrarInstructores && instructores.length > 0 && (
-        <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
+        <section className="reveal" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
           <p className="ek-eyebrow" style={{ marginBottom: '12px', textAlign: 'center' }}>NUESTRO EQUIPO</p>
           <h2 style={{
             fontFamily: 'var(--ek-font-display)',
@@ -789,7 +829,7 @@ export default function Landing() {
       {/* ============================================================
           MEMBRESÍAS
           ============================================================ */}
-      <section id="membresias" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
+      <section id="membresias" className="reveal" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '12px', textAlign: 'center' }}>MEMBRESÍAS</p>
         <h2 style={{
           fontFamily: 'var(--ek-font-display)',
@@ -944,7 +984,7 @@ export default function Landing() {
       {/* ============================================================
           FAQ
           ============================================================ */}
-      <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
+      <section className="reveal" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>PREGUNTAS FRECUENTES</p>
         <h2 style={{
           fontFamily: 'var(--ek-font-display)',
@@ -1014,7 +1054,7 @@ export default function Landing() {
       {/* ============================================================
           CTA + CONTACTO
           ============================================================ */}
-      <section id="contacto" style={{ padding: '100px 0' }}>
+      <section id="contacto" className="reveal" style={{ padding: '100px 0' }}>
         <div style={{
           background: 'linear-gradient(135deg, var(--ek-bg-elevated) 0%, var(--ek-bg) 100%)',
           border: '0.5px solid var(--ek-mustard-dim)',
