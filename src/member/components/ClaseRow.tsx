@@ -38,6 +38,7 @@ export function ClaseRow({
     <div
       role="button"
       tabIndex={0}
+      aria-label={`Ver detalles de ${clase.nombre}`}
       onClick={onRowClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
