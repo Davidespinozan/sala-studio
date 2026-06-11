@@ -121,13 +121,13 @@ export function ProximaClaseHero({ clase, reservaId }: Props) {
             alignItems: 'center',
             justifyContent: 'center',
             borderRadius: '999px',
-            background: 'var(--grad-primary)',
-            color: 'var(--sala-text-on-primary)',
-            border: '1px solid var(--sala-primary)',
+            background: 'var(--grad-accent)',
+            color: 'var(--sala-text-on-accent)',
+            border: '1px solid var(--sala-accent)',
             fontSize: '13px',
             fontWeight: 600,
             textDecoration: 'none',
-            boxShadow: '0 4px 14px var(--sala-primary-dim), inset 0 1px 0 rgba(255, 255, 255, 0.16)',
+            boxShadow: '0 4px 14px var(--sala-accent-dim), inset 0 1px 0 rgba(255, 255, 255, 0.16)',
             gap: '6px'
           }}
         >

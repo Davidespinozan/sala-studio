@@ -101,7 +101,7 @@ function Card({
           fontWeight: 700,
           letterSpacing: '0.16em',
           textTransform: 'uppercase',
-          color: alert ? 'var(--sala-accent)' : 'var(--sala-text-tertiary)',
+          color: alert ? 'var(--sala-warning)' : 'var(--sala-text-tertiary)',
           margin: 0,
           marginBottom: '8px'
         }}
@@ -114,7 +114,7 @@ function Card({
           fontSize: '28px',
           fontWeight: 700,
           letterSpacing: '-0.03em',
-          color: alert ? 'var(--sala-accent)' : 'var(--sala-text-primary)',
+          color: alert ? 'var(--sala-warning)' : 'var(--sala-text-primary)',
           margin: 0,
           fontVariantNumeric: 'tabular-nums',
           lineHeight: 1
@@ -126,7 +126,7 @@ function Card({
         <p
           style={{
             fontSize: '11px',
-            color: alert ? 'var(--sala-accent)' : 'var(--sala-text-tertiary)',
+            color: alert ? 'var(--sala-warning)' : 'var(--sala-text-tertiary)',
             margin: 0,
             marginTop: '6px',
             fontVariantNumeric: 'tabular-nums'

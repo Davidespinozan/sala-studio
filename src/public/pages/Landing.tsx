@@ -160,6 +160,7 @@ function InstructorLandingCard({ instructor }: { instructor: InstructorPublico }
         <img
           src={instructor.foto_url}
           alt={instructor.nombre}
+          loading="lazy"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         />
       ) : (
@@ -702,6 +703,7 @@ export default function Landing() {
                     <img
                       src={s.fotoUrl}
                       alt={s.nombre}
+                      loading="lazy"
                       style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     />
                   ) : (

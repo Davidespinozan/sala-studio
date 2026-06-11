@@ -153,7 +153,8 @@
   --ek-danger:       var(--sala-error);
   --ek-danger-soft:  var(--sala-error-bg);
   --ek-warning:      var(--sala-warning);
-  --ek-info:         #4A7BA0;
+  /* info hereda la marca (no un azul ajeno). El toast de info ya usa primario. */
+  --ek-info:         var(--sala-primary);
 
   /* Shadows (sutiles sobre fondo claro) */
   --ek-shadow-card:    0 2px 8px rgba(26, 31, 28, 0.06);
@@ -893,7 +894,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     overflow-y: auto;
     overscroll-behavior: contain;
     box-shadow: var(--ek-shadow-modal);
-    animation: ek-slide-up 0.2s ease-out;
+    animation: ek-slide-up 0.2s var(--ease-premium);
   }
 
   .ek-modal-handle {
@@ -1708,7 +1709,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     /* Drawer hereda el mismo color de marca del sidebar desktop */
     background: var(--grad-immersive);
     border-right: 0.5px solid rgba(255, 255, 255, 0.10);
-    animation: ek-slide-in-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: ek-slide-in-left 0.25s var(--ease-premium);
     overflow-y: auto;
     z-index: 91;
   }

@@ -1,6 +1,14 @@
+import { useTenant } from '@shared/hooks/useTenant';
+import { TenantLogo } from '@shared/components/TenantLogo';
+
 /** Shell centrado para las pantallas de auth (recuperar / nueva contraseña).
- *  Mismo look que el login: logo SALA + card. */
+ *  Mismo look que el login: logo del TENANT (isotipo si lo tiene, si no el
+ *  wordmark) + card. Nada de "SALA" hardcodeado. */
 export function AuthShell({ children }: { children: React.ReactNode }) {
+  const tenant = useTenant();
+  const tieneIsotipo =
+    typeof (tenant.branding as Record<string, unknown> | null)?.isotipo_url === 'string';
+
   return (
     <div
       style={{
@@ -12,20 +20,12 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       }}
     >
       <div style={{ maxWidth: '400px', width: '100%' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <h1
-            style={{
-              fontFamily: 'var(--ek-font-display)',
-              fontSize: '36px',
-              fontWeight: 700,
-              letterSpacing: '-0.04em',
-              color: 'var(--ek-mustard)',
-              margin: 0
-            }}
-          >
-            SALA
-          </h1>
-          <p className="ek-eyebrow" style={{ marginTop: '6px' }}>STUDIO</p>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
+          {tieneIsotipo ? (
+            <TenantLogo variant="isotipo" height={96} />
+          ) : (
+            <TenantLogo variant="completo" height={56} fallbackFontSize={38} showSuffix />
+          )}
         </div>
         <div className="ek-card">{children}</div>
       </div>

@@ -29,25 +29,36 @@ const SALA_DEFAULT_PRIMARY = '#3D6B52';
 // propio primario — nunca coral. Para distinguir series, los charts usan
 // salviaLight como segundo tono del mismo hue.
 const SALA_DEFAULT_ACCENT  = '#3D6B52';
-// SALVIA_LIGHT se queda hardcoded — recharts necesita un hex liso y el
-// derivado --sala-primary-light depende de color-mix() que recharts no
-// entiende. Si se vuelve un problema con tenants no-verdes, derivarlo
-// JS-side con un mix manual aquí.
-const SALVIA_LIGHT = '#a9c4b3';
+
+/** Aclara un hex mezclándolo con blanco (recharts necesita hex literal, no
+ *  color-mix). amt 0..1 = cuánto blanco se mezcla. Devuelve el mismo hex si
+ *  el formato no es válido. */
+function lightenHex(hex: string, amt: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * amt);
+  const r = mix((n >> 16) & 255);
+  const g = mix((n >> 8) & 255);
+  const b = mix(n & 255);
+  return `#${[r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+}
 
 /**
  * Hook que entrega los colores de chart para recharts.
  * Recharts no entiende CSS vars — necesita hex literal. Este hook lee
- * tenant.branding.color_primary/color_accent y devuelve hex. Si el
- * tenant tiene color custom, los charts se tiñen automáticamente.
+ * tenant.branding.color_primary/color_accent y devuelve hex. El segundo tono
+ * (salviaLight) se DERIVA del primario del tenant (no hardcodeado), para que
+ * las gráficas se tiñan con la marca de cualquier gym.
  */
 function useChartColors() {
   const tenant = useTenant();
   const branding = (tenant.branding ?? {}) as Record<string, unknown>;
+  const salvia = typeof branding.color_primary === 'string' ? branding.color_primary : SALA_DEFAULT_PRIMARY;
   return {
-    salvia: typeof branding.color_primary === 'string' ? branding.color_primary : SALA_DEFAULT_PRIMARY,
+    salvia,
     coral:  typeof branding.color_accent  === 'string' ? branding.color_accent  : SALA_DEFAULT_ACCENT,
-    salviaLight: SALVIA_LIGHT
+    salviaLight: lightenHex(salvia, 0.45)
   };
 }
 
