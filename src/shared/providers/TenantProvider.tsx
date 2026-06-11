@@ -100,15 +100,10 @@ export function applyBranding(branding: BrandingColors | null | undefined): void
   root.style.setProperty('--sala-accent-text', pickTextOn(accent));
   root.style.setProperty('--sala-accent-tint', pickHoverTint(accent));
 
-  // TENANT: estados monocromos (regla "solo primario + acento"). warning→primario,
-  // error→acento. Solo se aplica acá (contexto de tenant); las superficies de
-  // SALA (landing de producto, onboarding) NO llaman applyBranding, así que
-  // conservan su paleta propia (ámbar/coral) del :root. Los derivados color-mix
-  // (--sala-error-dim, etc.) recalculan solos desde estas bases.
-  root.style.setProperty('--sala-warning', 'var(--sala-primary)');
-  root.style.setProperty('--sala-warning-bg', 'var(--sala-primary-light)');
-  root.style.setProperty('--sala-error', 'var(--sala-accent)');
-  root.style.setProperty('--sala-error-bg', 'var(--sala-accent-light)');
+  // D-021 (dos capas de color): los tokens SEMÁNTICOS (--sala-warning/-error y
+  // derivados) son FIJOS del sistema (ámbar/coral/verde) — NO se remapean a la
+  // marca del tenant. Antes acá se forzaban a primario/acento (monocromo); eso
+  // contradecía D-021 y se quitó. Quedan en sus valores del :root para todos.
 }
 
 /**
