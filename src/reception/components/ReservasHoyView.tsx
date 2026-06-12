@@ -3,6 +3,11 @@ import { Check, CalendarClock } from 'lucide-react';
 import { useReservasHoy, checkInManual, type ReservaConJoin } from '../hooks/useReservasHoy';
 import { playCheckInSuccess, playCheckInError } from '../lib/checkInFeedback';
 import { EmptyState } from '@shared/components/EmptyState';
+import { CancelarReservaModal } from './acciones/CancelarReservaModal';
+import { MarcarNoShowModal } from './acciones/MarcarNoShowModal';
+import { CorregirCheckinModal } from './acciones/CorregirCheckinModal';
+
+type AccionReserva = 'cancelar' | 'no_show' | 'corregir';
 
 interface Props {
   onManualCheckInSuccess?: (data: any) => void;
@@ -77,6 +82,7 @@ export function ReservasHoyView({ onManualCheckInSuccess }: Props = {}) {
   const [fechaSeleccionada, setFechaSeleccionada] = useState<Date>(() => leerFechaGuardada());
   const { reservas, isLoading, refetch } = useReservasHoy(fechaSeleccionada);
   const [selected, setSelected] = useState<ReservaConJoin | null>(null);
+  const [accionReserva, setAccionReserva] = useState<AccionReserva | null>(null);
 
   // Persistir el día visto cada vez que cambia.
   useEffect(() => {
@@ -229,10 +235,11 @@ export function ReservasHoyView({ onManualCheckInSuccess }: Props = {}) {
         )}
       </section>
 
-      {selected && (
+      {selected && !accionReserva && (
         <ManualCheckInModal
           reserva={selected}
           onClose={() => setSelected(null)}
+          onAccion={(tipo) => setAccionReserva(tipo)}
           onDone={async (data) => {
             await refetch();
             setSelected(null);
@@ -240,6 +247,22 @@ export function ReservasHoyView({ onManualCheckInSuccess }: Props = {}) {
           }}
         />
       )}
+
+      {selected && accionReserva && (() => {
+        const horaSel = new Date(selected.slot_inicio).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+        const nombreSel = capitalizarNombre(selected.usuario?.nombre) || selected.usuario?.email || '—';
+        const label = `${selected.recurso?.nombre ?? 'Clase'} · ${horaSel} · ${nombreSel}`;
+        const volver = () => setAccionReserva(null); // vuelve al modal de la reserva
+        const hecho = async () => {
+          await refetch();
+          setSelected(null);
+          setAccionReserva(null);
+        };
+        const props = { reservaId: selected.id, reservaLabel: label, isOpen: true, onClose: volver, onDone: hecho };
+        if (accionReserva === 'cancelar') return <CancelarReservaModal {...props} />;
+        if (accionReserva === 'no_show') return <MarcarNoShowModal {...props} />;
+        return <CorregirCheckinModal {...props} />;
+      })()}
     </div>
   );
 }
@@ -368,11 +391,13 @@ function ReservaCard({
 function ManualCheckInModal({
   reserva,
   onClose,
-  onDone
+  onDone,
+  onAccion
 }: {
   reserva: ReservaConJoin;
   onClose: () => void;
   onDone: (data: any) => Promise<void>;
+  onAccion: (tipo: AccionReserva) => void;
 }) {
   const [motivo, setMotivo] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -435,9 +460,14 @@ function ManualCheckInModal({
                 return m ? ` (${m})` : null;
               })()}
             </p>
-            <button onClick={onClose} className="ek-cta ek-cta--full" style={{ marginTop: '1rem' }}>
-              Cerrar
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+              <button onClick={onClose} className="ek-cta ek-cta--secondary" style={{ flex: 1 }}>
+                Cerrar
+              </button>
+              <button onClick={() => onAccion('corregir')} className="ek-cta" style={{ flex: 1 }}>
+                Corregir check-in
+              </button>
+            </div>
           </>
         ) : (
           <>
@@ -468,7 +498,7 @@ function ManualCheckInModal({
                 className="ek-cta ek-cta--secondary"
                 style={{ flex: 1 }}
               >
-                Cancelar
+                Cerrar
               </button>
               <button
                 onClick={handleConfirm}
@@ -477,6 +507,28 @@ function ManualCheckInModal({
                 style={{ flex: 1 }}
               >
                 {submitting ? 'Marcando…' : 'Marcar check-in'}
+              </button>
+            </div>
+
+            {/* Acciones sobre la reserva (no son check-in). */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => onAccion('no_show')}
+                disabled={submitting}
+                className="ek-cta ek-cta--secondary"
+                style={{ flex: 1, fontSize: '13px' }}
+              >
+                Marcar no-show
+              </button>
+              <button
+                type="button"
+                onClick={() => onAccion('cancelar')}
+                disabled={submitting}
+                className="ek-cta ek-cta--secondary"
+                style={{ flex: 1, fontSize: '13px', color: 'var(--ek-danger)' }}
+              >
+                Cancelar reserva
               </button>
             </div>
           </>

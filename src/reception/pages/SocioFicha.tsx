@@ -8,9 +8,22 @@ import { CambiarPlanModal } from '../components/acciones/CambiarPlanModal';
 import { RecargarCreditosModal } from '../components/acciones/RecargarCreditosModal';
 import { PausarReactivarMembresiaModal } from '../components/acciones/PausarReactivarMembresiaModal';
 import { AsignarPlanModal } from '../components/acciones/AsignarPlanModal';
+import { CancelarMembresiaModal } from '../components/acciones/CancelarMembresiaModal';
+import { BloquearSocioModal } from '../components/acciones/BloquearSocioModal';
+import { DesbloquearSocioModal } from '../components/acciones/DesbloquearSocioModal';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData } from '../hooks/useSocioFicha';
 
-type ModalAccion = null | 'renovar' | 'cambiar_plan' | 'recargar' | 'pausar' | 'reactivar' | 'asignar_plan';
+type ModalAccion =
+  | null
+  | 'renovar'
+  | 'cambiar_plan'
+  | 'recargar'
+  | 'pausar'
+  | 'reactivar'
+  | 'asignar_plan'
+  | 'cancelar_membresia'
+  | 'bloquear'
+  | 'desbloquear';
 
 // ── Helpers de formato ──────────────────────────────────────────────────────
 function iniciales(nombre: string | null): string {
@@ -111,6 +124,7 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
     if (onAccionDone) await onAccionDone();
   };
   const esCreditos = membresia?.tierTipo === 'creditos' || membresia?.tierTipo === 'hibrido';
+  const bloqueado = !!socio.bloqueado_hasta && new Date(socio.bloqueado_hasta) > new Date();
 
   return (
     <>
@@ -171,6 +185,15 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
       {/* ALERTA (según estado / bloqueo) */}
       <FichaAlerta data={data} />
 
+      {/* ACCIONES DEL SOCIO (gobernanza: bloqueo) */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        {bloqueado ? (
+          <AccionBtn onClick={() => setModalAbierto('desbloquear')}>Desbloquear socio</AccionBtn>
+        ) : (
+          <AccionBtn onClick={() => setModalAbierto('bloquear')}>Bloquear socio</AccionBtn>
+        )}
+      </div>
+
       {/* MEMBRESÍA */}
       <div className="ek-card ek-card--md" style={{ marginBottom: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -229,12 +252,14 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
               <AccionBtn onClick={() => setModalAbierto('cambiar_plan')}>Cambiar plan</AccionBtn>
               {esCreditos && <AccionBtn onClick={() => setModalAbierto('recargar')}>Recargar créditos</AccionBtn>}
               <AccionBtn onClick={() => setModalAbierto('pausar')}>Pausar</AccionBtn>
+              <AccionBtn onClick={() => setModalAbierto('cancelar_membresia')}>Cancelar membresía</AccionBtn>
             </>
           )}
           {estado === 'pausada' && (
             <>
               <AccionBtn onClick={() => setModalAbierto('reactivar')}>Reactivar</AccionBtn>
               <AccionBtn onClick={() => setModalAbierto('cambiar_plan')}>Cambiar plan</AccionBtn>
+              <AccionBtn onClick={() => setModalAbierto('cancelar_membresia')}>Cancelar membresía</AccionBtn>
             </>
           )}
           {estado === 'vencida' && (
@@ -354,6 +379,33 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
       )}
       {modalAbierto === 'asignar_plan' && (
         <AsignarPlanModal
+          isOpen
+          socioId={socio.id}
+          socioNombre={socioNombre}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
+      {modalAbierto === 'cancelar_membresia' && (
+        <CancelarMembresiaModal
+          isOpen
+          socioId={socio.id}
+          socioNombre={socioNombre}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
+      {modalAbierto === 'bloquear' && (
+        <BloquearSocioModal
+          isOpen
+          socioId={socio.id}
+          socioNombre={socioNombre}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
+      {modalAbierto === 'desbloquear' && (
+        <DesbloquearSocioModal
           isOpen
           socioId={socio.id}
           socioNombre={socioNombre}
