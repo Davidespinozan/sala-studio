@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { PageHeader } from '@shared/components/PageHeader';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData } from '../hooks/useSocioFicha';
 
 // ── Helpers de formato ──────────────────────────────────────────────────────
@@ -42,23 +42,21 @@ export default function SocioFicha() {
 
   return (
     <div className="ek-page">
-      <header className="ek-header-glass">
-        <div className="ek-header-inner" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Link
-            to="/recepcion/socios"
-            className="ek-icon-btn"
-            aria-label="Volver a socios"
-            style={{ width: '38px', height: '38px' }}
-          >
-            <ArrowLeft size={18} />
-          </Link>
-          <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--sala-text-secondary)' }}>
-            Socios · Ficha
-          </span>
-        </div>
-      </header>
-
       <div style={{ maxWidth: '460px', margin: '0 auto', padding: '16px 16px 40px' }}>
+        <PageHeader
+          eyebrow="RECEPCIÓN · FICHA DEL SOCIO"
+          title="Ficha del socio"
+          right={
+            <Link
+              to="/recepcion/socios"
+              className="ek-cta ek-cta--secondary"
+              style={{ fontSize: '13px', whiteSpace: 'nowrap' }}
+            >
+              Volver a socios
+            </Link>
+          }
+        />
+
         {isLoading ? (
           <FichaSkeleton />
         ) : error || !data ? (

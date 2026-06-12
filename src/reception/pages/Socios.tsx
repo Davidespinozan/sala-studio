@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ChevronRight } from 'lucide-react';
-import { useAuth } from '@shared/hooks/useAuth';
-import { TenantLogo } from '@shared/components/TenantLogo';
+import { PageHeader } from '@shared/components/PageHeader';
 import { useSocios, type SocioListItem } from '../hooks/useSocios';
 
 function iniciales(nombre: string | null): string {
@@ -44,7 +43,6 @@ function guardarQuery(value: string): void {
 }
 
 export default function Socios() {
-  const { signOut, usuario } = useAuth();
   const [q, setQ] = useState<string>(() => leerQueryGuardada());
   const { socios, isLoading, error } = useSocios(q);
 
@@ -55,34 +53,8 @@ export default function Socios() {
 
   return (
     <div className="ek-page">
-      <header className="ek-header-glass">
-        <div
-          className="ek-header-inner"
-          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-        >
-          <div>
-            <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '4px', fontSize: '10px' }}>
-              RECEPCIÓN
-            </p>
-            <TenantLogo variant="completo" height={36} fallbackFontSize={28} showSuffix />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '13px', color: 'var(--ek-ink-muted)' }}>
-              {usuario?.nombre ?? ''}
-            </span>
-            <button
-              onClick={signOut}
-              className="ek-icon-btn"
-              style={{ width: 'auto', padding: '8px 14px', fontSize: '13px' }}
-            >
-              Salir
-            </button>
-          </div>
-        </div>
-      </header>
-
       <div style={{ maxWidth: '640px', margin: '0 auto', padding: '20px' }}>
-        <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>SOCIOS</p>
+        <PageHeader eyebrow="RECEPCIÓN" title="Socios" subtitle="Buscá por nombre o teléfono" />
 
         {/* Buscador */}
         <div style={{ position: 'relative', marginBottom: '18px' }}>
