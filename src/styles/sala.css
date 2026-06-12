@@ -467,13 +467,13 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     position: sticky;
     top: 0;
     z-index: 10;
-    /* Tinte CLARO de la marca: el header (donde va el logo) hereda el color
-       elegido, como el sidebar/nav. Claro —no inmersivo— porque los logos
-       suelen ser oscuros sobre transparente y se perderían en un fondo oscuro. */
-    background: var(--sala-primary-light);
+    /* MISMO color de marca que la barra de botones (.ek-bottom-nav): el header
+       (donde va el logo) usa --grad-immersive para que zona-logo y barra-menú
+       sean el mismo primario, igual que el sidebar de admin/recepción. */
+    background: var(--grad-immersive);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--sala-primary-soft);
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
     padding: 14px 0;
   }
 
@@ -1733,14 +1733,31 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--sala-border-strong);
-    background: rgba(250, 250, 247, 0.85);
+    /* MISMO primario de marca que el sidebar/nav: la franja del logo en mobile
+       usa --grad-immersive (admin + recepción), no el gris claro anterior. */
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+    background: var(--grad-immersive);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     position: sticky;
     top: 0;
     z-index: 10;
     height: 56px;
+  }
+
+  /* Hamburguesa + eyebrow legibles sobre el fondo oscuro del topbar. */
+  .adm-topbar-mobile .ek-icon-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.92);
+  }
+  .adm-topbar-mobile .ek-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.30);
+    color: #fff;
+  }
+  .adm-topbar-mobile .ek-eyebrow {
+    color: rgba(255, 255, 255, 0.70);
   }
 
   @media (min-width: 1024px) {
