@@ -93,6 +93,7 @@ export function Ficha({ data }: { data: SocioFichaData }) {
           padding: '20px',
           color: '#fff',
           marginBottom: '12px',
+          boxShadow: '0 8px 24px var(--sala-primary-shadow-strong, var(--sala-primary-shadow))',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -125,11 +126,11 @@ export function Ficha({ data }: { data: SocioFichaData }) {
             <span
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '10px',
-                fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase',
+                fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                 padding: '4px 10px', borderRadius: '999px',
-                background: `color-mix(in srgb, ${badge.token} 26%, transparent)`,
+                background: `color-mix(in srgb, ${badge.token} 18%, transparent)`,
                 color: estado === 'sin_plan' ? 'rgba(255,255,255,0.7)' : `color-mix(in srgb, ${badge.token}, white 55%)`,
-                border: `1px solid color-mix(in srgb, ${badge.token} 50%, transparent)`,
+                border: `0.5px solid color-mix(in srgb, ${badge.token} 35%, transparent)`,
               }}
             >
               {badge.dot} {badge.label}
@@ -212,7 +213,7 @@ export function Ficha({ data }: { data: SocioFichaData }) {
             return (
               <div
                 key={r.id}
-                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 0', borderTop: i === 0 ? 'none' : '0.5px solid var(--sala-border)' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 0', borderTop: i === 0 ? 'none' : '1px solid var(--sala-border-subtle, var(--sala-border))' }}
               >
                 <div style={{ fontFamily: 'var(--ek-font-display)', fontWeight: 700, fontSize: '13.5px', minWidth: '70px' }}>
                   {f.dia} {f.hora}
@@ -345,9 +346,18 @@ function KV({ k, v, sub }: { k: string; v: string; sub?: string }) {
 
 function Stat({ n, l }: { n: string; l: string }) {
   return (
-    <div style={{ flex: 1, textAlign: 'center' }}>
-      <div style={{ fontFamily: 'var(--ek-font-display)', fontSize: '19px', fontWeight: 700 }}>{n}</div>
-      <div style={{ fontSize: '10px', color: 'var(--sala-text-tertiary)', fontWeight: 600 }}>{l}</div>
+    <div style={{ flex: 1 }}>
+      <div
+        style={{
+          textAlign: 'center',
+          background: 'var(--sala-primary-light)',
+          borderRadius: 'var(--ek-r-md)',
+          padding: '10px 8px',
+        }}
+      >
+        <div style={{ fontFamily: 'var(--ek-font-display)', fontSize: '19px', fontWeight: 700, color: 'var(--sala-primary)' }}>{n}</div>
+        <div style={{ fontSize: '10px', color: 'var(--sala-text-tertiary)', fontWeight: 600 }}>{l}</div>
+      </div>
     </div>
   );
 }
