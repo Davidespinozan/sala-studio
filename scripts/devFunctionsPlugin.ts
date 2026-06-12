@@ -44,7 +44,14 @@ export function devFunctionsPlugin(): Plugin {
             for await (const chunk of req) chunks.push(chunk as Buffer);
             const body = Buffer.concat(chunks).toString('utf8');
 
-            const mod = await server.ssrLoadModule(`/netlify/functions/${nombre}.ts`);
+            // Las functions pueden ser archivo plano (`<nombre>.ts`) o directorio
+            // (`<nombre>/index.ts`). Intentamos plano primero, luego index.
+            let mod: unknown;
+            try {
+              mod = await server.ssrLoadModule(`/netlify/functions/${nombre}.ts`);
+            } catch {
+              mod = await server.ssrLoadModule(`/netlify/functions/${nombre}/index.ts`);
+            }
             const handler = (mod as { handler?: unknown }).handler;
             if (typeof handler !== 'function') {
               throw new Error(`La función "${nombre}" no exporta un handler.`);

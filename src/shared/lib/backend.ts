@@ -27,6 +27,28 @@ export async function backendPost<T>(path: string, body?: unknown): Promise<T> {
     headers: { ...headers, 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined
   });
-  if (!res.ok) throw new Error(`backendPost ${path}: ${res.status}`);
+  if (!res.ok) {
+    // Incluir el motivo real del body (la function devuelve { error: '…' }) en
+    // vez de solo el status, para no diagnosticar a ciegas.
+    let detail = '';
+    try {
+      const text = await res.text();
+      if (text) {
+        try {
+          const json = JSON.parse(text);
+          detail = json?.error || json?.message || text;
+        } catch {
+          detail = text;
+        }
+      }
+    } catch {
+      // sin body legible → ignorar
+    }
+    throw new Error(
+      detail
+        ? `backendPost ${path}: ${res.status} — ${detail}`
+        : `backendPost ${path}: ${res.status}`
+    );
+  }
   return res.json() as Promise<T>;
 }
