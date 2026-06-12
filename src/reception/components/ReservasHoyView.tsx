@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Check, CalendarClock } from 'lucide-react';
 import { useReservasHoy, checkInManual, type ReservaConJoin } from '../hooks/useReservasHoy';
 import { playCheckInSuccess, playCheckInError } from '../lib/checkInFeedback';
+import { EmptyState } from '@shared/components/EmptyState';
 
 interface Props {
   onManualCheckInSuccess?: (data: any) => void;
@@ -214,23 +215,11 @@ export function ReservasHoyView({ onManualCheckInSuccess }: Props = {}) {
           {esHoy ? 'RESTO DEL DÍA' : 'RESERVAS DEL DÍA'}
         </p>
         {resto.length === 0 ? (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            textAlign: 'center',
-            gap: '10px',
-            padding: '40px 20px',
-            color: 'var(--sala-text-tertiary)'
-          }}>
-            <CalendarClock size={32} strokeWidth={1.5} />
-            <p className="ek-body" style={{ margin: 0, color: 'var(--sala-text-secondary)', fontWeight: 600 }}>
-              {esHoy ? 'No hay más reservas para este día.' : 'No hay reservas para este día.'}
-            </p>
-            <p className="ek-body-faint" style={{ margin: 0 }}>
-              {esHoy ? 'Volvé en un rato para ver nuevas llegadas.' : 'Probá con otro día desde el selector de arriba.'}
-            </p>
-          </div>
+          <EmptyState
+            icon={CalendarClock}
+            title={esHoy ? 'No hay más reservas para este día.' : 'No hay reservas para este día.'}
+            subtitle={esHoy ? 'Volvé en un rato para ver nuevas llegadas.' : 'Probá con otro día desde el selector de arriba.'}
+          />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {resto.map((r) => (

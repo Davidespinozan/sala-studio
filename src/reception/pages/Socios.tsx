@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ChevronRight } from 'lucide-react';
 import { PageHeader } from '@shared/components/PageHeader';
+import { EmptyState } from '@shared/components/EmptyState';
 import { useSocios, type SocioListItem } from '../hooks/useSocios';
 
 function iniciales(nombre: string | null): string {
@@ -103,15 +104,11 @@ export default function Socios() {
             ))}
           </div>
         ) : socios.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--sala-text-tertiary)' }}>
-            <Search size={30} strokeWidth={1.5} style={{ marginBottom: '10px' }} />
-            <p className="ek-body" style={{ margin: 0, color: 'var(--sala-text-secondary)', fontWeight: 600 }}>
-              {q.trim() ? 'Sin resultados' : 'Sin socios todavía'}
-            </p>
-            <p className="ek-body-faint" style={{ margin: '4px 0 0' }}>
-              {q.trim() ? 'Probá con otro nombre o teléfono.' : 'Los socios aparecen acá al darlos de alta.'}
-            </p>
-          </div>
+          <EmptyState
+            icon={Search}
+            title={q.trim() ? 'Sin resultados' : 'Sin socios todavía'}
+            subtitle={q.trim() ? 'Probá con otro nombre o teléfono.' : 'Los socios aparecen acá al darlos de alta.'}
+          />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {socios.map((s) => (

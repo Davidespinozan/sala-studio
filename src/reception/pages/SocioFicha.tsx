@@ -1,5 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
+import { UserX } from 'lucide-react';
 import { PageHeader } from '@shared/components/PageHeader';
+import { EmptyState } from '@shared/components/EmptyState';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData } from '../hooks/useSocioFicha';
 
 // ── Helpers de formato ──────────────────────────────────────────────────────
@@ -60,14 +62,15 @@ export default function SocioFicha() {
         {isLoading ? (
           <FichaSkeleton />
         ) : error || !data ? (
-          <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--sala-text-tertiary)' }}>
-            <p className="ek-body" style={{ color: 'var(--sala-text-secondary)', fontWeight: 600 }}>
-              {error ?? 'No encontramos ese socio.'}
-            </p>
-            <Link to="/recepcion/socios" className="ek-cta ek-cta--secondary" style={{ marginTop: '14px' }}>
-              Volver a socios
-            </Link>
-          </div>
+          <EmptyState
+            icon={UserX}
+            title={error ?? 'No encontramos ese socio.'}
+            action={
+              <Link to="/recepcion/socios" className="ek-cta ek-cta--secondary">
+                Volver a socios
+              </Link>
+            }
+          />
         ) : (
           <Ficha data={data} />
         )}
