@@ -7,6 +7,7 @@ import { DemoBanner } from '@shared/components/DemoBanner';
 import NotificacionesBanner from './components/NotificacionesBanner';
 import EstadoMembresiaBanner from './components/EstadoMembresiaBanner';
 import { BottomNav } from './components/BottomNav';
+import { MembresiaPendiente } from './components/MembresiaPendiente';
 import { TenantGuard } from '@shared/components/TenantGuard';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
@@ -41,7 +42,8 @@ export default function MemberLayout() {
   useEffect(() => {
     if (isLoading) return;
     if (!authUser || !usuario) return;
-    if (usuario.status === 'activo') return;
+    // 'activo' entra; 'pendiente_pago' ve la pantalla de pendiente (no se expulsa).
+    if (usuario.status === 'activo' || usuario.status === 'pendiente_pago') return;
     if (yaCerrado.current) return;
     yaCerrado.current = true;
 
@@ -52,6 +54,15 @@ export default function MemberLayout() {
 
   if (isLoading) return <LoadingScreen />;
   if (!authUser) return <Navigate to="/login" state={{ from: location }} replace />;
+  // Pendiente de pago: queda logueado viendo el estado, recepción lo activa.
+  if (usuario && usuario.status === 'pendiente_pago') {
+    return (
+      <TenantGuard>
+        <MembresiaPendiente nombre={usuario.nombre} onCerrarSesion={() => signOut()} />
+      </TenantGuard>
+    );
+  }
+  // Otros status no-activos (suspendido/cancelado/pendiente_onboarding) → login.
   if (usuario && usuario.status !== 'activo') {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }

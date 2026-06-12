@@ -6,6 +6,16 @@ import {
 } from '../hooks/useAdminData';
 
 type Rol = 'miembro' | 'recepcionista' | 'staff' | 'admin';
+type FormaActivacion = 'efectivo' | 'transferencia' | 'cortesia';
+
+// Asignar un plan activa al miembro (gestionar_membresia_socio pasa el status a
+// 'activo'). Acá NO se cobra plata — solo se registra CÓMO se activó, en el
+// motivo del movimiento de membresía.
+const MOTIVO_ALTA: Record<FormaActivacion, string> = {
+  efectivo: 'Alta con pago en efectivo',
+  transferencia: 'Alta con pago por transferencia',
+  cortesia: 'Alta de cortesía (sin cargo)',
+};
 
 interface Props {
   onClose: () => void;
@@ -22,6 +32,7 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
   // tier_id (uuid) o '' para "sin plan". Antes era slug hardcoded — ahora se
   // resuelve desde useTiersAdmin, así soporta tiers custom del tenant.
   const [tierId, setTierId] = useState<string>('');
+  const [formaActivacion, setFormaActivacion] = useState<FormaActivacion>('efectivo');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ email: string; password: string; rol: string } | null>(null);
@@ -66,7 +77,7 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
         const { error: memErr } = await gestionarMembresiaSocio({
           usuario_id: res.user.id,
           tier_id: tierId,
-          motivo: 'alta inicial desde NuevaPersonaModal'
+          motivo: MOTIVO_ALTA[formaActivacion]
         });
         if (memErr) {
           // El usuario YA está creado. La membresía no — mejor avisar y
@@ -209,8 +220,28 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
                 ))}
               </select>
               <p className="ek-helper-text">
-                Si no asignas plan, el miembro queda en pendiente_pago hasta cobrar.
-                Cargás la membresía después desde su perfil.
+                Con plan, el miembro queda <strong>activo</strong> y puede entrar enseguida.
+                Sin plan, queda en pendiente_pago hasta que lo actives desde su perfil.
+              </p>
+            </div>
+          )}
+
+          {rol === 'miembro' && tierId && (
+            <div className="ek-form-field">
+              <label className="ek-label" htmlFor="np-activacion">Activación</label>
+              <select
+                id="np-activacion"
+                value={formaActivacion}
+                onChange={(e) => setFormaActivacion(e.target.value as FormaActivacion)}
+                className="ek-input"
+              >
+                <option value="efectivo">Activar — pagó en efectivo</option>
+                <option value="transferencia">Activar — pagó por transferencia</option>
+                <option value="cortesia">Cortesía / gratis (sin cargo)</option>
+              </select>
+              <p className="ek-helper-text">
+                Queda registrado en la bitácora de la membresía. (No cobra plata acá;
+                solo activa y anota cómo se hizo.)
               </p>
             </div>
           )}
