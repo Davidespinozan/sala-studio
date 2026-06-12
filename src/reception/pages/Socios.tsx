@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ChevronRight } from 'lucide-react';
 import { useAuth } from '@shared/hooks/useAuth';
@@ -11,10 +11,47 @@ function iniciales(nombre: string | null): string {
   return (t[0][0] + (t[1]?.[0] ?? '')).toUpperCase();
 }
 
+// Persistencia de la última búsqueda: F5 reabre el buscador donde estaba.
+// Se ignora si lo guardado tiene > 1h (una búsqueda vieja no es relevante).
+const QUERY_KEY = 'sala-recepcion-socios-query';
+const QUERY_TTL_MS = 3600000;
+
+function leerQueryGuardada(): string {
+  try {
+    const raw = localStorage.getItem(QUERY_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { value?: string; savedAt?: number };
+      if (
+        typeof parsed.value === 'string' &&
+        typeof parsed.savedAt === 'number' &&
+        Date.now() - parsed.savedAt <= QUERY_TTL_MS
+      ) {
+        return parsed.value;
+      }
+    }
+  } catch {
+    // localStorage no disponible / JSON inválido → default ''
+  }
+  return '';
+}
+
+function guardarQuery(value: string): void {
+  try {
+    localStorage.setItem(QUERY_KEY, JSON.stringify({ value, savedAt: Date.now() }));
+  } catch {
+    // private mode / quota → no-op
+  }
+}
+
 export default function Socios() {
   const { signOut, usuario } = useAuth();
-  const [q, setQ] = useState('');
-  const { socios, isLoading } = useSocios(q);
+  const [q, setQ] = useState<string>(() => leerQueryGuardada());
+  const { socios, isLoading, error } = useSocios(q);
+
+  // Persistir la búsqueda cada vez que cambia.
+  useEffect(() => {
+    guardarQuery(q);
+  }, [q]);
 
   return (
     <div className="ek-page">
@@ -70,6 +107,22 @@ export default function Socios() {
             style={{ paddingLeft: '42px', minHeight: '48px', fontSize: '15px' }}
           />
         </div>
+
+        {error && (
+          <div
+            style={{
+              background: 'var(--ek-danger-soft)',
+              border: '1px solid var(--sala-error-glow)',
+              color: 'var(--ek-danger)',
+              borderRadius: 'var(--ek-r-md)',
+              padding: '10px 12px',
+              marginBottom: '14px',
+              fontSize: '0.875rem',
+            }}
+          >
+            {error}
+          </div>
+        )}
 
         {isLoading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

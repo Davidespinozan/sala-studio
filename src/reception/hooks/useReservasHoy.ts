@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useVisibilityAwarePolling } from '@shared/hooks/useVisibilityAwarePolling';
 import type { Database } from '@shared/types/database';
 
 type Reserva = Database['public']['Tables']['reservas']['Row'];
@@ -46,11 +47,13 @@ export function useReservasHoy(fecha?: Date) {
     setIsLoading(false);
   }, [tenant.id, fechaMs]);
 
+  // Carga inicial + recarga al cambiar de día (cambia la identidad de refetch).
   useEffect(() => {
     refetch();
-    const interval = setInterval(refetch, 30_000);
-    return () => clearInterval(interval);
   }, [refetch]);
+
+  // Polling cada 30s que se pausa con la pestaña en background y refetchea al volver.
+  useVisibilityAwarePolling(refetch, 30_000);
 
   return { reservas, isLoading, refetch };
 }

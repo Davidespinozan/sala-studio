@@ -5,6 +5,7 @@ import { ReservasHoyView } from '../components/ReservasHoyView';
 import { CheckInDetail } from '../components/CheckInDetail';
 import { CameraModal } from '../components/CameraModal';
 import { useScannerHID } from '../hooks/useScannerHID';
+import { playCheckInSuccess, playCheckInError } from '../lib/checkInFeedback';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
 
@@ -45,12 +46,15 @@ export default function Scanner() {
     try {
       const res = await backendPost<VerifyResponse>('qr-verify', { qr_payload: qrPayload });
       if (res.success && res.data) {
+        playCheckInSuccess();
         setDetail({ kind: 'success', data: res.data });
       } else {
+        playCheckInError();
         setDetail({ kind: 'error', message: res.message ?? 'QR no válido' });
       }
       setRefreshTick((t) => t + 1);
     } catch (e) {
+      playCheckInError();
       setDetail({ kind: 'error', message: e instanceof Error ? e.message : 'Error verificando QR' });
     }
   }, []);

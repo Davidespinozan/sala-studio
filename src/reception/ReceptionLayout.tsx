@@ -10,8 +10,6 @@ import { AppSidebar, type AppNavSection } from '@shared/components/AppSidebar';
 const Scanner = lazy(() => import('./pages/Scanner'));
 const Socios = lazy(() => import('./pages/Socios'));
 const SocioFicha = lazy(() => import('./pages/SocioFicha'));
-// TEMP-PREVIEW · se borra antes del commit final del Sub-round 1
-const SocioFichaPreview = lazy(() => import('./pages/SocioFichaPreview'));
 
 // Nav de RECEPCIÓN — plana (sin secciones colapsables), 2 destinos.
 const RECEPCION_SECTIONS: AppNavSection[] = [
@@ -54,8 +52,6 @@ export default function ReceptionLayout() {
             <Routes>
               <Route path="/" element={<Scanner />} />
               <Route path="/socios" element={<Socios />} />
-              {/* TEMP-PREVIEW · se borra antes del commit final del Sub-round 1 · va ANTES de :id (segmento estático gana) */}
-              <Route path="/socios/_preview" element={<SocioFichaPreview />} />
               <Route path="/socios/:id" element={<SocioFicha />} />
             </Routes>
           </Suspense>

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
+import { translateReadError } from '../lib/traducirErrorLectura';
 
 /** Item de la lista de socios (buscador de recepción). Solo lectura. */
 export interface SocioListItem {
@@ -12,50 +13,75 @@ export interface SocioListItem {
   status: string;
 }
 
+// Normaliza para búsqueda insensible a acentos: "José" ≈ "Jose". Postgres ilike
+// NO ignora diacríticos, por eso el filtrado es en cliente (no server-side).
+const normalize = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
 /**
- * Buscador de socios (read-only). Lista miembros del tenant filtrando por
- * nombre / teléfono / email. RLS ya scopea por tenant (usuarios_read_admin
- * acepta recepción). Debounced. Sin query → primeros 30 por nombre.
+ * Buscador de socios (read-only). Carga el padrón completo del tenant UNA vez
+ * al montar (RLS ya scopea por tenant: usuarios_read_admin acepta recepción) y
+ * filtra EN CLIENTE con normalización NFD — así "Jose" encuentra "José", cosa
+ * que ilike de Postgres no hace.
+ *
+ * LIMITACIÓN DE ESCALA: la carga tiene `limit(1000)`. Para gyms boutique
+ * (100-500 socios típico) sobra. Si algún tenant supera los 1000 socios, el
+ * filtrado client-side no encontrará a los del lugar 1001+; en ese caso habría
+ * que volver a un buscador server-side (con unaccent/trigram en Postgres) o
+ * paginar. Aceptable por ahora.
  */
 export function useSocios(query: string) {
-  const [socios, setSocios] = useState<SocioListItem[]>([]);
+  const [padron, setPadron] = useState<SocioListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Carga del padrón completo UNA sola vez al montar (no en cada keystroke).
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
-    // Sanitizar para no romper el filtro .or() de PostgREST (comas/paréntesis).
-    const q = query.trim().replace(/[,()*]/g, ' ').trim();
 
-    const timer = setTimeout(async () => {
-      let req = supabase
+    (async () => {
+      const { data, error: queryError } = await supabase
         .from('usuarios')
         .select('id, nombre, email, telefono, avatar_url, membresia_tier, status')
         .eq('rol', 'miembro')
         .order('nombre', { ascending: true })
-        .limit(30);
+        .limit(1000);
 
-      if (q) {
-        const like = `%${q}%`;
-        req = req.or(`nombre.ilike.${like},telefono.ilike.${like},email.ilike.${like}`);
-      }
-
-      const { data, error } = await req;
       if (cancelled) return;
-      if (error) {
-        console.error('[useSocios]', error);
-        setSocios([]);
+      if (queryError) {
+        setError(translateReadError(queryError));
+        setPadron([]);
       } else {
-        setSocios((data ?? []) as SocioListItem[]);
+        setError(null);
+        setPadron((data ?? []) as SocioListItem[]);
       }
       setIsLoading(false);
-    }, 220);
+    })();
 
     return () => {
       cancelled = true;
-      clearTimeout(timer);
     };
-  }, [query]);
+  }, []);
 
-  return { socios, isLoading };
+  // Filtrado local instantáneo (solo CPU, sin debounce ni race conditions).
+  const socios = useMemo(() => {
+    const term = query.trim();
+    if (!term) return padron.slice(0, 30); // sin query → primeros 30
+    const q = normalize(term);
+    return padron
+      .filter((s) => {
+        if (normalize(s.nombre ?? '').includes(q)) return true;
+        if (normalize(s.email ?? '').includes(q)) return true;
+        // Teléfono sin normalizar (los números no tienen acentos).
+        if ((s.telefono ?? '').includes(term)) return true;
+        return false;
+      })
+      .slice(0, 50); // tope 50 (más amplio que server-side porque es local)
+  }, [padron, query]);
+
+  return { socios, isLoading, error };
 }

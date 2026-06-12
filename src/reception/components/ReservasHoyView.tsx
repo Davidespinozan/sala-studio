@@ -1,9 +1,46 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Check, CalendarClock } from 'lucide-react';
 import { useReservasHoy, checkInManual, type ReservaConJoin } from '../hooks/useReservasHoy';
+import { playCheckInSuccess, playCheckInError } from '../lib/checkInFeedback';
 
 interface Props {
   onManualCheckInSuccess?: (data: any) => void;
+}
+
+// Persistencia del día visto: si el recepcionista cambia de día, F5 no lo
+// resetea. Se ignora si lo guardado tiene > 7 días (no abrir una vista vieja).
+const FECHA_KEY = 'sala-recepcion-hoy-fecha';
+const FECHA_TTL_MS = 7 * 86400000;
+
+function leerFechaGuardada(): Date {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  try {
+    const raw = localStorage.getItem(FECHA_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { value?: number; savedAt?: number };
+      if (
+        typeof parsed.value === 'number' &&
+        typeof parsed.savedAt === 'number' &&
+        Date.now() - parsed.savedAt <= FECHA_TTL_MS
+      ) {
+        const d = new Date(parsed.value);
+        d.setHours(0, 0, 0, 0);
+        if (!Number.isNaN(d.getTime())) return d;
+      }
+    }
+  } catch {
+    // localStorage no disponible / JSON inválido → default hoy
+  }
+  return hoy;
+}
+
+function guardarFecha(d: Date): void {
+  try {
+    localStorage.setItem(FECHA_KEY, JSON.stringify({ value: d.getTime(), savedAt: Date.now() }));
+  } catch {
+    // private mode / quota → no-op
+  }
 }
 
 function capitalizarNombre(s: string | undefined | null): string {
@@ -36,13 +73,14 @@ function formatearDia(fecha: Date): string {
 }
 
 export function ReservasHoyView({ onManualCheckInSuccess }: Props = {}) {
-  const [fechaSeleccionada, setFechaSeleccionada] = useState(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<Date>(() => leerFechaGuardada());
   const { reservas, isLoading, refetch } = useReservasHoy(fechaSeleccionada);
   const [selected, setSelected] = useState<ReservaConJoin | null>(null);
+
+  // Persistir el día visto cada vez que cambia.
+  useEffect(() => {
+    guardarFecha(fechaSeleccionada);
+  }, [fechaSeleccionada]);
 
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
@@ -364,8 +402,10 @@ function ManualCheckInModal({
     setError(null);
     try {
       const result = await checkInManual(reserva.id, motivo.trim() || undefined);
+      playCheckInSuccess();
       await onDone(result);
     } catch (e) {
+      playCheckInError();
       setError(e instanceof Error ? e.message : 'Error en check-in');
       setSubmitting(false);
     }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
+import { translateReadError } from '../lib/traducirErrorLectura';
 
 /** Estado de membresía mapeado a las 4 variantes visuales de la ficha. */
 export type EstadoMembresia = 'activa' | 'pausada' | 'vencida' | 'sin_plan';
@@ -180,8 +181,7 @@ export function useSocioFicha(id: string | undefined) {
         setIsLoading(false);
       } catch (err) {
         if (cancelled) return;
-        console.error('[useSocioFicha]', err);
-        setError('No pudimos cargar la ficha del socio.');
+        setError(translateReadError(err));
         setIsLoading(false);
       }
     })();
