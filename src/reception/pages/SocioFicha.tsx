@@ -139,7 +139,7 @@ export function Ficha({ data }: { data: SocioFichaData }) {
       <FichaAlerta data={data} />
 
       {/* MEMBRESÍA */}
-      <div className="ek-card" style={{ marginBottom: '12px', padding: '15px' }}>
+      <div className="ek-card ek-card--md" style={{ marginBottom: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
           <span className="ek-eyebrow">MEMBRESÍA</span>
           {membresia?.tierNombre && (
@@ -191,7 +191,7 @@ export function Ficha({ data }: { data: SocioFichaData }) {
       </div>
 
       {/* PRÓXIMAS RESERVAS */}
-      <div className="ek-card" style={{ marginBottom: '12px', padding: '15px' }}>
+      <div className="ek-card ek-card--md" style={{ marginBottom: '12px' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '9px' }}>PRÓXIMAS RESERVAS</p>
         {reservas.length === 0 ? (
           <p style={{ textAlign: 'center', color: 'var(--sala-text-tertiary)', fontSize: '13px', padding: '6px 0', margin: 0 }}>
@@ -232,7 +232,7 @@ export function Ficha({ data }: { data: SocioFichaData }) {
       </div>
 
       {/* ASISTENCIA */}
-      <div className="ek-card" style={{ marginBottom: '12px', padding: '15px' }}>
+      <div className="ek-card ek-card--md" style={{ marginBottom: '12px' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '9px' }}>ASISTENCIA</p>
         <div style={{ display: 'flex', gap: '8px' }}>
           <Stat n={String(asistencia.semana)} l="semana" />
@@ -242,7 +242,7 @@ export function Ficha({ data }: { data: SocioFichaData }) {
       </div>
 
       {/* NOTAS SOBRE EL SOCIO (read-only) */}
-      <div className="ek-card" style={{ padding: '15px' }}>
+      <div className="ek-card ek-card--md">
         <p className="ek-eyebrow" style={{ marginBottom: '9px' }}>NOTAS SOBRE EL SOCIO</p>
         {socio.notas_admin && socio.notas_admin.trim() ? (
           <p style={{ fontSize: '13.5px', lineHeight: 1.5, color: 'var(--sala-text-primary)', margin: 0, whiteSpace: 'pre-wrap' }}>

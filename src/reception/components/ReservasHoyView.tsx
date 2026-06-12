@@ -124,15 +124,13 @@ export function ReservasHoyView({ onManualCheckInSuccess }: Props = {}) {
   return (
     <div className="rec-hoy" style={{ paddingBottom: '110px' }}>
       <div
+        className="ek-card ek-card--md"
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           marginBottom: '20px',
-          padding: '6px',
-          background: 'var(--ek-bg-soft)',
-          border: '0.5px solid var(--ek-line)',
-          borderRadius: 'var(--ek-r-md)'
+          padding: '8px'
         }}
       >
         <button
@@ -317,17 +315,13 @@ function ReservaCard({
         gap: '16px',
         padding: '16px 18px',
         textAlign: 'left',
-        background: 'var(--ek-bg-soft)',
-        border: highlight
-          ? '0.5px solid var(--sala-accent-dim)'
-          : '0.5px solid var(--ek-line)',
+        border: highlight ? '1px solid var(--sala-accent-dim)' : undefined,
         borderRadius: 'var(--ek-r-md)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         font: 'inherit',
         color: 'inherit',
         width: '100%',
-        opacity: disabled ? 0.55 : 1,
-        boxShadow: highlight ? '0 0 0 1px var(--sala-accent-dim)' : 'none'
+        opacity: disabled ? 0.55 : 1
       }}
     >
       <div
