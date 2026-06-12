@@ -1,13 +1,11 @@
-import { useState } from 'react';
-import { X } from 'lucide-react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { useAdminGuard } from './hooks/useAdminGuard';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
+import { AppShell } from '@shared/components/AppShell';
 import { Sidebar } from './components/Sidebar';
 import { SucursalProvider } from './providers/SucursalProvider';
 import { SucursalSelectorBar } from './components/SucursalSelectorBar';
-import { TenantLogo } from '@shared/components/TenantLogo';
 
 const Dashboard = lazy(() => import('./pages/AdminDashboard'));
 const Miembros = lazy(() => import('./pages/Miembros'));
@@ -29,74 +27,12 @@ const Suscripcion = lazy(() => import('./pages/Suscripcion'));
 
 export default function AdminLayout() {
   const { isLoading } = useAdminGuard();
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   if (isLoading) return <LoadingScreen />;
 
   return (
     <SucursalProvider>
-    <div className="adm-shell">
-      <div className="adm-sidebar-desktop">
-        <Sidebar />
-      </div>
-
-      {drawerOpen && (
-        <div className="adm-drawer-backdrop" onClick={() => setDrawerOpen(false)}>
-          <div className="adm-drawer" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setDrawerOpen(false)}
-              aria-label="Cerrar menú"
-              className="ek-icon-btn"
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: '16px',
-                width: '36px',
-                height: '36px',
-                padding: 0,
-                zIndex: 2,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <X size={18} strokeWidth={2.25} />
-            </button>
-            <Sidebar onNavigate={() => setDrawerOpen(false)} />
-          </div>
-        </div>
-      )}
-
-      <div className="adm-content">
-        <header className="adm-topbar-mobile">
-          <button
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Abrir menú"
-            className="ek-icon-btn"
-            style={{ width: '40px', height: '40px', padding: 0 }}
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <TenantLogo variant="completo" height={34} fallbackFontSize={28} showSuffix={false} />
-            <span className="ek-eyebrow" style={{ fontSize: '9px' }}>ADMIN</span>
-          </div>
-          <div style={{ width: '40px' }} />
-        </header>
-
+      <AppShell sidebar={({ onNavigate }) => <Sidebar onNavigate={onNavigate} />} roleLabel="ADMIN">
         <SucursalSelectorBar />
 
         <main className="adm-main">
@@ -125,8 +61,7 @@ export default function AdminLayout() {
             </Routes>
           </Suspense>
         </main>
-      </div>
-    </div>
+      </AppShell>
     </SucursalProvider>
   );
 }
