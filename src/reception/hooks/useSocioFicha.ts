@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { translateReadError } from '../lib/traducirErrorLectura';
 
@@ -10,6 +10,7 @@ export interface FichaMembresia {
   estado: EstadoMembresia;
   periodoFin: string | null;       // ISO; vence (membresias.periodo_actual_fin)
   creditos: number | null;          // null = plan por tiempo (ilimitado)
+  tierId: string | null;            // para excluir el plan actual al cambiar
   tierNombre: string | null;
   tierTipo: string | null;          // 'tiempo' | 'creditos' | 'hibrido'
 }
@@ -51,7 +52,7 @@ interface MembresiaQueryRow {
   status: string;
   periodo_actual_fin: string | null;
   creditos_restantes: number | null;
-  tier: { nombre: string | null; tipo: string | null } | { nombre: string | null; tipo: string | null }[] | null;
+  tier: { id: string; nombre: string | null; tipo: string | null } | { id: string; nombre: string | null; tipo: string | null }[] | null;
 }
 interface ReservaQueryRow {
   id: string;
@@ -75,121 +76,122 @@ function unwrap<T>(v: T | T[] | null | undefined): T | null {
 
 /**
  * Carga la ficha completa de un socio (read-only): datos, membresía + tier,
- * próximas reservas, asistencia (semana/mes/%), y notas. Todo legible por
- * recepción vía RLS — sin RPC nuevo.
+ * próximas reservas, asistencia (semana/mes/%), y notas. Expone refetch() para
+ * refrescar después de una acción. Una guardia por request (reqIdRef) descarta
+ * respuestas viejas (cambio de id o refetch concurrente).
  */
 export function useSocioFicha(id: string | undefined) {
   const [data, setData] = useState<SocioFichaData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const reqIdRef = useRef(0);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!id) return;
-    let cancelled = false;
+    const myReq = ++reqIdRef.current;
     setIsLoading(true);
     setError(null);
 
-    (async () => {
-      try {
-        const { data: socioRow, error: e1 } = await supabase
-          .from('usuarios')
-          .select('id, nombre, email, telefono, avatar_url, status, bloqueado_hasta, notas_admin')
-          .eq('id', id)
-          .maybeSingle();
-        if (e1) throw e1;
-        if (!socioRow) {
-          if (!cancelled) {
-            setError('No encontramos ese socio.');
-            setIsLoading(false);
-          }
-          return;
+    try {
+      const { data: socioRow, error: e1 } = await supabase
+        .from('usuarios')
+        .select('id, nombre, email, telefono, avatar_url, status, bloqueado_hasta, notas_admin')
+        .eq('id', id)
+        .maybeSingle();
+      if (e1) throw e1;
+      if (!socioRow) {
+        if (reqIdRef.current === myReq) {
+          setError('No encontramos ese socio.');
+          setIsLoading(false);
         }
-
-        // Membresía más reciente (cualquier status) para conocer el estado real.
-        const { data: memData } = await supabase
-          .from('membresias')
-          .select('status, periodo_actual_fin, creditos_restantes, tier:tiers(nombre, tipo)')
-          .eq('usuario_id', id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const mem = memData as MembresiaQueryRow | null;
-
-        // Próximas reservas confirmadas.
-        const nowISO = new Date().toISOString();
-        const { data: reservasData } = await supabase
-          .from('reservas')
-          .select('id, slot_inicio, slot_fin, recurso:recursos(nombre)')
-          .eq('usuario_id', id)
-          .eq('status', 'confirmada')
-          .gte('slot_inicio', nowISO)
-          .order('slot_inicio', { ascending: true })
-          .limit(5);
-
-        // Asistencia: semana, mes, % (completadas / (completadas + no-shows)).
-        const now = new Date();
-        const startMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        const dow = now.getDay();
-        const backToMonday = dow === 0 ? 6 : dow - 1;
-        const monday = new Date(now);
-        monday.setDate(now.getDate() - backToMonday);
-        monday.setHours(0, 0, 0, 0);
-        const startWeek = monday.toISOString();
-
-        const [semanaRes, mesRes, compRes, noShowRes] = await Promise.all([
-          supabase.from('reservas').select('id', { count: 'exact', head: true })
-            .eq('usuario_id', id).eq('status', 'completada').gte('slot_inicio', startWeek),
-          supabase.from('reservas').select('id', { count: 'exact', head: true })
-            .eq('usuario_id', id).eq('status', 'completada').gte('slot_inicio', startMonth),
-          supabase.from('reservas').select('id', { count: 'exact', head: true })
-            .eq('usuario_id', id).eq('status', 'completada'),
-          supabase.from('reservas').select('id', { count: 'exact', head: true })
-            .eq('usuario_id', id).eq('status', 'no_show'),
-        ]);
-
-        const comp = compRes.count ?? 0;
-        const ns = noShowRes.count ?? 0;
-        const pct = comp + ns > 0 ? Math.round((comp / (comp + ns)) * 100) : null;
-
-        const tier = unwrap(mem?.tier);
-        const membresia: FichaMembresia | null = mem
-          ? {
-              status: mem.status,
-              estado: mapEstado(mem.status),
-              periodoFin: mem.periodo_actual_fin,
-              creditos: mem.creditos_restantes,
-              tierNombre: tier?.nombre ?? null,
-              tierTipo: tier?.tipo ?? null,
-            }
-          : null;
-
-        const reservas: FichaReserva[] = ((reservasData ?? []) as ReservaQueryRow[]).map((r) => ({
-          id: r.id,
-          slot_inicio: r.slot_inicio,
-          slot_fin: r.slot_fin,
-          recursoNombre: unwrap(r.recurso)?.nombre ?? null,
-        }));
-
-        if (cancelled) return;
-        setData({
-          socio: socioRow as FichaSocio,
-          membresia,
-          estado: membresia?.estado ?? 'sin_plan',
-          reservas,
-          asistencia: { semana: semanaRes.count ?? 0, mes: mesRes.count ?? 0, pct },
-        });
-        setIsLoading(false);
-      } catch (err) {
-        if (cancelled) return;
-        setError(translateReadError(err));
-        setIsLoading(false);
+        return;
       }
-    })();
 
-    return () => {
-      cancelled = true;
-    };
+      // Membresía más reciente (cualquier status) para conocer el estado real.
+      const { data: memData } = await supabase
+        .from('membresias')
+        .select('status, periodo_actual_fin, creditos_restantes, tier:tiers(id, nombre, tipo)')
+        .eq('usuario_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const mem = memData as MembresiaQueryRow | null;
+
+      // Próximas reservas confirmadas.
+      const nowISO = new Date().toISOString();
+      const { data: reservasData } = await supabase
+        .from('reservas')
+        .select('id, slot_inicio, slot_fin, recurso:recursos(nombre)')
+        .eq('usuario_id', id)
+        .eq('status', 'confirmada')
+        .gte('slot_inicio', nowISO)
+        .order('slot_inicio', { ascending: true })
+        .limit(5);
+
+      // Asistencia: semana, mes, % (completadas / (completadas + no-shows)).
+      const now = new Date();
+      const startMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const dow = now.getDay();
+      const backToMonday = dow === 0 ? 6 : dow - 1;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - backToMonday);
+      monday.setHours(0, 0, 0, 0);
+      const startWeek = monday.toISOString();
+
+      const [semanaRes, mesRes, compRes, noShowRes] = await Promise.all([
+        supabase.from('reservas').select('id', { count: 'exact', head: true })
+          .eq('usuario_id', id).eq('status', 'completada').gte('slot_inicio', startWeek),
+        supabase.from('reservas').select('id', { count: 'exact', head: true })
+          .eq('usuario_id', id).eq('status', 'completada').gte('slot_inicio', startMonth),
+        supabase.from('reservas').select('id', { count: 'exact', head: true })
+          .eq('usuario_id', id).eq('status', 'completada'),
+        supabase.from('reservas').select('id', { count: 'exact', head: true })
+          .eq('usuario_id', id).eq('status', 'no_show'),
+      ]);
+
+      const comp = compRes.count ?? 0;
+      const ns = noShowRes.count ?? 0;
+      const pct = comp + ns > 0 ? Math.round((comp / (comp + ns)) * 100) : null;
+
+      const tier = unwrap(mem?.tier);
+      const membresia: FichaMembresia | null = mem
+        ? {
+            status: mem.status,
+            estado: mapEstado(mem.status),
+            periodoFin: mem.periodo_actual_fin,
+            creditos: mem.creditos_restantes,
+            tierId: tier?.id ?? null,
+            tierNombre: tier?.nombre ?? null,
+            tierTipo: tier?.tipo ?? null,
+          }
+        : null;
+
+      const reservas: FichaReserva[] = ((reservasData ?? []) as ReservaQueryRow[]).map((r) => ({
+        id: r.id,
+        slot_inicio: r.slot_inicio,
+        slot_fin: r.slot_fin,
+        recursoNombre: unwrap(r.recurso)?.nombre ?? null,
+      }));
+
+      if (reqIdRef.current !== myReq) return; // respuesta vieja → descartar
+      setData({
+        socio: socioRow as FichaSocio,
+        membresia,
+        estado: membresia?.estado ?? 'sin_plan',
+        reservas,
+        asistencia: { semana: semanaRes.count ?? 0, mes: mesRes.count ?? 0, pct },
+      });
+      setIsLoading(false);
+    } catch (err) {
+      if (reqIdRef.current !== myReq) return;
+      setError(translateReadError(err));
+      setIsLoading(false);
+    }
   }, [id]);
 
-  return { data, isLoading, error };
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return { data, isLoading, error, refetch: load };
 }

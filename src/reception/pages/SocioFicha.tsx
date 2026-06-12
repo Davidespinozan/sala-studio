@@ -1,8 +1,16 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { UserX } from 'lucide-react';
 import { PageHeader } from '@shared/components/PageHeader';
 import { EmptyState } from '@shared/components/EmptyState';
+import { RenovarMembresiaModal } from '../components/acciones/RenovarMembresiaModal';
+import { CambiarPlanModal } from '../components/acciones/CambiarPlanModal';
+import { RecargarCreditosModal } from '../components/acciones/RecargarCreditosModal';
+import { PausarReactivarMembresiaModal } from '../components/acciones/PausarReactivarMembresiaModal';
+import { AsignarPlanModal } from '../components/acciones/AsignarPlanModal';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData } from '../hooks/useSocioFicha';
+
+type ModalAccion = null | 'renovar' | 'cambiar_plan' | 'recargar' | 'pausar' | 'reactivar' | 'asignar_plan';
 
 // ── Helpers de formato ──────────────────────────────────────────────────────
 function iniciales(nombre: string | null): string {
@@ -40,7 +48,7 @@ const BADGE: Record<EstadoMembresia, { label: string; dot: string; token: string
 
 export default function SocioFicha() {
   const { id } = useParams<{ id: string }>();
-  const { data, isLoading, error } = useSocioFicha(id);
+  const { data, isLoading, error, refetch } = useSocioFicha(id);
 
   return (
     <div className="ek-page">
@@ -72,16 +80,37 @@ export default function SocioFicha() {
             }
           />
         ) : (
-          <Ficha data={data} />
+          <Ficha data={data} onAccionDone={refetch} />
         )}
       </div>
     </div>
   );
 }
 
-export function Ficha({ data }: { data: SocioFichaData }) {
+function AccionBtn({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="ek-cta ek-cta--secondary"
+      style={{ fontSize: '12px', padding: '6px 12px' }}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDone?: () => Promise<void> | void }) {
   const { socio, membresia, estado, reservas, asistencia } = data;
   const badge = BADGE[estado];
+  const [modalAbierto, setModalAbierto] = useState<ModalAccion>(null);
+
+  const socioNombre = socio.nombre ?? socio.email;
+  const cerrar = () => setModalAbierto(null);
+  const handleDone = async () => {
+    if (onAccionDone) await onAccionDone();
+  };
+  const esCreditos = membresia?.tierTipo === 'creditos' || membresia?.tierTipo === 'hibrido';
 
   return (
     <>
@@ -192,6 +221,32 @@ export function Ficha({ data }: { data: SocioFichaData }) {
             <KV k="Tipo" v={TIPO_LABEL[membresia.tierTipo ?? ''] ?? '—'} />
           </div>
         )}
+
+        <div style={{ display: 'flex', gap: '8px', marginTop: '14px', flexWrap: 'wrap' }}>
+          {estado === 'activa' && (
+            <>
+              <AccionBtn onClick={() => setModalAbierto('renovar')}>Renovar</AccionBtn>
+              <AccionBtn onClick={() => setModalAbierto('cambiar_plan')}>Cambiar plan</AccionBtn>
+              {esCreditos && <AccionBtn onClick={() => setModalAbierto('recargar')}>Recargar créditos</AccionBtn>}
+              <AccionBtn onClick={() => setModalAbierto('pausar')}>Pausar</AccionBtn>
+            </>
+          )}
+          {estado === 'pausada' && (
+            <>
+              <AccionBtn onClick={() => setModalAbierto('reactivar')}>Reactivar</AccionBtn>
+              <AccionBtn onClick={() => setModalAbierto('cambiar_plan')}>Cambiar plan</AccionBtn>
+            </>
+          )}
+          {estado === 'vencida' && (
+            <>
+              <AccionBtn onClick={() => setModalAbierto('renovar')}>Renovar</AccionBtn>
+              <AccionBtn onClick={() => setModalAbierto('cambiar_plan')}>Cambiar plan</AccionBtn>
+            </>
+          )}
+          {estado === 'sin_plan' && (
+            <AccionBtn onClick={() => setModalAbierto('asignar_plan')}>Asignar plan</AccionBtn>
+          )}
+        </div>
       </div>
 
       {/* PRÓXIMAS RESERVAS */}
@@ -258,6 +313,54 @@ export function Ficha({ data }: { data: SocioFichaData }) {
           </p>
         )}
       </div>
+
+      {modalAbierto === 'renovar' && (
+        <RenovarMembresiaModal
+          isOpen
+          socioId={socio.id}
+          socioNombre={socioNombre}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
+      {modalAbierto === 'cambiar_plan' && (
+        <CambiarPlanModal
+          isOpen
+          socioId={socio.id}
+          socioNombre={socioNombre}
+          tierActualId={membresia?.tierId ?? null}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
+      {modalAbierto === 'recargar' && (
+        <RecargarCreditosModal
+          isOpen
+          socioId={socio.id}
+          socioNombre={socioNombre}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
+      {(modalAbierto === 'pausar' || modalAbierto === 'reactivar') && (
+        <PausarReactivarMembresiaModal
+          isOpen
+          modo={modalAbierto === 'pausar' ? 'pausar' : 'reactivar'}
+          socioId={socio.id}
+          socioNombre={socioNombre}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
+      {modalAbierto === 'asignar_plan' && (
+        <AsignarPlanModal
+          isOpen
+          socioId={socio.id}
+          socioNombre={socioNombre}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
     </>
   );
 }
