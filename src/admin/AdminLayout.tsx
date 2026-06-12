@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import { useAdminGuard } from './hooks/useAdminGuard';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { AppShell } from '@shared/components/AppShell';
+import { TenantGuard } from '@shared/components/TenantGuard';
 import { Sidebar } from './components/Sidebar';
 import { SucursalProvider } from './providers/SucursalProvider';
 import { SucursalSelectorBar } from './components/SucursalSelectorBar';
@@ -31,6 +32,7 @@ export default function AdminLayout() {
   if (isLoading) return <LoadingScreen />;
 
   return (
+    <TenantGuard>
     <SucursalProvider>
       <AppShell sidebar={({ onNavigate }) => <Sidebar onNavigate={onNavigate} />} roleLabel="ADMIN">
         <SucursalSelectorBar />
@@ -63,5 +65,6 @@ export default function AdminLayout() {
         </main>
       </AppShell>
     </SucursalProvider>
+    </TenantGuard>
   );
 }
