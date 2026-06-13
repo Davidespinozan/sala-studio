@@ -65,6 +65,10 @@ export interface Clase {
   slotFin: Date;
   // Datos brutos para navegación / acciones
   recursoId: string;
+  /** clase_id real, o null si la instancia es VIRTUAL (aún no materializada). */
+  claseId: string | null;
+  /** horario_recurrente_id — para reservar una virtual. null si es ad-hoc 'manual'. */
+  horarioId: string | null;
 }
 
 export interface RecursoContext {
@@ -126,6 +130,73 @@ export function claseFromRow({
     tiersPermitidos: recurso.tiers_permitidos,
     status: row.status,
     canceladaAt: row.cancelada_at,
+    fechaISO: row.fecha,
+    horaLabel: formatHoraEnTz(slotInicio, tz),
+    fechaLabel: formatFechaLarga(row.fecha),
+    horaHumanaLabel: horaHumana(row.fecha, row.hora_inicio, tz),
+    slotInicio,
+    slotFin,
+    recursoId: row.recurso_id,
+    claseId: row.id,
+    horarioId: (row as { horario_recurrente_id?: string | null }).horario_recurrente_id ?? null
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Adapter desde expandir_clases (modelo virtual)
+// ---------------------------------------------------------------------------
+
+/** Fila que devuelve la RPC expandir_clases (v2). clase_id NULL = virtual. */
+export interface ClaseExpansionRow {
+  clase_id: string | null;
+  horario_recurrente_id: string | null;
+  fecha: string;
+  hora_inicio: string;
+  duracion_minutos: number;
+  recurso_id: string;
+  sucursal_id: string;
+  nombre: string;
+  disciplina: string | null;
+  descripcion: string | null;
+  cupo_max: number;
+  instructor_id: string | null;
+  instructor_nombre: string | null;
+  status: string;
+  reservados: number;
+  recurso_nombre: string | null;
+  recurso_foto_url: string | null;
+  recurso_tiers_permitidos: string[] | null;
+  instructor_foto_url: string | null;
+  instructor_bio: string | null;
+  sucursal_timezone: string | null;
+}
+
+/** Construye la Clase UI desde una fila de expandir_clases. Una virtual no tiene
+ *  clase_id: su id de React es sintético (horario|fecha) y reserva por horarioId. */
+export function claseFromExpansion(row: ClaseExpansionRow, fallbackTz: string): Clase {
+  const tz = row.sucursal_timezone || fallbackTz;
+  const slotInicio = instanteDeClase(row.fecha, row.hora_inicio, tz);
+  const slotFin = new Date(slotInicio.getTime() + row.duracion_minutos * 60_000);
+  return {
+    id: row.clase_id ?? `${row.horario_recurrente_id}|${row.fecha}`,
+    claseId: row.clase_id,
+    horarioId: row.horario_recurrente_id,
+    nombre: row.nombre,
+    hora: slotInicio.toISOString(),
+    duracionMinutos: row.duracion_minutos,
+    cupoMax: row.cupo_max,
+    cuposReservados: row.reservados,
+    instructorId: row.instructor_id,
+    instructorNombre: row.instructor_nombre ?? undefined,
+    instructorFotoUrl: row.instructor_foto_url ?? undefined,
+    instructorBio: row.instructor_bio ?? undefined,
+    disciplina: row.disciplina ?? '',
+    descripcion: row.descripcion ?? undefined,
+    imagenUrl: row.recurso_foto_url ?? undefined,
+    salaNombre: row.recurso_nombre ?? undefined,
+    tiersPermitidos: row.recurso_tiers_permitidos ?? undefined,
+    status: row.status,
+    canceladaAt: null,
     fechaISO: row.fecha,
     horaLabel: formatHoraEnTz(slotInicio, tz),
     fechaLabel: formatFechaLarga(row.fecha),

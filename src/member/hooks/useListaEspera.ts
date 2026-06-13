@@ -27,9 +27,25 @@ export interface ListaEsperaItem {
   posicion: number;
 }
 
-/** Anota al miembro actual en la lista de espera de una clase llena. */
-export async function anotarseEnListaEspera(claseId: string): Promise<{ posicion: number }> {
-  const { data, error } = await supabase.rpc('anotar_lista_espera', { p_clase_id: claseId });
+/** Anota al miembro en la lista de espera. Modelo virtual: por claseId si está
+ *  materializada, o por horarioId+fecha (anotar_lista_espera_virtual materializa). */
+export async function anotarseEnListaEspera(params: {
+  claseId?: string | null;
+  horarioId?: string | null;
+  fecha?: string;
+}): Promise<{ posicion: number }> {
+  // anotar_lista_espera_virtual no está en los tipos generados → cast.
+  const rpc = supabase.rpc as unknown as (
+    name: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+
+  const { data, error } = params.claseId
+    ? await rpc('anotar_lista_espera', { p_clase_id: params.claseId })
+    : await rpc('anotar_lista_espera_virtual', {
+        p_horario_id: params.horarioId,
+        p_fecha: params.fecha
+      });
   if (error) throw new Error(traducirErrorRPC(error.message));
   return { posicion: (data as { posicion: number }).posicion };
 }

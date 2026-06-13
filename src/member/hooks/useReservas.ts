@@ -55,21 +55,36 @@ export function useReservasDelUsuario() {
 }
 
 /**
- * Crea una reserva llamando al RPC atómico contra una clase concreta.
- *
- * S4.2: pivotea sobre `clase_id`. El RPC valida cupo via COUNT contra
- * `clases.cupo_max` y los chequeos de tier/anticipación/continua/etc.
+ * Crea una reserva. Modelo virtual: si la clase ya está materializada se reserva
+ * por `claseId` (reservar_clase_atomic); si es virtual se pasa `horarioId`+`fecha`
+ * y el RPC reservar_clase_virtual la materializa y reserva en un paso. Ambos
+ * validan cupo/tier/anticipación/etc. igual.
  */
 export async function crearReserva(params: {
-  claseId: string;
+  claseId?: string | null;
+  horarioId?: string | null;
+  fecha?: string;
   invitados?: number;
   notas?: string;
 }) {
-  const { data, error } = await supabase.rpc('reservar_clase_atomic', {
-    p_clase_id: params.claseId,
-    p_invitados: params.invitados ?? 0,
-    p_notas: params.notas
-  });
+  // reservar_clase_virtual no está en los tipos generados todavía → cast.
+  const rpc = supabase.rpc as unknown as (
+    name: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+
+  const { data, error } = params.claseId
+    ? await rpc('reservar_clase_atomic', {
+        p_clase_id: params.claseId,
+        p_invitados: params.invitados ?? 0,
+        p_notas: params.notas
+      })
+    : await rpc('reservar_clase_virtual', {
+        p_horario_id: params.horarioId,
+        p_fecha: params.fecha,
+        p_invitados: params.invitados ?? 0,
+        p_notas: params.notas
+      });
 
   if (error) {
     throw new Error(traducirErrorRPC(error.message));

@@ -14,27 +14,15 @@ import {
   type TenantReservaConfig
 } from '@member/logic/reservaLogic';
 import {
-  claseFromRow,
+  claseFromExpansion,
   type Clase,
-  type InstructorContext
+  type ClaseExpansionRow
 } from '@member/logic/claseAdapter';
-import { getSucursalTimezone, getTenantTimezone } from '@shared/lib/timezone';
-import type { Database } from '@shared/types/database';
+import { getTenantTimezone } from '@shared/lib/timezone';
 import { DayTabSelector } from '@member/components/DayTabSelector';
 import { ClaseRow } from '@member/components/ClaseRow';
 import { ConfirmarReservaModal } from '@member/components/ConfirmarReservaModal';
 import { ConfirmarCancelacionModal } from '@member/components/ConfirmarCancelacionModal';
-
-type ClaseRowDB = Database['public']['Tables']['clases']['Row'];
-type RecursoMinDB = Pick<
-  Database['public']['Tables']['recursos']['Row'],
-  'id' | 'nombre' | 'foto_url' | 'tiers_permitidos'
->;
-interface ClaseConRecurso extends ClaseRowDB {
-  recurso: RecursoMinDB | null;
-  instructor: InstructorContext | null;
-  sucursal: { timezone: string } | null;
-}
 
 const SALA_TODAS = '__todas__';
 
@@ -73,11 +61,10 @@ export default function Reservar() {
   const [fechaSel, setFechaSel] = useState<string>(fechas[0]?.fechaISO ?? '');
   const [salaSel, setSalaSel] = useState<string>(SALA_TODAS);
 
-  // S4.2: traemos las clases programadas del día desde la tabla `clases`.
-  // misReservasIds: clase_id → reserva.id del usuario (para cancelar inline).
-  // cuposPorClase: clase_id → count de reservas activas.
-  const [clasesRaw, setClasesRaw] = useState<ClaseConRecurso[]>([]);
-  const [cuposPorClase, setCuposPorClase] = useState<Map<string, number>>(new Map());
+  // Modelo virtual: las clases del día las calcula expandir_clases (virtuales +
+  // materializadas), ya como Clase[]. misReservasIds: clase_id → reserva.id del
+  // usuario (solo materializadas; una virtual no puede estar reservada).
+  const [clasesDelDia, setClasesDelDia] = useState<Clase[]>([]);
   const [misReservasIds, setMisReservasIds] = useState<Map<string, string>>(new Map());
   const [loadingDia, setLoadingDia] = useState(false);
 
@@ -95,100 +82,70 @@ export default function Reservar() {
   const [refreshTick, setRefreshTick] = useState(0);
   const triggerRefresh = () => setRefreshTick((t) => t + 1);
 
-  // S4.2: cargar clases del día (tabla real) + cupos + mis reservas
+  // Modelo virtual: expandir_clases calcula las clases del día (virtuales de las
+  // reglas + materializadas con sus overrides/reservados). Una sola RPC; los
+  // cupos vienen en `reservados`. Solo falta saber cuáles ya reservó el usuario.
   useEffect(() => {
     if (!fechaSel || !usuario) return;
     let mounted = true;
     setLoadingDia(true);
 
     async function load() {
-      // S4.3: incluye canceladas para mostrarlas apagadas (transparencia al miembro).
-      const clasesRes = await supabase
-        .from('clases')
-        .select(
-          '*, recurso:recursos(id, nombre, foto_url, tiers_permitidos), instructor:instructores(id, nombre, foto_url), sucursal:sucursales(timezone)'
-        )
-        .eq('tenant_id', tenant.id)
-        .eq('fecha', fechaSel)
-        .in('status', ['programada', 'cancelada'])
-        .order('hora_inicio', { ascending: true });
+      // expandir_clases no está en los tipos generados → cast.
+      const rpc = supabase.rpc as unknown as (
+        name: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: ClaseExpansionRow[] | null; error: { message: string } | null }>;
 
+      const { data, error } = await rpc('expandir_clases', {
+        p_sucursal_id: null, // todas las sucursales del tenant
+        p_desde: fechaSel,
+        p_hasta: fechaSel
+      });
       if (!mounted) return;
-
-      if (clasesRes.error) {
-        console.error('[Reservar:clases]', clasesRes.error, { fechaSel, tenantId: tenant.id });
+      if (error) {
+        console.error('[Reservar:expandir_clases]', error, { fechaSel });
       }
 
-      const filas = (clasesRes.data ?? []) as ClaseConRecurso[];
-      const claseIds = filas.map((c) => c.id);
+      const rows = (data ?? []) as ClaseExpansionRow[];
+      const mapped = rows
+        .map((r) => claseFromExpansion(r, tz))
+        .sort((a, b) => a.slotInicio.getTime() - b.slotInicio.getTime());
 
-      const [cuposRes, misRes] = claseIds.length === 0
-        ? [{ data: [] as Array<{ clase_id: string | null }> }, { data: [] as Array<{ id: string; clase_id: string | null }> }]
-        : await Promise.all([
-            supabase
-              .from('reservas')
-              .select('clase_id')
-              .in('clase_id', claseIds)
-              .in('status', ['confirmada', 'completada']),
-            supabase
-              .from('reservas')
-              .select('id, clase_id')
-              .eq('usuario_id', usuario!.id)
-              .in('clase_id', claseIds)
-              .in('status', ['confirmada', 'completada'])
-          ]);
-
-      if (!mounted) return;
-
-      const cuposMap = new Map<string, number>();
-      for (const r of (cuposRes.data ?? []) as Array<{ clase_id: string | null }>) {
-        if (!r.clase_id) continue;
-        cuposMap.set(r.clase_id, (cuposMap.get(r.clase_id) ?? 0) + 1);
-      }
+      // Mis reservas: solo las materializadas (una virtual no puede estar reservada).
+      const claseIds = rows.map((r) => r.clase_id).filter((x): x is string => !!x);
       const misMap = new Map<string, string>();
-      for (const r of (misRes.data ?? []) as Array<{ id: string; clase_id: string | null }>) {
-        if (r.clase_id) misMap.set(r.clase_id, r.id);
+      if (claseIds.length > 0) {
+        const { data: misRes } = await supabase
+          .from('reservas')
+          .select('id, clase_id')
+          .eq('usuario_id', usuario!.id)
+          .in('clase_id', claseIds)
+          .in('status', ['confirmada', 'completada']);
+        for (const r of (misRes ?? []) as Array<{ id: string; clase_id: string | null }>) {
+          if (r.clase_id) misMap.set(r.clase_id, r.id);
+        }
       }
 
-      setClasesRaw(filas);
-      setCuposPorClase(cuposMap);
+      if (!mounted) return;
+      setClasesDelDia(mapped);
       setMisReservasIds(misMap);
       setLoadingDia(false);
     }
     void load();
     return () => { mounted = false; };
-  }, [fechaSel, tenant.id, usuario, refreshTick]);
+  }, [fechaSel, tenant.id, usuario, tz, refreshTick]);
 
-  // Mapear las clases a la interfaz UI, aplicando filtro de sala y "ya pasó" si es hoy.
+  // Filtro de sala + "ya pasó" si es hoy. (El mapeo ya se hizo en la carga.)
   const clases = useMemo<Clase[]>(() => {
-    if (clasesRaw.length === 0) return [];
-    const filasFiltradas =
-      salaSel === SALA_TODAS ? clasesRaw : clasesRaw.filter((c) => c.recurso_id === salaSel);
-
-    const mapped = filasFiltradas.map((row) => {
-      const recurso = row.recurso
-        ? {
-            id: row.recurso.id,
-            nombre: row.recurso.nombre,
-            foto_url: row.recurso.foto_url,
-            tiers_permitidos: row.recurso.tiers_permitidos
-          }
-        : { id: row.recurso_id, nombre: '—' };
-      return claseFromRow({
-        row,
-        cuposReservados: cuposPorClase.get(row.id) ?? 0,
-        recurso,
-        instructor: row.instructor,
-        tz: getSucursalTimezone(row.sucursal?.timezone, tz)
-      });
-    });
-
-    // esHoy: fechas[0].fechaISO ya es "hoy" en la tz del gym (S4.4).
+    const filtradas =
+      salaSel === SALA_TODAS ? clasesDelDia : clasesDelDia.filter((c) => c.recursoId === salaSel);
+    // esHoy: fechas[0].fechaISO ya es "hoy" en la tz del gym.
     const esHoy = fechaSel === fechas[0]?.fechaISO;
-    if (!esHoy) return mapped;
+    if (!esHoy) return filtradas;
     const ahora = Date.now();
-    return mapped.filter((c) => c.slotInicio.getTime() >= ahora);
-  }, [clasesRaw, cuposPorClase, salaSel, fechaSel, fechas, tz]);
+    return filtradas.filter((c) => c.slotInicio.getTime() >= ahora);
+  }, [clasesDelDia, salaSel, fechaSel, fechas]);
 
   const maxInvitados = tier === 'pro' ? 4 : tier === 'basica' ? 2 : 0;
 
@@ -215,7 +172,9 @@ export default function Reservar() {
     setErrorReserva(null);
     try {
       await crearReserva({
-        claseId: claseAReservar.id,
+        claseId: claseAReservar.claseId,
+        horarioId: claseAReservar.horarioId,
+        fecha: claseAReservar.fechaISO,
         invitados,
         notas: undefined
       });
@@ -232,7 +191,7 @@ export default function Reservar() {
 
   async function confirmarCancelacion() {
     if (!claseACancelar) return;
-    const reservaId = misReservasIds.get(claseACancelar.id);
+    const reservaId = claseACancelar.claseId ? misReservasIds.get(claseACancelar.claseId) : undefined;
     if (!reservaId) {
       toast.error('No encontramos tu reserva. Recargá la página.');
       setClaseACancelar(null);
@@ -357,7 +316,7 @@ export default function Reservar() {
           <EmptyDia />
         ) : (
           clases.map((clase) => {
-            const yaReservada = misReservasIds.has(clase.id);
+            const yaReservada = !!clase.claseId && misReservasIds.has(clase.claseId);
             const puede = tierTieneAcceso(clase.tiersPermitidos, tier);
             return (
               <ClaseRow

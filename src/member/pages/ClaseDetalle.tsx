@@ -24,30 +24,16 @@ import {
   type MiPosicionEspera
 } from '@member/hooks/useListaEspera';
 import {
-  claseFromRow,
+  claseFromExpansion,
   estadoCupos,
   type Clase,
-  type InstructorContext
+  type ClaseExpansionRow
 } from '@member/logic/claseAdapter';
-import { getSucursalTimezone, getTenantTimezone } from '@shared/lib/timezone';
-import type { Database } from '@shared/types/database';
+import { getTenantTimezone } from '@shared/lib/timezone';
 import { CupoBar } from '@member/components/CupoBar';
 import { ConfirmarReservaModal } from '@member/components/ConfirmarReservaModal';
 import { ConfirmarCancelacionModal } from '@member/components/ConfirmarCancelacionModal';
 import { ConfirmarListaEsperaModal } from '@member/components/ConfirmarListaEsperaModal';
-
-type ClaseRow = Database['public']['Tables']['clases']['Row'];
-
-interface RecursoFetched {
-  id: string;
-  nombre: string;
-  descripcion: string | null;
-  foto_url: string | null;
-  tipo_contenido: string[] | null;
-  tiers_permitidos: string[];
-  capacidad_personas: number | null;
-  equipo_incluido: string[] | null;
-}
 
 /** Icono decorativo según disciplina, para placeholder cuando no hay foto. */
 function iconFor(disciplina: string): LucideIcon {
@@ -75,21 +61,24 @@ export default function ClaseDetalle() {
   const tz = getTenantTimezone(tenant);
   const toast = useToast();
 
-  // S4.2: el id de la URL es ahora el UUID directo de la fila en `clases`.
-  const claseId = useMemo(() => {
+  // El id de la URL es el UUID de una clase materializada, o el ref sintético de
+  // una virtual: "horario_recurrente_id|fecha".
+  const claseRef = useMemo<
+    | { kind: 'real'; claseId: string }
+    | { kind: 'virtual'; horarioId: string; fecha: string }
+    | null
+  >(() => {
     if (!id) return null;
-    try {
-      return decodeURIComponent(id);
-    } catch {
-      return null;
+    let raw: string;
+    try { raw = decodeURIComponent(id); } catch { return null; }
+    if (raw.includes('|')) {
+      const [horarioId, fecha] = raw.split('|');
+      return horarioId && fecha ? { kind: 'virtual', horarioId, fecha } : null;
     }
+    return { kind: 'real', claseId: raw };
   }, [id]);
 
-  const [claseRow, setClaseRow] = useState<ClaseRow | null>(null);
-  const [instructorCtx, setInstructorCtx] = useState<InstructorContext | null>(null);
-  const [sucursalTz, setSucursalTz] = useState<string | null>(null);
-  const [recurso, setRecurso] = useState<RecursoFetched | null>(null);
-  const [cuposReservados, setCuposReservados] = useState(0);
+  const [clase, setClase] = useState<Clase | null>(null);
   const [miReservaId, setMiReservaId] = useState<string | null>(null);
   const [miEspera, setMiEspera] = useState<MiPosicionEspera | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -107,105 +96,77 @@ export default function ClaseDetalle() {
   const [refreshTick, setRefreshTick] = useState(0);
   const triggerRefresh = () => setRefreshTick((t) => t + 1);
 
+  // Modelo virtual: resolvemos la clase (virtual o materializada) vía
+  // expandir_clases para su día, y traemos mi reserva / lista de espera solo si
+  // está materializada (una virtual no puede estar reservada).
   useEffect(() => {
-    if (!claseId || !usuario) {
-      if (!claseId) {
-        setNotFound(true);
-        setIsLoading(false);
-      }
-      return;
-    }
+    if (!usuario) return;
+    if (!claseRef) { setNotFound(true); setIsLoading(false); return; }
     let mounted = true;
     setIsLoading(true);
     setNotFound(false);
 
     async function load() {
-      // 1) Cargar la clase por UUID
-      const claseRes = await supabase
-        .from('clases')
-        .select('*, instructor:instructores(id, nombre, foto_url, bio), sucursal:sucursales(timezone)')
-        .eq('id', claseId!)
-        .eq('tenant_id', tenant.id)
-        .maybeSingle();
-
-      if (!mounted) return;
-
-      if (claseRes.error || !claseRes.data) {
-        setNotFound(true);
-        setIsLoading(false);
-        return;
+      const ref = claseRef!;
+      // 1) Fecha del día a expandir (la virtual la trae; la real la resolvemos).
+      let fecha: string;
+      if (ref.kind === 'virtual') {
+        fecha = ref.fecha;
+      } else {
+        const r = await supabase
+          .from('clases').select('fecha')
+          .eq('id', ref.claseId).eq('tenant_id', tenant.id).maybeSingle();
+        if (!mounted) return;
+        if (r.error || !r.data) { setNotFound(true); setIsLoading(false); return; }
+        fecha = (r.data as { fecha: string }).fecha;
       }
 
-      const data = claseRes.data as ClaseRow & {
-        instructor: InstructorContext | null;
-        sucursal: { timezone: string } | null;
-      };
-      const row = data as ClaseRow;
-
-      // 2) Recurso + cupos + mi reserva + mi lista de espera en paralelo
-      const [recursoRes, countRes, miRes, esperaRes] = await Promise.all([
-        supabase
-          .from('recursos')
-          .select('id, nombre, descripcion, foto_url, tipo_contenido, tiers_permitidos, capacidad_personas, equipo_incluido')
-          .eq('id', row.recurso_id)
-          .eq('tenant_id', tenant.id)
-          .maybeSingle(),
-        supabase
-          .from('reservas')
-          .select('id', { count: 'exact', head: true })
-          .eq('clase_id', row.id)
-          .in('status', ['confirmada', 'completada']),
-        supabase
-          .from('reservas')
-          .select('id, status')
-          .eq('usuario_id', usuario!.id)
-          .eq('clase_id', row.id)
-          .in('status', ['confirmada', 'completada'])
-          .maybeSingle(),
-        miPosicionEnLista(row.id).catch(() => null)
-      ]);
-
+      // 2) Expandir ese día y encontrar la instancia.
+      const rpc = supabase.rpc as unknown as (
+        name: string, args: Record<string, unknown>
+      ) => Promise<{ data: ClaseExpansionRow[] | null; error: { message: string } | null }>;
+      const { data, error } = await rpc('expandir_clases', {
+        p_sucursal_id: null, p_desde: fecha, p_hasta: fecha
+      });
       if (!mounted) return;
+      const rows = (data ?? []) as ClaseExpansionRow[];
+      const found = error ? undefined : rows.find((row) =>
+        ref.kind === 'virtual'
+          ? row.horario_recurrente_id === ref.horarioId
+          : row.clase_id === ref.claseId
+      );
+      if (!found) { setNotFound(true); setIsLoading(false); return; }
+      const c = claseFromExpansion(found, tz);
 
-      if (recursoRes.error || !recursoRes.data) {
-        setNotFound(true);
-        setIsLoading(false);
-        return;
+      // 3) Mi reserva + mi lista de espera (solo si está materializada).
+      let miRes: string | null = null;
+      let espera: MiPosicionEspera | null = null;
+      if (c.claseId) {
+        const [miR, esp] = await Promise.all([
+          supabase.from('reservas')
+            .select('id, status')
+            .eq('usuario_id', usuario!.id).eq('clase_id', c.claseId)
+            .in('status', ['confirmada', 'completada']).maybeSingle(),
+          miPosicionEnLista(c.claseId).catch(() => null)
+        ]);
+        if (!mounted) return;
+        miRes = (miR.data as { id: string } | null)?.id ?? null;
+        espera = esp;
       }
 
-      setClaseRow(row);
-      setInstructorCtx(data.instructor ?? null);
-      setSucursalTz(data.sucursal?.timezone ?? null);
-      setRecurso(recursoRes.data as RecursoFetched);
-      setCuposReservados(countRes.count ?? 0);
-      setMiReservaId((miRes.data as { id: string } | null)?.id ?? null);
-      setMiEspera(esperaRes);
+      if (!mounted) return;
+      setClase(c);
+      setMiReservaId(miRes);
+      setMiEspera(espera);
       setIsLoading(false);
     }
 
     void load();
     return () => { mounted = false; };
-  }, [claseId, usuario, tenant.id, refreshTick]);
-
-  // Construir la Clase visual a partir de la fila real
-  const clase = useMemo<Clase | null>(() => {
-    if (!claseRow || !recurso) return null;
-    return claseFromRow({
-      row: claseRow,
-      cuposReservados,
-      recurso: {
-        id: recurso.id,
-        nombre: recurso.nombre,
-        foto_url: recurso.foto_url,
-        tiers_permitidos: recurso.tiers_permitidos
-      },
-      instructor: instructorCtx,
-      tz: getSucursalTimezone(sucursalTz, tz)
-    });
-  }, [claseRow, recurso, cuposReservados, instructorCtx, sucursalTz, tz]);
+  }, [claseRef, usuario, tenant.id, tz, refreshTick]);
 
   const tier = usuario?.membresia_tier ?? null;
-  const puedeAccederTier = recurso ? tierTieneAcceso(recurso.tiers_permitidos, tier) : false;
+  const puedeAccederTier = clase ? tierTieneAcceso(clase.tiersPermitidos, tier) : false;
   const yaReservada = !!miReservaId;
   const esFutura = clase ? clase.slotInicio.getTime() > Date.now() : false;
   const maxInvitados = tier === 'pro' ? 4 : tier === 'basica' ? 2 : 0;
@@ -257,7 +218,9 @@ export default function ClaseDetalle() {
     setErrorReserva(null);
     try {
       await crearReserva({
-        claseId: clase.id,
+        claseId: clase.claseId,
+        horarioId: clase.horarioId,
+        fecha: clase.fechaISO,
         invitados,
         notas: undefined
       });
@@ -290,7 +253,11 @@ export default function ClaseDetalle() {
     if (!clase) return;
     setSubmitting(true);
     try {
-      const { posicion } = await anotarseEnListaEspera(clase.id);
+      const { posicion } = await anotarseEnListaEspera({
+        claseId: clase.claseId,
+        horarioId: clase.horarioId,
+        fecha: clase.fechaISO
+      });
       setShowEsperaModal(false);
       setSubmitting(false);
       toast.success(`Estás en lista de espera, posición #${posicion}.`);
@@ -302,10 +269,10 @@ export default function ClaseDetalle() {
   }
 
   async function handleSalirEspera() {
-    if (!clase) return;
+    if (!clase || !clase.claseId) return; // solo materializada puede tener espera
     setSubmitting(true);
     try {
-      await salirDeListaEspera(clase.id);
+      await salirDeListaEspera(clase.claseId);
       setSubmitting(false);
       toast.success('Saliste de la lista de espera.');
       triggerRefresh();
@@ -330,7 +297,7 @@ export default function ClaseDetalle() {
     );
   }
 
-  if (notFound || !clase || !recurso) {
+  if (notFound || !clase) {
     return (
       <div className="ek-container" style={{ paddingTop: '24px' }}>
         <BackButton onClick={handleBack} inline />
@@ -399,7 +366,7 @@ export default function ClaseDetalle() {
 
       {/* Hero image */}
       <HeroImage
-        url={recurso.foto_url}
+        url={clase.imagenUrl ?? null}
         nombre={clase.nombre}
         disciplina={clase.disciplina}
       />

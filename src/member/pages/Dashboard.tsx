@@ -7,7 +7,9 @@ import { supabase } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
 import {
   claseFromRow,
+  claseFromExpansion,
   type Clase,
+  type ClaseExpansionRow,
   type InstructorContext
 } from '@member/logic/claseAdapter';
 import { getSucursalTimezone, getTenantTimezone, hoyEnTimezone } from '@shared/lib/timezone';
@@ -118,63 +120,41 @@ function useClasesDeHoy(tenantId: string, tz: string) {
     async function load() {
       const fechaISO = hoyEnTimezone(tz);
 
-      // S4.3: incluye canceladas para mostrarlas apagadas (transparencia al miembro).
-      const clasesRes = await supabase
-        .from('clases')
-        .select(
-          '*, recurso:recursos(id, nombre, foto_url, tiers_permitidos), instructor:instructores(id, nombre, foto_url), sucursal:sucursales(timezone)'
-        )
-        .eq('tenant_id', tenantId)
-        .eq('fecha', fechaISO)
-        .in('status', ['programada', 'cancelada'])
-        .order('hora_inicio', { ascending: true });
-
+      // Modelo virtual: expandir_clases trae las clases de hoy (virtuales +
+      // materializadas) con cupos en `reservados`.
+      const rpc = supabase.rpc as unknown as (
+        name: string, args: Record<string, unknown>
+      ) => Promise<{ data: ClaseExpansionRow[] | null; error: { message: string } | null }>;
+      const { data, error } = await rpc('expandir_clases', {
+        p_sucursal_id: null, p_desde: fechaISO, p_hasta: fechaISO
+      });
       if (!mounted) return;
+      if (error) console.error('[Dashboard:expandir_clases]', error, { fechaISO });
 
-      if (clasesRes.error) {
-        console.error('[Dashboard:clases]', clasesRes.error, { fechaISO, tenantId });
-      }
-
-      const filas = (clasesRes.data ?? []) as ClaseConRecurso[];
-      const claseIds = filas.map((c) => c.id);
-
-      const [cuposRes, misRes] = claseIds.length === 0
-        ? [{ data: [] as Array<{ clase_id: string | null }> }, { data: [] as Array<{ clase_id: string | null }> }]
-        : await Promise.all([
-            supabase
-              .from('reservas')
-              .select('clase_id')
-              .in('clase_id', claseIds)
-              .in('status', ['confirmada', 'completada']),
-            usuario
-              ? supabase
-                  .from('reservas')
-                  .select('clase_id')
-                  .eq('usuario_id', usuario.id)
-                  .in('clase_id', claseIds)
-                  .in('status', ['confirmada', 'completada'])
-              : Promise.resolve({ data: [] as Array<{ clase_id: string | null }> })
-          ]);
-
-      if (!mounted) return;
-
-      const cuposMap = new Map<string, number>();
-      for (const r of (cuposRes.data ?? []) as Array<{ clase_id: string | null }>) {
-        if (!r.clase_id) continue;
-        cuposMap.set(r.clase_id, (cuposMap.get(r.clase_id) ?? 0) + 1);
-      }
-      const setMisReservas = new Set<string>();
-      for (const r of (misRes.data ?? []) as Array<{ clase_id: string | null }>) {
-        if (r.clase_id) setMisReservas.add(r.clase_id);
-      }
-
+      const rows = (data ?? []) as ClaseExpansionRow[];
       const ahora = Date.now();
-      const futurasHoy = filas
-        .map((row) =>
-          mapClase(row, cuposMap.get(row.id) ?? 0, getSucursalTimezone(row.sucursal?.timezone, tz))
-        )
-        .filter((c) => c.slotInicio.getTime() >= ahora);
+      const futurasHoy = rows
+        .map((r) => claseFromExpansion(r, tz))
+        .filter((c) => c.slotInicio.getTime() >= ahora)
+        .sort((a, b) => a.slotInicio.getTime() - b.slotInicio.getTime());
 
+      // Mis reservas de hoy (solo materializadas).
+      const claseIds = rows.map((r) => r.clase_id).filter((x): x is string => !!x);
+      const setMisReservas = new Set<string>();
+      if (usuario && claseIds.length > 0) {
+        const { data: misRes } = await supabase
+          .from('reservas')
+          .select('clase_id')
+          .eq('usuario_id', usuario.id)
+          .in('clase_id', claseIds)
+          .in('status', ['confirmada', 'completada']);
+        if (!mounted) return;
+        for (const r of (misRes ?? []) as Array<{ clase_id: string | null }>) {
+          if (r.clase_id) setMisReservas.add(r.clase_id);
+        }
+      }
+
+      if (!mounted) return;
       setClases(futurasHoy);
       setReservasMiembro(setMisReservas);
       setIsLoading(false);
