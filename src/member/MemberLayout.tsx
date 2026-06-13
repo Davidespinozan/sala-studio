@@ -62,9 +62,13 @@ export default function MemberLayout() {
       </TenantGuard>
     );
   }
-  // Otros status no-activos (suspendido/cancelado/pendiente_onboarding) → login.
+  // Otros status no-activos (suspendido/cancelado/pendiente_onboarding): el
+  // useEffect de arriba ya disparó el toast + signOut. Mostramos loading mientras
+  // la sesión se limpia; al resolver, authUser=null y caemos en el Navigate a
+  // /login de más arriba. NO navegamos a /login acá: haría loop con
+  // useRoleRedirect (/login→/app→/login…) mientras `usuario` sigue en cache.
   if (usuario && usuario.status !== 'activo') {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <LoadingScreen />;
   }
 
   return (

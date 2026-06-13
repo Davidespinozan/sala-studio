@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useAdminPreview } from '@shared/hooks/useAdminPreview';
+import { exitAdminPreview } from '@shared/lib/adminPreview';
 
 export type DemoVista = 'Landing' | 'Miembro' | 'Recepción';
 
@@ -16,12 +17,13 @@ interface DemoBannerProps {
  * cerrar pestañas no abiertas por script — cae a redirect a /admin/landing.
  */
 export function DemoBanner({ vista }: DemoBannerProps) {
-  const [searchParams] = useSearchParams();
-  const isDemoMode = searchParams.get('demo') === 'admin-preview';
+  const isDemoMode = useAdminPreview();
 
   if (!isDemoMode) return null;
 
   const handleVolver = () => {
+    // Limpia el latch pegajoso (si no, el modo preview seguiría activo en la pestaña).
+    exitAdminPreview();
     // Intentar cerrar la pestaña primero
     window.close();
     // Si todavía estamos acá tras un beat, redirigir como fallback

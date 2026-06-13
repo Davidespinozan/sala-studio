@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useAdminPreview } from '@shared/hooks/useAdminPreview';
+import { isTenantFromSubdomain } from '@shared/providers/TenantProvider';
 
 /**
  * Impide que un usuario autenticado OPERE en el subdominio de OTRO tenant.
@@ -13,6 +15,10 @@ import { useTenant } from '@shared/hooks/useTenant';
  *
  * Excepciones:
  *  - `?demo=admin-preview` (los "VER COMO…" del admin) → se saltea el guard.
+ *  - Localhost / 127.* / *.netlify.app (dev/preview): el tenant cargado es
+ *    'sala-demo' por FALLBACK, no por subdominio → no identifica al gimnasio del
+ *    usuario, así que NO bloqueamos (si no, ninguna cuenta real entraría en
+ *    local/preview). Solo bloqueamos cuando el subdominio es autoritativo.
  *  - Mientras el usuario no esté hidratado, deja pasar (los guards de cada
  *    layout manejan el no-auth / loading).
  */
@@ -20,10 +26,13 @@ export function TenantGuard({ children }: { children: ReactNode }) {
   const { usuario, signOut } = useAuth();
   const tenant = useTenant();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const isDemoPreview = searchParams.get('demo') === 'admin-preview';
+  const isDemoPreview = useAdminPreview();
 
-  const mismatch = !!usuario && usuario.tenant_id !== tenant.id && !isDemoPreview;
+  const mismatch =
+    !!usuario &&
+    usuario.tenant_id !== tenant.id &&
+    !isDemoPreview &&
+    isTenantFromSubdomain();
 
   if (!mismatch) return <>{children}</>;
 

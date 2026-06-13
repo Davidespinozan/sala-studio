@@ -103,7 +103,7 @@ export const handler: Handler = async (event) => {
         .select('id', { count: 'exact', head: true })
         .eq('tenant_id', adminProfile.tenant_id)
         .eq('rol', 'admin')
-        .neq('status', 'cancelado');
+        .eq('status', 'activo'); // fix #2: solo admins activos cuentan (no revocado/suspendido)
 
       if ((count ?? 0) <= 1) {
         return forbidden('No podés eliminar el último admin del gimnasio');

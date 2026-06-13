@@ -284,6 +284,28 @@ export function isMarketingRoot(): boolean {
   return MARKETING_HOSTS.has(window.location.hostname);
 }
 
+/**
+ * true si el slug del tenant viene de un SUBDOMINIO autoritativo (producción),
+ * no de un FALLBACK de desarrollo/preview (localhost / 127.* / *.netlify.app) ni
+ * del dominio de marketing.
+ *
+ * En los fallbacks el tenant cargado es 'sala-demo' POR DEFECTO — no identifica
+ * al gimnasio del usuario. Por eso el TenantGuard solo debe bloquear el cruce de
+ * tenants cuando el subdominio ES autoritativo; si no, ninguna cuenta real podría
+ * entrar en local/preview (los datos igual los aísla RLS por el tenant del
+ * usuario, no por este objeto de branding).
+ */
+export function isTenantFromSubdomain(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  if (MARKETING_HOSTS.has(host)) return false;
+  if (host === 'localhost' || host.startsWith('127.') || host.endsWith('.netlify.app')) {
+    return false;
+  }
+  // Necesita al menos un subdominio real (pilates-noria.sala.app, app.sala.studio…).
+  return host.split('.').length >= 2;
+}
+
 function resolveTenantSlug(): string {
   if (typeof window === 'undefined') return 'sala-demo';
 

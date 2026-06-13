@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
+import { isAdminPreview, latchAdminPreview } from '@shared/lib/adminPreview';
 
 /**
  * Redirige al área correcta según rol después del login.
@@ -25,9 +26,10 @@ export function useRoleRedirect(redirectPaths: string[] = ['/', '/login', '/sign
     if (!redirectPaths.includes(location.pathname)) return;
 
     // VER COMO (Sprint D-Polish): si admin abre una vista pública con
-    // ?demo=admin-preview, NO redirigir — está previsualizando.
-    const params = new URLSearchParams(location.search);
-    if (params.get('demo') === 'admin-preview') return;
+    // ?demo=admin-preview (o ya está en modo preview sticky), NO redirigir —
+    // está previsualizando. latch para que sobreviva a navegaciones sin el param.
+    latchAdminPreview(location.search);
+    if (isAdminPreview(location.search)) return;
 
     if (usuario.rol === 'admin') navigate('/admin', { replace: true });
     else if (usuario.rol === 'recepcionista') navigate('/recepcion', { replace: true });

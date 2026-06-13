@@ -1,9 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { DemoBanner } from '../DemoBanner';
 
 describe('DemoBanner', () => {
+  // El modo preview ahora es sticky (sessionStorage). Limpiamos antes de cada
+  // test para que el latch de un caso no contamine al siguiente.
+  beforeEach(() => sessionStorage.clear());
+
   it('NO renderiza si no hay ?demo=admin-preview en URL', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
