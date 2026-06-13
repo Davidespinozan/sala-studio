@@ -120,7 +120,25 @@ export const handler: Handler = async (event) => {
     if (authErr || !authData?.user) {
       const m = (authErr?.message || '').toLowerCase();
       if (m.includes('already') || m.includes('registered') || m.includes('exists')) {
-        return badRequest('Ya existe una cuenta con ese email.');
+        // Idempotencia: si este email YA completó el onboarding (p.ej. la
+        // respuesta anterior se perdió por red), su gym ya existe → devolverlo
+        // en vez de trabar al dueño con "email ya existe".
+        const emailLc = b.email.trim().toLowerCase();
+        const { data: existU } = await admin
+          .from('usuarios')
+          .select('tenant_id')
+          .eq('email', emailLc)
+          .eq('rol', 'admin')
+          .maybeSingle();
+        if (existU?.tenant_id) {
+          const { data: t } = await admin
+            .from('tenants')
+            .select('slug')
+            .eq('id', existU.tenant_id)
+            .maybeSingle();
+          if (t?.slug) return ok({ success: true, slug: t.slug, idempotent: true });
+        }
+        return badRequest('Ya existe una cuenta con ese email. Iniciá sesión.');
       }
       return serverError(authErr?.message || 'No se pudo crear la cuenta.');
     }
@@ -146,8 +164,10 @@ export const handler: Handler = async (event) => {
 
     if (rpcErr) {
       // Compensating action: el tenant no se creó (rollback de la transacción)
-      // → borrar el auth user para no dejar una cuenta huérfana.
-      await admin.auth.admin.deleteUser(authUserId);
+      // → borrar el auth user para no dejar una cuenta huérfana. Chequeamos el
+      // error del borrado (si falla, el email quedaría "quemado" → logueamos).
+      const { error: delErr } = await admin.auth.admin.deleteUser(authUserId);
+      if (delErr) console.error('[onboarding-crear-gym] cleanup deleteUser falló:', delErr, { authUserId });
       const msg = rpcErr.message || '';
       if (msg.includes('SLUG_TOMADO')) {
         return badRequest('Ese subdominio ya está en uso. Elegí otro.');

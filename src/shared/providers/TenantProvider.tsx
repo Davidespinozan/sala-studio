@@ -284,6 +284,11 @@ const MARKETING_HOSTS = new Set([
   'www.salastudio.app'
 ]);
 
+/** Apex canónico de marketing. Las URLs de gyms nuevos se arman como
+ *  {slug}.{MARKETING_DOMAIN} en producción (no contra window.location.host, que
+ *  anidaría subdominios). */
+export const MARKETING_DOMAIN = 'salastudio.app';
+
 /** true si estamos en el dominio raíz de SALA (no en un subdominio de tenant). */
 export function isMarketingRoot(): boolean {
   if (typeof window === 'undefined') return false;

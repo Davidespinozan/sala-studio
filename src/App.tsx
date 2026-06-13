@@ -1,8 +1,8 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { ToastProvider } from '@shared/providers/ToastProvider';
-import { isMarketingRoot } from '@shared/providers/TenantProvider';
+import { isMarketingRoot, isTenantFromSubdomain } from '@shared/providers/TenantProvider';
 
 const PublicLayout = lazy(() => import('@public/PublicLayout'));
 const MemberLayout = lazy(() => import('@member/MemberLayout'));
@@ -16,6 +16,9 @@ const NuevaContrasena = lazy(() => import('@public/pages/NuevaContrasena'));
 export default function App() {
   // En el dominio raíz de SALA, "/" es la landing de producto (no la de un gym).
   const marketing = isMarketingRoot();
+  // Superficies de MARKETING (onboarding + landing de producto): no tienen sentido
+  // en el subdominio de un gym real → redirigir a "/". En dev/preview se permiten.
+  const enSubdominioTenant = isTenantFromSubdomain();
 
   return (
     <ToastProvider>
@@ -24,8 +27,8 @@ export default function App() {
           <Route path="/app/*" element={<MemberLayout />} />
           <Route path="/admin/*" element={<AdminLayout />} />
           <Route path="/recepcion/*" element={<ReceptionLayout />} />
-          <Route path="/para-gimnasios" element={<SalaLanding />} />
-          <Route path="/registro" element={<Onboarding />} />
+          <Route path="/para-gimnasios" element={enSubdominioTenant ? <Navigate to="/" replace /> : <SalaLanding />} />
+          <Route path="/registro" element={enSubdominioTenant ? <Navigate to="/" replace /> : <Onboarding />} />
           <Route path="/recuperar" element={<RecuperarContrasena />} />
           <Route path="/nueva-contrasena" element={<NuevaContrasena />} />
           <Route path="/" element={marketing ? <SalaLanding /> : <PublicLayout />} />

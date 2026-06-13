@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { TIMEZONE_OPTIONS } from '@shared/lib/timezone';
+import { MARKETING_DOMAIN } from '@shared/providers/TenantProvider';
 import {
   PLANES_SAAS,
   TIERS_ORDEN,
@@ -35,13 +36,15 @@ const ESTADO_INICIAL: OnboardingState = {
   setup: { colorPrimario: COLOR_PRIMARIO_DEFAULT, colorAcento: COLOR_ACENTO_DEFAULT, logoUrl: null, salaNombre: '', salaCupo: 15 }
 };
 
-/** URL del gym recién creado (subdominio). En dev, *.localhost resuelve solo. */
+/** URL del gym recién creado (subdominio). En dev/preview construye contra el
+ *  host actual (*.localhost resuelve solo); en prod, contra el apex canónico de
+ *  marketing — nunca contra window.location.host, que anidaría subdominios. */
 function urlDelGym(slug: string): string {
-  if (typeof window === 'undefined') return `https://${slug}.salastudio.app/admin`;
+  if (typeof window === 'undefined') return `https://${slug}.${MARKETING_DOMAIN}/admin`;
   const { protocol, host } = window.location;
-  // Dominio base = host sin el prefijo 'www.'. Sin esto, correr el onboarding
-  // en www.salastudio.app armaba {slug}.www.salastudio.app (subdominio roto).
-  const base = host.replace(/^www\./, '');
+  const esDevOPreview =
+    host.includes('localhost') || host.startsWith('127.') || host.endsWith('.netlify.app');
+  const base = esDevOPreview ? host.replace(/^www\./, '') : MARKETING_DOMAIN;
   return `${protocol}//${slug}.${base}/admin`;
 }
 
@@ -321,13 +324,16 @@ function PasoGym({
     setDisp('checking');
     let cancelado = false;
     const t = setTimeout(async () => {
-      const { data } = await supabase
-        .from('tenants')
-        .select('id')
-        .eq('slug', slug)
-        .maybeSingle();
+      // RPC slug_disponible (SECURITY DEFINER): ve TODOS los estados. Leer
+      // `tenants` como anon solo veía los activos → falso "disponible" para
+      // slugs de tenants suspendidos.
+      const rpc = supabase.rpc as unknown as (
+        n: string, a: Record<string, unknown>
+      ) => Promise<{ data: boolean | null; error: { message: string } | null }>;
+      const { data, error } = await rpc('slug_disponible', { p_slug: slug });
       if (cancelado) return;
-      setDisp(data ? 'tomado' : 'disponible');
+      // Si el RPC falla, no afirmamos "disponible" (el backend igual valida).
+      setDisp(error ? 'idle' : data ? 'disponible' : 'tomado');
     }, 450);
     return () => {
       cancelado = true;
