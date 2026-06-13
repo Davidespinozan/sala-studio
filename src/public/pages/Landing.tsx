@@ -416,6 +416,11 @@ export function HeroView({ hero, preview = false }: { hero: LandingHero; preview
             background: 'linear-gradient(to top, rgba(10, 15, 12, 0.92) 0%, rgba(10, 15, 12, 0.6) 45%, rgba(10, 15, 12, 0.42) 100%)'
           }}
         />
+        {/* Orbs ambientales SOBRE la foto (blend screen, muy tenues): hacen
+            "respirar" al hero aunque haya una imagen a pantalla completa. */}
+        <div className="sala-orb" aria-hidden="true" style={{ width: 320, height: 320, top: '-12%', left: '-6%', zIndex: 2, opacity: 0.18, mixBlendMode: 'screen', animationDelay: '0s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
+        <div className="sala-orb" aria-hidden="true" style={{ width: 200, height: 200, bottom: '6%', right: '4%', zIndex: 2, opacity: 0.16, mixBlendMode: 'screen', animationDelay: '4s', '--orb-color': 'var(--sala-accent)' } as CSSProperties} />
+        <div className="sala-orb" aria-hidden="true" style={{ width: 130, height: 130, top: '22%', right: '26%', zIndex: 2, opacity: 0.14, mixBlendMode: 'screen', animationDelay: '6s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
         {/* Glow ambiental que sigue el cursor (desktop). */}
         <div className="sala-spotlight" aria-hidden="true" />
         {/* En full-bleed la imagen ocupa todo el ancho, pero el texto se alinea
