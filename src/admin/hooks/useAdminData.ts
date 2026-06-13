@@ -95,12 +95,14 @@ export function useMiembroDetalle(miembroId: string | undefined) {
 }
 
 /**
- * Actualizar campos arbitrarios de un miembro.
- * RLS valida que solo admin del tenant puede hacerlo.
+ * Actualizar campos de un miembro. RLS valida que solo admin del tenant puede.
+ * NO incluye membresia_tier/membresia_activa_id a propósito: el plan se cambia
+ * SOLO por gestionar_membresia_socio (crea la fila de membresía + el ledger);
+ * un UPDATE directo a usuarios.membresia_tier desincronizaría el cache.
  */
 export async function updateMiembro(
   miembroId: string,
-  patch: Partial<Pick<Usuario, 'rol' | 'status' | 'membresia_tier' | 'nombre' | 'telefono'>>
+  patch: Partial<Pick<Usuario, 'rol' | 'status' | 'nombre' | 'telefono'>>
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.from('usuarios').update(patch).eq('id', miembroId);
   return { error: error?.message ?? null };

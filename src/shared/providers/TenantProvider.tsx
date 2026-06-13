@@ -161,8 +161,20 @@ function applyTenantHead(branding: BrandingColors | null | undefined, nombre: st
     const primary = typeof b.color_primary === 'string' ? b.color_primary : '#3D6B52';
     const bgColor = typeof b.color_bg === 'string' ? b.color_bg : '#F5F1E8';
     const isotipo = typeof b.isotipo_url === 'string' ? b.isotipo_url : favicon;
-    const iconType = isotipo && isotipo.toLowerCase().endsWith('.svg') ? 'image/svg+xml' : 'image/png';
+    const esSvg = !!isotipo && isotipo.toLowerCase().endsWith('.svg');
+    const iconType = esSvg ? 'image/svg+xml' : 'image/png';
     const nombreApp = nombre || 'Studio';
+    // Un SVG con sizes fijos (192/512) Chrome lo IGNORA para instalar → una sola
+    // entrada sizes:'any'. PNG sí usa los tamaños fijos + maskable.
+    const icons = !isotipo
+      ? []
+      : esSvg
+        ? [{ src: isotipo, sizes: 'any', type: iconType, purpose: 'any' }]
+        : [
+            { src: isotipo, sizes: '192x192', type: iconType, purpose: 'any' },
+            { src: isotipo, sizes: '512x512', type: iconType, purpose: 'any' },
+            { src: isotipo, sizes: 'any', type: iconType, purpose: 'maskable' }
+          ];
     const manifest = {
       name: nombreApp,
       short_name: nombreApp.slice(0, 18),
@@ -171,13 +183,7 @@ function applyTenantHead(branding: BrandingColors | null | undefined, nombre: st
       display: 'standalone',
       background_color: bgColor,
       theme_color: primary,
-      icons: isotipo
-        ? [
-            { src: isotipo, sizes: '192x192', type: iconType, purpose: 'any' },
-            { src: isotipo, sizes: '512x512', type: iconType, purpose: 'any' },
-            { src: isotipo, sizes: 'any', type: iconType, purpose: 'maskable' }
-          ]
-        : []
+      icons
     };
     const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
     const url = URL.createObjectURL(blob);
