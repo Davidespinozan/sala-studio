@@ -1,6 +1,15 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 type Variant = 'danger' | 'warning' | 'info';
+
+/** Elementos enfocables visibles dentro de un contenedor (para el focus-trap). */
+function focusablesDe(panel: HTMLElement): HTMLElement[] {
+  return Array.from(
+    panel.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+  ).filter((el) => el.offsetParent !== null);
+}
 
 interface Props {
   isOpen: boolean;
@@ -56,21 +65,45 @@ export function AccionModal({
   const [submitting, setSubmitting] = useState(false);
   const [typed, setTyped] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const prevFocusRef = useRef<HTMLElement | null>(null);
 
+  // Apertura: reset, foco inicial dentro del modal, scroll-lock; al cerrar
+  // restaura el foco al elemento que abrió el modal (a11y).
   useEffect(() => {
     if (!isOpen) return;
     setTyped('');
     setError(null);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !submitting) onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
+    prevFocusRef.current = document.activeElement as HTMLElement | null;
+    const panel = panelRef.current;
+    if (panel) (focusablesDe(panel)[0] ?? panel).focus();
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prevOverflow;
+      prevFocusRef.current?.focus?.();
     };
+  }, [isOpen]);
+
+  // Teclado: Escape cierra; Tab queda atrapado dentro del modal.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !submitting) { onClose(); return; }
+      if (e.key !== 'Tab') return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const f = focusablesDe(panel);
+      if (f.length === 0) { e.preventDefault(); return; }
+      const first = f[0];
+      const last = f[f.length - 1];
+      const active = document.activeElement;
+      if (!panel.contains(active)) { e.preventDefault(); first.focus(); }
+      else if (e.shiftKey && active === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   }, [isOpen, onClose, submitting]);
 
   if (!isOpen) return null;
@@ -113,6 +146,8 @@ export function AccionModal({
       }}
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           background: 'var(--ek-bg-soft)',
@@ -122,6 +157,7 @@ export function AccionModal({
           width: '100%',
           padding: '28px',
           animation: 'ek-scale-in 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+          outline: 'none',
         }}
       >
         <p className="ek-eyebrow" style={{ color: style.eyebrowColor, marginBottom: '8px' }}>
