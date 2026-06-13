@@ -30,13 +30,20 @@ import { requireEnv } from './_lib/env';
 
 // Empieza y termina en alfanumérico; guiones solo en el medio.
 const SLUG_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+// Mantener en sync con onboardingLogic.SUBDOMINIOS_RESERVADOS (frontend).
 const RESERVADOS = new Set([
-  'admin', 'www', 'app', 'api', 'sala', 'sala-demo', 'registro', 'onboarding',
-  'login', 'signup', 'dashboard', 'recepcion', 'public', 'cuenta', 'billing',
-  'support', 'status', 'mail', 'dev', 'staging', 'test', 'demo'
+  'admin', 'www', 'app', 'api', 'mail', 'ftp', 'blog', 'dev', 'staging',
+  'test', 'demo', 'sala', 'sala-demo', 'static', 'assets', 'cdn', 'docs',
+  'help', 'support', 'status', 'login', 'signup', 'registro', 'onboarding',
+  'dashboard', 'recepcion', 'public', 'cuenta', 'billing'
 ]);
 const TIERS = new Set(['starter', 'pro', 'business']);
 const MONEDAS = new Set(['mxn', 'usd', 'eur']);
+
+const HEX_RE = /^#[0-9a-f]{6}$/i;
+/** Color válido o el default — un color basura rompería applyBranding del tenant. */
+const colorValido = (c: unknown, def: string): string =>
+  typeof c === 'string' && HEX_RE.test(c.trim()) ? c.trim() : def;
 
 interface Body {
   nombre: string;
@@ -155,8 +162,11 @@ export const handler: Handler = async (event) => {
       p_tier_saas: b.tier,
       p_moneda: b.moneda,
       p_precio_centavos: b.precioCentavos,
-      p_color_primario: b.colorPrimario || '#3d6b52',
-      p_color_acento: b.colorAcento || null,
+      p_color_primario: colorValido(b.colorPrimario, '#3d6b52'),
+      // Acento: válido → se usa; inválido/ausente → null (el RPC cae al primario).
+      p_color_acento: (typeof b.colorAcento === 'string' && HEX_RE.test(b.colorAcento.trim()))
+        ? b.colorAcento.trim()
+        : null,
       p_logo_url: b.logoUrl || null,
       p_sala_nombre: b.salaNombre.trim(),
       p_sala_cupo: b.salaCupo
