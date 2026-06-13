@@ -613,6 +613,21 @@ export async function gestionarMembresiaSocio(params: {
   return { data: data as unknown as GestionarMembresiaResult, error: null };
 }
 
+/** Da de baja la membresía activa del socio (recepcion_cancelar_membresia):
+ *  status='cancelada' + limpia el cache de plan en usuarios. El acceso queda
+ *  bloqueado. Requiere motivo. */
+export async function recepcionCancelarMembresia(params: {
+  usuario_id: string;
+  motivo: string;
+}): Promise<{ error: string | null }> {
+  // RPC no incluido aún en los tipos generados de Supabase.
+  const { error } = await supabase.rpc('recepcion_cancelar_membresia' as never, {
+    p_usuario_id: params.usuario_id,
+    p_motivo: params.motivo
+  } as never);
+  return { error: error ? error.message : null };
+}
+
 /** Hard delete real vía auth.admin.deleteUser (libera el email para re-uso).
  *
  *  Devuelve envelope `{ data, error }` (no usa backendPost para poder

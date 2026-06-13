@@ -3,7 +3,8 @@ import { Circle, CircleDot } from 'lucide-react';
 import { useToast } from '@shared/hooks/useToast';
 import {
   useTiersAdmin,
-  gestionarMembresiaSocio
+  gestionarMembresiaSocio,
+  recepcionCancelarMembresia
 } from '@admin/hooks/useAdminData';
 import { useMembresiaActual } from '@member/hooks/useMembresiaActual';
 import {
@@ -44,6 +45,10 @@ export function GestionarMembresiaModal({
   const { membresia, isLoading: loadingMem } = useMembresiaActual(usuarioId);
   const [selTierId, setSelTierId] = useState<string>('');
   const [saving, setSaving] = useState(false);
+  // Baja de membresía (recepcion_cancelar_membresia).
+  const [showBaja, setShowBaja] = useState(false);
+  const [motivoBaja, setMotivoBaja] = useState('');
+  const [bajando, setBajando] = useState(false);
 
   const tiersActivos = useMemo(() => tiers.filter((t) => t.activo), [tiers]);
 
@@ -99,6 +104,23 @@ export function GestionarMembresiaModal({
           ? `Plan de ${nombreMiembro} cambiado.`
           : `Membresía de ${nombreMiembro} renovada.`
     );
+    await onSaved();
+    onClose();
+  }
+
+  async function handleBaja() {
+    if (motivoBaja.trim().length < 3) return;
+    setBajando(true);
+    const { error } = await recepcionCancelarMembresia({
+      usuario_id: usuarioId,
+      motivo: motivoBaja.trim()
+    });
+    setBajando(false);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    toast.success(`Membresía de ${nombreMiembro} dada de baja.`);
     await onSaved();
     onClose();
   }
@@ -345,6 +367,75 @@ export function GestionarMembresiaModal({
         >
           El cobro se gestiona aparte. Esta acción solo actualiza la membresía.
         </p>
+
+        {/* Baja de membresía — solo si tiene una activa. */}
+        {membresia && !showBaja && (
+          <button
+            type="button"
+            onClick={() => setShowBaja(true)}
+            disabled={saving}
+            style={{
+              marginTop: '16px',
+              width: '100%',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'var(--sala-error)'
+            }}
+          >
+            Dar de baja la membresía
+          </button>
+        )}
+
+        {membresia && showBaja && (
+          <div
+            style={{
+              marginTop: '16px',
+              padding: '14px',
+              border: '1px solid var(--sala-error-glow, var(--sala-border))',
+              background: 'var(--sala-error-bg)',
+              borderRadius: '12px'
+            }}
+          >
+            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--sala-text-primary)', margin: '0 0 8px' }}>
+              Dar de baja la membresía de {nombreMiembro}
+            </p>
+            <p style={{ fontSize: '12px', color: 'var(--sala-text-secondary)', margin: '0 0 10px', lineHeight: 1.45 }}>
+              Su acceso queda bloqueado al instante. No borra el historial. Indicá el motivo:
+            </p>
+            <input
+              type="text"
+              value={motivoBaja}
+              onChange={(e) => setMotivoBaja(e.target.value)}
+              placeholder="Motivo de la baja"
+              className="ek-input"
+              style={{ marginBottom: '10px' }}
+            />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => { setShowBaja(false); setMotivoBaja(''); }}
+                disabled={bajando}
+                className="ek-cta ek-cta--secondary"
+                style={{ flex: 1 }}
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                onClick={handleBaja}
+                disabled={bajando || motivoBaja.trim().length < 3}
+                className="ek-cta"
+                style={{ flex: 1, background: 'var(--sala-error)', borderColor: 'var(--sala-error)' }}
+              >
+                {bajando ? 'Dando de baja…' : 'Confirmar baja'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
