@@ -30,7 +30,8 @@ interface CreateRequest {
   membresia_tier?: 'basica' | 'pro' | null;
 }
 
-const ROLES_VALIDOS = ['miembro', 'recepcionista', 'staff', 'admin'] as const;
+// 'staff' desactivado (rol a medias sin UI propia) — se rechaza al crear.
+const ROLES_VALIDOS: readonly string[] = ['miembro', 'recepcionista', 'admin'];
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') return badRequest('Method not allowed');

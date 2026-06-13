@@ -577,7 +577,9 @@ function CambiarRolControl({
         >
           <option value="miembro">Miembro</option>
           <option value="recepcionista">Recepción</option>
-          <option value="staff">Staff</option>
+          {/* 'staff' desactivado como destino. Solo se ofrece si la persona YA es
+              staff legacy (para poder reasignarla); no se puede asignar de nuevo. */}
+          {rolActual === 'staff' && <option value="staff">Staff (legacy)</option>}
           <option value="admin">Admin</option>
         </select>
       </label>

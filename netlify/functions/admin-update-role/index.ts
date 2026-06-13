@@ -27,7 +27,8 @@ interface UpdateRoleRequest {
   rol: 'miembro' | 'recepcionista' | 'staff' | 'admin';
 }
 
-const ROLES_VALIDOS = ['miembro', 'recepcionista', 'staff', 'admin'] as const;
+// 'staff' desactivado (rol a medias sin UI propia) — se rechaza al crear/cambiar.
+const ROLES_VALIDOS: readonly string[] = ['miembro', 'recepcionista', 'admin'];
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') return badRequest('Method not allowed');

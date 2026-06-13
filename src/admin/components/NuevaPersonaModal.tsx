@@ -35,7 +35,7 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
   const [formaActivacion, setFormaActivacion] = useState<FormaActivacion>('efectivo');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<{ email: string; password: string; rol: string } | null>(null);
+  const [success, setSuccess] = useState<{ email: string; password: string; rol: string; warning?: string } | null>(null);
   const [needsAdminConfirm, setNeedsAdminConfirm] = useState(false);
 
   const tiersActivos = tiers.filter((t) => t.activo);
@@ -80,12 +80,18 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
           motivo: MOTIVO_ALTA[formaActivacion]
         });
         if (memErr) {
-          // El usuario YA está creado. La membresía no — mejor avisar y
-          // que el admin la cargue después desde MiembroDetalle.
-          setError(
-            `Usuario creado pero no se pudo asignar la membresía: ${memErr}. ` +
-            `Cargala manualmente desde su perfil.`
-          );
+          // El usuario YA está creado (auth + fila). Solo falló la membresía.
+          // Lo tratamos como ÉXITO PARCIAL: mostramos las credenciales (así el
+          // admin sabe que existe y no reintenta con el mismo email → "ya existe")
+          // + un aviso para cargar el plan desde el perfil. NO es un error total.
+          setSuccess({
+            email: res.user.email,
+            password: res.user.password,
+            rol: res.user.rol,
+            warning:
+              `La cuenta se creó, pero no se pudo asignar el plan: ${memErr}. ` +
+              `Asignalo desde el perfil de la persona (Miembros → su ficha).`
+          });
           setSubmitting(false);
           return;
         }
@@ -115,6 +121,23 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
             Cuenta lista para usar. Envíalas por WhatsApp o en persona.
             El usuario puede cambiar la password después en su perfil.
           </p>
+
+          {success.warning && (
+            <div
+              role="alert"
+              style={{
+                background: 'var(--ek-mustard-soft, var(--ek-cream-warm))',
+                border: '1px solid var(--sala-warning-glow, var(--ek-mustard))',
+                color: 'var(--ek-ink)',
+                borderRadius: 'var(--ek-r-md)',
+                padding: '10px 12px',
+                fontSize: '0.875rem',
+                lineHeight: 1.45,
+              }}
+            >
+              ⚠️ {success.warning}
+            </div>
+          )}
 
           <div className="ek-card" style={{ background: 'var(--ek-cream-warm)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.9375rem' }}>
@@ -197,7 +220,8 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
             >
               <option value="miembro">Miembro (cliente que paga membresía)</option>
               <option value="recepcionista">Recepción (escanea QR en mostrador)</option>
-              <option value="staff">Staff (empleado con permisos parciales)</option>
+              {/* 'staff' desactivado: rol a medias (permisos parciales sin UI propia).
+                  Se reintroduce cuando se diseñe el tier limitado. */}
               <option value="admin">Admin (acceso total al negocio)</option>
             </select>
           </div>
