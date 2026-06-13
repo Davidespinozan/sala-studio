@@ -1,33 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePrefersReducedMotion } from '@shared/hooks/usePrefersReducedMotion';
+import type { LandingHeroSlide } from '@shared/hooks/useLandingConfig';
 
 /**
  * Capa de fondo del hero: slides apilados con crossfade + Ken Burns en el
  * activo, puntitos (el activo se alarga en pill) y swipe en táctil. Auto-rota
- * cada `intervalMs` (se frena con prefers-reduced-motion). Una sola imagen →
- * sin puntitos ni auto-rotación, solo Ken Burns.
+ * cada `intervalMs` (se frena con prefers-reduced-motion). Un solo slide → sin
+ * puntitos ni auto-rotación, solo Ken Burns.
  *
- * Es decorativa (aria-hidden en las imágenes); los puntitos sí son
- * interactivos y etiquetados.
+ * Cada slide trae su imagen desktop (16:9) y móvil (3:4, cae a desktop).
  */
 export function HeroCarousel({
-  imagenes,
+  slides,
   intervalMs = 5000
 }: {
-  imagenes: string[];
+  slides: LandingHeroSlide[];
   intervalMs?: number;
 }) {
   const reduced = usePrefersReducedMotion();
-  const n = imagenes.length;
+  const n = slides.length;
   const [idx, setIdx] = useState(0);
   const startX = useRef<number | null>(null);
 
-  // Si cambia la cantidad de imágenes (preview en admin), no quedar fuera de rango.
   useEffect(() => {
     if (idx >= n) setIdx(0);
   }, [n, idx]);
 
-  // Auto-rotación (pausada si hay <=1 imagen o el usuario pide menos movimiento).
   useEffect(() => {
     if (n <= 1 || reduced) return;
     const t = setInterval(() => setIdx((i) => (i + 1) % n), intervalMs);
@@ -52,19 +50,21 @@ export function HeroCarousel({
       onTouchEnd={onTouchEnd}
       style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}
     >
-      {imagenes.map((src, i) => (
-        <img
-          key={`${i}-${src}`}
-          src={src}
-          alt=""
-          aria-hidden="true"
-          className={`sala-hero-slide${i === idx ? ' is-active' : ''}`}
-        />
+      {slides.map((s, i) => (
+        <picture key={`${i}-${s.desktop}`}>
+          <source media="(max-width: 640px)" srcSet={s.mobile || s.desktop} />
+          <img
+            src={s.desktop}
+            alt=""
+            aria-hidden="true"
+            className={`sala-hero-slide${i === idx ? ' is-active' : ''}`}
+          />
+        </picture>
       ))}
 
       {n > 1 && (
         <div className="sala-hero-dots">
-          {imagenes.map((_, i) => (
+          {slides.map((_, i) => (
             <button
               key={i}
               type="button"

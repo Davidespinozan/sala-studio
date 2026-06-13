@@ -259,11 +259,13 @@ function parseBeneficios(raw: unknown): string[] {
 export function HeroView({ hero, preview = false }: { hero: LandingHero; preview?: boolean }) {
   const onSpotlight = useSpotlight();
   const reduced = usePrefersReducedMotion();
-  // Slides del carrusel: las imágenes configuradas o, si no hay, la imagen única
-  // (desktop/mobile). Una sola → el carrusel hace solo Ken Burns.
+  // Slides del carrusel: los configurados o, si no hay, la imagen única (compat).
+  // Una sola → el carrusel hace solo Ken Burns.
   const slides = hero.imagenes.length > 0
     ? hero.imagenes
-    : [hero.image_url || hero.image_url_mobile].filter(Boolean);
+    : (hero.image_url || hero.image_url_mobile)
+      ? [{ desktop: hero.image_url || hero.image_url_mobile, mobile: hero.image_url_mobile || hero.image_url }]
+      : [];
   const hasImg = slides.length > 0;
   const tituloColor = hasImg ? 'rgba(255, 255, 255, 0.98)' : 'var(--sala-text-primary)';
   const subColor = hasImg ? 'rgba(255, 255, 255, 0.88)' : 'var(--ek-ink-muted)';
@@ -406,7 +408,7 @@ export function HeroView({ hero, preview = false }: { hero: LandingHero; preview
         }}
       >
         {/* Carrusel de fondo (1 imagen = solo Ken Burns). */}
-        <HeroCarousel imagenes={slides} />
+        <HeroCarousel slides={slides} />
         <div
           aria-hidden="true"
           style={{

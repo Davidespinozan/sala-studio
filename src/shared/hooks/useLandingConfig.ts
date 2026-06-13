@@ -4,6 +4,9 @@ import { useTenant } from '@shared/hooks/useTenant';
  *  (flota sobre el fondo); 'completo' = full-bleed de borde a borde. */
 export type LandingHeroLayout = 'contenido' | 'completo';
 
+/** Un slide del carrusel del hero: imagen desktop (16:9) + móvil (3:4). */
+export type LandingHeroSlide = { desktop: string; mobile: string };
+
 export type LandingHero = {
   eyebrow: string;
   titulo: string;
@@ -15,9 +18,9 @@ export type LandingHero = {
   image_url: string;
   /** Imagen de fondo del hero para MÓVIL (3:4 vertical). Cae a la desktop si falta. */
   image_url_mobile: string;
-  /** Carrusel del hero: varias imágenes que rotan (crossfade + Ken Burns). Vacío
-   *  → cae a image_url (una sola, solo Ken Burns). Editable desde el admin. */
-  imagenes: string[];
+  /** Carrusel del hero: varios slides (desktop + móvil) que rotan. Vacío → cae a
+   *  image_url (una sola). Editable desde el admin. */
+  imagenes: LandingHeroSlide[];
   /** Estilo del hero con imagen. Default 'contenido'. */
   layout: LandingHeroLayout;
 };
@@ -168,6 +171,23 @@ function parseFaq(value: unknown): LandingFaqItem[] {
     .filter((f) => f.pregunta.trim() || f.respuesta.trim());
 }
 
+/** Slides del carrusel del hero. Compat: si vienen strings viejos (solo URL),
+ *  se interpretan como {desktop, mobile:''}. Filtra los sin desktop. */
+function parseHeroSlides(value: unknown): LandingHeroSlide[] {
+  if (!Array.isArray(value)) return [];
+  return (value as unknown[])
+    .map((it): LandingHeroSlide => {
+      if (typeof it === 'string') return { desktop: it.trim(), mobile: '' };
+      if (it && typeof it === 'object') {
+        const o = it as Record<string, unknown>;
+        return { desktop: String(o.desktop ?? '').trim(), mobile: String(o.mobile ?? '').trim() };
+      }
+      return { desktop: '', mobile: '' };
+    })
+    .filter((s) => s.desktop.length > 0)
+    .slice(0, 10);
+}
+
 export function useLandingConfig() {
   const tenant = useTenant();
   const config = (tenant.config ?? {}) as Record<string, unknown>;
@@ -175,10 +195,7 @@ export function useLandingConfig() {
   const contactoRaw = (config.contacto ?? {}) as Record<string, unknown>;
 
   const hero = parseObject(landing.hero, HERO_DEFAULT);
-  // imagenes: sanitizar a string[] no vacíos (el merge shallow no valida arrays).
-  hero.imagenes = Array.isArray(hero.imagenes)
-    ? hero.imagenes.filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
-    : [];
+  hero.imagenes = parseHeroSlides(hero.imagenes);
   const post_hero = parsePostHero(landing.post_hero);
   const cta_final = parseObject(landing.cta_final, CTA_FINAL_DEFAULT);
   const faq = parseFaq(landing.faq);

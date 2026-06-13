@@ -8,6 +8,31 @@ import LandingPreview from '../components/LandingPreview';
 
 type HeroLayout = 'contenido' | 'completo';
 
+/** Lee los slides del hero desde config. Migra la imagen única vieja
+ *  (image_url/image_url_mobile) a un slide 1 si todavía no hay carrusel. */
+function readHeroSlides(hero: Record<string, unknown>): { desktop: string; mobile: string }[] {
+  const raw = hero.imagenes;
+  let slides: { desktop: string; mobile: string }[] = [];
+  if (Array.isArray(raw)) {
+    slides = raw
+      .map((it) => {
+        if (typeof it === 'string') return { desktop: it.trim(), mobile: '' };
+        if (it && typeof it === 'object') {
+          const o = it as Record<string, unknown>;
+          return { desktop: String(o.desktop ?? '').trim(), mobile: String(o.mobile ?? '').trim() };
+        }
+        return { desktop: '', mobile: '' };
+      })
+      .filter((s) => s.desktop.length > 0);
+  }
+  if (slides.length === 0) {
+    const d = String(hero.image_url ?? '').trim();
+    const m = String(hero.image_url_mobile ?? '').trim();
+    if (d || m) slides = [{ desktop: d || m, mobile: m }];
+  }
+  return slides;
+}
+
 /** Botón chico (✕/←/→) sobre las miniaturas del carrusel del hero. */
 const miniBtn: CSSProperties = {
   width: '22px',
@@ -33,7 +58,7 @@ type HeroDraft = {
   cta_link: string;
   image_url: string;
   image_url_mobile: string;
-  imagenes: string[];
+  imagenes: { desktop: string; mobile: string }[];
   layout: HeroLayout;
 };
 
@@ -150,9 +175,7 @@ function readLanding(config: Record<string, unknown> | null): LandingDraft {
       cta_link: String(hero.cta_link ?? ''),
       image_url: String(hero.image_url ?? ''),
       image_url_mobile: String(hero.image_url_mobile ?? ''),
-      imagenes: Array.isArray(hero.imagenes)
-        ? (hero.imagenes as unknown[]).filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
-        : [],
+      imagenes: readHeroSlides(hero),
       layout: hero.layout === 'completo' ? 'completo' : 'contenido'
     },
     cta_final: {
@@ -302,7 +325,15 @@ export default function AjustesLanding() {
 
   async function handleSave() {
     const payload = {
-      hero: { ...draft.hero },
+      hero: {
+        ...draft.hero,
+        // Las imágenes del hero viven en `imagenes` (slides desktop+móvil).
+        // Filtramos slides sin desktop y limpiamos las claves únicas viejas para
+        // que `imagenes` sea la única fuente de verdad.
+        imagenes: draft.hero.imagenes.filter((s) => s.desktop.trim().length > 0),
+        image_url: '',
+        image_url_mobile: ''
+      },
       post_hero: { ...draft.post_hero },
       cta_final: { ...draft.cta_final },
       footer: {
@@ -328,6 +359,23 @@ export default function AjustesLanding() {
 
   function handleDiscard() {
     setDraft(original);
+  }
+
+  // Helpers del carrusel del hero (slides desktop/móvil).
+  function setSlideUrl(i: number, key: 'desktop' | 'mobile', url: string) {
+    setDraft((d) => {
+      const arr = [...d.hero.imagenes];
+      arr[i] = { ...arr[i], [key]: url };
+      return { ...d, hero: { ...d.hero, imagenes: arr } };
+    });
+  }
+  function moverSlide(i: number, dir: number) {
+    setDraft((d) => {
+      const arr = [...d.hero.imagenes];
+      const [m] = arr.splice(i, 1);
+      arr.splice(i + dir, 0, m);
+      return { ...d, hero: { ...d.hero, imagenes: arr } };
+    });
   }
 
   if (isLoading) {
@@ -357,117 +405,74 @@ export default function AjustesLanding() {
       </div>
 
       <Section title="HERO" description="La primera impresión cuando alguien visita tu landing.">
-        <ImageUploader
-          bucket="estudios"
-          pathPrefix={`${tenant.slug}/hero-desktop`}
-          currentUrl={draft.hero.image_url || null}
-          onUploaded={(url) => setDraft({ ...draft, hero: { ...draft.hero, image_url: url } })}
-          label="Imagen de fondo — Desktop (opcional)"
-          cropAspect={16 / 9}
-          previewMaxHeight={200}
-          helperText="Foto horizontal para pantallas grandes. Recorte 16:9. Sin imagen, el hero queda de texto sobre fondo claro."
-        />
-        <ImageUploader
-          bucket="estudios"
-          pathPrefix={`${tenant.slug}/hero-mobile`}
-          currentUrl={draft.hero.image_url_mobile || null}
-          onUploaded={(url) => setDraft({ ...draft, hero: { ...draft.hero, image_url_mobile: url } })}
-          label="Imagen de fondo — Móvil (opcional)"
-          cropAspect={3 / 4}
-          previewMaxHeight={220}
-          helperText="Foto vertical para celulares. Recorte 3:4. Si no subís una, en móvil se usa la de desktop."
-        />
+        <p style={{ fontSize: '12px', color: 'var(--sala-text-secondary)', margin: '0 0 14px', lineHeight: 1.5 }}>
+          Subí una o varias imágenes. Con varias, <strong>rotan solas en un carrusel</strong> (crossfade +
+          movimiento sutil). Cada imagen tiene su versión <strong>desktop (16:9)</strong> y{' '}
+          <strong>móvil (3:4)</strong>. Sin imágenes, el hero queda de texto sobre fondo claro.
+        </p>
 
-        {/* Carrusel del hero — varias imágenes que rotan (crossfade + Ken Burns). */}
-        <div style={{ marginTop: '4px', paddingTop: '16px', borderTop: '0.5px solid var(--ek-line)' }}>
-          <p className="ek-label" style={{ marginBottom: '4px' }}>Carrusel del hero (opcional)</p>
-          <p style={{ fontSize: '12px', color: 'var(--sala-text-secondary)', margin: '0 0 12px', lineHeight: 1.5 }}>
-            Agregá varias fotos y rotan solas con un efecto sutil. Si cargás acá, reemplazan la
-            imagen única de arriba. Con una sola también sirve (queda con movimiento lento).
-          </p>
-
-          {draft.hero.imagenes.length > 0 && (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-                gap: '10px',
-                marginBottom: '14px'
-              }}
-            >
-              {draft.hero.imagenes.map((url, i) => (
-                <div
-                  key={`${i}-${url}`}
-                  style={{
-                    position: 'relative',
-                    aspectRatio: '16 / 9',
-                    borderRadius: '10px',
-                    overflow: 'hidden',
-                    border: '0.5px solid var(--ek-line)'
-                  }}
+        {draft.hero.imagenes.map((slide, i) => (
+          <div
+            key={i}
+            style={{
+              border: '0.5px solid var(--ek-line)',
+              borderRadius: '12px',
+              padding: '14px',
+              marginBottom: '12px',
+              background: 'var(--ek-bg-soft)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <span className="ek-label" style={{ margin: 0 }}>Imagen {i + 1}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {i > 0 && (
+                  <button type="button" aria-label="Subir" onClick={() => moverSlide(i, -1)} style={miniBtn}>↑</button>
+                )}
+                {i < draft.hero.imagenes.length - 1 && (
+                  <button type="button" aria-label="Bajar" onClick={() => moverSlide(i, 1)} style={miniBtn}>↓</button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setDraft((d) => ({ ...d, hero: { ...d.hero, imagenes: d.hero.imagenes.filter((_, j) => j !== i) } }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: 'var(--sala-error)' }}
                 >
-                  <img src={url} alt={`Imagen ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <span
-                    style={{
-                      position: 'absolute', bottom: '4px', left: '6px',
-                      fontSize: '10px', fontWeight: 700, color: '#fff',
-                      textShadow: '0 1px 4px rgba(0,0,0,0.6)'
-                    }}
-                  >
-                    {i + 1}
-                  </span>
-                  <div style={{ position: 'absolute', top: '6px', right: '6px', display: 'flex', gap: '4px' }}>
-                    {i > 0 && (
-                      <button
-                        type="button"
-                        aria-label="Mover antes"
-                        onClick={() => setDraft((d) => {
-                          const arr = [...d.hero.imagenes];
-                          const [m] = arr.splice(i, 1);
-                          arr.splice(i - 1, 0, m);
-                          return { ...d, hero: { ...d.hero, imagenes: arr } };
-                        })}
-                        style={miniBtn}
-                      >←</button>
-                    )}
-                    {i < draft.hero.imagenes.length - 1 && (
-                      <button
-                        type="button"
-                        aria-label="Mover después"
-                        onClick={() => setDraft((d) => {
-                          const arr = [...d.hero.imagenes];
-                          const [m] = arr.splice(i, 1);
-                          arr.splice(i + 1, 0, m);
-                          return { ...d, hero: { ...d.hero, imagenes: arr } };
-                        })}
-                        style={miniBtn}
-                      >→</button>
-                    )}
-                    <button
-                      type="button"
-                      aria-label="Quitar"
-                      onClick={() => setDraft((d) => ({
-                        ...d, hero: { ...d.hero, imagenes: d.hero.imagenes.filter((_, j) => j !== i) }
-                      }))}
-                      style={{ ...miniBtn, color: '#fff', background: 'rgba(180,40,40,0.85)' }}
-                    >✕</button>
-                  </div>
-                </div>
-              ))}
+                  Quitar
+                </button>
+              </div>
             </div>
-          )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+              <ImageUploader
+                bucket="estudios"
+                pathPrefix={`${tenant.slug}/hero-d-${i}`}
+                currentUrl={slide.desktop || null}
+                onUploaded={(url) => setSlideUrl(i, 'desktop', url)}
+                label="Desktop (16:9)"
+                cropAspect={16 / 9}
+                previewMaxHeight={140}
+                helperText="Foto horizontal para pantallas grandes."
+              />
+              <ImageUploader
+                bucket="estudios"
+                pathPrefix={`${tenant.slug}/hero-m-${i}`}
+                currentUrl={slide.mobile || null}
+                onUploaded={(url) => setSlideUrl(i, 'mobile', url)}
+                label="Móvil (3:4) — opcional"
+                cropAspect={3 / 4}
+                previewMaxHeight={180}
+                helperText="Vertical para celulares. Si no subís, en móvil se usa la de desktop."
+              />
+            </div>
+          </div>
+        ))}
 
-          <ImageUploader
-            bucket="estudios"
-            pathPrefix={`${tenant.slug}/hero-carrusel`}
-            currentUrl={null}
-            onUploaded={(url) => setDraft((d) => ({ ...d, hero: { ...d.hero, imagenes: [...d.hero.imagenes, url] } }))}
-            label="Agregar imagen al carrusel"
-            cropAspect={16 / 9}
-            previewMaxHeight={160}
-            helperText="Recorte 16:9. Podés agregar varias; rotan en orden."
-          />
-        </div>
+        <button
+          type="button"
+          onClick={() => setDraft((d) => ({ ...d, hero: { ...d.hero, imagenes: [...d.hero.imagenes, { desktop: '', mobile: '' }] } }))}
+          className="ek-cta ek-cta--secondary"
+          style={{ marginTop: '2px' }}
+        >
+          + Agregar imagen
+        </button>
 
         <FormField
           label="Estilo del hero"
