@@ -80,9 +80,6 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExp, setCardExp] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,21 +91,6 @@ export default function Signup() {
         beneficios: parseBeneficios(tierRow.beneficios).slice(0, 4)
       }
     : null;
-
-  const handleCardNumber = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 16);
-    const formatted = digits.replace(/(.{4})/g, '$1 ').trim();
-    setCardNumber(formatted);
-  };
-
-  const handleCardExp = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 4);
-    if (digits.length >= 3) {
-      setCardExp(`${digits.slice(0, 2)}/${digits.slice(2)}`);
-    } else {
-      setCardExp(digits);
-    }
-  };
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -125,25 +107,9 @@ export default function Signup() {
       setError(passCheck.error ?? 'La contraseña no es válida.');
       return;
     }
-    if (cardNumber.replace(/\s/g, '').length !== 16) {
-      setError('El número de tarjeta debe tener 16 dígitos.');
-      return;
-    }
-    if (cardExp.length !== 5) {
-      setError('Fecha de vencimiento inválida.');
-      return;
-    }
-    if (cardCvv.length !== 3) {
-      setError('CVV inválido.');
-      return;
-    }
-
     setIsProcessing(true);
 
     try {
-      // Simular procesamiento de pago (2 segundos)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
       const response = await fetch('/.netlify/functions/fake-signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -159,7 +125,7 @@ export default function Signup() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Error al procesar pago');
+        throw new Error(result.error || 'No pudimos crear tu cuenta.');
       }
 
       // Auto-login
@@ -303,57 +269,19 @@ export default function Signup() {
           />
         </div>
 
-        <p className="ek-eyebrow" style={{ marginTop: '20px', marginBottom: '4px' }}>
-          PAGO
-        </p>
-
-        <div className="ek-form-field">
-          <label className="ek-label" htmlFor="signup-card">Número de tarjeta</label>
-          <input
-            id="signup-card"
-            type="text"
-            className="ek-input"
-            placeholder="0000 0000 0000 0000"
-            value={cardNumber}
-            onChange={(e) => handleCardNumber(e.target.value)}
-            required
-            disabled={isProcessing}
-            inputMode="numeric"
-            autoComplete="cc-number"
-          />
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <div className="ek-form-field">
-            <label className="ek-label" htmlFor="signup-exp">Vencimiento</label>
-            <input
-              id="signup-exp"
-              type="text"
-              className="ek-input"
-              placeholder="MM/AA"
-              value={cardExp}
-              onChange={(e) => handleCardExp(e.target.value)}
-              required
-              disabled={isProcessing}
-              inputMode="numeric"
-              autoComplete="cc-exp"
-            />
-          </div>
-          <div className="ek-form-field">
-            <label className="ek-label" htmlFor="signup-cvv">CVV</label>
-            <input
-              id="signup-cvv"
-              type="text"
-              className="ek-input"
-              placeholder="000"
-              value={cardCvv}
-              onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-              required
-              disabled={isProcessing}
-              inputMode="numeric"
-              autoComplete="cc-csc"
-            />
-          </div>
+        <div
+          style={{
+            marginTop: '20px',
+            background: 'var(--sala-primary-light, var(--ek-bg-soft))',
+            border: '0.5px solid var(--sala-border, var(--ek-line))',
+            borderRadius: 'var(--ek-r-md)',
+            padding: '14px 16px'
+          }}
+        >
+          <p style={{ fontSize: '13px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
+            <strong>Sin cargo por ahora.</strong> Activás tu plan al instante; el gimnasio
+            coordina el pago con vos. No te pedimos tarjeta.
+          </p>
         </div>
 
         {error && (
@@ -376,8 +304,8 @@ export default function Signup() {
           disabled={isProcessing}
         >
           {isProcessing
-            ? 'Procesando pago…'
-            : `Pagar y empezar — $${plan.precio.toLocaleString('es-MX')}/mes`
+            ? 'Activando tu cuenta…'
+            : `Activar mi plan — $${plan.precio.toLocaleString('es-MX')}/mes`
           }
         </button>
 
@@ -388,8 +316,8 @@ export default function Signup() {
           marginTop: '4px',
           lineHeight: 1.5
         }}>
-          Al continuar aceptas los términos. Compromiso mínimo de 6 meses.<br />
-          Pago mensual recurrente, cancelas en cualquier momento.
+          Al continuar aceptás los términos.<br />
+          El gimnasio coordina el cobro de tu plan con vos.
         </p>
 
         <p style={{
