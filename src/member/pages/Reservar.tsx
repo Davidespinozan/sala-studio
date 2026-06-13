@@ -11,6 +11,7 @@ import {
 import {
   generarFechasReservables,
   mensajeToastCancelacion,
+  traducirErrorRPC,
   type TenantReservaConfig
 } from '@member/logic/reservaLogic';
 import {
@@ -188,7 +189,7 @@ export default function Reservar() {
       triggerRefresh();
     } catch (e) {
       setSubmittingEspera(false);
-      toast.error(e instanceof Error ? e.message : 'No pudimos anotarte en la lista.');
+      toast.error(e instanceof Error ? traducirErrorRPC(e.message) : 'No pudimos anotarte en la lista.');
     }
   }
 
@@ -213,7 +214,7 @@ export default function Reservar() {
       toast.success('Reserva confirmada.');
       triggerRefresh();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Error reservando';
+      const msg = e instanceof Error ? traducirErrorRPC(e.message) : 'Error reservando';
       setErrorReserva(msg);
       setSubmitting(false);
     }
@@ -371,6 +372,7 @@ export default function Reservar() {
           invitados={invitados}
           onInvitadosChange={setInvitados}
           costoCreditos={esPlanCreditos ? 1 + invitados : null}
+          creditosRestantes={esPlanCreditos ? membresia?.creditos_restantes ?? null : null}
           submitting={submitting}
           error={errorReserva}
           onConfirm={confirmarReserva}

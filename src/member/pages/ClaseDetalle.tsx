@@ -17,7 +17,7 @@ import { useToast } from '@shared/hooks/useToast';
 import { supabase } from '@shared/lib/supabase';
 import { crearReserva, cancelarReserva as cancelarReservaRPC } from '@member/hooks/useReservas';
 import { useMaxInvitados } from '@member/hooks/useMaxInvitados';
-import { mensajeToastCancelacion } from '@member/logic/reservaLogic';
+import { mensajeToastCancelacion, traducirErrorRPC } from '@member/logic/reservaLogic';
 import {
   anotarseEnListaEspera,
   salirDeListaEspera,
@@ -236,7 +236,7 @@ export default function ClaseDetalle() {
       toast.success('Reserva confirmada.');
       triggerRefresh();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Error reservando';
+      const msg = e instanceof Error ? traducirErrorRPC(e.message) : 'Error reservando';
       setErrorReserva(msg);
       setSubmitting(false);
     }
@@ -248,7 +248,7 @@ export default function ClaseDetalle() {
     const { data, error } = await cancelarReservaRPC({ reserva_id: miReservaId });
     setSubmitting(false);
     if (error) {
-      toast.error(error);
+      toast.error(traducirErrorRPC(error));
       return;
     }
     toast.success(mensajeToastCancelacion(data?.devolucion_motivo));
@@ -271,7 +271,7 @@ export default function ClaseDetalle() {
       triggerRefresh();
     } catch (e) {
       setSubmitting(false);
-      toast.error(e instanceof Error ? e.message : 'No pudimos anotarte en la lista.');
+      toast.error(e instanceof Error ? traducirErrorRPC(e.message) : 'No pudimos anotarte en la lista.');
     }
   }
 
@@ -285,7 +285,7 @@ export default function ClaseDetalle() {
       triggerRefresh();
     } catch (e) {
       setSubmitting(false);
-      toast.error(e instanceof Error ? e.message : 'No pudimos sacarte de la lista.');
+      toast.error(e instanceof Error ? traducirErrorRPC(e.message) : 'No pudimos sacarte de la lista.');
     }
   }
 
@@ -722,6 +722,7 @@ export default function ClaseDetalle() {
           invitados={invitados}
           onInvitadosChange={setInvitados}
           costoCreditos={esPlanCreditos ? 1 + invitados : null}
+          creditosRestantes={esPlanCreditos ? membresia?.creditos_restantes ?? null : null}
           submitting={submitting}
           error={errorReserva}
           onConfirm={confirmarReserva}

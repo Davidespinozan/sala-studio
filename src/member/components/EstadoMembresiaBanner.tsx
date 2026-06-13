@@ -1,4 +1,5 @@
 import { useMembresiaActual, membresiaEstado, type EstadoMembresia } from '@member/hooks/useMembresiaActual';
+import ContactoGymCTA from './ContactoGymCTA';
 
 /**
  * Banner persistente en el layout del socio. SOLO informativo: si la
@@ -21,7 +22,7 @@ export default function EstadoMembresiaBanner() {
   const estado = membresiaEstado(membresia);
   if (estado === 'sana') return null;
 
-  const { variant, eyebrow, mensaje } = bannerContenido(estado);
+  const { variant, eyebrow, mensaje, waMensaje } = bannerContenido(estado);
 
   // Paleta según gravedad (mismo lenguaje visual que "Restricción activa"
   // en Dashboard.tsx). Vencida y sin membresía van con error (rojo);
@@ -73,6 +74,9 @@ export default function EstadoMembresiaBanner() {
         >
           {mensaje}
         </p>
+        <div style={{ marginTop: '10px' }}>
+          <ContactoGymCTA mensaje={waMensaje} label="Escribir al gimnasio" variant="inline" />
+        </div>
       </div>
     </div>
   );
@@ -82,31 +86,36 @@ function bannerContenido(estado: Exclude<EstadoMembresia, 'sana'>): {
   variant: 'error' | 'warning';
   eyebrow: string;
   mensaje: string;
+  waMensaje: string;
 } {
   switch (estado) {
     case 'vencida':
       return {
         variant: 'error',
         eyebrow: 'Membresía vencida',
-        mensaje: 'Tu membresía venció. Contactá al gimnasio para renovar.'
+        mensaje: 'Tu membresía venció. Contactá al gimnasio para renovar.',
+        waMensaje: 'Hola, mi membresía venció y quiero renovarla.'
       };
     case 'sin_membresia':
       return {
         variant: 'error',
         eyebrow: 'Sin membresía activa',
-        mensaje: 'No tenés una membresía activa. Contactá al gimnasio.'
+        mensaje: 'No tenés una membresía activa. Contactá al gimnasio.',
+        waMensaje: 'Hola, quiero activar una membresía.'
       };
     case 'congelada':
       return {
         variant: 'warning',
         eyebrow: 'Membresía pausada',
-        mensaje: 'Tu membresía está pausada. Contactá al gimnasio.'
+        mensaje: 'Tu membresía está pausada. Contactá al gimnasio.',
+        waMensaje: 'Hola, mi membresía está pausada y quiero reactivarla.'
       };
     case 'sin_creditos':
       return {
         variant: 'warning',
         eyebrow: 'Sin clases disponibles',
-        mensaje: 'Te quedaste sin clases. Contactá al gimnasio para recargar.'
+        mensaje: 'Te quedaste sin clases. Contactá al gimnasio para recargar.',
+        waMensaje: 'Hola, me quedé sin clases y quiero recargar mi paquete.'
       };
   }
 }

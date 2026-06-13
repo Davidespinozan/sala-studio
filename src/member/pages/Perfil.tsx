@@ -6,6 +6,7 @@ import { useToast } from '@shared/hooks/useToast';
 import { supabase } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
 import { useMembresiaActual, membresiaEstado } from '@member/hooks/useMembresiaActual';
+import { useLandingConfig } from '@shared/hooks/useLandingConfig';
 
 type Reserva = Database['public']['Tables']['reservas']['Row'];
 type Recurso = Database['public']['Tables']['recursos']['Row'];
@@ -413,10 +414,19 @@ function PlanActualYOpciones({
   tenantNombre: string;
 }) {
   const toast = useToast();
+  const { whatsappUrl } = useLandingConfig();
   if (tiers.length === 0) return null;
 
-  const avisarCambio = (nombre: string) =>
-    toast.info(`Pronto vas a poder cambiar a ${nombre} desde acá. Por ahora, hablá con ${tenantNombre}.`);
+  // Mientras no haya checkout propio (Stripe va al final), "cambiar plan" abre
+  // el WhatsApp del gym con el pedido pre-cargado — un camino real, no un toast.
+  const avisarCambio = (nombre: string) => {
+    const url = whatsappUrl(`Hola, quiero cambiar mi plan a "${nombre}".`);
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      toast.info(`Para cambiar a ${nombre}, hablá con ${tenantNombre}.`);
+    }
+  };
 
   return (
     <section style={{ marginTop: '32px' }}>
