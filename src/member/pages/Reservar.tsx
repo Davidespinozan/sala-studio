@@ -19,6 +19,7 @@ import {
   type ClaseExpansionRow
 } from '@member/logic/claseAdapter';
 import { getTenantTimezone } from '@shared/lib/timezone';
+import { useMaxInvitados } from '@member/hooks/useMaxInvitados';
 import { DayTabSelector } from '@member/components/DayTabSelector';
 import { ClaseRow } from '@member/components/ClaseRow';
 import { ConfirmarReservaModal } from '@member/components/ConfirmarReservaModal';
@@ -147,7 +148,7 @@ export default function Reservar() {
     return filtradas.filter((c) => c.slotInicio.getTime() >= ahora);
   }, [clasesDelDia, salaSel, fechaSel, fechas]);
 
-  const maxInvitados = tier === 'pro' ? 4 : tier === 'basica' ? 2 : 0;
+  const maxInvitados = useMaxInvitados();
 
   // === Handlers ===
 

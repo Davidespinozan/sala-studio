@@ -58,7 +58,8 @@ export default function EstudioDetalle() {
     );
   }
 
-  const esPro = recurso.tiers_permitidos.length === 1 && recurso.tiers_permitidos[0] === 'pro';
+  // Nada hardcodeado: "restringida" = limita a algún plan (cualquier slug).
+  const esRestringido = (recurso.tiers_permitidos?.length ?? 0) > 0;
   const usuarioPuedeUsar = usuario?.membresia_tier
     ? recurso.tiers_permitidos.includes(usuario.membresia_tier)
     : false;
@@ -105,10 +106,10 @@ export default function EstudioDetalle() {
         )}
 
         <span
-          className={esPro ? 'ek-badge ek-badge--outline' : 'ek-badge'}
+          className={esRestringido ? 'ek-badge ek-badge--outline' : 'ek-badge'}
           style={{ position: 'absolute', top: '16px', left: '16px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
         >
-          {esPro ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> PRO</> : 'BÁSICA'}
+          {esRestringido ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> EXCLUSIVO</> : 'ABIERTA'}
         </span>
       </div>
 
@@ -216,7 +217,7 @@ export default function EstudioDetalle() {
             textAlign: 'center'
           }}>
             <p className="ek-eyebrow" style={{ marginBottom: '8px', color: 'var(--sala-accent)' }}>
-              PLAN PRO REQUERIDO
+              PLAN NO INCLUIDO
             </p>
             <p className="ek-body" style={{ marginBottom: '14px' }}>
               Tu plan actual no incluye acceso a esta sala.

@@ -55,7 +55,9 @@ export default function Estudios() {
         gap: '16px'
       }}>
         {recursos.map((r) => {
-          const esPro = r.tiers_permitidos.length === 1 && r.tiers_permitidos[0] === 'pro';
+          // Nada hardcodeado: "restringida" = limita a algún plan (cualquier
+          // slug), no por comparar contra 'pro'/'basica'.
+          const esRestringido = (r.tiers_permitidos?.length ?? 0) > 0;
           const tiposContenido = r.tipo_contenido ?? [];
           return (
             <Link
@@ -119,14 +121,14 @@ export default function Estudios() {
                     backdropFilter: 'blur(6px)',
                     WebkitBackdropFilter: 'blur(6px)',
                     border: '1px solid rgba(255, 255, 255, 0.14)',
-                    color: esPro ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                    color: 'rgba(255, 255, 255, 0.9)',
                     fontSize: '10px',
                     fontWeight: 800,
                     letterSpacing: '0.08em',
                     textTransform: 'uppercase'
                   }}
                 >
-                  {esPro ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> PRO</> : 'BÁSICA'}
+                  {esRestringido ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> EXCLUSIVO</> : 'ABIERTA'}
                 </span>
               </div>
 

@@ -16,6 +16,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { supabase } from '@shared/lib/supabase';
 import { crearReserva, cancelarReserva as cancelarReservaRPC } from '@member/hooks/useReservas';
+import { useMaxInvitados } from '@member/hooks/useMaxInvitados';
 import { mensajeToastCancelacion } from '@member/logic/reservaLogic';
 import {
   anotarseEnListaEspera,
@@ -169,7 +170,7 @@ export default function ClaseDetalle() {
   const puedeAccederTier = clase ? tierTieneAcceso(clase.tiersPermitidos, tier) : false;
   const yaReservada = !!miReservaId;
   const esFutura = clase ? clase.slotInicio.getTime() > Date.now() : false;
-  const maxInvitados = tier === 'pro' ? 4 : tier === 'basica' ? 2 : 0;
+  const maxInvitados = useMaxInvitados();
 
   const enEspera = miEspera?.en_lista ?? false;
   const posicionEspera = miEspera?.posicion ?? null;

@@ -246,7 +246,7 @@ export function useAdminMetrics() {
       const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
       const hace7d = new Date(inicioHoy.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-      const [activos, total, hoy, mes, noShows, reservas7d, proximas] = await Promise.all([
+      const [activos, total, hoy, mes, noShows, reservas7d, proximas, capHorarios] = await Promise.all([
         supabase
           .from('usuarios')
           .select('id', { count: 'exact', head: true })
@@ -291,14 +291,36 @@ export function useAdminMetrics() {
           .eq('status', 'confirmada')
           .gte('slot_inicio', now.toISOString())
           .order('slot_inicio', { ascending: true })
-          .limit(5)
+          .limit(5),
+        // Capacidad semanal real (nada hardcodeado): horarios activos del tenant.
+        supabase
+          .from('horarios_recurrentes')
+          .select('cupo_max, dias_semana, recurso:recursos(cupo_max_default, activo)')
+          .eq('tenant_id', tenant.id)
+          .eq('activo', true)
       ]);
 
       if (!mounted) return;
 
-      // 13 slots operativos × 3 estudios × 7 días = 273 slots disponibles/semana
-      const SLOTS_DISPONIBLES_7D = 13 * 3 * 7;
-      const ocupacion7d = Math.round(((reservas7d.count ?? 0) / SLOTS_DISPONIBLES_7D) * 100);
+      // Capacidad/semana = Σ (cupo × días que corre) sobre horarios activos de
+      // salas activas. Una ventana de 7 días cubre cada día de semana una vez,
+      // así que esto es la capacidad semanal exacta de la grilla.
+      const capacidadSemanal = (
+        (capHorarios.data ?? []) as Array<{
+          cupo_max: number | null;
+          dias_semana: number[] | null;
+          recurso: { cupo_max_default: number | null; activo: boolean } | null;
+        }>
+      )
+        .filter((h) => h.recurso?.activo)
+        .reduce(
+          (sum, h) =>
+            sum + (h.cupo_max ?? h.recurso?.cupo_max_default ?? 0) * (h.dias_semana?.length ?? 0),
+          0
+        );
+      const ocupacion7d = capacidadSemanal > 0
+        ? Math.round(((reservas7d.count ?? 0) / capacidadSemanal) * 100)
+        : 0;
 
       setMetrics({
         miembrosActivos: activos.count ?? 0,
