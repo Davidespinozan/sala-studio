@@ -8,6 +8,8 @@ interface Props {
   /** Créditos que cuesta la reserva (1 + invitados) si el plan es por créditos.
    *  null = plan por tiempo (ilimitado) → no se muestra costo. */
   costoCreditos?: number | null;
+  /** Saldo de créditos del socio (solo planes por créditos). null = ilimitado. */
+  creditosRestantes?: number | null;
   submitting: boolean;
   error: string | null;
   onConfirm: () => void;
@@ -22,6 +24,7 @@ export function ConfirmarReservaModal({
   invitados,
   onInvitadosChange,
   costoCreditos,
+  creditosRestantes,
   submitting,
   error,
   onConfirm,
@@ -30,6 +33,10 @@ export function ConfirmarReservaModal({
   // S4.4: labels precomputadas en la timezone del gym.
   const hora = clase.horaLabel;
   const fecha = clase.fechaLabel;
+
+  // Plan por créditos: ¿alcanza el saldo para esta reserva (socio + invitados)?
+  const muestraSaldo = costoCreditos != null && creditosRestantes != null;
+  const saldoInsuficiente = muestraSaldo && costoCreditos! > creditosRestantes!;
 
   return (
     <div className="ek-modal-backdrop" onClick={onClose}>
@@ -134,6 +141,41 @@ export function ConfirmarReservaModal({
           </div>
         )}
 
+        {muestraSaldo && (
+          <p
+            style={{
+              fontSize: '13px',
+              margin: 0,
+              marginBottom: saldoInsuficiente ? '8px' : '16px',
+              color: 'var(--sala-text-secondary)'
+            }}
+          >
+            Te {creditosRestantes === 1 ? 'queda' : 'quedan'}{' '}
+            <strong style={{ color: 'var(--sala-text-primary)' }}>
+              {creditosRestantes} {creditosRestantes === 1 ? 'crédito' : 'créditos'}
+            </strong>
+            {!saldoInsuficiente && costoCreditos != null && (
+              <> · te {creditosRestantes! - costoCreditos === 1 ? 'quedará' : 'quedarán'} {creditosRestantes! - costoCreditos} tras reservar</>
+            )}
+          </p>
+        )}
+
+        {saldoInsuficiente && (
+          <p
+            style={{
+              fontSize: '13px',
+              color: 'var(--sala-warning)',
+              background: 'var(--sala-warning-bg)',
+              padding: '10px 12px',
+              borderRadius: '10px',
+              margin: 0,
+              marginBottom: '16px'
+            }}
+          >
+            No te alcanzan los créditos para esta reserva. Quitá invitados o recargá tu paquete.
+          </p>
+        )}
+
         {error && (
           <p
             style={{
@@ -163,7 +205,7 @@ export function ConfirmarReservaModal({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={submitting}
+            disabled={submitting || saldoInsuficiente}
             className="ek-cta"
             style={{ flex: 1 }}
           >
