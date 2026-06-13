@@ -1,4 +1,4 @@
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useRef, useState, FormEvent } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
@@ -15,6 +15,16 @@ export default function NuevaContrasena() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState(false);
+  const exitoRef = useRef(false);
+
+  // Sesión efímera: el enlace de recovery crea una sesión real. Si el usuario
+  // abandona sin completar el cambio, la cerramos al desmontar — si no, en un
+  // dispositivo compartido quedaría logueado sin haber cambiado la contraseña.
+  useEffect(() => {
+    return () => {
+      if (!exitoRef.current) void supabase.auth.signOut();
+    };
+  }, []);
 
   // Al venir del enlace del email, Supabase (detectSessionInUrl) deja una
   // sesión de recuperación. La detectamos por getSession + el evento de auth.
@@ -61,6 +71,7 @@ export default function NuevaContrasena() {
       setError(traducirErrorRecuperacion(err.message));
       return;
     }
+    exitoRef.current = true; // cambio completado → la sesión NO es efímera
     setExito(true);
   }
 
