@@ -273,73 +273,19 @@ export interface CancelarReservaParams {
 
 export async function cancelarReserva(
   params: CancelarReservaParams
-): Promise<{ error: string | null }> {
-  const { reservaId, motivo, canceladoPorId, notificarMiembro } = params;
+): Promise<{ error: string | null; devuelto?: boolean }> {
+  const { reservaId, motivo, notificarMiembro } = params;
 
-  const { data: reserva, error: fetchError } = await supabase
-    .from('reservas')
-    .select(
-      'id, tenant_id, slot_inicio, usuario_id, usuario:usuarios!reservas_usuario_id_fkey(id, nombre), recurso:recursos(nombre)'
-    )
-    .eq('id', reservaId)
-    .single();
+  // RPC atómico: cancela (cancelada_admin), DEVUELVE el crédito al socio
+  // (cancelación del gimnasio = siempre, 1+invitados) y notifica. Antes esto
+  // hacía un UPDATE directo que NO devolvía el crédito — lo quemaba.
+  // RPC no incluido aún en los tipos generados de Supabase.
+  const { data, error } = await supabase.rpc('cancelar_reserva_admin' as never, {
+    p_reserva_id: reservaId,
+    p_motivo: motivo,
+    p_notificar: notificarMiembro ?? true
+  } as never);
 
-  if (fetchError || !reserva) {
-    return { error: 'No encontramos la reserva.' };
-  }
-
-  const { error: cancelError } = await supabase
-    .from('reservas')
-    .update({
-      status: 'cancelada_admin',
-      cancelada_at: new Date().toISOString(),
-      cancelada_motivo: motivo,
-      cancelada_por: canceladoPorId
-    } as never)
-    .eq('id', reservaId);
-
-  if (cancelError) {
-    return { error: cancelError.message };
-  }
-
-  if (notificarMiembro) {
-    const fecha = new Date(reserva.slot_inicio).toLocaleString('es-MX', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-
-    const recursoNombre = (reserva as unknown as { recurso?: { nombre?: string } | null })
-      ?.recurso?.nombre ?? null;
-
-    const usuarioId = (reserva as unknown as { usuario?: { id?: string } }).usuario?.id
-      ?? reserva.usuario_id;
-
-    const mensaje = recursoNombre
-      ? `Tu clase en ${recursoNombre} del ${fecha} fue cancelada por administración. Motivo: ${motivo}`
-      : `Tu clase del ${fecha} fue cancelada por administración. Motivo: ${motivo}`;
-
-    await supabase.from('notificaciones').insert({
-      tenant_id: reserva.tenant_id,
-      usuario_id: usuarioId,
-      tipo: 'reserva_cancelada',
-      titulo: 'Tu reserva fue cancelada',
-      mensaje,
-      metadata: {
-        reserva_id: reservaId,
-        recurso_nombre: recursoNombre,
-        fecha_original: reserva.slot_inicio,
-        motivo
-      }
-    });
-
-    await supabase
-      .from('reservas')
-      .update({ cancelacion_notificada_at: new Date().toISOString() } as never)
-      .eq('id', reservaId);
-  }
-
-  return { error: null };
+  if (error) return { error: (error as { message: string }).message };
+  return { error: null, devuelto: (data as { devuelto?: boolean } | null)?.devuelto };
 }

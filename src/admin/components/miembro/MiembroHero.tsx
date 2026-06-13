@@ -6,6 +6,8 @@ interface Props {
   miembro: Usuario;
   planNombre: string | null;
   diasParaVencimiento: number | null;
+  /** Saldo de créditos (solo planes por créditos/híbrido). null = no aplica. */
+  creditosRestantes: number | null;
   estaBloqueado: boolean;
   onCambiarPlan: () => void;
   onBloquearAcceso: () => void;
@@ -63,6 +65,7 @@ export function MiembroHero({
   miembro,
   planNombre,
   diasParaVencimiento,
+  creditosRestantes,
   estaBloqueado,
   onCambiarPlan,
   onBloquearAcceso
@@ -211,6 +214,11 @@ export function MiembroHero({
                   : diasParaVencimiento === 0
                     ? 'Vence hoy'
                     : `Vencido hace ${Math.abs(diasParaVencimiento)} ${Math.abs(diasParaVencimiento) === 1 ? 'día' : 'días'}`}
+              </span>
+            )}
+            {creditosRestantes !== null && (
+              <span style={{ fontSize: '11px', opacity: 0.95, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+                {creditosRestantes} {creditosRestantes === 1 ? 'clase restante' : 'clases restantes'}
               </span>
             )}
           </div>

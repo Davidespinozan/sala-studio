@@ -36,15 +36,16 @@ export default function MiembroDetalle() {
   const { tiers } = useTiersAdmin();
   const { kpis, isLoading: loadingKpis, refetch: refetchKpis } = useMiembroKPIs(id);
 
-  // Membresía activa para "vence en X días"
+  // Membresía activa para "vence en X días" + saldo de créditos (si aplica).
   const [periodoFin, setPeriodoFin] = useState<Date | null>(null);
+  const [creditosRestantes, setCreditosRestantes] = useState<number | null>(null);
   useEffect(() => {
     if (!id) return;
     let mounted = true;
     void (async () => {
       const { data } = await supabase
         .from('membresias')
-        .select('periodo_actual_fin')
+        .select('periodo_actual_fin, creditos_restantes, tier:tiers(tipo)')
         .eq('usuario_id', id)
         .eq('status', 'activa')
         .order('periodo_actual_fin', { ascending: false })
@@ -53,6 +54,10 @@ export default function MiembroDetalle() {
       if (!mounted) return;
       const fin = (data?.periodo_actual_fin as string | undefined) ?? null;
       setPeriodoFin(fin ? new Date(fin) : null);
+      const tipo = (data?.tier as { tipo?: string } | null)?.tipo;
+      const cred = (data?.creditos_restantes as number | null) ?? null;
+      // Solo planes por créditos/híbrido tienen saldo que mostrar.
+      setCreditosRestantes(tipo === 'creditos' || tipo === 'hibrido' ? cred : null);
     })();
     return () => { mounted = false; };
   }, [id, miembro]);
@@ -160,6 +165,7 @@ export default function MiembroDetalle() {
         miembro={miembro}
         planNombre={planNombre}
         diasParaVencimiento={diasParaVencimiento}
+        creditosRestantes={creditosRestantes}
         estaBloqueado={!!bloqueadoHasta}
         onCambiarPlan={() => setShowCambiarPlan(true)}
         onBloquearAcceso={() => setShowBloquear(true)}
@@ -171,6 +177,7 @@ export default function MiembroDetalle() {
         <SectionHeading>Próximas reservas</SectionHeading>
         <MiembroProximasReservas
           reservas={proximasReservas}
+          usuarioNombre={miembro.nombre ?? miembro.email}
           onAfterCancel={handleAfterChange}
         />
       </section>

@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { supabase } from '@shared/lib/supabase';
-import { useToast } from '@shared/hooks/useToast';
 import { formatHora } from '@member/logic/reservaLogic';
+import CancelarReservaModal, { type ReservaParaCancelar } from '../CancelarReservaModal';
 
 export interface ReservaListItem {
   id: string;
@@ -12,6 +11,8 @@ export interface ReservaListItem {
 
 interface Props {
   reservas: ReservaListItem[];
+  /** Nombre del socio dueño de las reservas (para el modal de cancelación). */
+  usuarioNombre: string;
   onAfterCancel: () => Promise<void>;
 }
 
@@ -25,29 +26,11 @@ function formatFecha(iso: string): string {
   return txt.charAt(0).toUpperCase() + txt.slice(1).replace(/\.$/, '');
 }
 
-export function MiembroProximasReservas({ reservas, onAfterCancel }: Props) {
-  const toast = useToast();
-  const [cancelandoId, setCancelandoId] = useState<string | null>(null);
-
-  async function handleCancelar(r: ReservaListItem) {
-    if (!confirm(`Cancelar la reserva de ${formatFecha(r.slot_inicio)} a las ${formatHora(new Date(r.slot_inicio))}?\nEsto libera el cupo.`)) return;
-    setCancelandoId(r.id);
-    const { error } = await supabase
-      .from('reservas')
-      .update({
-        status: 'cancelada_admin',
-        cancelada_at: new Date().toISOString(),
-        cancelada_motivo: 'Cancelada por admin desde ficha del miembro.'
-      } as never)
-      .eq('id', r.id);
-    setCancelandoId(null);
-    if (error) {
-      toast.error('No pudimos cancelar la reserva. Probá de nuevo.');
-      return;
-    }
-    toast.success('Reserva cancelada.');
-    await onAfterCancel();
-  }
+export function MiembroProximasReservas({ reservas, usuarioNombre, onAfterCancel }: Props) {
+  // Cancelación vía el modal compartido (motivo + aviso + WhatsApp), que llama
+  // al RPC cancelar_reserva_admin → DEVUELVE el crédito y notifica. Antes esto
+  // hacía un UPDATE directo que quemaba el crédito del socio.
+  const [cancelar, setCancelar] = useState<ReservaParaCancelar | null>(null);
 
   if (reservas.length === 0) {
     return (
@@ -123,8 +106,14 @@ export function MiembroProximasReservas({ reservas, onAfterCancel }: Props) {
           </div>
           <button
             type="button"
-            onClick={() => handleCancelar(r)}
-            disabled={cancelandoId === r.id}
+            onClick={() =>
+              setCancelar({
+                id: r.id,
+                slot_inicio: r.slot_inicio,
+                recurso_nombre: r.recurso_nombre,
+                usuario_nombre: usuarioNombre
+              })
+            }
             style={{
               padding: '6px 14px',
               minHeight: '32px',
@@ -134,15 +123,21 @@ export function MiembroProximasReservas({ reservas, onAfterCancel }: Props) {
               borderRadius: '999px',
               fontSize: '12px',
               fontWeight: 600,
-              cursor: cancelandoId === r.id ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit',
-              opacity: cancelandoId === r.id ? 0.6 : 1
+              cursor: 'pointer',
+              fontFamily: 'inherit'
             }}
           >
-            {cancelandoId === r.id ? '…' : 'Cancelar'}
+            Cancelar
           </button>
         </div>
       ))}
+      {cancelar && (
+        <CancelarReservaModal
+          reserva={cancelar}
+          onClose={() => setCancelar(null)}
+          onCancelled={() => { void onAfterCancel(); }}
+        />
+      )}
     </div>
   );
 }
