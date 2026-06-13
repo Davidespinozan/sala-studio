@@ -350,25 +350,30 @@ export function HeroView({ hero, preview = false }: { hero: LandingHero; preview
 
   if (!hasImg) {
     return (
-      <section style={{
-        minHeight: preview ? '420px' : '90vh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        position: 'relative',
-        padding: '40px 0'
-      }}>
-        <div style={{
-          position: 'absolute',
-          top: '20%',
-          right: '-200px',
-          width: '500px',
-          height: '500px',
-          background: 'radial-gradient(circle, var(--sala-primary-soft), transparent 70%)',
-          borderRadius: '50%',
-          pointerEvents: 'none'
-        }} />
-        {inner}
+      <section
+        className="sala-spotlight-host"
+        onMouseMove={onSpotlight}
+        style={{
+          minHeight: preview ? '420px' : '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          padding: '40px 0'
+        }}
+      >
+        {/* Capa 1 — mesh gradients flotantes (primario + acento de marca). */}
+        <div className="sala-hero-mesh" aria-hidden="true" />
+        {/* Capa 2 — orbs desenfocadas con delays desfasados. */}
+        <div className="sala-orb" aria-hidden="true" style={{ width: 320, height: 320, top: '-8%', right: '-6%', animationDelay: '0s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
+        <div className="sala-orb" aria-hidden="true" style={{ width: 200, height: 200, bottom: '2%', left: '-4%', animationDelay: '3s', '--orb-color': 'var(--sala-accent)' } as CSSProperties} />
+        <div className="sala-orb" aria-hidden="true" style={{ width: 120, height: 120, top: '24%', left: '30%', animationDelay: '6s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
+        {/* Glow ambiental que sigue el cursor (desktop). */}
+        <div className="sala-spotlight" aria-hidden="true" />
+        <div className="sala-fade-up" style={{ position: 'relative', zIndex: 4 }}>
+          {inner}
+        </div>
       </section>
     );
   }
@@ -416,6 +421,7 @@ export function HeroView({ hero, preview = false }: { hero: LandingHero; preview
         {/* En full-bleed la imagen ocupa todo el ancho, pero el texto se alinea
             con el contenido del resto de la página (maxWidth 1200, centrado). */}
         <div
+          className="sala-fade-up"
           style={
             fullBleed
               ? { position: 'relative', zIndex: 4, width: '100%', maxWidth: '1200px', margin: '0 auto', padding: 'clamp(40px, 6vw, 72px) 24px' }

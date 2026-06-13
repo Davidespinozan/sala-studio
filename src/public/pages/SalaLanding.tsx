@@ -171,6 +171,16 @@ function Hero() {
           textAlign: 'center'
         }}
       >
+        {/* Capa 1 — mesh gradients flotantes (verde + mostaza de SALA). */}
+        <div
+          className="sala-hero-mesh"
+          aria-hidden="true"
+          style={{ '--mesh-2': 'color-mix(in srgb, var(--sala-warning) 22%, transparent)' } as CSSProperties}
+        />
+        {/* Capa 2 — orbs desenfocadas, delays desfasados (movimiento orgánico). */}
+        <div className="sala-orb" aria-hidden="true" style={{ width: 300, height: 300, top: '-12%', left: '-6%', opacity: 0.12, animationDelay: '0s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
+        <div className="sala-orb" aria-hidden="true" style={{ width: 200, height: 200, bottom: '4%', right: '8%', opacity: 0.10, animationDelay: '3s', '--orb-color': 'var(--sala-warning)' } as CSSProperties} />
+        <div className="sala-orb" aria-hidden="true" style={{ width: 120, height: 120, top: '28%', right: '24%', opacity: 0.10, animationDelay: '6s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
         {/* glow de marca detrás */}
         <div
           aria-hidden="true"
@@ -187,7 +197,7 @@ function Hero() {
         />
         {/* glow ambiental que sigue el cursor (desktop) */}
         <div className="sala-spotlight" aria-hidden="true" />
-        <div style={{ position: 'relative', zIndex: 4, maxWidth: '720px', margin: '0 auto' }}>
+        <div className="sala-fade-up" style={{ position: 'relative', zIndex: 4, maxWidth: '720px', margin: '0 auto' }}>
           <p
             style={{
               fontSize: '12px',
