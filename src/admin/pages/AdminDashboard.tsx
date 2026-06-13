@@ -15,6 +15,8 @@ import {
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
 import { useDashboardData, type DashboardData } from '../hooks/useAdminData';
+import { useGymSetup, gymOperativo } from '../hooks/useGymSetup';
+import ChecklistActivacion from '../components/ChecklistActivacion';
 import CardMenuDropdown from '../components/CardMenuDropdown';
 import CancelarReservaModal, { type ReservaParaCancelar } from '../components/CancelarReservaModal';
 
@@ -47,6 +49,7 @@ function calcTendencia(actual: number, anterior: number): number | null {
 export default function AdminDashboard() {
   const { usuario } = useAuth();
   const { data, isLoading, refetch } = useDashboardData();
+  const { setup } = useGymSetup();
   const [cancelar, setCancelar] = useState<ReservaParaCancelar | null>(null);
 
   const saludo = saludoTiming();
@@ -73,6 +76,8 @@ export default function AdminDashboard() {
           <saludo.Icon size={17} strokeWidth={2.25} style={{ color: 'var(--ek-mustard)' }} />
         </p>
       </div>
+
+      {setup && !gymOperativo(setup) && <ChecklistActivacion setup={setup} />}
 
       <SeccionHoy data={data} onCancelar={setCancelar} />
       <SeccionTuMes data={data} />
