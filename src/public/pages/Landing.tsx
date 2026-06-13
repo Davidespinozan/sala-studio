@@ -533,12 +533,19 @@ export default function Landing() {
   const { hero, post_hero, cta_final, whatsappUrl, mostrarInstructores } = useLandingConfig();
   const ctaWhatsappUrl = whatsappUrl();
 
-  const precioPro = tiers.find((t) => t.slug === 'pro')?.precio_centavos;
-  const precioBasica = tiers.find((t) => t.slug === 'basica')?.precio_centavos;
+  // Nada hardcodeado: el rango de precios sale de los tiers reales (más caro /
+  // más barato), no de los slugs 'pro'/'basica'. El plan "destacado" = el más caro.
+  const precios = tiers.map((t) => t.precio_centavos);
+  const precioPro = precios.length ? Math.max(...precios) : undefined;
+  const precioBasica = precios.length ? Math.min(...precios) : undefined;
+  const tierDestacadoSlug = tiers.length
+    ? tiers.reduce((a, b) => (b.precio_centavos > a.precio_centavos ? b : a)).slug
+    : null;
 
   const aEstudioInfo = (r: EstudioPublico): EstudioInfo => {
-    const esPro = r.tiers_permitidos.length === 1 && r.tiers_permitidos[0] === 'pro';
-    const tier: 'basica' | 'pro' = esPro ? 'pro' : 'basica';
+    // "Exclusiva" = la sala restringe a algún plan (cualquier slug).
+    const esExclusivo = (r.tiers_permitidos?.length ?? 0) > 0;
+    const tier: 'basica' | 'pro' = esExclusivo ? 'pro' : 'basica';
     return {
       slug: r.slug,
       nombre: r.nombre,
@@ -739,7 +746,7 @@ export default function Landing() {
                       textTransform: 'uppercase'
                     }}
                   >
-                    {s.tier === 'pro' ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> PRO</> : 'BÁSICA'}
+                    {s.tier === 'pro' ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> EXCLUSIVA</> : 'ABIERTA'}
                   </span>
                 </div>
                 <div style={{ padding: '20px' }}>
@@ -856,7 +863,7 @@ export default function Landing() {
         ) : (
           <div className="landing-planes-grid">
             {tiers.map((tier) => {
-              const esPro = tier.slug === 'pro';
+              const esDestacado = tier.slug === tierDestacadoSlug;
               const beneficios = parseBeneficios(tier.beneficios);
 
               return (
@@ -867,7 +874,7 @@ export default function Landing() {
                     position: 'relative',
                     display: 'flex',
                     flexDirection: 'column',
-                    ...(esPro
+                    ...(esDestacado
                       ? {
                           border: '1px solid rgba(255, 255, 255, 0.1)',
                           background:
@@ -878,7 +885,7 @@ export default function Landing() {
                       : {})
                   }}
                 >
-                  {esPro && (
+                  {esDestacado && (
                     <span
                       style={{
                         position: 'absolute',
@@ -909,10 +916,10 @@ export default function Landing() {
                       letterSpacing: '0.16em',
                       textTransform: 'uppercase',
                       margin: '0 0 12px',
-                      color: esPro ? 'rgba(255, 255, 255, 0.9)' : 'var(--sala-primary)'
+                      color: esDestacado ? 'rgba(255, 255, 255, 0.9)' : 'var(--sala-primary)'
                     }}
                   >
-                    {esPro ? 'PLAN PRO' : tier.nombre.toUpperCase()}
+                    {tier.nombre.toUpperCase()}
                   </p>
                   <p style={{
                     fontFamily: 'var(--ek-font-display)',
@@ -921,10 +928,10 @@ export default function Landing() {
                     margin: 0,
                     letterSpacing: '-0.03em',
                     lineHeight: 1,
-                    color: esPro ? 'rgba(255, 255, 255, 0.97)' : 'var(--sala-text-primary)'
+                    color: esDestacado ? 'rgba(255, 255, 255, 0.97)' : 'var(--sala-text-primary)'
                   }}>
                     {formatearPesos(tier.precio_centavos)}
-                    <span style={{ fontSize: '16px', color: esPro ? 'rgba(255, 255, 255, 0.5)' : 'var(--sala-text-tertiary)', fontWeight: 500 }}>
+                    <span style={{ fontSize: '16px', color: esDestacado ? 'rgba(255, 255, 255, 0.5)' : 'var(--sala-text-tertiary)', fontWeight: 500 }}>
                       /mes
                     </span>
                   </p>
@@ -933,12 +940,9 @@ export default function Landing() {
                     lineHeight: 1.5,
                     marginTop: '8px',
                     marginBottom: '24px',
-                    color: esPro ? 'rgba(255, 255, 255, 0.62)' : 'var(--sala-text-secondary)'
+                    color: esDestacado ? 'rgba(255, 255, 255, 0.62)' : 'var(--sala-text-secondary)'
                   }}>
-                    {tier.descripcion ??
-                      (esPro
-                        ? 'Para los que entrenan en serio. Acceso completo.'
-                        : 'Para arrancar. Acceso a las salas básicas.')}
+                    {tier.descripcion ?? ''}
                   </p>
                   <ul
                     style={{
@@ -959,10 +963,10 @@ export default function Landing() {
                           alignItems: 'flex-start',
                           gap: '8px',
                           fontSize: '14px',
-                          color: esPro ? 'rgba(255, 255, 255, 0.85)' : 'var(--sala-text-primary)'
+                          color: esDestacado ? 'rgba(255, 255, 255, 0.85)' : 'var(--sala-text-primary)'
                         }}
                       >
-                        <Check size={16} strokeWidth={2.5} style={{ color: esPro ? 'rgba(255, 255, 255, 0.9)' : 'var(--sala-primary)', flexShrink: 0, marginTop: '1px' }} />
+                        <Check size={16} strokeWidth={2.5} style={{ color: esDestacado ? 'rgba(255, 255, 255, 0.9)' : 'var(--sala-primary)', flexShrink: 0, marginTop: '1px' }} />
                         {b}
                       </li>
                     ))}
@@ -970,11 +974,11 @@ export default function Landing() {
                   <Link
                     to={`/signup?tier=${tier.slug}`}
                     className={
-                      esPro ? 'ek-cta ek-lift ek-cta--full' : 'ek-cta ek-cta--secondary ek-lift ek-cta--full'
+                      esDestacado ? 'ek-cta ek-lift ek-cta--full' : 'ek-cta ek-cta--secondary ek-lift ek-cta--full'
                     }
                     style={{ marginTop: '28px' }}
                   >
-                    {esPro ? 'Quiero la Pro' : `Empezar con ${tier.nombre}`}
+                    {`Empezar con ${tier.nombre}`}
                   </Link>
                 </div>
               );
