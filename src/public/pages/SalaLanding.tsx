@@ -219,7 +219,7 @@ function Hero() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
               gap: 'clamp(32px, 5vw, 64px)',
               alignItems: 'center',
               textAlign: 'left'
@@ -243,8 +243,8 @@ function Hero() {
                 className={reduced ? undefined : 'sala-shimmer'}
                 style={
                   reduced
-                    ? { fontFamily: 'var(--ek-font-display)', fontSize: 'clamp(34px, 5.5vw, 56px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.04, margin: 0, color: 'rgba(255, 255, 255, 0.97)' }
-                    : ({ fontFamily: 'var(--ek-font-display)', fontSize: 'clamp(34px, 5.5vw, 56px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.04, margin: 0, '--shim-1': 'rgba(255,255,255,0.72)', '--shim-2': '#ffffff' } as CSSProperties)
+                    ? { fontFamily: 'var(--ek-font-display)', fontSize: 'clamp(28px, 6vw, 56px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.04, margin: 0, color: 'rgba(255, 255, 255, 0.97)' }
+                    : ({ fontFamily: 'var(--ek-font-display)', fontSize: 'clamp(28px, 6vw, 56px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.04, margin: 0, '--shim-1': 'rgba(255,255,255,0.72)', '--shim-2': '#ffffff' } as CSSProperties)
                 }
               >
                 Llená tus clases.<br />Olvidate del Excel.
@@ -350,7 +350,7 @@ function Features() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
           gap: '16px',
           marginTop: '32px'
         }}
@@ -494,7 +494,7 @@ function Pasos() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
           gap: '16px',
           marginTop: '32px'
         }}
@@ -595,7 +595,7 @@ function Pricing({ moneda }: { moneda: MonedaSaas }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
           gap: '16px',
           marginTop: '28px',
           alignItems: 'stretch'
@@ -846,7 +846,7 @@ function Footer() {
           margin: '0 auto',
           padding: 'clamp(32px, 5vw, 48px) clamp(16px, 5vw, 48px) 24px',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
           gap: '32px'
         }}
       >
