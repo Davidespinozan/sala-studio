@@ -52,5 +52,6 @@ export function traducirErrorRecuperacion(message: string): string {
   if (m.includes('too many') || m.includes('rate')) {
     return 'Demasiados intentos. Esperá unos minutos.';
   }
-  return message;
+  // Genérico en español: no exponer el mensaje crudo de Supabase (inglés).
+  return 'No pudimos completar la acción. Intentá de nuevo.';
 }

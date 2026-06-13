@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { TIMEZONE_OPTIONS } from '@shared/lib/timezone';
 import { MARKETING_DOMAIN } from '@shared/providers/TenantProvider';
@@ -49,8 +49,16 @@ function urlDelGym(slug: string): string {
 }
 
 export default function Onboarding() {
+  const [searchParams] = useSearchParams();
   const [paso, setPaso] = useState(0);
-  const [state, setState] = useState<OnboardingState>(ESTADO_INICIAL);
+  // Preseleccionar el plan elegido en la landing (?plan=), si es válido.
+  const [state, setState] = useState<OnboardingState>(() => {
+    const planParam = searchParams.get('plan');
+    const tier = planParam && (TIERS_ORDEN as readonly string[]).includes(planParam)
+      ? (planParam as TierSaas)
+      : null;
+    return { ...ESTADO_INICIAL, tier };
+  });
   const [errorPaso, setErrorPaso] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [resultado, setResultado] = useState<{ slug: string } | null>(null);

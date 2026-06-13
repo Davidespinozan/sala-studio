@@ -86,7 +86,7 @@ describe('traducirErrorRecuperacion', () => {
   it('mapea rate limit', () => {
     expect(traducirErrorRecuperacion('Too many requests')).toMatch(/demasiados intentos/i);
   });
-  it('deja pasar mensajes desconocidos sin romper', () => {
-    expect(traducirErrorRecuperacion('Algo raro pasó')).toBe('Algo raro pasó');
+  it('un mensaje desconocido cae a un genérico en español (no expone el crudo)', () => {
+    expect(traducirErrorRecuperacion('Some raw english error')).toMatch(/no pudimos completar/i);
   });
 });

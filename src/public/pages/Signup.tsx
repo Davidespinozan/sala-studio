@@ -3,6 +3,7 @@ import { ArrowLeft, Check, Star } from 'lucide-react';
 import { useNavigate, useSearchParams, Link, Navigate } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { validarPassword } from '../lib/onboardingLogic';
 
 type Tier = 'basica' | 'pro';
 
@@ -117,8 +118,11 @@ export default function Signup() {
       setError('Las contraseñas no coinciden.');
       return;
     }
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.');
+    // Misma regla que onboarding/recuperación (8 + letra + número): antes signup
+    // aceptaba 6 y después el form de login (minLength 8) la rechazaba.
+    const passCheck = validarPassword(password);
+    if (!passCheck.ok) {
+      setError(passCheck.error ?? 'La contraseña no es válida.');
       return;
     }
     if (cardNumber.replace(/\s/g, '').length !== 16) {
@@ -279,7 +283,7 @@ export default function Signup() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={8}
             disabled={isProcessing}
             autoComplete="new-password"
           />

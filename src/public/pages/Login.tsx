@@ -136,5 +136,6 @@ function traducirError(message: string): string {
   if (message.includes('Too many requests')) {
     return 'Demasiados intentos. Esperá unos minutos.';
   }
-  return message;
+  // Genérico en español: no exponer el mensaje crudo de Supabase (inglés).
+  return 'No pudimos iniciar sesión. Intentá de nuevo.';
 }
