@@ -95,16 +95,6 @@ export async function eliminarHorarioRecurrente(
   return { error: error?.message ?? null };
 }
 
-/**
- * Dispara la generación de clases del tenant actual (próximos 60 días).
- * Wrapper SQL scopeado: resuelve el tenant y exige rol admin.
- */
-export async function generarClasesAhora(): Promise<{
-  clasesCreadas: number | null;
-  error: string | null;
-}> {
-  const { data, error } = await supabase.rpc('generar_mis_clases_recurrentes');
-  if (error) return { clasesCreadas: null, error: error.message };
-  const d = data as { clases_creadas?: number };
-  return { clasesCreadas: d?.clases_creadas ?? 0, error: null };
-}
+// generarClasesAhora se eliminó con el modelo virtual: las clases ya no se
+// pre-generan; se calculan al vuelo (expandir_clases) y se materializan al
+// reservar/editar/cancelar. El horario es la única fuente de verdad.

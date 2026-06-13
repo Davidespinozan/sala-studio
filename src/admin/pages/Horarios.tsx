@@ -8,7 +8,6 @@ import {
   crearHorarioRecurrente,
   actualizarHorarioRecurrente,
   eliminarHorarioRecurrente,
-  generarClasesAhora,
   type HorarioRecurrente,
   type HorarioRecurrenteFormData
 } from '../hooks/useHorariosRecurrentes';
@@ -49,7 +48,6 @@ export default function Horarios() {
   const toast = useToast();
 
   const [modal, setModal] = useState<ModalState>(null);
-  const [generando, setGenerando] = useState(false);
   const [eliminando, setEliminando] = useState<HorarioRecurrente | null>(null);
 
   const instructorById = useMemo(
@@ -71,21 +69,6 @@ export default function Horarios() {
   }, [horarios, recursos]);
 
   const activos = horarios.filter((h) => h.activo).length;
-
-  async function handleGenerar() {
-    setGenerando(true);
-    const { clasesCreadas, error } = await generarClasesAhora();
-    setGenerando(false);
-    if (error) {
-      toast.error('No pudimos generar las clases. Probá de nuevo.');
-      return;
-    }
-    toast.success(
-      clasesCreadas && clasesCreadas > 0
-        ? `${clasesCreadas} clase${clasesCreadas === 1 ? '' : 's'} nueva${clasesCreadas === 1 ? '' : 's'} generada${clasesCreadas === 1 ? '' : 's'}.`
-        : 'Todo al día — no había clases nuevas para generar.'
-    );
-  }
 
   async function handleEliminar() {
     if (!eliminando) return;
@@ -116,13 +99,6 @@ export default function Horarios() {
           )}
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={handleGenerar}
-            disabled={generando}
-            className="ek-cta ek-cta--secondary"
-          >
-            {generando ? 'Generando…' : 'Generar clases ahora'}
-          </button>
           <button onClick={() => setModal({ mode: 'create' })} className="ek-cta">
             + Nuevo horario
           </button>
@@ -139,9 +115,9 @@ export default function Horarios() {
         }}
       >
         <p style={{ fontSize: '13px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
-          Definí los horarios fijos de cada sala. Las clases concretas se generan
-          automáticamente cada noche para los próximos 60 días. Para verlas al instante
-          tocá <strong>Generar clases ahora</strong>.
+          Definí acá la grilla semanal de cada sala. Las clases aparecen solas en la
+          Agenda y en la app del socio — sin generar nada. Cualquier cambio que hagas
+          se refleja al instante.
         </p>
       </div>
 
