@@ -11,19 +11,17 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * POST /fake-signup
- * Body: { nombre, email, password, tier: 'basica' | 'pro' }
+ * Body: { nombre, email, password, tier, slug }  (slug = subdominio del gym)
  *
- * Crea cuenta de prueba con pago simulado:
+ * Crea cuenta de prueba con pago simulado, EN EL TENANT DEL SUBDOMINIO (slug):
  * - auth.admin.createUser (email confirmado automáticamente)
  * - El trigger on_auth_user_created inserta fila en `usuarios`
- * - UPDATE para setear tier, status='activo', tenant=sala-demo, notas_admin
- * - Log en payment_events con stripe_event_type='fake_signup'
+ * - UPDATE para setear tier, status='activo', tenant=<el del slug>, notas_admin
+ * - Log en payment_events
  *
  * Cuando se integre Stripe real, esta función se reemplaza por el webhook
  * de Stripe. El cliente Signup.tsx no cambia.
  */
-
-const TIERS_VALIDOS = ['basica', 'pro'] as const;
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -43,34 +41,29 @@ export const handler: Handler = async (event) => {
   });
 
   try {
-    const { nombre, email, password, tier } = JSON.parse(event.body || '{}');
+    const { nombre, email, password, tier, slug } = JSON.parse(event.body || '{}');
 
-    if (!nombre || !email || !password || !tier) {
+    if (!nombre || !email || !password || !tier || !slug) {
       return {
         statusCode: 400,
         body: JSON.stringify({ error: 'Faltan datos requeridos' })
       };
     }
 
-    if (!TIERS_VALIDOS.includes(tier)) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Tier inválido' })
-      };
-    }
-
-    // 1. Obtener tenant 'sala-demo'
+    // 1. Obtener el tenant DEL SUBDOMINIO (slug), activo. El socio se da de alta
+    //    en el gimnasio cuyo subdominio está visitando — no en sala-demo.
     const { data: tenant, error: tenantError } = await supabaseAdmin
       .from('tenants')
-      .select('id')
-      .eq('slug', 'sala-demo')
+      .select('id, slug')
+      .eq('slug', slug)
+      .eq('status', 'activo')
       .single();
 
     if (tenantError || !tenant) {
-      console.error('[fake-signup] tenant error:', tenantError);
+      console.error('[fake-signup] tenant error:', tenantError, { slug });
       return {
-        statusCode: 500,
-        body: JSON.stringify({ error: 'Error de configuración' })
+        statusCode: 404,
+        body: JSON.stringify({ error: 'No encontramos este gimnasio. Revisá el enlace.' })
       };
     }
 
@@ -98,14 +91,21 @@ export const handler: Handler = async (event) => {
       email,
       password,
       email_confirm: true,
-      user_metadata: { nombre, tenant_slug: 'sala-demo' }
+      user_metadata: { nombre, tenant_slug: tenant.slug }
     });
 
     if (authError || !authData.user) {
       console.error('[fake-signup] auth error:', authError);
+      const msg = (authError?.message || '').toLowerCase();
+      const yaExiste = msg.includes('already') || msg.includes('registered') || msg.includes('exists');
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: authError?.message || 'Error al crear usuario' })
+        body: JSON.stringify({
+          error: yaExiste
+            ? 'Ya existe una cuenta con ese email. Iniciá sesión.'
+            : 'No pudimos crear la cuenta. Intentá de nuevo.',
+          code: yaExiste ? 'EMAIL_EXISTE' : 'CREATE_FAILED'
+        })
       };
     }
 

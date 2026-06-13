@@ -70,6 +70,7 @@ function useTierPorSlug(slug: string) {
 
 export default function Signup() {
   const navigate = useNavigate();
+  const tenant = useTenant();
   const [searchParams] = useSearchParams();
   const tierParam = (searchParams.get('tier') as Tier) || 'basica';
   const { tier: tierRow, isLoading: tierLoading } = useTierPorSlug(tierParam);
@@ -146,7 +147,8 @@ export default function Signup() {
           nombre,
           email,
           password,
-          tier: plan!.tier
+          tier: plan!.tier,
+          slug: tenant.slug // el socio se da de alta en ESTE gimnasio (subdominio)
         })
       });
 
