@@ -150,7 +150,10 @@ function Header() {
         borderBottom: '1px solid var(--sala-border)'
       }}
     >
-      <SalaLogo variant="completo" height={44} showStudio />
+      <Link to="/" style={{ display: 'inline-flex', textDecoration: 'none' }} aria-label="SALA Studio">
+        <span className="sala-logo-full"><SalaLogo variant="completo" height={32} showStudio /></span>
+        <span className="sala-logo-mark"><SalaLogo variant="isotipo" height={34} /></span>
+      </Link>
       <nav style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
         <Link
           to="/login"
@@ -851,7 +854,7 @@ function Footer() {
         }}
       >
         <div>
-          <SalaLogo variant="completo" height={36} showStudio />
+          <SalaLogo variant="completo" height={30} showStudio />
           <p style={{ fontSize: '13px', color: 'var(--sala-text-tertiary)', margin: '14px 0 0', maxWidth: '300px', lineHeight: 1.55 }}>
             La plataforma para estudios y gimnasios boutique. Tu marca, tu app, tus reglas.
           </p>

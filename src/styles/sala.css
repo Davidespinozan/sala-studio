@@ -2447,6 +2447,14 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   animation: ek-float-orb 18s var(--ease-premium) infinite;
 }
 
+/* Logo de la landing de SALA: wordmark completo en desktop, isotipo compacto
+   en mobile (el completo se veía enorme en pantallas chicas). */
+.sala-logo-mark { display: none; }
+@media (max-width: 560px) {
+  .sala-logo-full { display: none; }
+  .sala-logo-mark { display: block; }
+}
+
 /* Showcase de producto en la landing: fila texto + captura, 2 columnas en
    desktop, apilada en mobile. `reverse` invierte el lado en desktop (mobile
    siempre texto-arriba por orden del DOM). */
