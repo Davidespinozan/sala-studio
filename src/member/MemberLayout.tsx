@@ -6,6 +6,7 @@ import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { DemoBanner } from '@shared/components/DemoBanner';
 import EstadoMembresiaBanner from './components/EstadoMembresiaBanner';
 import NotificacionesBell from '@shared/components/NotificacionesBell';
+import { ErrorBoundary } from '@shared/components/ErrorBoundary';
 import { BottomNav } from './components/BottomNav';
 import { MembresiaPendiente } from './components/MembresiaPendiente';
 import { TenantGuard } from '@shared/components/TenantGuard';
@@ -87,18 +88,20 @@ export default function MemberLayout() {
         </div>
       </header>
 
-      <Suspense fallback={<LoadingScreen />}>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/reservar" element={<Reservar />} />
-          <Route path="/estudios" element={<Estudios />} />
-          <Route path="/estudios/:slug" element={<EstudioDetalle />} />
-          <Route path="/clase/:id" element={<ClaseDetalle />} />
-          <Route path="/historial" element={<Historial />} />
-          <Route path="/perfil" element={<Perfil />} />
-          <Route path="/qr/:reservaId" element={<MiQR />} />
-        </Routes>
-      </Suspense>
+      <ErrorBoundary variant="inline" resetKeys={[location.pathname]}>
+        <Suspense fallback={<LoadingScreen />}>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/reservar" element={<Reservar />} />
+            <Route path="/estudios" element={<Estudios />} />
+            <Route path="/estudios/:slug" element={<EstudioDetalle />} />
+            <Route path="/clase/:id" element={<ClaseDetalle />} />
+            <Route path="/historial" element={<Historial />} />
+            <Route path="/perfil" element={<Perfil />} />
+            <Route path="/qr/:reservaId" element={<MiQR />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
 
       <PoweredBySala />
 

@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import NotificacionesBell from '@shared/components/NotificacionesBell';
+import { ErrorBoundary } from '@shared/components/ErrorBoundary';
 
 /**
  * Shell de layout con sidebar oscuro (admin + recepción): columna sidebar en
@@ -22,6 +24,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const location = useLocation();
 
   return (
     <div className="adm-shell">
@@ -89,7 +92,11 @@ export function AppShell({
           <NotificacionesBell tone="light" />
         </div>
 
-        {children}
+        {/* Un error en una página NO tumba todo el panel: el shell sobrevive y
+            se puede reintentar o navegar a otra sección. */}
+        <ErrorBoundary variant="inline" resetKeys={[location.pathname]}>
+          {children}
+        </ErrorBoundary>
       </div>
     </div>
   );
