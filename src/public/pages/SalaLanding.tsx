@@ -15,6 +15,7 @@ import {
   type LucideIcon
 } from 'lucide-react';
 import { SalaLogo } from '@shared/components/SalaLogo';
+import { BrowserFrame, PhoneFrame } from '../components/DeviceFrame';
 import {
   MONEDAS,
   PLANES_SAAS,
@@ -23,6 +24,21 @@ import {
   monedaPorTimezone,
   type MonedaSaas
 } from '@shared/lib/planesSaas';
+
+/**
+ * Capturas del producto (en public/shots/). Vacío → el marco muestra un
+ * placeholder de marca. Llenar cuando estén las imágenes.
+ */
+const SHOTS = {
+  agenda: '/shots/agenda.png',
+  socio: '/shots/socio.png',
+  checkin: '/shots/checkin.png',
+  dashboard: '/shots/dashboard.png'
+};
+// Mientras no existan los archivos, mostramos placeholder (evita el ícono de
+// imagen rota). Cuando subas las capturas, poné USAR_SHOTS = true.
+const USAR_SHOTS = false;
+const shot = (key: keyof typeof SHOTS): string | undefined => (USAR_SHOTS ? SHOTS[key] : undefined);
 
 /**
  * Landing de PRODUCTO de SALA — le vende la plataforma a dueños de gimnasios
@@ -101,7 +117,9 @@ export default function SalaLanding() {
     <div className="sala-brand" style={{ background: 'var(--sala-bg)', minHeight: '100vh' }}>
       <Header />
       <Hero />
+      <TrustStrip />
       <Features />
+      <Showcase />
       <Pasos />
       <Pricing moneda={moneda} />
       <Faq />
@@ -197,85 +215,126 @@ function Hero() {
         />
         {/* glow ambiental que sigue el cursor (desktop) */}
         <div className="sala-spotlight" aria-hidden="true" />
-        <div className="sala-fade-up" style={{ position: 'relative', zIndex: 4, maxWidth: '720px', margin: '0 auto' }}>
-          <p
-            style={{
-              fontSize: '12px',
-              fontWeight: 700,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              color: 'var(--sala-warning)',
-              margin: '0 0 18px'
-            }}
-          >
-            Plataforma para estudios y gimnasios
-          </p>
-          <h1
-            className={reduced ? undefined : 'sala-shimmer'}
-            style={
-              reduced
-                ? { fontFamily: 'var(--ek-font-display)', fontSize: 'clamp(36px, 7vw, 60px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.05, margin: 0, color: 'rgba(255, 255, 255, 0.97)' }
-                : ({ fontFamily: 'var(--ek-font-display)', fontSize: 'clamp(36px, 7vw, 60px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.05, margin: 0, '--shim-1': 'rgba(255,255,255,0.72)', '--shim-2': '#ffffff' } as CSSProperties)
-            }
-          >
-            Tu estudio, con su propia app.
-          </h1>
-          <p
-            style={{
-              fontSize: 'clamp(16px, 2.5vw, 19px)',
-              lineHeight: 1.55,
-              color: 'rgba(255, 255, 255, 0.65)',
-              margin: '20px auto 0',
-              maxWidth: '560px'
-            }}
-          >
-            Reservas, socios, check-in y tu marca — todo en un lugar. Sin
-            desarrolladores, sin complicaciones.
-          </p>
+        <div className="sala-fade-up" style={{ position: 'relative', zIndex: 4, maxWidth: '1180px', margin: '0 auto' }}>
           <div
             style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '12px',
-              justifyContent: 'center',
-              marginTop: '32px'
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: 'clamp(32px, 5vw, 64px)',
+              alignItems: 'center',
+              textAlign: 'left'
             }}
           >
-            <Link
-              to={REGISTRO}
-              className="ek-cta ek-lift"
-              style={{ padding: '15px 28px', minHeight: '52px', fontSize: '16px' }}
-            >
-              Creá tu gym
-              <ArrowRight size={18} strokeWidth={2.25} />
-            </Link>
-            <a
-              href="#precios"
-              className="ek-lift"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '15px 28px',
-                minHeight: '52px',
-                fontSize: '16px',
-                fontWeight: 600,
-                borderRadius: '999px',
-                color: 'rgba(255, 255, 255, 0.92)',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.16)',
-                textDecoration: 'none'
-              }}
-            >
-              Ver precios
-            </a>
+            {/* Columna izquierda — copy */}
+            <div>
+              <p
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  color: 'var(--sala-warning)',
+                  margin: '0 0 18px'
+                }}
+              >
+                Plataforma para estudios y gimnasios
+              </p>
+              <h1
+                className={reduced ? undefined : 'sala-shimmer'}
+                style={
+                  reduced
+                    ? { fontFamily: 'var(--ek-font-display)', fontSize: 'clamp(34px, 5.5vw, 56px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.04, margin: 0, color: 'rgba(255, 255, 255, 0.97)' }
+                    : ({ fontFamily: 'var(--ek-font-display)', fontSize: 'clamp(34px, 5.5vw, 56px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.04, margin: 0, '--shim-1': 'rgba(255,255,255,0.72)', '--shim-2': '#ffffff' } as CSSProperties)
+                }
+              >
+                Llená tus clases.<br />Olvidate del Excel.
+              </h1>
+              <p
+                style={{
+                  fontSize: 'clamp(16px, 2.2vw, 19px)',
+                  lineHeight: 1.55,
+                  color: 'rgba(255, 255, 255, 0.68)',
+                  margin: '20px 0 0',
+                  maxWidth: '520px'
+                }}
+              >
+                Reservas, membresías, check-in y reportes — el sistema operativo de tu estudio,
+                con tu marca y tu dominio.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '32px' }}>
+                <Link
+                  to={REGISTRO}
+                  className="ek-cta ek-lift"
+                  style={{ padding: '15px 28px', minHeight: '52px', fontSize: '16px' }}
+                >
+                  Creá tu gym
+                  <ArrowRight size={18} strokeWidth={2.25} />
+                </Link>
+                <a
+                  href="#precios"
+                  className="ek-lift"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '15px 28px',
+                    minHeight: '52px',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    borderRadius: '999px',
+                    color: 'rgba(255, 255, 255, 0.92)',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.16)',
+                    textDecoration: 'none'
+                  }}
+                >
+                  Ver precios
+                </a>
+              </div>
+              <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.5)', margin: '18px 0 0' }}>
+                {TRIAL_DIAS} días gratis · sin tarjeta · cancelás cuando quieras
+              </p>
+            </div>
+
+            {/* Columna derecha — el producto */}
+            <div style={{ minWidth: 0 }}>
+              <BrowserFrame src={shot('agenda')} alt="Agenda y reservas en SALA" />
+            </div>
           </div>
-          <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.5)', margin: '18px 0 0' }}>
-            {TRIAL_DIAS} días gratis · Configurá tu gym en minutos
-          </p>
         </div>
       </div>
     </section>
+  );
+}
+
+// ============================================================================
+// Franja de confianza
+// ============================================================================
+
+function TrustStrip() {
+  const items = ['Sin instalar nada', 'Tu marca y tu dominio', 'Datos seguros', 'Soporte en español'];
+  return (
+    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '8px clamp(16px, 5vw, 48px) 0' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '10px 28px',
+          justifyContent: 'center',
+          padding: '18px 20px',
+          borderRadius: '14px',
+          background: 'var(--sala-surface)',
+          border: '1px solid var(--sala-border)'
+        }}
+      >
+        {items.map((i) => (
+          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '13px', fontWeight: 600, color: 'var(--sala-text-secondary)' }}>
+            <Check size={15} strokeWidth={2.5} style={{ color: 'var(--sala-primary)', flexShrink: 0 }} />
+            {i}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -343,6 +402,87 @@ function Features() {
 }
 
 // ============================================================================
+// Showcase del producto
+// ============================================================================
+
+function ShowcaseRow({
+  eyebrow,
+  titulo,
+  texto,
+  media,
+  reverse = false
+}: {
+  eyebrow: string;
+  titulo: string;
+  texto: string;
+  media: React.ReactNode;
+  reverse?: boolean;
+}) {
+  return (
+    <div className={`sala-showcase-row${reverse ? ' reverse' : ''}`}>
+      <div>
+        <SectionEyebrow label={eyebrow} />
+        <h3
+          style={{
+            fontFamily: 'var(--ek-font-display)',
+            fontSize: 'clamp(24px, 3.4vw, 34px)',
+            fontWeight: 700,
+            letterSpacing: '-0.03em',
+            lineHeight: 1.12,
+            margin: '10px 0 0',
+            color: 'var(--sala-text-primary)',
+            maxWidth: '460px'
+          }}
+        >
+          {titulo}
+        </h3>
+        <p style={{ fontSize: '16px', lineHeight: 1.55, color: 'var(--sala-text-secondary)', margin: '14px 0 0', maxWidth: '440px' }}>
+          {texto}
+        </p>
+      </div>
+      <div className="sala-showcase-media" style={{ minWidth: 0, display: 'flex', justifyContent: 'center' }}>
+        {media}
+      </div>
+    </div>
+  );
+}
+
+function Showcase() {
+  return (
+    <section
+      style={{
+        padding: 'clamp(40px, 7vw, 80px) clamp(16px, 5vw, 48px)',
+        maxWidth: '1100px',
+        margin: '0 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'clamp(48px, 8vw, 96px)'
+      }}
+    >
+      <ShowcaseRow
+        eyebrow="Para tus socios"
+        titulo="Tu app, en el bolsillo de cada socio."
+        texto="Reservan, entran a lista de espera y muestran su QR desde el celular. Sin descargar nada: es una web app instalable con tu marca."
+        media={<PhoneFrame src={shot('socio')} alt="App del socio reservando una clase" />}
+      />
+      <ShowcaseRow
+        reverse
+        eyebrow="Para tu recepción"
+        titulo="Check-in con QR. Cero filas, cero planillas."
+        texto="Cada socio llega con su código. Recepción escanea, valida el acceso y registra la asistencia en segundos — todo queda en la ficha."
+        media={<BrowserFrame src={shot('checkin')} alt="Check-in con QR en recepción" url="recepcion.salastudio.app" />}
+      />
+      <ShowcaseRow
+        eyebrow="Para vos, el dueño"
+        titulo="Sabé qué clases llenan y a quién estás perdiendo."
+        texto="Ocupación, asistencia, retención y churn en un panel claro. Dejás de adivinar y empezás a decidir con datos."
+        media={<BrowserFrame src={shot('dashboard')} alt="Dashboard con métricas de retención" url="admin.salastudio.app" />}
+      />
+    </section>
+  );
+}
+
+// ============================================================================
 // Cómo funciona
 // ============================================================================
 
@@ -402,12 +542,55 @@ function Pasos() {
 
 function Pricing({ moneda }: { moneda: MonedaSaas }) {
   const info = MONEDAS.find((m) => m.codigo === moneda) ?? MONEDAS[0];
-  const fmt = (n: number) => `${info.simbolo}${n.toLocaleString('es-MX')}`;
+  const [anual, setAnual] = useState(false);
+  // MXN usa "$", que se confunde con USD → lo desambiguamos con el sufijo.
+  const fmt = (n: number) =>
+    moneda === 'mxn'
+      ? `$${n.toLocaleString('es-MX')} MXN`
+      : `${info.simbolo}${n.toLocaleString('es-MX')}`;
 
   return (
     <section id="precios" style={{ padding: 'clamp(32px, 6vw, 64px) clamp(16px, 5vw, 48px)', maxWidth: '1100px', margin: '0 auto' }}>
       <SectionEyebrow label="Precios" />
       <h2 style={sectionTitle}>Un plan para cada etapa.</h2>
+
+      {/* Toggle mensual / anual (2 meses gratis). */}
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '20px', padding: '4px', borderRadius: '999px', background: 'var(--sala-surface)', border: '1px solid var(--sala-border)' }}>
+        {[
+          { v: false, label: 'Mensual' },
+          { v: true, label: 'Anual' }
+        ].map((opt) => {
+          const active = anual === opt.v;
+          return (
+            <button
+              key={opt.label}
+              type="button"
+              onClick={() => setAnual(opt.v)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 16px',
+                borderRadius: '999px',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: '13px',
+                fontWeight: 600,
+                background: active ? 'var(--sala-primary)' : 'transparent',
+                color: active ? 'var(--sala-primary-text)' : 'var(--sala-text-secondary)'
+              }}
+            >
+              {opt.label}
+              {opt.v && (
+                <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.04em', color: active ? 'var(--sala-primary-text)' : 'var(--sala-primary)' }}>
+                  2 MESES GRATIS
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
       <div
         style={{
@@ -421,6 +604,7 @@ function Pricing({ moneda }: { moneda: MonedaSaas }) {
         {TIERS_ORDEN.map((tier) => {
           const plan = PLANES_SAAS[tier];
           const destacado = tier === 'pro';
+          const mensual = plan.precios[moneda];
           return (
             <div
               key={tier}
@@ -474,21 +658,28 @@ function Pricing({ moneda }: { moneda: MonedaSaas }) {
               <p style={{ fontSize: '13px', margin: '4px 0 0', color: destacado ? 'rgba(255,255,255,0.55)' : 'var(--sala-text-tertiary)' }}>
                 {plan.resumen}
               </p>
-              <p
-                style={{
-                  fontFamily: 'var(--ek-font-display)',
-                  fontSize: '38px',
-                  fontWeight: 700,
-                  letterSpacing: '-0.03em',
-                  margin: '16px 0 0',
-                  color: destacado ? 'rgba(255,255,255,0.97)' : 'var(--sala-text-primary)'
-                }}
-              >
-                {fmt(plan.precios[moneda])}
-                <span style={{ fontSize: '14px', fontWeight: 500, color: destacado ? 'rgba(255,255,255,0.5)' : 'var(--sala-text-tertiary)' }}>
-                  {' '}/mes
-                </span>
-              </p>
+              <div style={{ margin: '16px 0 0' }}>
+                <p
+                  style={{
+                    fontFamily: 'var(--ek-font-display)',
+                    fontSize: '38px',
+                    fontWeight: 700,
+                    letterSpacing: '-0.03em',
+                    margin: 0,
+                    color: destacado ? 'rgba(255,255,255,0.97)' : 'var(--sala-text-primary)'
+                  }}
+                >
+                  {anual ? fmt(mensual * 10) : fmt(mensual)}
+                  <span style={{ fontSize: '14px', fontWeight: 500, color: destacado ? 'rgba(255,255,255,0.5)' : 'var(--sala-text-tertiary)' }}>
+                    {' '}{anual ? '/año' : '/mes'}
+                  </span>
+                </p>
+                {anual && (
+                  <p style={{ fontSize: '12px', margin: '4px 0 0', color: destacado ? 'rgba(255,255,255,0.55)' : 'var(--sala-text-tertiary)' }}>
+                    ≈ {fmt(Math.round((mensual * 10) / 12))}/mes · facturado anual
+                  </p>
+                )}
+              </div>
 
               <ul style={{ listStyle: 'none', margin: '18px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: '9px', flex: 1 }}>
                 {plan.features.map((f) => (
@@ -640,22 +831,47 @@ function CtaFinal() {
 // ============================================================================
 
 function Footer() {
+  const linkStyle: CSSProperties = {
+    fontSize: '13px',
+    color: 'var(--sala-text-secondary)',
+    textDecoration: 'none',
+    display: 'block',
+    padding: '3px 0'
+  };
   return (
-    <footer
-      style={{
-        padding: 'clamp(24px, 5vw, 40px) clamp(16px, 5vw, 48px)',
-        borderTop: '1px solid var(--sala-border)',
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '16px'
-      }}
-    >
-      <SalaLogo variant="completo" height={36} showStudio />
-      <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: 0 }}>
-        © 2026 SALA Studio · Plataforma para estudios y gimnasios
-      </p>
+    <footer style={{ borderTop: '1px solid var(--sala-border)', marginTop: 'clamp(24px, 5vw, 48px)' }}>
+      <div
+        style={{
+          maxWidth: '1100px',
+          margin: '0 auto',
+          padding: 'clamp(32px, 5vw, 48px) clamp(16px, 5vw, 48px) 24px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '32px'
+        }}
+      >
+        <div>
+          <SalaLogo variant="completo" height={36} showStudio />
+          <p style={{ fontSize: '13px', color: 'var(--sala-text-tertiary)', margin: '14px 0 0', maxWidth: '300px', lineHeight: 1.55 }}>
+            La plataforma para estudios y gimnasios boutique. Tu marca, tu app, tus reglas.
+          </p>
+        </div>
+        <div>
+          <p className="ek-eyebrow" style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', margin: '0 0 8px' }}>PRODUCTO</p>
+          <a href="#precios" style={linkStyle}>Precios</a>
+          <Link to={REGISTRO} style={linkStyle}>Creá tu gym</Link>
+          <Link to="/login" style={linkStyle}>Iniciar sesión</Link>
+        </div>
+        <div>
+          <p className="ek-eyebrow" style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', margin: '0 0 8px' }}>CONTACTO</p>
+          <a href="mailto:hola@salastudio.app" style={linkStyle}>hola@salastudio.app</a>
+        </div>
+      </div>
+      <div style={{ borderTop: '1px solid var(--sala-border)' }}>
+        <p style={{ maxWidth: '1100px', margin: '0 auto', padding: '16px clamp(16px, 5vw, 48px)', fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
+          © 2026 SALA Studio · Hecho en LATAM
+        </p>
+      </div>
     </footer>
   );
 }

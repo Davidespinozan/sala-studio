@@ -2447,6 +2447,19 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   animation: ek-float-orb 18s var(--ease-premium) infinite;
 }
 
+/* Showcase de producto en la landing: fila texto + captura, 2 columnas en
+   desktop, apilada en mobile. `reverse` invierte el lado en desktop (mobile
+   siempre texto-arriba por orden del DOM). */
+.sala-showcase-row {
+  display: grid;
+  gap: clamp(28px, 5vw, 56px);
+  align-items: center;
+}
+@media (min-width: 860px) {
+  .sala-showcase-row { grid-template-columns: 1fr 1fr; }
+  .sala-showcase-row.reverse .sala-showcase-media { order: -1; }
+}
+
 /* Capa 5 — entrada escalonada (fade + sube). El delay va inline por elemento. */
 @keyframes sala-fade-up {
   from { opacity: 0; transform: translateY(20px); }
