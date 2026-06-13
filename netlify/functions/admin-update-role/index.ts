@@ -54,11 +54,13 @@ export const handler: Handler = async (event) => {
 
     const { data: adminProfile } = await supabaseAsUser
       .from('usuarios')
-      .select('id, tenant_id, rol')
+      .select('id, tenant_id, rol, status')
       .eq('auth_id', authUser.id)
       .maybeSingle();
 
-    if (!adminProfile || adminProfile.rol !== 'admin') {
+    // status='activo': un admin revocado/suspendido conserva rol='admin' pero
+    // NO debe poder operar (consistente con is_admin() a nivel DB — fix C2).
+    if (!adminProfile || adminProfile.rol !== 'admin' || adminProfile.status !== 'activo') {
       return forbidden('Solo admin puede cambiar roles');
     }
 
@@ -76,6 +78,12 @@ export const handler: Handler = async (event) => {
 
     if (target.tenant_id !== adminProfile.tenant_id) {
       return forbidden('Usuario es de otro tenant');
+    }
+
+    // Auto-modificación: un admin no puede cambiarse el rol a sí mismo (evita
+    // auto-degradación accidental y perder su propio acceso). Que lo haga otro.
+    if (target.id === adminProfile.id) {
+      return badRequest('No podés cambiar tu propio rol. Pedile a otro admin que lo haga.');
     }
 
     // Si demote de admin → otro rol, validar que NO sea el último admin

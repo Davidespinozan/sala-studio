@@ -70,9 +70,13 @@ export default function CambiarRolModal({
       return;
     }
 
-    const res = await adminUpdateRole({ usuario_id: usuarioId, rol: nuevoRol });
-    if (!res.success) {
-      setError('No pudimos actualizar el rol. Probá de nuevo.');
+    // backendPost LANZA en respuesta no-2xx (incluye el motivo del body, p.ej.
+    // "último admin"). Hay que capturarlo: sin try/catch quedaba como rejection
+    // no manejada, el modal colgado y el mensaje real perdido.
+    try {
+      await adminUpdateRole({ usuario_id: usuarioId, rol: nuevoRol });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No pudimos actualizar el rol. Probá de nuevo.');
       setSubmitting(false);
       return;
     }

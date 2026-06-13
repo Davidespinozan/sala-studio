@@ -63,11 +63,12 @@ export const handler: Handler = async (event) => {
     // Verificar que es admin del tenant
     const { data: adminProfile } = await supabaseAsUser
       .from('usuarios')
-      .select('id, tenant_id, rol')
+      .select('id, tenant_id, rol, status')
       .eq('auth_id', authUser.id)
       .maybeSingle();
 
-    if (!adminProfile || adminProfile.rol !== 'admin') {
+    // status='activo': un admin revocado/suspendido no debe poder operar (fix C2).
+    if (!adminProfile || adminProfile.rol !== 'admin' || adminProfile.status !== 'activo') {
       return forbidden('Solo admin puede crear usuarios');
     }
 
@@ -92,6 +93,21 @@ export const handler: Handler = async (event) => {
     if (createErr) {
       const msg = createErr.message.toLowerCase();
       if (msg.includes('already') || msg.includes('exists') || msg.includes('registered')) {
+        // ¿La persona ya existe en ESTE tenant con acceso desactivado? Entonces
+        // el camino correcto es reactivarla desde su ficha, no crearla otra vez
+        // (el email queda "quemado" por el soft-revoke). Guiamos en consecuencia.
+        const emailLc = body.email.trim().toLowerCase();
+        const { data: existente } = await supabaseAdmin
+          .from('usuarios')
+          .select('status')
+          .eq('tenant_id', tenantId)
+          .eq('email', emailLc)
+          .maybeSingle();
+        if (existente && ['revocado', 'suspendido', 'cancelado'].includes(existente.status)) {
+          return badRequest(
+            'Esa persona ya está en tu equipo pero con el acceso desactivado. Reactivá su cuenta desde su ficha en lugar de crearla otra vez.'
+          );
+        }
         return badRequest('Ya existe una cuenta con ese email');
       }
       return serverError(createErr.message);

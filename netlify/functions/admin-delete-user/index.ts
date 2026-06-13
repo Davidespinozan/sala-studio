@@ -69,11 +69,12 @@ export const handler: Handler = async (event) => {
     // Verificar caller es admin
     const { data: adminProfile } = await supabaseAdmin
       .from('usuarios')
-      .select('id, tenant_id, rol, auth_id')
+      .select('id, tenant_id, rol, auth_id, status')
       .eq('auth_id', authUser.id)
       .maybeSingle();
 
-    if (!adminProfile || adminProfile.rol !== 'admin') {
+    // status='activo': un admin revocado/suspendido no debe poder operar (fix C2).
+    if (!adminProfile || adminProfile.rol !== 'admin' || adminProfile.status !== 'activo') {
       return forbidden('Solo admin puede eliminar usuarios');
     }
 

@@ -28,8 +28,9 @@ export async function backendPost<T>(path: string, body?: unknown): Promise<T> {
     body: body ? JSON.stringify(body) : undefined
   });
   if (!res.ok) {
-    // Incluir el motivo real del body (la function devuelve { error: '…' }) en
-    // vez de solo el status, para no diagnosticar a ciegas.
+    // Motivo humano del body (la function devuelve { error: '…' }) como mensaje
+    // del Error → las UIs lo muestran directo, sin prefijo técnico. status/path
+    // quedan como props para diagnóstico.
     let detail = '';
     try {
       const text = await res.text();
@@ -44,11 +45,10 @@ export async function backendPost<T>(path: string, body?: unknown): Promise<T> {
     } catch {
       // sin body legible → ignorar
     }
-    throw new Error(
-      detail
-        ? `backendPost ${path}: ${res.status} — ${detail}`
-        : `backendPost ${path}: ${res.status}`
-    );
+    const err = new Error(detail || `No se pudo completar la operación (${res.status}).`);
+    (err as Error & { status?: number; path?: string }).status = res.status;
+    (err as Error & { status?: number; path?: string }).path = path;
+    throw err;
   }
   return res.json() as Promise<T>;
 }
