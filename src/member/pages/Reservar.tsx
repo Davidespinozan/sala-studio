@@ -23,6 +23,7 @@ import { useMaxInvitados } from '@member/hooks/useMaxInvitados';
 import { DayTabSelector } from '@member/components/DayTabSelector';
 import { ClaseRow } from '@member/components/ClaseRow';
 import { ConfirmarReservaModal } from '@member/components/ConfirmarReservaModal';
+import { useMembresiaActual } from '@member/hooks/useMembresiaActual';
 import { ConfirmarCancelacionModal } from '@member/components/ConfirmarCancelacionModal';
 import { ConfirmarListaEsperaModal } from '@member/components/ConfirmarListaEsperaModal';
 import { anotarseEnListaEspera } from '@member/hooks/useListaEspera';
@@ -153,6 +154,10 @@ export default function Reservar() {
   }, [clasesDelDia, salaSel, fechaSel, fechas]);
 
   const maxInvitados = useMaxInvitados();
+  // Plan por créditos → la reserva cuesta 1 + invitados (cada lugar = 1 crédito).
+  const { membresia } = useMembresiaActual(usuario?.id);
+  const esPlanCreditos =
+    membresia?.tier_tipo === 'creditos' || membresia?.tier_tipo === 'hibrido';
 
   // === Handlers ===
 
@@ -365,6 +370,7 @@ export default function Reservar() {
           maxInvitados={maxInvitados}
           invitados={invitados}
           onInvitadosChange={setInvitados}
+          costoCreditos={esPlanCreditos ? 1 + invitados : null}
           submitting={submitting}
           error={errorReserva}
           onConfirm={confirmarReserva}

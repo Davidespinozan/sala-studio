@@ -33,6 +33,7 @@ import {
 import { getTenantTimezone } from '@shared/lib/timezone';
 import { CupoBar } from '@member/components/CupoBar';
 import { ConfirmarReservaModal } from '@member/components/ConfirmarReservaModal';
+import { useMembresiaActual } from '@member/hooks/useMembresiaActual';
 import { ConfirmarCancelacionModal } from '@member/components/ConfirmarCancelacionModal';
 import { ConfirmarListaEsperaModal } from '@member/components/ConfirmarListaEsperaModal';
 
@@ -171,6 +172,11 @@ export default function ClaseDetalle() {
   const yaReservada = !!miReservaId;
   const esFutura = clase ? clase.slotInicio.getTime() > Date.now() : false;
   const maxInvitados = useMaxInvitados();
+  // Si el plan es por créditos, la reserva cuesta 1 + invitados (cada lugar = 1
+  // crédito). Para planes por tiempo (ilimitado) no se muestra costo.
+  const { membresia } = useMembresiaActual(usuario?.id);
+  const esPlanCreditos =
+    membresia?.tier_tipo === 'creditos' || membresia?.tier_tipo === 'hibrido';
 
   const enEspera = miEspera?.en_lista ?? false;
   const posicionEspera = miEspera?.posicion ?? null;
@@ -715,6 +721,7 @@ export default function ClaseDetalle() {
           maxInvitados={maxInvitados}
           invitados={invitados}
           onInvitadosChange={setInvitados}
+          costoCreditos={esPlanCreditos ? 1 + invitados : null}
           submitting={submitting}
           error={errorReserva}
           onConfirm={confirmarReserva}

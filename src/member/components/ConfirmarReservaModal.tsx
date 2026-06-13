@@ -5,6 +5,9 @@ interface Props {
   maxInvitados: number;
   invitados: number;
   onInvitadosChange: (n: number) => void;
+  /** Créditos que cuesta la reserva (1 + invitados) si el plan es por créditos.
+   *  null = plan por tiempo (ilimitado) → no se muestra costo. */
+  costoCreditos?: number | null;
   submitting: boolean;
   error: string | null;
   onConfirm: () => void;
@@ -18,6 +21,7 @@ export function ConfirmarReservaModal({
   maxInvitados,
   invitados,
   onInvitadosChange,
+  costoCreditos,
   submitting,
   error,
   onConfirm,
@@ -122,6 +126,9 @@ export function ConfirmarReservaModal({
                 }}
               >
                 Total: {1 + invitados} {1 + invitados === 1 ? 'persona' : 'personas'}
+                {costoCreditos != null && (
+                  <> · {costoCreditos} {costoCreditos === 1 ? 'crédito' : 'créditos'}</>
+                )}
               </span>
             </div>
           </div>
