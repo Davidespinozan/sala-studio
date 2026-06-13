@@ -2394,6 +2394,66 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   animation: sala-shimmer-text 6.5s linear infinite;
 }
 
+/* Capa 1 — mesh gradients flotantes: 2 círculos gigantes muy tenues que
+   respiran. Colores por --mesh-1/--mesh-2 (default: glow primario + acento). */
+@keyframes sala-mesh-a {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(3%, 4%); }
+}
+@keyframes sala-mesh-b {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(-4%, -3%); }
+}
+.sala-hero-mesh {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.sala-hero-mesh::before,
+.sala-hero-mesh::after {
+  content: '';
+  position: absolute;
+  width: 70%;
+  height: 80%;
+  border-radius: 50%;
+  filter: blur(44px);
+  will-change: transform;
+}
+.sala-hero-mesh::before {
+  top: -20%;
+  left: -10%;
+  background: radial-gradient(circle, var(--mesh-1, var(--sala-primary-glow)) 0%, transparent 62%);
+  animation: sala-mesh-a 20s var(--ease-premium) infinite;
+}
+.sala-hero-mesh::after {
+  bottom: -20%;
+  right: -10%;
+  background: radial-gradient(circle, var(--mesh-2, var(--sala-accent-glow)) 0%, transparent 62%);
+  animation: sala-mesh-b 25s var(--ease-premium) infinite reverse;
+}
+
+/* Capa 2 — orbs desenfocadas: círculos blur de baja opacidad. Tamaño/posición/
+   delay van inline (delays desfasados = movimiento orgánico). Reusa ek-float-orb. */
+.sala-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.07;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(circle, var(--orb-color, var(--sala-accent)), transparent 70%);
+  animation: ek-float-orb 18s var(--ease-premium) infinite;
+}
+
+/* Capa 5 — entrada escalonada (fade + sube). El delay va inline por elemento. */
+@keyframes sala-fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: none; }
+}
+.sala-fade-up { animation: sala-fade-up 0.7s var(--ease-premium) backwards; }
+
 /* Accesibilidad OBLIGATORIA: si el usuario pide menos movimiento, todo off. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
