@@ -15,6 +15,9 @@ export type LandingHero = {
   image_url: string;
   /** Imagen de fondo del hero para MÓVIL (3:4 vertical). Cae a la desktop si falta. */
   image_url_mobile: string;
+  /** Carrusel del hero: varias imágenes que rotan (crossfade + Ken Burns). Vacío
+   *  → cae a image_url (una sola, solo Ken Burns). Editable desde el admin. */
+  imagenes: string[];
   /** Estilo del hero con imagen. Default 'contenido'. */
   layout: LandingHeroLayout;
 };
@@ -59,6 +62,7 @@ const HERO_DEFAULT: LandingHero = {
   cta_link: '#membresias',
   image_url: '',
   image_url_mobile: '',
+  imagenes: [],
   layout: 'contenido'
 };
 
@@ -171,6 +175,10 @@ export function useLandingConfig() {
   const contactoRaw = (config.contacto ?? {}) as Record<string, unknown>;
 
   const hero = parseObject(landing.hero, HERO_DEFAULT);
+  // imagenes: sanitizar a string[] no vacíos (el merge shallow no valida arrays).
+  hero.imagenes = Array.isArray(hero.imagenes)
+    ? hero.imagenes.filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+    : [];
   const post_hero = parsePostHero(landing.post_hero);
   const cta_final = parseObject(landing.cta_final, CTA_FINAL_DEFAULT);
   const faq = parseFaq(landing.faq);

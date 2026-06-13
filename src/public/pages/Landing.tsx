@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { ArrowRight, Check, Dumbbell, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
@@ -7,6 +7,9 @@ import { useTenant } from '@shared/hooks/useTenant';
 import EstudioModal, { type EstudioInfo } from '../components/EstudioModal';
 import Footer from '../components/Footer';
 import { MagneticButton } from '@shared/components/MagneticButton';
+import { HeroCarousel } from '@shared/components/HeroCarousel';
+import { useSpotlight } from '@shared/hooks/useSpotlight';
+import { usePrefersReducedMotion } from '@shared/hooks/usePrefersReducedMotion';
 
 interface EstudioPublico {
   id: string;
@@ -254,14 +257,22 @@ function parseBeneficios(raw: unknown): string[] {
  * romper a 100vw) y las alturas se acotan para el panel.
  */
 export function HeroView({ hero, preview = false }: { hero: LandingHero; preview?: boolean }) {
-  const heroDesktop = hero.image_url || hero.image_url_mobile;
-  const heroMobile = hero.image_url_mobile || hero.image_url;
-  const hasImg = !!(hero.image_url || hero.image_url_mobile);
+  const onSpotlight = useSpotlight();
+  const reduced = usePrefersReducedMotion();
+  // Slides del carrusel: las imágenes configuradas o, si no hay, la imagen única
+  // (desktop/mobile). Una sola → el carrusel hace solo Ken Burns.
+  const slides = hero.imagenes.length > 0
+    ? hero.imagenes
+    : [hero.image_url || hero.image_url_mobile].filter(Boolean);
+  const hasImg = slides.length > 0;
   const tituloColor = hasImg ? 'rgba(255, 255, 255, 0.98)' : 'var(--sala-text-primary)';
   const subColor = hasImg ? 'rgba(255, 255, 255, 0.88)' : 'var(--ek-ink-muted)';
   // Sobre imagen, el acento va en un tono CLARO de la marca (el primary
   // oscuro era casi ilegible sobre la foto).
   const accentColor = hasImg ? 'color-mix(in srgb, var(--sala-primary), white 62%)' : 'var(--ek-mustard)';
+  // Shimmer solo sobre imagen (fondo oscuro, donde la luz lee bien) y si el
+  // usuario no pidió menos movimiento.
+  const shimmerOn = hasImg && !reduced;
 
   const inner = (
     <>
@@ -288,7 +299,16 @@ export function HeroView({ hero, preview = false }: { hero: LandingHero; preview
         {hero.titulo_accent && (
           <>
             {hero.titulo && <br />}
-            <span style={{ color: accentColor }}>{hero.titulo_accent}</span>
+            <span
+              className={shimmerOn ? 'sala-shimmer' : undefined}
+              style={
+                shimmerOn
+                  ? ({ '--shim-1': accentColor, '--shim-2': '#ffffff' } as CSSProperties)
+                  : { color: accentColor }
+              }
+            >
+              {hero.titulo_accent}
+            </span>
           </>
         )}
       </h1>
@@ -363,43 +383,43 @@ export function HeroView({ hero, preview = false }: { hero: LandingHero; preview
             : { padding: '40px 0' }
       }
     >
-      <div className="landing-hero-card" style={{
-        position: 'relative',
-        overflow: 'hidden',
-        borderRadius: fullBleed ? 0 : 'var(--ek-r-card)',
-        minHeight: preview
-          ? (fullBleed ? '460px' : '420px')
-          : (fullBleed ? 'clamp(560px, 92vh, 760px)' : 'clamp(520px, 80vh, 600px)'),
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-end',
-        padding: fullBleed ? 0 : 'clamp(28px, 5vw, 56px)',
-        boxShadow: fullBleed ? 'none' : '0 24px 60px rgba(10, 15, 12, 0.28)'
-      }}>
-        <picture>
-          <source media="(max-width: 640px)" srcSet={heroMobile} />
-          <img
-            src={heroDesktop}
-            alt=""
-            aria-hidden="true"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        </picture>
+      <div
+        className="landing-hero-card sala-spotlight-host"
+        onMouseMove={onSpotlight}
+        style={{
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: fullBleed ? 0 : 'var(--ek-r-card)',
+          minHeight: preview
+            ? (fullBleed ? '460px' : '420px')
+            : (fullBleed ? 'clamp(560px, 92vh, 760px)' : 'clamp(520px, 80vh, 600px)'),
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+          padding: fullBleed ? 0 : 'clamp(28px, 5vw, 56px)',
+          boxShadow: fullBleed ? 'none' : '0 24px 60px rgba(10, 15, 12, 0.28)'
+        }}
+      >
+        {/* Carrusel de fondo (1 imagen = solo Ken Burns). */}
+        <HeroCarousel imagenes={slides} />
         <div
           aria-hidden="true"
           style={{
             position: 'absolute',
             inset: 0,
+            zIndex: 1,
             background: 'linear-gradient(to top, rgba(10, 15, 12, 0.92) 0%, rgba(10, 15, 12, 0.6) 45%, rgba(10, 15, 12, 0.42) 100%)'
           }}
         />
+        {/* Glow ambiental que sigue el cursor (desktop). */}
+        <div className="sala-spotlight" aria-hidden="true" />
         {/* En full-bleed la imagen ocupa todo el ancho, pero el texto se alinea
             con el contenido del resto de la página (maxWidth 1200, centrado). */}
         <div
           style={
             fullBleed
-              ? { position: 'relative', width: '100%', maxWidth: '1200px', margin: '0 auto', padding: 'clamp(40px, 6vw, 72px) 24px' }
-              : { position: 'relative' }
+              ? { position: 'relative', zIndex: 4, width: '100%', maxWidth: '1200px', margin: '0 auto', padding: 'clamp(40px, 6vw, 72px) 24px' }
+              : { position: 'relative', zIndex: 4 }
           }
         >
           {inner}

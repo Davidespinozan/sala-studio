@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useTenantConfigEditor } from '../hooks/useTenantConfigEditor';
 import { useToast } from '@shared/hooks/useToast';
 import { useTenant } from '@shared/hooks/useTenant';
@@ -7,6 +7,23 @@ import ImageUploader from '../components/ImageUploader';
 import LandingPreview from '../components/LandingPreview';
 
 type HeroLayout = 'contenido' | 'completo';
+
+/** Botón chico (✕/←/→) sobre las miniaturas del carrusel del hero. */
+const miniBtn: CSSProperties = {
+  width: '22px',
+  height: '22px',
+  padding: 0,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '6px',
+  border: 'none',
+  cursor: 'pointer',
+  background: 'rgba(0,0,0,0.6)',
+  color: '#fff',
+  fontSize: '12px',
+  lineHeight: 1
+};
 type HeroDraft = {
   eyebrow: string;
   titulo: string;
@@ -16,6 +33,7 @@ type HeroDraft = {
   cta_link: string;
   image_url: string;
   image_url_mobile: string;
+  imagenes: string[];
   layout: HeroLayout;
 };
 
@@ -85,7 +103,7 @@ const FAQ_STARTER: FaqDraftItem[] = [
 ];
 
 const EMPTY: LandingDraft = {
-  hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta_link: '', image_url: '', image_url_mobile: '', layout: 'contenido' },
+  hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta_link: '', image_url: '', image_url_mobile: '', imagenes: [], layout: 'contenido' },
   post_hero: POST_HERO_DEFAULT,
   cta_final: { eyebrow: '', titulo: '', subtitulo: '', cta_texto: '' },
   footer: { tagline: '', copyright: '', direccion: '', email: '' },
@@ -132,6 +150,9 @@ function readLanding(config: Record<string, unknown> | null): LandingDraft {
       cta_link: String(hero.cta_link ?? ''),
       image_url: String(hero.image_url ?? ''),
       image_url_mobile: String(hero.image_url_mobile ?? ''),
+      imagenes: Array.isArray(hero.imagenes)
+        ? (hero.imagenes as unknown[]).filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+        : [],
       layout: hero.layout === 'completo' ? 'completo' : 'contenido'
     },
     cta_final: {
@@ -356,6 +377,98 @@ export default function AjustesLanding() {
           previewMaxHeight={220}
           helperText="Foto vertical para celulares. Recorte 3:4. Si no subís una, en móvil se usa la de desktop."
         />
+
+        {/* Carrusel del hero — varias imágenes que rotan (crossfade + Ken Burns). */}
+        <div style={{ marginTop: '4px', paddingTop: '16px', borderTop: '0.5px solid var(--ek-line)' }}>
+          <p className="ek-label" style={{ marginBottom: '4px' }}>Carrusel del hero (opcional)</p>
+          <p style={{ fontSize: '12px', color: 'var(--sala-text-secondary)', margin: '0 0 12px', lineHeight: 1.5 }}>
+            Agregá varias fotos y rotan solas con un efecto sutil. Si cargás acá, reemplazan la
+            imagen única de arriba. Con una sola también sirve (queda con movimiento lento).
+          </p>
+
+          {draft.hero.imagenes.length > 0 && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                gap: '10px',
+                marginBottom: '14px'
+              }}
+            >
+              {draft.hero.imagenes.map((url, i) => (
+                <div
+                  key={`${i}-${url}`}
+                  style={{
+                    position: 'relative',
+                    aspectRatio: '16 / 9',
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    border: '0.5px solid var(--ek-line)'
+                  }}
+                >
+                  <img src={url} alt={`Imagen ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <span
+                    style={{
+                      position: 'absolute', bottom: '4px', left: '6px',
+                      fontSize: '10px', fontWeight: 700, color: '#fff',
+                      textShadow: '0 1px 4px rgba(0,0,0,0.6)'
+                    }}
+                  >
+                    {i + 1}
+                  </span>
+                  <div style={{ position: 'absolute', top: '6px', right: '6px', display: 'flex', gap: '4px' }}>
+                    {i > 0 && (
+                      <button
+                        type="button"
+                        aria-label="Mover antes"
+                        onClick={() => setDraft((d) => {
+                          const arr = [...d.hero.imagenes];
+                          const [m] = arr.splice(i, 1);
+                          arr.splice(i - 1, 0, m);
+                          return { ...d, hero: { ...d.hero, imagenes: arr } };
+                        })}
+                        style={miniBtn}
+                      >←</button>
+                    )}
+                    {i < draft.hero.imagenes.length - 1 && (
+                      <button
+                        type="button"
+                        aria-label="Mover después"
+                        onClick={() => setDraft((d) => {
+                          const arr = [...d.hero.imagenes];
+                          const [m] = arr.splice(i, 1);
+                          arr.splice(i + 1, 0, m);
+                          return { ...d, hero: { ...d.hero, imagenes: arr } };
+                        })}
+                        style={miniBtn}
+                      >→</button>
+                    )}
+                    <button
+                      type="button"
+                      aria-label="Quitar"
+                      onClick={() => setDraft((d) => ({
+                        ...d, hero: { ...d.hero, imagenes: d.hero.imagenes.filter((_, j) => j !== i) }
+                      }))}
+                      style={{ ...miniBtn, color: '#fff', background: 'rgba(180,40,40,0.85)' }}
+                    >✕</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <ImageUploader
+            bucket="estudios"
+            pathPrefix={`${tenant.slug}/hero-carrusel`}
+            currentUrl={null}
+            onUploaded={(url) => setDraft((d) => ({ ...d, hero: { ...d.hero, imagenes: [...d.hero.imagenes, url] } }))}
+            label="Agregar imagen al carrusel"
+            cropAspect={16 / 9}
+            previewMaxHeight={160}
+            helperText="Recorte 16:9. Podés agregar varias; rotan en orden."
+          />
+        </div>
+
         <FormField
           label="Estilo del hero"
           helper="Cómo se muestra la imagen del hero. Solo aplica cuando subís una imagen de fondo."
