@@ -11,6 +11,9 @@ type AccionReserva = 'cancelar' | 'no_show' | 'corregir';
 
 interface Props {
   onManualCheckInSuccess?: (data: any) => void;
+  /** Avisa al Scanner cuando hay un modal abierto, para pausar el lector HID
+   *  (si no, un escaneo dispara el overlay de check-in por detrás del modal). */
+  onModalOpenChange?: (open: boolean) => void;
 }
 
 // Persistencia del día visto: si el recepcionista cambia de día, F5 no lo
@@ -78,11 +81,17 @@ function formatearDia(fecha: Date): string {
   });
 }
 
-export function ReservasHoyView({ onManualCheckInSuccess }: Props = {}) {
+export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: Props = {}) {
   const [fechaSeleccionada, setFechaSeleccionada] = useState<Date>(() => leerFechaGuardada());
   const { reservas, isLoading, refetch } = useReservasHoy(fechaSeleccionada);
   const [selected, setSelected] = useState<ReservaConJoin | null>(null);
   const [accionReserva, setAccionReserva] = useState<AccionReserva | null>(null);
+
+  // Hay un modal abierto (check-in manual o acción) sii hay una reserva
+  // seleccionada. Le avisamos al Scanner para que pause el lector HID.
+  useEffect(() => {
+    onModalOpenChange?.(selected !== null);
+  }, [selected, onModalOpenChange]);
 
   // Persistir el día visto cada vez que cambia.
   useEffect(() => {

@@ -28,6 +28,7 @@ type DetailState =
 export default function Scanner() {
   const [detail, setDetail] = useState<DetailState>({ kind: 'none' });
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [agendaModalOpen, setAgendaModalOpen] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
 
   const handleQRPayload = useCallback(async (qrPayload: string) => {
@@ -47,8 +48,9 @@ export default function Scanner() {
     }
   }, []);
 
-  // Listener de scanner HID. Se pausa cuando hay modales abiertos.
-  useScannerHID(handleQRPayload, detail.kind === 'none' && !cameraOpen);
+  // Listener de scanner HID. Se pausa cuando hay modales abiertos (el overlay de
+  // check-in del Scanner, la cámara, o un modal de la agenda en ReservasHoyView).
+  useScannerHID(handleQRPayload, detail.kind === 'none' && !cameraOpen && !agendaModalOpen);
 
   const closeDetail = () => setDetail({ kind: 'none' });
   const handleManualCheckIn = (data: VerifyResponse['data']) => {
@@ -64,6 +66,7 @@ export default function Scanner() {
         <ReservasHoyView
           key={refreshTick}
           onManualCheckInSuccess={handleManualCheckIn}
+          onModalOpenChange={setAgendaModalOpen}
         />
         <PoweredBySala />
       </div>
