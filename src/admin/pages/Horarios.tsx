@@ -63,9 +63,11 @@ export default function Horarios() {
       if (arr) arr.push(h);
       else porRecurso.set(h.recurso_id, [h]);
     }
+    // Todas las salas ACTIVAS (aunque no tengan horarios) → puerta de entrada
+    // para programarlas. Más salas inactivas que aún conserven horarios (legacy).
     return recursos
-      .filter((r) => porRecurso.has(r.id))
-      .map((r) => ({ recurso: r, items: porRecurso.get(r.id)! }));
+      .filter((r) => r.activo || porRecurso.has(r.id))
+      .map((r) => ({ recurso: r, items: porRecurso.get(r.id) ?? [] }));
   }, [horarios, recursos]);
 
   const activos = horarios.filter((h) => h.activo).length;
@@ -123,7 +125,7 @@ export default function Horarios() {
 
       {isLoading ? (
         <p className="adm-body">Cargando…</p>
-      ) : horarios.length === 0 ? (
+      ) : grupos.length === 0 ? (
         <div
           style={{
             padding: '48px 20px',
@@ -157,7 +159,7 @@ export default function Horarios() {
             Todavía no definiste horarios recurrentes.
           </h3>
           <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 20px' }}>
-            Creá el primero para que el sistema genere las clases automáticamente.
+            Creá una sala primero y después definí su grilla semanal.
           </p>
           <button onClick={() => setModal({ mode: 'create' })} className="ek-cta">
             + Nuevo horario
@@ -185,18 +187,45 @@ export default function Horarios() {
                 )}
               </h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {items.map((h) => (
-                  <HorarioRow
-                    key={h.id}
-                    horario={h}
-                    instructorNombre={
-                      h.instructor_id ? instructorById.get(h.instructor_id)?.nombre ?? null : null
-                    }
-                    cupoDefault={recurso.cupo_max_default}
-                    onEdit={() => setModal({ mode: 'edit', horario: h })}
-                    onDelete={() => setEliminando(h)}
-                  />
-                ))}
+                {items.length === 0 ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      flexWrap: 'wrap',
+                      padding: '14px 16px',
+                      background: 'var(--sala-surface)',
+                      border: '1px dashed var(--sala-border)',
+                      borderRadius: '12px'
+                    }}
+                  >
+                    <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0 }}>
+                      Esta sala todavía no tiene clases. Agregá su primer horario para que aparezcan en la agenda.
+                    </p>
+                    <button
+                      onClick={() => setModal({ mode: 'create' })}
+                      className="ek-cta ek-cta--secondary"
+                      style={{ padding: '8px 14px', fontSize: '12px', flexShrink: 0 }}
+                    >
+                      + Agregar horario
+                    </button>
+                  </div>
+                ) : (
+                  items.map((h) => (
+                    <HorarioRow
+                      key={h.id}
+                      horario={h}
+                      instructorNombre={
+                        h.instructor_id ? instructorById.get(h.instructor_id)?.nombre ?? null : null
+                      }
+                      cupoDefault={recurso.cupo_max_default}
+                      onEdit={() => setModal({ mode: 'edit', horario: h })}
+                      onDelete={() => setEliminando(h)}
+                    />
+                  ))
+                )}
               </div>
             </section>
           ))}
