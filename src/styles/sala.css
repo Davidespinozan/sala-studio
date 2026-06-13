@@ -2232,6 +2232,12 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   --sala-warning-bg:   #FAF2DC;
   --sala-error:        #C44A35;
   --sala-error-bg:     #FCE5DF;
+  /* La familia legacy --ek-mustard (= sage) también se re-ancla al primary FIJO
+     de SALA, por si el tenant cargado en :root la dejó con su color. Así ningún
+     "amarillo de prueba" de un tenant se filtra a las superficies SALA. */
+  --ek-mustard:      #3D6B52;
+  --ek-mustard-dim:  color-mix(in srgb, #3D6B52 24%, transparent);
+  --ek-mustard-soft: color-mix(in srgb, #3D6B52 10%, var(--sala-bg));
 }
 
 /* ============================================================================

@@ -51,6 +51,10 @@ const shot = (key: keyof typeof SHOTS): string | undefined => (USAR_SHOTS ? SHOT
 
 const REGISTRO = '/registro';
 
+/** Acento elegante de SALA sobre fondos OSCUROS (sage claro). Reemplaza el oro
+ *  (--sala-warning) que se veía amarillo y barato para una marca premium. */
+const ACCENT_DARK = 'color-mix(in srgb, var(--sala-primary), white 58%)';
+
 const FEATURES: Array<{ icon: LucideIcon; titulo: string; texto: string }> = [
   {
     icon: CalendarCheck,
@@ -192,15 +196,11 @@ function Hero() {
           textAlign: 'center'
         }}
       >
-        {/* Capa 1 — mesh gradients flotantes (verde + mostaza de SALA). */}
-        <div
-          className="sala-hero-mesh"
-          aria-hidden="true"
-          style={{ '--mesh-2': 'color-mix(in srgb, var(--sala-warning) 22%, transparent)' } as CSSProperties}
-        />
+        {/* Capa 1 — mesh gradients flotantes (sage de SALA, tono sobre tono). */}
+        <div className="sala-hero-mesh" aria-hidden="true" />
         {/* Capa 2 — orbs desenfocadas, delays desfasados (movimiento orgánico). */}
         <div className="sala-orb" aria-hidden="true" style={{ width: 300, height: 300, top: '-12%', left: '-6%', opacity: 0.12, animationDelay: '0s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
-        <div className="sala-orb" aria-hidden="true" style={{ width: 200, height: 200, bottom: '4%', right: '8%', opacity: 0.10, animationDelay: '3s', '--orb-color': 'var(--sala-warning)' } as CSSProperties} />
+        <div className="sala-orb" aria-hidden="true" style={{ width: 200, height: 200, bottom: '4%', right: '8%', opacity: 0.12, animationDelay: '3s', '--orb-color': ACCENT_DARK } as CSSProperties} />
         <div className="sala-orb" aria-hidden="true" style={{ width: 120, height: 120, top: '28%', right: '24%', opacity: 0.10, animationDelay: '6s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
         {/* glow de marca detrás */}
         <div
@@ -236,7 +236,7 @@ function Hero() {
                   fontWeight: 700,
                   letterSpacing: '0.18em',
                   textTransform: 'uppercase',
-                  color: 'var(--sala-warning)',
+                  color: ACCENT_DARK,
                   margin: '0 0 18px'
                 }}
               >
@@ -636,7 +636,7 @@ function Pricing({ moneda }: { moneda: MonedaSaas }) {
                     borderRadius: '999px',
                     background: 'rgba(255,255,255,0.1)',
                     border: '1px solid rgba(255,255,255,0.16)',
-                    color: 'var(--sala-warning)',
+                    color: ACCENT_DARK,
                     fontSize: '10px',
                     fontWeight: 800,
                     letterSpacing: '0.08em',
@@ -696,7 +696,7 @@ function Pricing({ moneda }: { moneda: MonedaSaas }) {
                       color: destacado ? 'rgba(255,255,255,0.85)' : 'var(--sala-text-primary)'
                     }}
                   >
-                    <Check size={16} strokeWidth={2.5} style={{ color: destacado ? 'var(--sala-warning)' : 'var(--sala-primary)', flexShrink: 0, marginTop: '1px' }} />
+                    <Check size={16} strokeWidth={2.5} style={{ color: destacado ? ACCENT_DARK : 'var(--sala-primary)', flexShrink: 0, marginTop: '1px' }} />
                     {f}
                   </li>
                 ))}
@@ -768,7 +768,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
             flexShrink: 0,
             fontSize: '22px',
             lineHeight: 1,
-            color: 'var(--sala-warning)',
+            color: 'var(--sala-primary)',
             transition: 'transform 0.2s ease',
             transform: open ? 'rotate(45deg)' : 'rotate(0deg)'
           }}
