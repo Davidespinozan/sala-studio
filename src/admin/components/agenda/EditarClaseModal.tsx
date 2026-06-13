@@ -17,7 +17,7 @@ const DESC_MAX = 500;
 /** S4.3 — edita una clase puntual (nombre, descripción, cupo, duración). */
 export function EditarClaseModal({ clase, inscritosActivos, onClose, onSaved }: Props) {
   const toast = useToast();
-  const { updateClase, updating } = useEditarCancelarClase(clase.id);
+  const { updateClase, updating } = useEditarCancelarClase(clase);
   const { instructores } = useInstructores();
 
   const [nombre, setNombre] = useState(clase.nombre);

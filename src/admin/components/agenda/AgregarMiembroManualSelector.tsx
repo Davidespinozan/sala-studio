@@ -52,6 +52,12 @@ export function AgregarMiembroManualSelector({
   }, [query, tenant.id, excludeUsuarioIds]);
 
   async function handleAgregar(m: MiembroBuscable) {
+    // Clase virtual (aún sin materializar): se activa con su primera reserva.
+    // Inscribir manualmente en una virtual lejana es un edge poco común.
+    if (!clase.claseId) {
+      toast.warning('Esta clase todavía no está activa: se materializa cuando alguien reserva. Probá en una clase de esta semana.');
+      return;
+    }
     // Validar acceso por tier (si la clase tiene tiers_permitidos restringidos)
     if (clase.tiersPermitidos && clase.tiersPermitidos.length > 0) {
       if (!m.membresia_tier || !clase.tiersPermitidos.includes(m.membresia_tier)) {
@@ -62,7 +68,7 @@ export function AgregarMiembroManualSelector({
     setAgregandoId(m.id);
     const { error } = await inscribirMiembroManual({
       tenantId: tenant.id,
-      claseId: clase.id,
+      claseId: clase.claseId,
       recursoId: clase.recursoId,
       usuarioId: m.id,
       slotInicio: clase.slotInicio,

@@ -32,9 +32,10 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
   const toast = useToast();
   // claseActual: copia local que se actualiza si el admin edita la clase.
   const [claseActual, setClaseActual] = useState<Clase>(clase);
-  const { inscritos, isLoading, refetch } = useInscritosDeClase(claseActual.id);
-  const { enEspera, refetch: refetchEspera } = useListaEsperaDeClase(claseActual.id);
-  const { cancelarClase, cancelling } = useEditarCancelarClase(claseActual.id);
+  // Una clase virtual (sin claseId) aún no tiene inscritos ni lista de espera.
+  const { inscritos, isLoading, refetch } = useInscritosDeClase(claseActual.claseId);
+  const { enEspera, refetch: refetchEspera } = useListaEsperaDeClase(claseActual.claseId);
+  const { cancelarClase, cancelling } = useEditarCancelarClase(claseActual);
   const [showAgregar, setShowAgregar] = useState(false);
   const [showEditar, setShowEditar] = useState(false);
   const [showCancelarClase, setShowCancelarClase] = useState(false);

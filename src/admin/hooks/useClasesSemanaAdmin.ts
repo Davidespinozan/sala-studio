@@ -3,32 +3,18 @@ import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useSucursal } from '@admin/providers/SucursalProvider';
 import {
-  claseFromRow,
+  claseFromExpansion,
   type Clase,
-  type RecursoContext,
-  type InstructorContext
+  type ClaseExpansionRow
 } from '@member/logic/claseAdapter';
 import { getSucursalTimezone, getTenantTimezone } from '@shared/lib/timezone';
-import type { Database } from '@shared/types/database';
-
-type ClaseRow = Database['public']['Tables']['clases']['Row'];
-type RecursoRow = Pick<
-  Database['public']['Tables']['recursos']['Row'],
-  'id' | 'nombre' | 'foto_url' | 'tiers_permitidos'
->;
-
-interface JoinedClaseRow extends ClaseRow {
-  recurso: RecursoRow | null;
-  instructor: InstructorContext | null;
-}
 
 /**
- * Admin: clases de los próximos 7 días desde una fecha, leyendo de la tabla
- * `clases` real (S4.2). El count de cupos reservados se calcula en una segunda
- * query — Supabase REST no soporta count agregado en el mismo SELECT.
+ * Admin: clases de los próximos 7 días de una sucursal, calculadas al vuelo con
+ * expandir_clases (modelo virtual: reglas + materializadas con overrides). Una
+ * sola RPC trae las clases con cupos; ya no se pre-generan.
  *
- * @param inicioSemana fecha de inicio (lunes a las 00:00). Los 7 días se cuentan
- *   desde acá inclusive (lunes a domingo).
+ * @param inicioSemana fecha de inicio (lunes 00:00). 7 días inclusive.
  * @param salaIdFilter si se provee, solo trae clases de ese recurso.
  */
 export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) {
@@ -39,8 +25,7 @@ export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) 
 
   const inicioMs = inicioSemana.getTime();
 
-  // Multi-sucursal: la Agenda está scopeada a una sola sucursal → todas las
-  // clases comparten su tz. Fallback a la del tenant.
+  // Agenda scopeada a una sola sucursal → todas comparten su tz (fallback tenant).
   const tz = getSucursalTimezone(sucursalActiva?.timezone, getTenantTimezone(tenant));
 
   const refetch = useCallback(async () => {
@@ -50,77 +35,32 @@ export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) 
       return;
     }
     setIsLoading(true);
-    const inicio = new Date(inicioMs);
-    const fin = new Date(inicioMs + 7 * 24 * 60 * 60 * 1000);
-    const fechaInicioISO = ymd(inicio);
-    const fechaFinISO = ymd(fin);
+    const desdeISO = ymd(new Date(inicioMs));
+    const hastaISO = ymd(new Date(inicioMs + 6 * 24 * 60 * 60 * 1000)); // inclusivo
 
-    // S4.3: incluye canceladas para mostrarlas con estilo apagado en la grilla.
-    let claseQuery = supabase
-      .from('clases')
-      .select(
-        '*, recurso:recursos(id, nombre, foto_url, tiers_permitidos), instructor:instructores(id, nombre, foto_url)'
-      )
-      .eq('tenant_id', tenant.id)
-      .eq('sucursal_id', sucursalId)
-      .in('status', ['programada', 'cancelada'])
-      .gte('fecha', fechaInicioISO)
-      .lt('fecha', fechaFinISO)
-      .order('fecha', { ascending: true })
-      .order('hora_inicio', { ascending: true });
-
-    if (salaIdFilter) claseQuery = claseQuery.eq('recurso_id', salaIdFilter);
-
-    const { data: clasesRaw, error: clasesErr } = await claseQuery;
-    if (clasesErr) {
-      console.error('[useClasesSemanaAdmin:clases]', clasesErr);
-      setClases([]);
-      setIsLoading(false);
-      return;
-    }
-
-    const filas = (clasesRaw ?? []) as JoinedClaseRow[];
-    if (filas.length === 0) {
-      setClases([]);
-      setIsLoading(false);
-      return;
-    }
-
-    // Cupos por clase: una sola query agrupada por clase_id
-    const claseIds = filas.map((c) => c.id);
-    const { data: reservasRaw } = await supabase
-      .from('reservas')
-      .select('clase_id')
-      .in('clase_id', claseIds)
-      .in('status', ['confirmada', 'completada']);
-
-    const cuposPorClase = new Map<string, number>();
-    for (const r of (reservasRaw ?? []) as Array<{ clase_id: string | null }>) {
-      if (!r.clase_id) continue;
-      cuposPorClase.set(r.clase_id, (cuposPorClase.get(r.clase_id) ?? 0) + 1);
-    }
-
-    const mapped: Clase[] = filas.map((row) => {
-      const recurso: RecursoContext = row.recurso
-        ? {
-            id: row.recurso.id,
-            nombre: row.recurso.nombre,
-            foto_url: row.recurso.foto_url,
-            tiers_permitidos: row.recurso.tiers_permitidos
-          }
-        : { id: row.recurso_id, nombre: '—' };
-      return claseFromRow({
-        row,
-        cuposReservados: cuposPorClase.get(row.id) ?? 0,
-        recurso,
-        instructor: row.instructor,
-        tz
-      });
+    const rpc = supabase.rpc as unknown as (
+      name: string, args: Record<string, unknown>
+    ) => Promise<{ data: ClaseExpansionRow[] | null; error: { message: string } | null }>;
+    const { data, error } = await rpc('expandir_clases', {
+      p_sucursal_id: sucursalId, p_desde: desdeISO, p_hasta: hastaISO
     });
+    if (error) {
+      console.error('[useClasesSemanaAdmin:expandir_clases]', error);
+      setClases([]);
+      setIsLoading(false);
+      return;
+    }
+
+    let rows = (data ?? []) as ClaseExpansionRow[];
+    if (salaIdFilter) rows = rows.filter((r) => r.recurso_id === salaIdFilter);
+
+    const mapped = rows
+      .map((r) => claseFromExpansion(r, tz))
+      .sort((a, b) => a.slotInicio.getTime() - b.slotInicio.getTime());
 
     setClases(mapped);
     setIsLoading(false);
-  }, [tenant.id, sucursalId, inicioMs, salaIdFilter, tz]);
+  }, [sucursalId, inicioMs, salaIdFilter, tz]);
 
   useEffect(() => {
     void refetch();
