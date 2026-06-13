@@ -530,7 +530,7 @@ export default function Landing() {
   const { estudios, isLoading: estudiosLoading } = useEstudiosPublicos();
   const { tiers, isLoading: tiersLoading } = useTiersPublicos();
   const { instructores } = useInstructoresPublicos();
-  const { hero, post_hero, cta_final, whatsappUrl, mostrarInstructores } = useLandingConfig();
+  const { hero, post_hero, cta_final, faq, whatsappUrl, mostrarInstructores } = useLandingConfig();
   const ctaWhatsappUrl = whatsappUrl();
 
   // Nada hardcodeado: el rango de precios sale de los tiers reales (más caro /
@@ -988,8 +988,9 @@ export default function Landing() {
       </section>
 
       {/* ============================================================
-          FAQ
+          FAQ (editable desde el admin; oculta si el gym la dejó vacía)
           ============================================================ */}
+      {faq.length > 0 && (
       <section className="reveal" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>PREGUNTAS FRECUENTES</p>
         <h2 style={{
@@ -1005,33 +1006,8 @@ export default function Landing() {
         </h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {[
-            {
-              q: '¿Qué incluye la membresía?',
-              a: 'Acceso a las salas según tu plan, todo el equipo ya montado (colchonetas, mancuernas, bicicletas, lo que aplique según la disciplina), posibilidad de traer invitados y reservas vía app.'
-            },
-            {
-              q: '¿Puedo cancelar cuando quiera?',
-              a: 'El compromiso mínimo es de 6 meses. Después podés cancelar con 30 días de anticipación. Sin penalidades pasado el commitment.'
-            },
-            {
-              q: '¿Qué pasa si no llego a mi clase?',
-              a: 'Las inasistencias bloquean tu cuenta por 1 semana automáticamente. Pero si avisás con anticipación, podés cancelar sin penalidad.'
-            },
-            {
-              q: '¿Necesito traer mi propio equipo?',
-              a: 'No. Cada sala tiene lo necesario para su disciplina. Solo traés ropa cómoda y una botella de agua.'
-            },
-            {
-              q: '¿Puedo invitar gente?',
-              a: 'Sí. Básica permite hasta 2 invitados por clase, Pro hasta 4. Para grupos más grandes, contactanos.'
-            },
-            {
-              q: '¿Cómo me cobran?',
-              a: 'Cobro mensual automatizado vía tarjeta. El primer mes incluye onboarding y configuración de tu cuenta.'
-            }
-          ].map((item) => (
-            <details key={item.q} className="ek-card" style={{ padding: '20px 24px', cursor: 'pointer' }}>
+          {faq.map((item, i) => (
+            <details key={`${item.pregunta}-${i}`} className="ek-card" style={{ padding: '20px 24px', cursor: 'pointer' }}>
               <summary style={{
                 fontFamily: 'var(--ek-font-display)',
                 fontSize: '17px',
@@ -1042,7 +1018,7 @@ export default function Landing() {
                 justifyContent: 'space-between',
                 alignItems: 'center'
               }}>
-                {item.q}
+                {item.pregunta}
                 <span style={{ color: 'var(--ek-mustard)', fontSize: '14px' }}>+</span>
               </summary>
               <p style={{
@@ -1051,11 +1027,12 @@ export default function Landing() {
                 lineHeight: 1.6,
                 margin: 0,
                 marginTop: '12px'
-              }}>{item.a}</p>
+              }}>{item.respuesta}</p>
             </details>
           ))}
         </div>
       </section>
+      )}
 
       {/* ============================================================
           CTA + CONTACTO

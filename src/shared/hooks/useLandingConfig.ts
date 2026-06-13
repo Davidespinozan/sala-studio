@@ -140,6 +140,30 @@ function parsePostHero(value: unknown): LandingPostHero {
   };
 }
 
+// ── FAQ de la landing: editable por el admin. Default GENÉRICO (sin reglas de
+//    negocio específicas que serían falsas para muchos gyms). ──
+export type LandingFaqItem = { pregunta: string; respuesta: string };
+
+const FAQ_DEFAULT: LandingFaqItem[] = [
+  { pregunta: '¿Qué incluye la membresía?', respuesta: 'Acceso a las salas y clases según tu plan, con reservas desde la app. Mirá el detalle de cada plan más arriba.' },
+  { pregunta: '¿Cómo reservo una clase?', respuesta: 'Desde la app: elegís sala, día y horario en segundos, y mostrás tu QR al llegar.' },
+  { pregunta: '¿Puedo cancelar una reserva?', respuesta: 'Sí. Cancelá con anticipación para liberar tu lugar; las reglas de cancelación las define tu plan.' },
+  { pregunta: '¿Puedo invitar gente?', respuesta: 'Según tu plan, podés llevar invitados. Mirá los planes para el detalle.' }
+];
+
+/** missing/null → default genérico. Array explícito (aunque vacío) → lo del admin
+ *  (vacío = ocultar la sección). */
+function parseFaq(value: unknown): LandingFaqItem[] {
+  if (value === undefined || value === null || !Array.isArray(value)) return FAQ_DEFAULT;
+  return (value as unknown[])
+    .slice(0, 12)
+    .map((it) => {
+      const o = (it ?? {}) as Record<string, unknown>;
+      return { pregunta: String(o.pregunta ?? ''), respuesta: String(o.respuesta ?? '') };
+    })
+    .filter((f) => f.pregunta.trim() || f.respuesta.trim());
+}
+
 export function useLandingConfig() {
   const tenant = useTenant();
   const config = (tenant.config ?? {}) as Record<string, unknown>;
@@ -149,6 +173,7 @@ export function useLandingConfig() {
   const hero = parseObject(landing.hero, HERO_DEFAULT);
   const post_hero = parsePostHero(landing.post_hero);
   const cta_final = parseObject(landing.cta_final, CTA_FINAL_DEFAULT);
+  const faq = parseFaq(landing.faq);
 
   const footerBase = parseObject(landing.footer, FOOTER_DEFAULT);
   // redes es objeto anidado: re-merge para garantizar todas las keys
@@ -178,6 +203,7 @@ export function useLandingConfig() {
     post_hero,
     cta_final,
     footer,
+    faq,
     contacto,
     mostrarInstructores,
     whatsappUrl

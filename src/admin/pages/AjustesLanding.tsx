@@ -66,19 +66,30 @@ const POST_HERO_DEFAULT: PostHeroDraft = {
   ]
 };
 
+type FaqDraftItem = { pregunta: string; respuesta: string };
+
 type LandingDraft = {
   hero: HeroDraft;
   post_hero: PostHeroDraft;
   cta_final: CtaFinalDraft;
   footer: FooterDraft;
+  faq: FaqDraftItem[];
   mostrar_instructores: boolean;
 };
+
+// FAQ genérico de arranque (sin reglas falsas). El admin lo edita a su realidad.
+const FAQ_STARTER: FaqDraftItem[] = [
+  { pregunta: '¿Qué incluye la membresía?', respuesta: 'Acceso a las salas y clases según tu plan, con reservas desde la app.' },
+  { pregunta: '¿Cómo reservo una clase?', respuesta: 'Desde la app: elegís sala, día y horario, y mostrás tu QR al llegar.' },
+  { pregunta: '¿Puedo cancelar una reserva?', respuesta: 'Sí. Cancelá con anticipación para liberar tu lugar.' }
+];
 
 const EMPTY: LandingDraft = {
   hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta_link: '', image_url: '', image_url_mobile: '', layout: 'contenido' },
   post_hero: POST_HERO_DEFAULT,
   cta_final: { eyebrow: '', titulo: '', subtitulo: '', cta_texto: '' },
   footer: { tagline: '', copyright: '', direccion: '', email: '' },
+  faq: [],
   mostrar_instructores: false
 };
 
@@ -136,8 +147,20 @@ function readLanding(config: Record<string, unknown> | null): LandingDraft {
       email: footer.email == null ? '' : String(footer.email)
     },
     post_hero,
+    faq: readFaq(landing.faq),
     mostrar_instructores: landing.mostrar_instructores === true
   };
+}
+
+/** FAQ guardado, o el starter genérico si el gym nunca lo tocó. */
+function readFaq(value: unknown): FaqDraftItem[] {
+  if (!Array.isArray(value)) return FAQ_STARTER;
+  const items = (value as unknown[]).map((it) => {
+    const o = (it ?? {}) as Record<string, unknown>;
+    return { pregunta: String(o.pregunta ?? ''), respuesta: String(o.respuesta ?? '') };
+  });
+  // Array guardado (aunque vacío) se respeta: vacío = el gym ocultó el FAQ.
+  return items;
 }
 
 function PageHeader({
@@ -268,6 +291,9 @@ export default function AjustesLanding() {
         direccion: draft.footer.direccion || null,
         email: draft.footer.email || null
       },
+      faq: draft.faq
+        .map((f) => ({ pregunta: f.pregunta.trim(), respuesta: f.respuesta.trim() }))
+        .filter((f) => f.pregunta || f.respuesta),
       mostrar_instructores: draft.mostrar_instructores
     };
     const { error } = await saveTopLevel({ landing: payload });
@@ -623,6 +649,56 @@ export default function AjustesLanding() {
             placeholder="contacto@salastudio.com"
           />
         </FormField>
+      </Section>
+
+      <Section title="PREGUNTAS FRECUENTES" description="Las preguntas que ven tus visitantes. Editalas a tu realidad. Sin preguntas = la sección no se muestra.">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {draft.faq.map((item, i) => (
+            <div key={i} style={{ border: '1px solid var(--sala-border)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--sala-text-tertiary)' }}>Pregunta {i + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => setDraft({ ...draft, faq: draft.faq.filter((_, j) => j !== i) })}
+                  className="ek-cta ek-cta--secondary"
+                  style={{ fontSize: '12px', padding: '4px 10px' }}
+                >
+                  Quitar
+                </button>
+              </div>
+              <input
+                className="ek-input"
+                value={item.pregunta}
+                placeholder="¿La pregunta?"
+                maxLength={140}
+                onChange={(e) => setDraft({ ...draft, faq: draft.faq.map((f, j) => (j === i ? { ...f, pregunta: e.target.value } : f)) })}
+              />
+              <textarea
+                className="ek-input"
+                rows={2}
+                value={item.respuesta}
+                placeholder="La respuesta."
+                maxLength={500}
+                onChange={(e) => setDraft({ ...draft, faq: draft.faq.map((f, j) => (j === i ? { ...f, respuesta: e.target.value } : f)) })}
+              />
+            </div>
+          ))}
+          {draft.faq.length === 0 && (
+            <p style={{ fontSize: '13px', color: 'var(--sala-text-tertiary)', margin: 0 }}>
+              Sin preguntas — la sección no se muestra en la landing.
+            </p>
+          )}
+          {draft.faq.length < 12 && (
+            <button
+              type="button"
+              onClick={() => setDraft({ ...draft, faq: [...draft.faq, { pregunta: '', respuesta: '' }] })}
+              className="ek-cta ek-cta--secondary"
+              style={{ alignSelf: 'flex-start' }}
+            >
+              + Agregar pregunta
+            </button>
+          )}
+        </div>
       </Section>
 
       <div style={{ display: 'flex', gap: '10px', position: 'sticky', bottom: '12px' }}>
