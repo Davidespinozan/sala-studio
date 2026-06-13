@@ -4,8 +4,8 @@ import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { DemoBanner } from '@shared/components/DemoBanner';
-import NotificacionesBanner from './components/NotificacionesBanner';
 import EstadoMembresiaBanner from './components/EstadoMembresiaBanner';
+import NotificacionesBell from '@shared/components/NotificacionesBell';
 import { BottomNav } from './components/BottomNav';
 import { MembresiaPendiente } from './components/MembresiaPendiente';
 import { TenantGuard } from '@shared/components/TenantGuard';
@@ -75,13 +75,15 @@ export default function MemberLayout() {
     <TenantGuard>
     <div className="ek-page" style={{ paddingBottom: '88px' /* espacio para bottom nav */ }}>
       <DemoBanner vista="Miembro" />
-      <NotificacionesBanner />
       <EstadoMembresiaBanner />
       <header className="ek-header-glass">
-        <div className="ek-header-inner" style={{ justifyContent: 'center' }}>
+        <div className="ek-header-inner" style={{ justifyContent: 'center', position: 'relative' }}>
           <Link to="/app" style={{ textDecoration: 'none', display: 'inline-block' }}>
             <TenantLogo variant="completo" height={48} fallbackFontSize={34} showSuffix={true} />
           </Link>
+          <div style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)' }}>
+            <NotificacionesBell tone="light" />
+          </div>
         </div>
       </header>
 

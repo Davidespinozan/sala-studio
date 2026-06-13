@@ -1766,6 +1766,19 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     }
   }
 
+  /* Barra de la campana en desktop (donde el topbar-mobile está oculto). */
+  .adm-topbar-desktop {
+    display: none;
+  }
+  @media (min-width: 1024px) {
+    .adm-topbar-desktop {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 16px 24px 0;
+    }
+  }
+
   /* Main */
   .adm-main {
     flex: 1;

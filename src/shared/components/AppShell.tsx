@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { TenantLogo } from '@shared/components/TenantLogo';
+import NotificacionesBell from '@shared/components/NotificacionesBell';
 
 /**
  * Shell de layout con sidebar oscuro (admin + recepción): columna sidebar en
@@ -80,8 +81,13 @@ export function AppShell({
             <TenantLogo variant="completo" height={34} fallbackFontSize={28} showSuffix={false} />
             <span className="ek-eyebrow" style={{ fontSize: '9px' }}>{roleLabel}</span>
           </div>
-          <div style={{ width: '40px' }} />
+          <NotificacionesBell tone="dark" />
         </header>
+
+        {/* Desktop: no hay topbar; la campana vive en una barra propia arriba. */}
+        <div className="adm-topbar-desktop">
+          <NotificacionesBell tone="light" />
+        </div>
 
         {children}
       </div>
