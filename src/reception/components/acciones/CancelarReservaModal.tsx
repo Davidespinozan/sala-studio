@@ -23,6 +23,7 @@ export function CancelarReservaModal({ reservaId, reservaLabel, isOpen, onClose,
       variant="danger"
       confirmLabel="Cancelar reserva"
       cancelLabel="Volver"
+      canConfirm={motivo.trim().length > 0}
       onConfirm={async () => {
         await ejecutar({ p_reserva_id: reservaId, p_motivo: motivo });
         await onDone();
@@ -33,7 +34,7 @@ export function CancelarReservaModal({ reservaId, reservaLabel, isOpen, onClose,
         value={motivo}
         onChange={setMotivo}
         opciones={['Cliente avisó que no viene', 'Error de carga', 'Doble reserva', 'Clase cancelada']}
-        label="Motivo (opcional)"
+        label="Motivo"
       />
     </AccionModal>
   );

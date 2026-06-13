@@ -393,7 +393,15 @@ function HorarioModal({
   const [horaInicio, setHoraInicio] = useState(
     horario ? horario.hora_inicio.slice(0, 5) : '07:00'
   );
-  const [duracion, setDuracion] = useState(String(horario?.duracion_minutos ?? 60));
+  // Un horario nuevo arranca con la "Duración default de sesión" del tenant
+  // (AjustesReglas → config.reserva.duracion_default_min); uno existente conserva
+  // la suya. Fallback 60. (Antes el campo de Ajustes no lo leía nadie.)
+  const duracionDefault = (() => {
+    const c = (tenant.config as { reserva?: { duracion_default_min?: unknown } } | null)
+      ?.reserva?.duracion_default_min;
+    return typeof c === 'number' && c > 0 ? c : 60;
+  })();
+  const [duracion, setDuracion] = useState(String(horario?.duracion_minutos ?? duracionDefault));
   const [nombre, setNombre] = useState(horario?.nombre ?? '');
   const [instructorId, setInstructorId] = useState(horario?.instructor_id ?? '');
   const [cupo, setCupo] = useState(horario?.cupo_max != null ? String(horario.cupo_max) : '');

@@ -19,10 +19,11 @@ export function MarcarNoShowModal({ reservaId, reservaLabel, isOpen, onClose, on
     <AccionModal
       isOpen={isOpen}
       title="Marcar no-show"
-      description={`Marcás como inasistencia la reserva de ${reservaLabel}. Suma al contador de no-shows del socio.`}
+      description={`Marcás como inasistencia la reserva de ${reservaLabel}. Queda registrada, baja su % de asistencia y no se devuelve el crédito.`}
       variant="warning"
       confirmLabel="Marcar no-show"
       cancelLabel="Volver"
+      canConfirm={motivo.trim().length > 0}
       onConfirm={async () => {
         await ejecutar({ p_reserva_id: reservaId, p_motivo: motivo });
         await onDone();
@@ -33,7 +34,7 @@ export function MarcarNoShowModal({ reservaId, reservaLabel, isOpen, onClose, on
         value={motivo}
         onChange={setMotivo}
         opciones={['No se presentó', 'Llegó fuera de tolerancia', 'Avisó demasiado tarde']}
-        label="Motivo (opcional)"
+        label="Motivo"
       />
     </AccionModal>
   );

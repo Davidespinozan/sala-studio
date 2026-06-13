@@ -216,7 +216,9 @@ function agregarMetricas(
   const confirmadas = reservasEnPeriodo.filter(
     (r) => r.status === 'confirmada' || r.status === 'completada'
   ).length;
-  const canceladas = reservasEnPeriodo.filter((r) => r.status === 'cancelada').length;
+  const canceladas = reservasEnPeriodo.filter(
+    (r) => r.status === 'cancelada' || r.status === 'cancelada_admin'
+  ).length;
 
   const countPorFecha = new Map<string, number>();
   for (const r of reservasEnPeriodo) {
