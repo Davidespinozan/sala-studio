@@ -44,12 +44,19 @@ export function useNotificacionesMiembro() {
   }, [refetch]);
 
   const marcarLeida = useCallback(async (id: string) => {
-    await supabase
+    // Optimista: lo sacamos ya. Si el UPDATE falla (RLS/red), recuperamos el
+    // estado real (antes desaparecía de la UI pero seguía leida=false en la DB
+    // y reaparecía al recargar).
+    setNotificaciones((prev) => prev.filter((n) => n.id !== id));
+    const { error } = await supabase
       .from('notificaciones')
       .update({ leida: true, leida_at: new Date().toISOString() })
       .eq('id', id);
-    setNotificaciones((prev) => prev.filter((n) => n.id !== id));
-  }, []);
+    if (error) {
+      console.error('[marcarLeida]', error);
+      void refetch();
+    }
+  }, [refetch]);
 
   return { notificaciones, marcarLeida, refetch };
 }

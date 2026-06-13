@@ -24,6 +24,8 @@ import { DayTabSelector } from '@member/components/DayTabSelector';
 import { ClaseRow } from '@member/components/ClaseRow';
 import { ConfirmarReservaModal } from '@member/components/ConfirmarReservaModal';
 import { ConfirmarCancelacionModal } from '@member/components/ConfirmarCancelacionModal';
+import { ConfirmarListaEsperaModal } from '@member/components/ConfirmarListaEsperaModal';
+import { anotarseEnListaEspera } from '@member/hooks/useListaEspera';
 
 const SALA_TODAS = '__todas__';
 
@@ -77,6 +79,8 @@ export default function Reservar() {
 
   // Cancelación (confirmación + flag)
   const [claseACancelar, setClaseACancelar] = useState<Clase | null>(null);
+  const [claseAEspera, setClaseAEspera] = useState<Clase | null>(null);
+  const [submittingEspera, setSubmittingEspera] = useState(false);
   const [cancelando, setCancelando] = useState(false);
 
   // Trigger refresh
@@ -155,12 +159,32 @@ export default function Reservar() {
   function handleReservar(clase: Clase) {
     const estadoLlena = clase.cuposReservados >= clase.cupoMax;
     if (estadoLlena) {
-      toast.info('Lista de espera próximamente. Probá con otro horario por ahora.');
+      // Clase llena → lista de espera (la feature existe; antes decía "próximamente").
+      setClaseAEspera(clase);
       return;
     }
     setErrorReserva(null);
     setInvitados(0);
     setClaseAReservar(clase);
+  }
+
+  async function confirmarEspera() {
+    if (!claseAEspera) return;
+    setSubmittingEspera(true);
+    try {
+      const { posicion } = await anotarseEnListaEspera({
+        claseId: claseAEspera.claseId,
+        horarioId: claseAEspera.horarioId,
+        fecha: claseAEspera.fechaISO
+      });
+      setClaseAEspera(null);
+      setSubmittingEspera(false);
+      toast.success(`Estás en lista de espera, posición #${posicion}.`);
+      triggerRefresh();
+    } catch (e) {
+      setSubmittingEspera(false);
+      toast.error(e instanceof Error ? e.message : 'No pudimos anotarte en la lista.');
+    }
   }
 
   function handleCancelar(clase: Clase) {
@@ -355,6 +379,17 @@ export default function Reservar() {
           submitting={cancelando}
           onConfirm={confirmarCancelacion}
           onClose={() => !cancelando && setClaseACancelar(null)}
+        />
+      )}
+
+      {/* Modal: anotarse en lista de espera (clase llena) */}
+      {claseAEspera && (
+        <ConfirmarListaEsperaModal
+          clase={claseAEspera}
+          totalEnEspera={0}
+          submitting={submittingEspera}
+          onConfirm={confirmarEspera}
+          onClose={() => !submittingEspera && setClaseAEspera(null)}
         />
       )}
 

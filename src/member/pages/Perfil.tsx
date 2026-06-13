@@ -54,6 +54,8 @@ function useReservasPasadas(usuarioId: string | undefined) {
         .select('*, recurso:recursos(nombre)')
         .eq('usuario_id', usuarioId!)
         .in('status', ['completada', 'cancelada', 'no_show'])
+        // Solo pasadas: una reserva FUTURA cancelada no va en "Reservas pasadas".
+        .lt('slot_inicio', new Date().toISOString())
         .order('slot_inicio', { ascending: false })
         .limit(20);
       if (mounted) setReservas((data ?? []) as unknown as ReservaConRecurso[]);

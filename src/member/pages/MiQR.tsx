@@ -4,7 +4,8 @@ import { useParams, Link } from 'react-router-dom';
 import QRCodeStyling from 'qr-code-styling';
 import { supabase } from '@shared/lib/supabase';
 import { backendPost } from '@shared/lib/backend';
-import { formatHora } from '@member/logic/reservaLogic';
+import { useTenant } from '@shared/hooks/useTenant';
+import { getTenantTimezone, formatHoraEnTz } from '@shared/lib/timezone';
 
 interface IssueResponse {
   qr_payload: string;
@@ -13,6 +14,8 @@ interface IssueResponse {
 
 export default function MiQR() {
   const { reservaId } = useParams<{ reservaId: string }>();
+  const tenant = useTenant();
+  const tz = getTenantTimezone(tenant);
   const qrContainerRef = useRef<HTMLDivElement>(null);
   const qrInstance = useRef<QRCodeStyling | null>(null);
 
@@ -101,10 +104,10 @@ export default function MiQR() {
           <h1 className="ek-display-md">{reserva?.recurso?.nombre ?? 'Sala'}</h1>
           <p className="ek-body-muted">
             {new Date(reserva.slot_inicio).toLocaleDateString('es-MX', {
-              weekday: 'long', day: 'numeric', month: 'long'
+              weekday: 'long', day: 'numeric', month: 'long', timeZone: tz
             })}
             <br />
-            {formatHora(new Date(reserva.slot_inicio))} – {formatHora(new Date(reserva.slot_fin))}
+            {formatHoraEnTz(new Date(reserva.slot_inicio), tz)} – {formatHoraEnTz(new Date(reserva.slot_fin), tz)}
           </p>
         </div>
 
@@ -136,7 +139,7 @@ export default function MiQR() {
             {expiresAt && (
               <>
                 <br /><br />
-                Válido hasta las {formatHora(expiresAt)} del día de tu clase.
+                Válido hasta las {formatHoraEnTz(expiresAt, tz)} del día de tu clase.
               </>
             )}
           </p>
