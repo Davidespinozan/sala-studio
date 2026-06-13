@@ -2303,6 +2303,97 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   z-index: 0;
 }
 
+/* ============================================================================
+   HERO "VIVO" 2026 — carrusel + Ken Burns + spotlight + shimmer.
+   Solo transform/opacity, easing único (--ease-premium), tokens de marca. El
+   kill-switch de abajo apaga las animaciones; el auto-rotate del carrusel se
+   frena en JS (usePrefersReducedMotion).
+   ============================================================================ */
+
+@keyframes sala-kenburns {
+  from { transform: scale(1.05); }
+  to   { transform: scale(1.16) translate(-1.5%, -1.5%); }
+}
+.sala-hero-slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.1s var(--ease-premium);
+  will-change: opacity, transform;
+}
+.sala-hero-slide.is-active {
+  opacity: 1;
+  animation: sala-kenburns 18s var(--ease-premium) infinite alternate;
+}
+
+.sala-hero-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  display: flex;
+  gap: 7px;
+  justify-content: center;
+  z-index: 3;
+}
+.sala-hero-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: width 0.4s var(--ease-premium), background 0.4s var(--ease-premium);
+}
+.sala-hero-dot.is-active {
+  width: 22px;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* Spotlight que sigue el cursor — solo desktop con hover real. */
+.sala-spotlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 2;
+  transition: opacity 0.45s var(--ease-premium);
+  background: radial-gradient(
+    460px circle at var(--mx, 50%) var(--my, 30%),
+    var(--sala-accent-glow),
+    transparent 44%
+  );
+}
+@media (hover: hover) {
+  .sala-spotlight-host:hover .sala-spotlight { opacity: 1; }
+}
+
+/* Shimmer sobre la palabra destacada (gradient text). Los colores entran por
+   --shim-1/--shim-2 (default: acento de marca + luz). */
+@keyframes sala-shimmer-text {
+  to { background-position: -220% center; }
+}
+.sala-shimmer {
+  background: linear-gradient(
+    100deg,
+    var(--shim-1, var(--sala-accent)),
+    var(--shim-2, #ffffff),
+    #ffffff,
+    var(--shim-2, #ffffff),
+    var(--shim-1, var(--sala-accent))
+  );
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: sala-shimmer-text 6.5s linear infinite;
+}
+
 /* Accesibilidad OBLIGATORIA: si el usuario pide menos movimiento, todo off. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
