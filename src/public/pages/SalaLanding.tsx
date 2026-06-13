@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
+import { useSpotlight } from '@shared/hooks/useSpotlight';
+import { usePrefersReducedMotion } from '@shared/hooks/usePrefersReducedMotion';
 import {
   ArrowRight,
   BarChart3,
@@ -152,9 +154,13 @@ function Header() {
 // ============================================================================
 
 function Hero() {
+  const onSpotlight = useSpotlight();
+  const reduced = usePrefersReducedMotion();
   return (
     <section style={{ padding: 'clamp(16px, 5vw, 48px)' }}>
       <div
+        className="sala-spotlight-host"
+        onMouseMove={onSpotlight}
         style={{
           position: 'relative',
           overflow: 'hidden',
@@ -179,7 +185,9 @@ function Hero() {
             pointerEvents: 'none'
           }}
         />
-        <div style={{ position: 'relative', maxWidth: '720px', margin: '0 auto' }}>
+        {/* glow ambiental que sigue el cursor (desktop) */}
+        <div className="sala-spotlight" aria-hidden="true" />
+        <div style={{ position: 'relative', zIndex: 4, maxWidth: '720px', margin: '0 auto' }}>
           <p
             style={{
               fontSize: '12px',
@@ -193,15 +201,12 @@ function Hero() {
             Plataforma para estudios y gimnasios
           </p>
           <h1
-            style={{
-              fontFamily: 'var(--ek-font-display)',
-              fontSize: 'clamp(36px, 7vw, 60px)',
-              fontWeight: 700,
-              letterSpacing: '-0.04em',
-              lineHeight: 1.05,
-              margin: 0,
-              color: 'rgba(255, 255, 255, 0.97)'
-            }}
+            className={reduced ? undefined : 'sala-shimmer'}
+            style={
+              reduced
+                ? { fontFamily: 'var(--ek-font-display)', fontSize: 'clamp(36px, 7vw, 60px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.05, margin: 0, color: 'rgba(255, 255, 255, 0.97)' }
+                : ({ fontFamily: 'var(--ek-font-display)', fontSize: 'clamp(36px, 7vw, 60px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.05, margin: 0, '--shim-1': 'rgba(255,255,255,0.72)', '--shim-2': '#ffffff' } as CSSProperties)
+            }
           >
             Tu estudio, con su propia app.
           </h1>
