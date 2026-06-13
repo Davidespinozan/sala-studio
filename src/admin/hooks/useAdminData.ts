@@ -497,9 +497,12 @@ export function useDashboardData() {
 }
 
 /**
- * Reservas en un rango de fechas para vista calendario.
+ * Reservas en un rango de fechas para vista calendario. Excluye canceladas
+ * (cancelada / cancelada_admin) y, si se pasa sucursalId, scopea a esa sucursal
+ * (vía la sala de la reserva) — antes mezclaba todas las sedes e incluía
+ * canceladas, inflando la ocupación visible.
  */
-export function useReservasRango(fechaInicio: Date, fechaFin: Date) {
+export function useReservasRango(fechaInicio: Date, fechaFin: Date, sucursalId?: string | null) {
   const tenant = useTenant();
   const [reservas, setReservas] = useState<ReservaConJoin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -511,13 +514,18 @@ export function useReservasRango(fechaInicio: Date, fechaFin: Date) {
 
   const refetch = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from('reservas')
-      .select('*, recurso:recursos(id, slug, nombre), usuario:usuarios!reservas_usuario_id_fkey(id, nombre, email, membresia_tier)')
+      .select('*, recurso:recursos!inner(id, slug, nombre, sucursal_id), usuario:usuarios!reservas_usuario_id_fkey(id, nombre, email, membresia_tier)')
       .eq('tenant_id', tenant.id)
+      .not('status', 'in', '(cancelada,cancelada_admin)')
       .gte('slot_inicio', new Date(inicioMs).toISOString())
       .lt('slot_inicio', new Date(finMs).toISOString())
       .order('slot_inicio', { ascending: true });
+
+    if (sucursalId) query = query.eq('recurso.sucursal_id', sucursalId);
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('[useReservasRango]', error);
@@ -526,7 +534,7 @@ export function useReservasRango(fechaInicio: Date, fechaFin: Date) {
     }
     setReservas((data ?? []) as unknown as ReservaConJoin[]);
     setIsLoading(false);
-  }, [tenant.id, inicioMs, finMs]);
+  }, [tenant.id, inicioMs, finMs, sucursalId]);
 
   useEffect(() => { refetch(); }, [refetch]);
   return { reservas, isLoading, refetch };

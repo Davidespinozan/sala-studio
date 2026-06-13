@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useReservasRango, useRecursosAdmin } from '../hooks/useAdminData';
+import { useSucursal } from '../providers/SucursalProvider';
 import { formatHora } from '@member/logic/reservaLogic';
 import DetalleReservaModal from '../components/DetalleReservaModal';
 import CancelarReservaModal, {
@@ -155,7 +156,8 @@ function VistaCalendario({
   }, [weekStart]);
 
   const { recursos } = useRecursosAdmin();
-  const { reservas, isLoading, refetch } = useReservasRango(weekStart, weekEnd);
+  const { sucursalId } = useSucursal();
+  const { reservas, isLoading, refetch } = useReservasRango(weekStart, weekEnd, sucursalId);
 
   useEffect(() => {
     if (refreshTick > 0) void refetch();
