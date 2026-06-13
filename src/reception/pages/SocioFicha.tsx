@@ -11,7 +11,10 @@ import { AsignarPlanModal } from '../components/acciones/AsignarPlanModal';
 import { CancelarMembresiaModal } from '../components/acciones/CancelarMembresiaModal';
 import { BloquearSocioModal } from '../components/acciones/BloquearSocioModal';
 import { DesbloquearSocioModal } from '../components/acciones/DesbloquearSocioModal';
+import { AgregarNotaModal } from '../components/acciones/AgregarNotaModal';
+import { EditarContactoModal } from '../components/acciones/EditarContactoModal';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData } from '../hooks/useSocioFicha';
+import { useSocioNotas } from '../hooks/useSocioNotas';
 
 type ModalAccion =
   | null
@@ -23,7 +26,9 @@ type ModalAccion =
   | 'asignar_plan'
   | 'cancelar_membresia'
   | 'bloquear'
-  | 'desbloquear';
+  | 'desbloquear'
+  | 'agregar_nota'
+  | 'editar_contacto';
 
 // ── Helpers de formato ──────────────────────────────────────────────────────
 function iniciales(nombre: string | null): string {
@@ -119,9 +124,11 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
   const [modalAbierto, setModalAbierto] = useState<ModalAccion>(null);
 
   const socioNombre = socio.nombre ?? socio.email;
+  const { notas, refetch: refetchNotas } = useSocioNotas(socio.id);
   const cerrar = () => setModalAbierto(null);
   const handleDone = async () => {
     if (onAccionDone) await onAccionDone();
+    await refetchNotas();
   };
   const esCreditos = membresia?.tierTipo === 'creditos' || membresia?.tierTipo === 'hibrido';
   const bloqueado = !!socio.bloqueado_hasta && new Date(socio.bloqueado_hasta) > new Date();
@@ -185,13 +192,14 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
       {/* ALERTA (según estado / bloqueo) */}
       <FichaAlerta data={data} />
 
-      {/* ACCIONES DEL SOCIO (gobernanza: bloqueo) */}
+      {/* ACCIONES DEL SOCIO (gobernanza: bloqueo + contacto) */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
         {bloqueado ? (
           <AccionBtn onClick={() => setModalAbierto('desbloquear')}>Desbloquear socio</AccionBtn>
         ) : (
           <AccionBtn onClick={() => setModalAbierto('bloquear')}>Bloquear socio</AccionBtn>
         )}
+        <AccionBtn onClick={() => setModalAbierto('editar_contacto')}>Editar contacto</AccionBtn>
       </div>
 
       {/* MEMBRESÍA */}
@@ -325,17 +333,36 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
         </div>
       </div>
 
-      {/* NOTAS SOBRE EL SOCIO (read-only) */}
+      {/* NOTAS SOBRE EL SOCIO (con autor + fecha) */}
       <div className="ek-card ek-card--md">
-        <p className="ek-eyebrow" style={{ marginBottom: '9px' }}>NOTAS SOBRE EL SOCIO</p>
-        {socio.notas_admin && socio.notas_admin.trim() ? (
-          <p style={{ fontSize: '13.5px', lineHeight: 1.5, color: 'var(--sala-text-primary)', margin: 0, whiteSpace: 'pre-wrap' }}>
-            {socio.notas_admin}
-          </p>
-        ) : (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '9px' }}>
+          <p className="ek-eyebrow" style={{ margin: 0 }}>NOTAS SOBRE EL SOCIO</p>
+          <AccionBtn onClick={() => setModalAbierto('agregar_nota')}>+ Agregar nota</AccionBtn>
+        </div>
+
+        {/* Nota general legacy (usuarios.notas_admin), si hay */}
+        {socio.notas_admin && socio.notas_admin.trim() && (
+          <div style={{ borderLeft: '2px solid var(--sala-border)', paddingLeft: '10px', marginBottom: '10px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--sala-text-tertiary)', margin: '0 0 3px' }}>Nota general</p>
+            <p style={{ fontSize: '13.5px', lineHeight: 1.5, color: 'var(--sala-text-primary)', margin: 0, whiteSpace: 'pre-wrap' }}>{socio.notas_admin}</p>
+          </div>
+        )}
+
+        {notas.length === 0 && !(socio.notas_admin && socio.notas_admin.trim()) ? (
           <p style={{ textAlign: 'center', color: 'var(--sala-text-tertiary)', fontSize: '13px', padding: '6px 0', margin: 0 }}>
             Sin notas todavía.
           </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {notas.map((n) => (
+              <div key={n.id} style={{ borderTop: '1px solid var(--sala-border)', paddingTop: '8px' }}>
+                <p style={{ fontSize: '13.5px', lineHeight: 1.5, color: 'var(--sala-text-primary)', margin: '0 0 3px', whiteSpace: 'pre-wrap' }}>{n.texto}</p>
+                <p style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', margin: 0 }}>
+                  {n.autor_nombre ?? 'Recepción'} · {new Date(n.creado_en).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false })}
+                </p>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
@@ -409,6 +436,26 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           isOpen
           socioId={socio.id}
           socioNombre={socioNombre}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
+      {modalAbierto === 'agregar_nota' && (
+        <AgregarNotaModal
+          isOpen
+          socioId={socio.id}
+          socioNombre={socioNombre}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
+      {modalAbierto === 'editar_contacto' && (
+        <EditarContactoModal
+          isOpen
+          socioId={socio.id}
+          socioNombre={socioNombre}
+          telefonoActual={socio.telefono}
+          emailActual={socio.email}
           onClose={cerrar}
           onDone={handleDone}
         />
