@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
+import { ArrowDown, ArrowUp, Minus, Info } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -22,7 +22,16 @@ import {
   type CohorteRetencion,
   type MiembroRiesgo
 } from '../hooks/useReportesAvanzados';
+import { useReportesEconomia, type ReportesEconomiaData } from '../hooks/useReportesEconomia';
 import { useTenant } from '@shared/hooks/useTenant';
+
+const SIMBOLO_MONEDA: Record<string, string> = { mxn: '$', usd: 'US$', eur: '€' };
+
+/** Formatea centavos del tenant a string legible (ej. "$12,400"). */
+function fmtDinero(centavos: number, moneda: string): string {
+  const sym = SIMBOLO_MONEDA[moneda] ?? '$';
+  return `${sym}${Math.round(centavos / 100).toLocaleString('es-MX')}`;
+}
 
 const SALA_DEFAULT_PRIMARY = '#3D6B52';
 // Sin acento propio (regla: solo primario/acento), el default del acento es el
@@ -66,6 +75,7 @@ export default function Reportes() {
   const [periodo, setPeriodo] = useState<PeriodoReporte>('mes');
   const { data, isLoading } = useReportes(periodo);
   const { data: avanzado, isLoading: avLoading } = useReportesAvanzados(periodo);
+  const { data: economia } = useReportesEconomia();
 
   return (
     <div className="adm-page">
@@ -113,6 +123,7 @@ export default function Reportes() {
         <p className="adm-body">Cargando métricas…</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          {economia && <BloqueEconomia eco={economia} />}
           <BloqueOcupacion data={data} />
           <BloqueMiembros data={data} />
           <BloqueReservas data={data} />
@@ -150,6 +161,63 @@ export default function Reportes() {
 // Bloques básicos (con comparación de período)
 // ============================================================================
 
+function BloqueEconomia({ eco }: { eco: ReportesEconomiaData }) {
+  const { salvia } = useChartColors();
+  const m = eco.moneda;
+  const datosPlan = eco.ingresoPorPlan.map((p) => ({ plan: p.plan, mrr: Math.round(p.mrrCentavos / 100) }));
+  return (
+    <Bloque titulo={`Economía · hoy (${m.toUpperCase()})`}>
+      <KpiRow>
+        <KpiCard
+          label="MRR · ingreso recurrente"
+          valor={fmtDinero(eco.mrrCentavos, m)}
+          nota="membresías activas × precio mensual"
+          ayuda="Ingreso recurrente mensual: lo que tus membresías activas facturan cada mes. Es el pulso financiero del gym. Es ingreso contratado (según el precio de cada plan), no cobro real."
+        />
+        <KpiCard
+          label="ARR · anualizado"
+          valor={fmtDinero(eco.arrCentavos, m)}
+          nota="MRR × 12"
+          ayuda="El MRR proyectado a un año (MRR × 12). Muestra la escala anual del negocio si todo sigue igual."
+        />
+        <KpiCard
+          label="ARPU · por miembro"
+          valor={fmtDinero(eco.arpuCentavos, m)}
+          nota={`${eco.activosConPlan} miembros con plan`}
+          ayuda="Ingreso promedio por socio al mes (MRR ÷ socios con plan). Si sube, tus socios están en planes más altos o subiste precios."
+        />
+        <KpiCard
+          label="LTV estimado"
+          valor={eco.ltvCentavos == null ? '—' : fmtDinero(eco.ltvCentavos, m)}
+          nota={eco.churnMensualPct == null ? 'sin bajas en 90 días' : `ARPU × vida · churn ${eco.churnMensualPct}%/mes`}
+          ayuda="Valor de vida del cliente: cuánto te deja un socio en total mientras dura (ARPU × vida media). Es el techo de lo que conviene gastar para captar un socio nuevo. Estimado a partir del churn."
+        />
+        <KpiCard
+          label="Vida media del socio"
+          valor={eco.lifespanMeses == null ? '—' : `${eco.lifespanMeses}${eco.lifespanTope ? '+' : ''} m`}
+          nota="meses que dura un socio (estimado)"
+          ayuda="Meses que dura un socio en promedio antes de darse de baja. Cuanto más alta, mejor tu retención. Se estima como 1 ÷ churn mensual."
+        />
+      </KpiRow>
+      <ChartCard titulo="Ingreso recurrente por plan">
+        {datosPlan.length === 0 ? (
+          <EmptyChart mensaje="Sin membresías activas con precio todavía." />
+        ) : (
+          <ResponsiveContainer width="100%" height={Math.max(160, datosPlan.length * 46)}>
+            <BarChart layout="vertical" data={datosPlan} margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--sala-border)" />
+              <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => fmtDinero(Number(v) * 100, m)} />
+              <YAxis type="category" dataKey="plan" width={96} tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(v) => fmtDinero(Number(v) * 100, m)} />
+              <Bar dataKey="mrr" name="MRR" radius={[0, 6, 6, 0]} fill={salvia} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </ChartCard>
+    </Bloque>
+  );
+}
+
 function BloqueOcupacion({ data }: { data: ReportesData }) {
   const { salvia } = useChartColors();
   const o = data.ocupacion;
@@ -160,6 +228,7 @@ function BloqueOcupacion({ data }: { data: ReportesData }) {
         <KpiCard
           label="Ocupación promedio"
           valor={`${o.promedioPct}%`}
+          ayuda="Qué tan llenas están tus clases en promedio: lugares reservados ÷ cupo. Baja ocupación = horarios o salas de más; alta sostenida = oportunidad de abrir más cupo."
           comparar={
             comp ? { actual: o.promedioPct, anterior: comp.promedioPct, modo: 'puntos' } : undefined
           }
@@ -172,6 +241,7 @@ function BloqueOcupacion({ data }: { data: ReportesData }) {
         <KpiCard
           label="Asistencia"
           valor={o.asistenciaPct == null ? '—' : `${o.asistenciaPct}%`}
+          ayuda="De las reservas, qué porcentaje terminó asistiendo (vs. no presentarse). Mide qué tan en serio se toman los socios sus reservas."
           comparar={
             o.asistenciaPct != null && comp?.asistenciaPct != null
               ? { actual: o.asistenciaPct, anterior: comp.asistenciaPct, modo: 'puntos' }
@@ -182,6 +252,7 @@ function BloqueOcupacion({ data }: { data: ReportesData }) {
           label="No-shows"
           valor={o.noShows}
           alerta={o.noShows > 5}
+          ayuda="Reservas que no se presentaron ni cancelaron a tiempo. Te queman un cupo que otro socio podría haber usado: el enemigo silencioso de la ocupación."
           comparar={
             comp ? { actual: o.noShows, anterior: comp.noShows, inversa: true } : undefined
           }
@@ -343,6 +414,7 @@ function BloqueRetencion({ av }: { av: ReportesAvanzadosData }) {
           label="Tasa de churn"
           valor={churn.tasaChurnPct == null ? '—' : `${churn.tasaChurnPct}%`}
           alerta={churn.tasaChurnPct != null && churn.tasaChurnPct > 10}
+          ayuda="Porcentaje de socios activos que se dieron de baja en el período (bajas ÷ activos al inicio). Es lo opuesto a retención: cuanto más bajo, mejor. Arriba de ~10% mensual, prendé las alarmas."
           comparar={
             churn.tasaChurnPct != null && churn.tasaChurnPctAnterior != null
               ? {
@@ -357,6 +429,7 @@ function BloqueRetencion({ av }: { av: ReportesAvanzadosData }) {
         <KpiCard
           label="Retención 3 meses"
           valor={retencion3m.pct == null ? '—' : `${retencion3m.pct}%`}
+          ayuda="De los socios que se dieron de alta hace 3 meses, qué porcentaje sigue activo hoy. Mide si tu producto engancha más allá del impulso inicial."
           nota={
             retencion3m.tamanoCohorte > 0
               ? `cohorte ${retencion3m.label} · ${retencion3m.tamanoCohorte} miembros`
@@ -592,36 +665,43 @@ function KpiCard({
   valor,
   alerta,
   nota,
-  comparar
+  comparar,
+  ayuda
 }: {
   label: string;
   valor: string | number;
   alerta?: boolean;
   nota?: string;
   comparar?: CompararKpi;
+  /** Si se pasa, muestra un ícono ⓘ que abre un popover explicando qué mide. */
+  ayuda?: string;
 }) {
   const { coral } = useChartColors();
   return (
     <div
       style={{
+        position: 'relative',
         background: 'var(--sala-surface)',
         border: `1px solid ${alerta ? 'var(--sala-error-glow)' : 'var(--sala-border)'}`,
         borderRadius: '14px',
         padding: '16px 18px'
       }}
     >
-      <p
-        style={{
-          fontSize: '11px',
-          fontWeight: 700,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          color: 'var(--sala-text-tertiary)',
-          margin: '0 0 8px'
-        }}
-      >
-        {label}
-      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 8px' }}>
+        <p
+          style={{
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            color: 'var(--sala-text-tertiary)',
+            margin: 0
+          }}
+        >
+          {label}
+        </p>
+        {ayuda && <InfoTooltip titulo={label} texto={ayuda} />}
+      </div>
       <p
         style={{
           fontFamily: 'var(--ek-font-display)',
@@ -700,6 +780,69 @@ function DeltaIgual() {
       <Minus size={12} strokeWidth={2.5} />
       sin cambios vs. anterior
     </p>
+  );
+}
+
+/** Ícono ⓘ que abre un popover explicando qué mide el KPI. Click-toggle, con
+ *  backdrop invisible para cerrar al tocar fuera (funciona en táctil). */
+function InfoTooltip({ titulo, texto }: { titulo: string; texto: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', lineHeight: 0 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label={`Qué mide ${titulo}`}
+        aria-expanded={open}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '18px',
+          height: '18px',
+          padding: 0,
+          border: 'none',
+          background: 'transparent',
+          color: 'var(--sala-text-tertiary)',
+          cursor: 'pointer'
+        }}
+      >
+        <Info size={13} strokeWidth={2.25} />
+      </button>
+      {open && (
+        <>
+          <div
+            onClick={() => setOpen(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+            aria-hidden="true"
+          />
+          <div
+            role="tooltip"
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 6px)',
+              left: 0,
+              zIndex: 41,
+              width: 'min(240px, 70vw)',
+              padding: '10px 12px',
+              background: 'var(--sala-surface)',
+              border: '1px solid var(--sala-border)',
+              borderRadius: '10px',
+              boxShadow: 'var(--ek-shadow-modal, 0 12px 32px rgba(10,15,12,0.18))',
+              fontSize: '12px',
+              lineHeight: 1.5,
+              fontWeight: 400,
+              letterSpacing: 0,
+              textTransform: 'none',
+              color: 'var(--sala-text-secondary)',
+              whiteSpace: 'normal'
+            }}
+          >
+            {texto}
+          </div>
+        </>
+      )}
+    </span>
   );
 }
 
