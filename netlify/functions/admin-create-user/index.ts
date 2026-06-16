@@ -78,13 +78,25 @@ export const handler: Handler = async (event) => {
     const supabaseAdmin = createClient(supabaseUrl, serviceKey, {      auth: { persistSession: false }
     });
 
+    // Slug REAL del tenant del admin (el trigger lo usa para el INSERT inicial).
+    const { data: tenantRow } = await supabaseAdmin
+      .from('tenants')
+      .select('slug')
+      .eq('id', tenantId)
+      .single();
+    const adminSlug = tenantRow?.slug ?? null;
+
     // 1. Crear cuenta en Auth con email confirmado (no manda email)
     const { data: newAuthUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email: body.email.trim().toLowerCase(),
       password: body.password,
       email_confirm: true,
       user_metadata: {
-        tenant_slug: 'sala-demo', // el trigger lo usa, pero el INSERT manual de abajo lo sobrescribe
+        // El trigger on_auth_user_created usa este slug para el INSERT inicial en
+        // `usuarios`; abajo igual se hace UPDATE al tenant real. Pasamos el slug
+        // REAL del admin (no un hardcode) para que la fila nazca en el tenant
+        // correcto. Si por algo viene null, el trigger cae a su fallback.
+        tenant_slug: adminSlug,
         nombre: body.nombre.trim(),
         telefono: body.telefono?.trim() || null
       }

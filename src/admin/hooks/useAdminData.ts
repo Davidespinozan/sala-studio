@@ -381,6 +381,9 @@ export function useDashboardData() {
     const finMesAnterior = inicioMes;
     const hace30dias = new Date(inicioHoy.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+    // try/finally: si una query rechaza (ej. caída de red), igual liberamos el
+    // loading en vez de dejar el dashboard colgado para siempre.
+    try {
     const [
       reservasHoy,
       reservasMesActual,
@@ -488,7 +491,11 @@ export function useDashboardData() {
       totalReservasMesAnteriorParaNoShows: reservasMesAnteriorTotales.count ?? 0,
       reservasUltimos30Dias
     });
-    setIsLoading(false);
+    } catch (err) {
+      console.error('[useAdminData] dashboard refetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   }, [tenant.id]);
 
   useEffect(() => {
