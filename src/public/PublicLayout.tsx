@@ -4,6 +4,7 @@ import { useAuth } from '@shared/hooks/useAuth';
 import { useRoleRedirect } from '@shared/hooks/useRoleRedirect';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { DemoBanner } from '@shared/components/DemoBanner';
+import { ModoDemoBanner } from '@shared/components/ModoDemoBanner';
 import { TenantLogo } from '@shared/components/TenantLogo';
 
 const Landing = lazy(() => import('./pages/Landing'));
@@ -18,6 +19,7 @@ export default function PublicLayout() {
 
   return (
     <div className="ek-page">
+      <ModoDemoBanner />
       <DemoBanner vista="Landing" />
       <header
         style={{

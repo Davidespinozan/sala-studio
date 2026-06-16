@@ -1,18 +1,26 @@
 import { useAuth } from '@shared/hooks/useAuth';
-import { esSesionDemo } from '@shared/lib/demoAuth';
+import { useTenant, MARKETING_DOMAIN } from '@shared/providers/TenantProvider';
+import { esSesionDemo, esTenantDemo } from '@shared/lib/demoAuth';
 
 /**
- * Barra superior visible solo cuando la sesión es la cuenta demo. Recuerda que
- * es un gimnasio de ejemplo y empuja a convertir ("Creá tu gym").
+ * Barra superior del "modo demo". Aparece en dos casos:
+ *  - Vistas de app del demo (admin/miembro/recepción): la sesión es anónima
+ *    (esSesionDemo) → "Salir" cierra sesión y vuelve al apex.
+ *  - Landing pública del tenant demo (healthyspace): no hay sesión, pero es el
+ *    gimnasio de ejemplo → "Salir/Creá tu gym" apuntan al apex de SALA.
  */
 export function ModoDemoBanner() {
   const { authUser, signOut } = useAuth();
-  if (!esSesionDemo(authUser)) return null;
+  const tenant = useTenant();
+  const enSesion = esSesionDemo(authUser);
+  const enLanding = !enSesion && esTenantDemo(tenant.slug);
+  if (!enSesion && !enLanding) return null;
 
   const salir = async () => {
-    await signOut();
-    window.location.href = '/';
+    if (enSesion) await signOut();
+    window.location.href = enSesion ? '/' : `https://${MARKETING_DOMAIN}`;
   };
+  const crearHref = enSesion ? '/registro' : `https://${MARKETING_DOMAIN}/registro`;
 
   return (
     <div className="modo-demo-banner">
@@ -22,7 +30,7 @@ export function ModoDemoBanner() {
       </span>
       <span className="modo-demo-banner__actions">
         <a
-          href="/registro"
+          href={crearHref}
           style={{
             display: 'inline-flex',
             alignItems: 'center',

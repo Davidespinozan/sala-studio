@@ -29,9 +29,17 @@ const RUTA_POR_ROL: Record<DemoRol, string> = {
   recepcionista: '/recepcion'
 };
 
+/** Slug del tenant que sirve de demo público (su landing también es "modo demo"). */
+export const DEMO_TENANT_SLUG = 'healthyspace';
+
 /** ¿Está habilitado el demo? Gate del botón "Probar demo". */
 export function demoDisponible(): boolean {
   return (import.meta.env.VITE_DEMO_ENABLED as string | undefined) === 'true';
+}
+
+/** ¿El tenant cargado es el del demo? (para mostrar el banner en su landing pública). */
+export function esTenantDemo(slug: string | null | undefined): boolean {
+  return demoDisponible() && slug === DEMO_TENANT_SLUG;
 }
 
 /** ¿La sesión actual es un visitante del demo (usuario anónimo)? */

@@ -1,6 +1,8 @@
 import { ArrowRight } from 'lucide-react';
 import { useAdminPreview } from '@shared/hooks/useAdminPreview';
 import { exitAdminPreview } from '@shared/lib/adminPreview';
+import { useAuth } from '@shared/hooks/useAuth';
+import { esSesionDemo } from '@shared/lib/demoAuth';
 
 export type DemoVista = 'Landing' | 'Miembro' | 'Recepción';
 
@@ -18,7 +20,11 @@ interface DemoBannerProps {
  */
 export function DemoBanner({ vista }: DemoBannerProps) {
   const isDemoMode = useAdminPreview();
+  const { authUser } = useAuth();
 
+  // En una sesión del demo público (usuario anónimo) ya está el banner "Modo
+  // demo"; este "Ver como…" del admin sobra y confunde → no se muestra.
+  if (esSesionDemo(authUser)) return null;
   if (!isDemoMode) return null;
 
   const handleVolver = () => {

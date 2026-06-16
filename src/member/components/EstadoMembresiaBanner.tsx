@@ -22,23 +22,16 @@ export default function EstadoMembresiaBanner() {
   const estado = membresiaEstado(membresia);
   if (estado === 'sana') return null;
 
-  const { variant, eyebrow, mensaje, waMensaje } = bannerContenido(estado);
+  const { eyebrow, mensaje, waMensaje } = bannerContenido(estado);
 
-  // Paleta según gravedad (mismo lenguaje visual que "Restricción activa"
-  // en Dashboard.tsx). Vencida y sin membresía van con error (rojo);
-  // congelada y sin créditos con warning (mostaza).
-  const colors =
-    variant === 'error'
-      ? {
-          bg: 'var(--sala-error-bg)',
-          border: 'var(--sala-error-glow)',
-          eye: 'var(--sala-error)'
-        }
-      : {
-          bg: 'var(--sala-warning-bg)',
-          border: 'var(--sala-warning-glow)',
-          eye: 'var(--sala-warning)'
-        };
+  // Regla de marca: la UI usa solo primario + acento (+ neutros) — nada de
+  // rojo/mostaza. El banner de estado va con el ACENTO del tenant, sin importar
+  // la gravedad. Los derivados se calculan con color-mix sobre --sala-accent.
+  const colors = {
+    bg: 'color-mix(in srgb, var(--sala-accent) 12%, var(--sala-surface))',
+    border: 'color-mix(in srgb, var(--sala-accent) 32%, transparent)',
+    eye: 'var(--sala-accent)'
+  };
 
   return (
     <div
