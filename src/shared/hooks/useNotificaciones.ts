@@ -58,13 +58,17 @@ export function useNotificaciones() {
   // instante (sin esperar el poll). Si no lo está, no pasa nada — el polling
   // sigue cubriendo. Suscribe solo a las del usuario actual (la RLS además
   // garantiza que solo reciba las suyas).
+  const usuarioId = usuario?.id;
   useEffect(() => {
-    if (!usuario) return;
-    const channel = supabase
-      .channel(`notificaciones-${usuario.id}`)
+    if (!usuarioId) return;
+    // Nombre de canal ÚNICO por suscripción: si reusáramos el mismo nombre,
+    // supabase puede devolver un canal ya suscrito y `.on()` tira "cannot add
+    // callbacks after subscribe()". El cleanup remueve este canal puntual.
+    const channel = supabase.channel(`notificaciones:${usuarioId}:${Date.now()}`);
+    channel
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `usuario_id=eq.${usuario.id}` },
+        { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `usuario_id=eq.${usuarioId}` },
         (payload) => {
           const n = payload.new as unknown as Notificacion;
           setItems((prev) => (prev.some((x) => x.id === n.id) ? prev : [n, ...prev].slice(0, LIMITE)));
@@ -72,7 +76,7 @@ export function useNotificaciones() {
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'notificaciones', filter: `usuario_id=eq.${usuario.id}` },
+        { event: 'UPDATE', schema: 'public', table: 'notificaciones', filter: `usuario_id=eq.${usuarioId}` },
         (payload) => {
           const n = payload.new as unknown as Notificacion;
           setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, ...n } : x)));
@@ -82,7 +86,7 @@ export function useNotificaciones() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [usuario]);
+  }, [usuarioId]);
 
   const noLeidas = items.filter((n) => !n.leida).length;
 
