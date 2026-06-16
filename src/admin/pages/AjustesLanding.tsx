@@ -5,6 +5,11 @@ import { useTenant } from '@shared/hooks/useTenant';
 import Toggle from '../components/Toggle';
 import ImageUploader from '../components/ImageUploader';
 import LandingPreview from '../components/LandingPreview';
+import {
+  SECCIONES_DEFAULT,
+  type LandingSecciones,
+  type LandingSeccionHeading
+} from '@shared/hooks/useLandingConfig';
 
 type HeroLayout = 'contenido' | 'completo';
 
@@ -113,12 +118,37 @@ type FaqDraftItem = { pregunta: string; respuesta: string };
 
 type LandingDraft = {
   hero: HeroDraft;
+  secciones: LandingSecciones;
   post_hero: PostHeroDraft;
   cta_final: CtaFinalDraft;
   footer: FooterDraft;
   faq: FaqDraftItem[];
   mostrar_instructores: boolean;
 };
+
+/** Heading nunca guardado → default; guardado (aunque con campos vacíos) → se
+ *  respeta (vacío = ocultar ese campo en la landing). */
+function readSecciones(landing: Record<string, unknown>): LandingSecciones {
+  const o = (landing.secciones && typeof landing.secciones === 'object'
+    ? landing.secciones
+    : {}) as Record<string, unknown>;
+  const one = (v: unknown, def: LandingSeccionHeading): LandingSeccionHeading => {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return def;
+    const r = v as Record<string, unknown>;
+    return {
+      eyebrow: String(r.eyebrow ?? ''),
+      titulo: String(r.titulo ?? ''),
+      titulo_accent: String(r.titulo_accent ?? ''),
+      subtitulo: String(r.subtitulo ?? '')
+    };
+  };
+  return {
+    salas: one(o.salas, SECCIONES_DEFAULT.salas),
+    membresias: one(o.membresias, SECCIONES_DEFAULT.membresias),
+    instructores: one(o.instructores, SECCIONES_DEFAULT.instructores),
+    faq: one(o.faq, SECCIONES_DEFAULT.faq)
+  };
+}
 
 // FAQ genérico de arranque (sin reglas falsas). El admin lo edita a su realidad.
 const FAQ_STARTER: FaqDraftItem[] = [
@@ -129,6 +159,7 @@ const FAQ_STARTER: FaqDraftItem[] = [
 
 const EMPTY: LandingDraft = {
   hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta_link: '', image_url: '', image_url_mobile: '', imagenes: [], layout: 'contenido' },
+  secciones: SECCIONES_DEFAULT,
   post_hero: POST_HERO_DEFAULT,
   cta_final: { eyebrow: '', titulo: '', subtitulo: '', cta_texto: '' },
   footer: { tagline: '', copyright: '', direccion: '', email: '' },
@@ -191,6 +222,7 @@ function readLanding(config: Record<string, unknown> | null): LandingDraft {
       email: footer.email == null ? '' : String(footer.email)
     },
     post_hero,
+    secciones: readSecciones(landing),
     faq: readFaq(landing.faq),
     mostrar_instructores: landing.mostrar_instructores === true
   };
@@ -279,6 +311,85 @@ function FormField({
   );
 }
 
+/** 4 inputs (eyebrow + título + acento + bajada) para el encabezado de una
+ *  sección de la landing. Cada campo vacío se oculta en la página pública. */
+function SeccionHeadingFields({
+  value,
+  onChange
+}: {
+  value: LandingSeccionHeading;
+  onChange: (v: LandingSeccionHeading) => void;
+}) {
+  return (
+    <>
+      <FormField label="Etiqueta superior" helper="Texto chico arriba del título. Vacío = no se muestra.">
+        <input
+          className="ek-input"
+          value={value.eyebrow}
+          onChange={(e) => onChange({ ...value, eyebrow: e.target.value })}
+        />
+      </FormField>
+      <FormField label="Título">
+        <input
+          className="ek-input"
+          value={value.titulo}
+          onChange={(e) => onChange({ ...value, titulo: e.target.value })}
+        />
+      </FormField>
+      <FormField
+        label="Frase destacada (acento)"
+        helper="Va en una segunda línea, en el color de acento. Vacío = sin highlight."
+      >
+        <input
+          className="ek-input"
+          value={value.titulo_accent}
+          onChange={(e) => onChange({ ...value, titulo_accent: e.target.value })}
+        />
+      </FormField>
+      <FormField label="Bajada" helper="Texto corto debajo del título. Vacío = no se muestra.">
+        <textarea
+          className="ek-input"
+          rows={2}
+          value={value.subtitulo}
+          onChange={(e) => onChange({ ...value, subtitulo: e.target.value })}
+        />
+      </FormField>
+    </>
+  );
+}
+
+/** Sub-bloque con etiqueta dentro de una Section (separa varios headings). */
+function SubBloque({
+  label,
+  hint,
+  children
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ marginBottom: '22px' }}>
+      <p
+        style={{
+          fontSize: '12px',
+          fontWeight: 700,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          color: 'var(--sala-primary)',
+          margin: '0 0 4px'
+        }}
+      >
+        {label}
+      </p>
+      {hint && (
+        <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', margin: '0 0 12px' }}>{hint}</p>
+      )}
+      {children}
+    </div>
+  );
+}
+
 function Section({
   title,
   description,
@@ -334,6 +445,7 @@ export default function AjustesLanding() {
         image_url: '',
         image_url_mobile: ''
       },
+      secciones: { ...draft.secciones },
       post_hero: { ...draft.post_hero },
       cta_final: { ...draft.cta_final },
       footer: {
@@ -376,6 +488,9 @@ export default function AjustesLanding() {
       arr.splice(i + dir, 0, m);
       return { ...d, hero: { ...d.hero, imagenes: arr } };
     });
+  }
+  function setSeccion(key: keyof LandingSecciones, v: LandingSeccionHeading) {
+    setDraft((d) => ({ ...d, secciones: { ...d.secciones, [key]: v } }));
   }
 
   if (isLoading) {
@@ -663,6 +778,27 @@ export default function AjustesLanding() {
       </Section>
 
       <Section
+        title="TÍTULOS DE LAS SECCIONES"
+        description="Los encabezados de cada bloque de tu landing. El contenido (salas, planes, instructores) se edita en sus propias páginas; acá personalizás solo los títulos."
+      >
+        <SubBloque label="Salas">
+          <SeccionHeadingFields value={draft.secciones.salas} onChange={(v) => setSeccion('salas', v)} />
+        </SubBloque>
+        <SubBloque label="Membresías">
+          <SeccionHeadingFields
+            value={draft.secciones.membresias}
+            onChange={(v) => setSeccion('membresias', v)}
+          />
+        </SubBloque>
+        <SubBloque label="Instructores" hint="Se muestra solo si activás la sección de instructores abajo.">
+          <SeccionHeadingFields
+            value={draft.secciones.instructores}
+            onChange={(v) => setSeccion('instructores', v)}
+          />
+        </SubBloque>
+      </Section>
+
+      <Section
         title="SECCIONES"
         description="Encendé o apagá bloques opcionales de tu landing pública."
       >
@@ -770,6 +906,21 @@ export default function AjustesLanding() {
       </Section>
 
       <Section title="PREGUNTAS FRECUENTES" description="Las preguntas que ven tus visitantes. Editalas a tu realidad. Sin preguntas = la sección no se muestra.">
+        <SubBloque label="Encabezado de la sección">
+          <SeccionHeadingFields value={draft.secciones.faq} onChange={(v) => setSeccion('faq', v)} />
+        </SubBloque>
+        <p
+          style={{
+            fontSize: '12px',
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            color: 'var(--sala-primary)',
+            margin: '0 0 12px'
+          }}
+        >
+          Preguntas
+        </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {draft.faq.map((item, i) => (
             <div key={i} style={{ border: '1px solid var(--sala-border)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>

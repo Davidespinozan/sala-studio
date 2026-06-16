@@ -171,6 +171,74 @@ function parseFaq(value: unknown): LandingFaqItem[] {
     .filter((f) => f.pregunta.trim() || f.respuesta.trim());
 }
 
+// ── Encabezados editables de cada sección de la landing (eyebrow + título +
+//    acento + bajada). Antes estaban hardcodeados en Landing.tsx. ──
+export type LandingSeccionHeading = {
+  eyebrow: string;
+  titulo: string;
+  titulo_accent: string;
+  subtitulo: string;
+};
+
+export type LandingSecciones = {
+  salas: LandingSeccionHeading;
+  membresias: LandingSeccionHeading;
+  instructores: LandingSeccionHeading;
+  faq: LandingSeccionHeading;
+};
+
+/** Defaults = copy original (verbatim) para no cambiar nada hasta que el gym
+ *  edite. Exportados para que el editor arranque con estos valores. */
+export const SECCIONES_DEFAULT: LandingSecciones = {
+  salas: {
+    eyebrow: 'NUESTRAS SALAS',
+    titulo: 'Varias disciplinas.',
+    titulo_accent: 'Un solo lugar.',
+    subtitulo: 'Cada sala diseñada para una disciplina distinta. Elegí la que va con vos.'
+  },
+  membresias: {
+    eyebrow: 'MEMBRESÍAS',
+    titulo: 'Elige tu nivel.',
+    titulo_accent: 'Crece desde el día uno.',
+    subtitulo: ''
+  },
+  instructores: {
+    eyebrow: 'NUESTRO EQUIPO',
+    titulo: 'Conocé a nuestros',
+    titulo_accent: 'instructores.',
+    subtitulo: 'El equipo que te va a acompañar en cada clase.'
+  },
+  faq: {
+    eyebrow: 'PREGUNTAS FRECUENTES',
+    titulo: 'Lo que probablemente querés saber.',
+    titulo_accent: '',
+    subtitulo: ''
+  }
+};
+
+/** Un heading nunca guardado → default. Guardado (aunque con campos vacíos) →
+ *  se respeta (vacío = ocultar ese campo). */
+function parseSeccionHeading(value: unknown, def: LandingSeccionHeading): LandingSeccionHeading {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return def;
+  const o = value as Record<string, unknown>;
+  return {
+    eyebrow: String(o.eyebrow ?? ''),
+    titulo: String(o.titulo ?? ''),
+    titulo_accent: String(o.titulo_accent ?? ''),
+    subtitulo: String(o.subtitulo ?? '')
+  };
+}
+
+function parseSecciones(value: unknown): LandingSecciones {
+  const o = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+  return {
+    salas: parseSeccionHeading(o.salas, SECCIONES_DEFAULT.salas),
+    membresias: parseSeccionHeading(o.membresias, SECCIONES_DEFAULT.membresias),
+    instructores: parseSeccionHeading(o.instructores, SECCIONES_DEFAULT.instructores),
+    faq: parseSeccionHeading(o.faq, SECCIONES_DEFAULT.faq)
+  };
+}
+
 /** Slides del carrusel del hero. Compat: si vienen strings viejos (solo URL),
  *  se interpretan como {desktop, mobile:''}. Filtra los sin desktop. */
 function parseHeroSlides(value: unknown): LandingHeroSlide[] {
@@ -196,6 +264,7 @@ export function useLandingConfig() {
 
   const hero = parseObject(landing.hero, HERO_DEFAULT);
   hero.imagenes = parseHeroSlides(hero.imagenes);
+  const secciones = parseSecciones(landing.secciones);
   const post_hero = parsePostHero(landing.post_hero);
   const cta_final = parseObject(landing.cta_final, CTA_FINAL_DEFAULT);
   const faq = parseFaq(landing.faq);
@@ -225,6 +294,7 @@ export function useLandingConfig() {
 
   return {
     hero,
+    secciones,
     post_hero,
     cta_final,
     footer,

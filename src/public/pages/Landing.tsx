@@ -2,7 +2,12 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { ArrowRight, Check, Dumbbell, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
-import { useLandingConfig, type LandingPostHero, type LandingHero } from '@shared/hooks/useLandingConfig';
+import {
+  useLandingConfig,
+  type LandingPostHero,
+  type LandingHero,
+  type LandingSeccionHeading
+} from '@shared/hooks/useLandingConfig';
 import { useTenant } from '@shared/hooks/useTenant';
 import EstudioModal, { type EstudioInfo } from '../components/EstudioModal';
 import Footer from '../components/Footer';
@@ -442,6 +447,62 @@ export function HeroView({ hero, preview = false }: { hero: LandingHero; preview
   );
 }
 
+/**
+ * Encabezado editable de una sección (eyebrow + título con acento + bajada).
+ * Reemplaza los títulos que antes estaban hardcodeados en cada bloque. Cada
+ * campo vacío se oculta; si todo está vacío, no renderiza nada.
+ */
+export function SeccionHeading({
+  heading,
+  center = true
+}: {
+  heading: LandingSeccionHeading;
+  center?: boolean;
+}) {
+  const { eyebrow, titulo, titulo_accent, subtitulo } = heading;
+  if (!eyebrow && !titulo && !titulo_accent && !subtitulo) return null;
+  const ta = center ? 'center' : 'left';
+  return (
+    <>
+      {eyebrow && (
+        <p className="ek-eyebrow" style={{ marginBottom: '12px', textAlign: ta }}>
+          {eyebrow}
+        </p>
+      )}
+      {(titulo || titulo_accent) && (
+        <h2
+          style={{
+            fontFamily: 'var(--ek-font-display)',
+            fontSize: 'clamp(36px, 6vw, 56px)',
+            fontWeight: 700,
+            letterSpacing: '-0.04em',
+            lineHeight: 1.05,
+            margin: 0,
+            marginBottom: subtitulo ? '16px' : '48px',
+            textAlign: ta
+          }}
+        >
+          {titulo}
+          {titulo_accent && (
+            <>
+              {titulo && <br />}
+              <span style={{ color: 'var(--ek-mustard)' }}>{titulo_accent}</span>
+            </>
+          )}
+        </h2>
+      )}
+      {subtitulo && (
+        <p
+          className="ek-body-muted"
+          style={{ margin: center ? '0 auto 40px' : '0 0 40px', maxWidth: '600px', textAlign: ta }}
+        >
+          {subtitulo}
+        </p>
+      )}
+    </>
+  );
+}
+
 export function SeccionPostHero({ data }: { data: LandingPostHero }) {
   if (data.variante === 'ninguna') return null;
   const items = data.items.filter((it) => it.titulo.trim() || it.texto.trim());
@@ -563,7 +624,7 @@ export default function Landing() {
   const { estudios, isLoading: estudiosLoading } = useEstudiosPublicos();
   const { tiers, isLoading: tiersLoading } = useTiersPublicos();
   const { instructores } = useInstructoresPublicos();
-  const { hero, post_hero, cta_final, faq, whatsappUrl, mostrarInstructores } = useLandingConfig();
+  const { hero, secciones, post_hero, cta_final, faq, whatsappUrl, mostrarInstructores } = useLandingConfig();
   const ctaWhatsappUrl = whatsappUrl();
 
   // Nada hardcodeado: el rango de precios sale de los tiers reales (más caro /
@@ -649,23 +710,7 @@ export default function Landing() {
           ESTUDIOS
           ============================================================ */}
       <section className="reveal" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
-        <p className="ek-eyebrow" style={{ marginBottom: '12px', textAlign: 'center' }}>NUESTRAS SALAS</p>
-        <h2 style={{
-          fontFamily: 'var(--ek-font-display)',
-          fontSize: 'clamp(36px, 6vw, 56px)',
-          fontWeight: 700,
-          letterSpacing: '-0.04em',
-          lineHeight: 1.05,
-          margin: 0,
-          marginBottom: '16px',
-          textAlign: 'center'
-        }}>
-          Varias disciplinas.<br />
-          <span style={{ color: 'var(--ek-mustard)' }}>Un solo lugar.</span>
-        </h2>
-        <p className="ek-body-muted" style={{ margin: '0 auto 40px', maxWidth: '600px', textAlign: 'center' }}>
-          Cada sala diseñada para una disciplina distinta. Elegí la que va con vos.
-        </p>
+        <SeccionHeading heading={secciones.salas} />
 
         {estudiosLoading ? (
           <div style={{
@@ -830,23 +875,7 @@ export default function Landing() {
           ============================================================ */}
       {mostrarInstructores && instructores.length > 0 && (
         <section className="reveal" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
-          <p className="ek-eyebrow" style={{ marginBottom: '12px', textAlign: 'center' }}>NUESTRO EQUIPO</p>
-          <h2 style={{
-            fontFamily: 'var(--ek-font-display)',
-            fontSize: 'clamp(36px, 6vw, 56px)',
-            fontWeight: 700,
-            letterSpacing: '-0.04em',
-            lineHeight: 1.05,
-            margin: 0,
-            marginBottom: '16px',
-            textAlign: 'center'
-          }}>
-            Conocé a nuestros<br />
-            <span style={{ color: 'var(--ek-mustard)' }}>instructores.</span>
-          </h2>
-          <p className="ek-body-muted" style={{ margin: '0 auto 40px', maxWidth: '600px', textAlign: 'center' }}>
-            El equipo que te va a acompañar en cada clase.
-          </p>
+          <SeccionHeading heading={secciones.instructores} />
 
           <div style={{
             display: 'flex',
@@ -872,20 +901,7 @@ export default function Landing() {
           MEMBRESÍAS
           ============================================================ */}
       <section id="membresias" className="reveal" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
-        <p className="ek-eyebrow" style={{ marginBottom: '12px', textAlign: 'center' }}>MEMBRESÍAS</p>
-        <h2 style={{
-          fontFamily: 'var(--ek-font-display)',
-          fontSize: 'clamp(36px, 6vw, 56px)',
-          fontWeight: 700,
-          letterSpacing: '-0.04em',
-          lineHeight: 1.05,
-          margin: 0,
-          marginBottom: '48px',
-          textAlign: 'center'
-        }}>
-          Elige tu nivel.<br />
-          <span style={{ color: 'var(--ek-mustard)' }}>Crece desde el día uno.</span>
-        </h2>
+        <SeccionHeading heading={secciones.membresias} />
 
         {tiersLoading ? (
           <div className="landing-planes-grid">
@@ -1025,18 +1041,7 @@ export default function Landing() {
           ============================================================ */}
       {faq.length > 0 && (
       <section className="reveal" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
-        <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>PREGUNTAS FRECUENTES</p>
-        <h2 style={{
-          fontFamily: 'var(--ek-font-display)',
-          fontSize: 'clamp(36px, 6vw, 56px)',
-          fontWeight: 700,
-          letterSpacing: '-0.04em',
-          lineHeight: 1.05,
-          margin: 0,
-          marginBottom: '48px'
-        }}>
-          Lo que probablemente querés saber.
-        </h2>
+        <SeccionHeading heading={secciones.faq} center={false} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {faq.map((item, i) => (
