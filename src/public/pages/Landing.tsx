@@ -33,6 +33,8 @@ interface TierPublico {
   slug: string;
   nombre: string;
   precio_centavos: number;
+  moneda: string;
+  periodo: string;
   descripcion: string | null;
   beneficios: unknown;
   reglas: Record<string, unknown> | null;
@@ -86,7 +88,7 @@ function useTiersPublicos() {
       // de un gym mostraría planes de otros tenants.
       const { data, error } = await supabase
         .from('tiers')
-        .select('slug, nombre, precio_centavos, descripcion, beneficios, reglas, orden')
+        .select('slug, nombre, precio_centavos, moneda, periodo, descripcion, beneficios, reglas, orden')
         .eq('tenant_id', tenant.id)
         .eq('activo', true)
         .order('orden', { ascending: true });
@@ -624,8 +626,18 @@ export function SeccionPostHero({ data }: { data: LandingPostHero }) {
   );
 }
 
-function formatearPesos(centavos: number): string {
-  return `$${Math.round(centavos / 100).toLocaleString('es-MX')}`;
+/** Precio del tier en su moneda (Intl con código ISO en mayúsculas). Cae a un
+ *  formato simple si la moneda no es válida. */
+function formatearPrecioTier(centavos: number, moneda: string): string {
+  try {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: (moneda || 'MXN').toUpperCase(),
+      maximumFractionDigits: 0
+    }).format(centavos / 100);
+  } catch {
+    return `$${Math.round(centavos / 100).toLocaleString('es-MX')}`;
+  }
 }
 
 export default function Landing() {
@@ -988,9 +1000,9 @@ export default function Landing() {
                     lineHeight: 1,
                     color: esDestacado ? 'rgba(255, 255, 255, 0.97)' : 'var(--sala-text-primary)'
                   }}>
-                    {formatearPesos(tier.precio_centavos)}
+                    {formatearPrecioTier(tier.precio_centavos, tier.moneda)}
                     <span style={{ fontSize: '16px', color: esDestacado ? 'rgba(255, 255, 255, 0.5)' : 'var(--sala-text-tertiary)', fontWeight: 500 }}>
-                      /mes
+                      {tier.periodo === 'anual' ? '/año' : '/mes'}
                     </span>
                   </p>
                   <p style={{

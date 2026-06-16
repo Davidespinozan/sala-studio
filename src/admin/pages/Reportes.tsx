@@ -27,9 +27,10 @@ import { useTenant } from '@shared/hooks/useTenant';
 
 const SIMBOLO_MONEDA: Record<string, string> = { mxn: '$', usd: 'US$', eur: '€' };
 
-/** Formatea centavos del tenant a string legible (ej. "$12,400"). */
+/** Formatea centavos del tenant a string legible (ej. "$12,400"). La moneda
+ *  puede venir en may/min (los tiers la guardan en mayúsculas). */
 function fmtDinero(centavos: number, moneda: string): string {
-  const sym = SIMBOLO_MONEDA[moneda] ?? '$';
+  const sym = SIMBOLO_MONEDA[(moneda || '').toLowerCase()] ?? '$';
   return `${sym}${Math.round(centavos / 100).toLocaleString('es-MX')}`;
 }
 

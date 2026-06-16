@@ -205,7 +205,7 @@ export function useTiersAdmin() {
 
 export async function updateTier(
   tierId: string,
-  patch: Partial<Pick<Tier, 'nombre' | 'descripcion' | 'precio_centavos' | 'beneficios' | 'reglas' | 'activo' | 'orden' | 'slug'>>
+  patch: Partial<Pick<Tier, 'nombre' | 'descripcion' | 'precio_centavos' | 'moneda' | 'periodo' | 'beneficios' | 'reglas' | 'activo' | 'orden' | 'slug'>>
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.from('tiers').update(patch).eq('id', tierId);
   return { error: error?.message ?? null };

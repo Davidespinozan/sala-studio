@@ -18,6 +18,18 @@ import type { Database } from '@shared/types/database';
 
 type Tier = Database['public']['Tables']['tiers']['Row'];
 
+// Monedas soportadas (código ISO en mayúsculas, compatible con Intl). El símbolo
+// es solo para el selector; el formateo real usa Intl con el código.
+const MONEDA_OPTS: { value: string; label: string }[] = [
+  { value: 'MXN', label: 'MXN · peso mexicano' },
+  { value: 'USD', label: 'USD · dólar' },
+  { value: 'EUR', label: 'EUR · euro' }
+];
+const PERIODO_OPTS: { value: string; label: string }[] = [
+  { value: 'mensual', label: 'Mensual' },
+  { value: 'anual', label: 'Anual' }
+];
+
 type ModalState =
   | { mode: 'edit'; tier: Tier }
   | { mode: 'create' }
@@ -567,6 +579,8 @@ function EditarTierModal({
   const [precio, setPrecio] = useState(
     tier ? String(tier.precio_centavos / 100) : ''
   );
+  const [moneda, setMoneda] = useState(tier?.moneda ?? 'MXN');
+  const [periodo, setPeriodo] = useState(tier?.periodo ?? 'mensual');
   const [descripcion, setDescripcion] = useState(tier?.descripcion ?? '');
   const [activo, setActivo] = useState(tier?.activo ?? true);
   const [beneficios, setBeneficios] = useState<string[]>(() =>
@@ -626,8 +640,8 @@ function EditarTierModal({
         nombre: nombre.trim(),
         descripcion: descripcion || null,
         precio_centavos: precioCentavos,
-        moneda: 'MXN',
-        periodo: 'mensual',
+        moneda,
+        periodo,
         beneficios: beneficios as never,
         reglas: reglas as never,
         activo,
@@ -651,6 +665,8 @@ function EditarTierModal({
       nombre,
       descripcion: descripcion || null,
       precio_centavos: precioCentavos,
+      moneda,
+      periodo,
       beneficios,
       reglas: reglasNuevas as never,
       activo
@@ -716,16 +732,38 @@ function EditarTierModal({
           />
         </label>
 
-        <label className="ek-label">
-          Precio (MXN)
-          <input
-            type="number"
-            step="0.01"
-            value={precio}
-            onChange={(e) => setPrecio(e.target.value)}
-            className="ek-input"
-          />
-        </label>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+          <label className="ek-label">
+            Precio ({moneda})
+            <input
+              type="number"
+              step="0.01"
+              value={precio}
+              onChange={(e) => setPrecio(e.target.value)}
+              className="ek-input"
+            />
+          </label>
+          <label className="ek-label">
+            Moneda
+            <select value={moneda} onChange={(e) => setMoneda(e.target.value)} className="ek-input">
+              {MONEDA_OPTS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="ek-label">
+            Cobro
+            <select value={periodo} onChange={(e) => setPeriodo(e.target.value)} className="ek-input">
+              {PERIODO_OPTS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
 
         <div className="ek-form-field" style={{ marginTop: '12px' }}>
           <Toggle
