@@ -2491,3 +2491,40 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   }
   .reveal { opacity: 1 !important; transform: none !important; }
 }
+
+/* Barra "Modo demo": row en desktop (mensaje izq · acciones der),
+   columna centrada en móvil para que no quede peleado el wrap. */
+.modo-demo-banner {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  background: var(--sala-primary);
+  color: var(--sala-primary-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.modo-demo-banner__msg {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.modo-demo-banner__actions {
+  display: inline-flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+@media (max-width: 640px) {
+  .modo-demo-banner {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 10px;
+  }
+}

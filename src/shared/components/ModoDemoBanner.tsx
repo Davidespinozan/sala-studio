@@ -15,32 +15,19 @@ export function ModoDemoBanner() {
   };
 
   return (
-    <div
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '12px',
-        flexWrap: 'wrap',
-        padding: '8px 16px',
-        background: 'var(--sala-primary)',
-        color: 'var(--sala-primary-text)',
-        fontSize: '13px',
-        fontWeight: 600
-      }}
-    >
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+    <div className="modo-demo-banner">
+      <span className="modo-demo-banner__msg">
         <span aria-hidden="true">🎬</span>
         <span>Modo demo · estás explorando un gimnasio de ejemplo.</span>
       </span>
-      <span style={{ display: 'inline-flex', gap: '8px', flexShrink: 0 }}>
+      <span className="modo-demo-banner__actions">
         <a
           href="/registro"
           style={{
-            padding: '4px 12px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '5px 14px',
+            lineHeight: 1,
             borderRadius: '999px',
             background: 'var(--sala-primary-text)',
             color: 'var(--sala-primary)',
@@ -54,7 +41,10 @@ export function ModoDemoBanner() {
           type="button"
           onClick={salir}
           style={{
-            padding: '4px 12px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '5px 14px',
+            lineHeight: 1,
             borderRadius: '999px',
             border: '1px solid rgba(255,255,255,0.5)',
             background: 'transparent',
