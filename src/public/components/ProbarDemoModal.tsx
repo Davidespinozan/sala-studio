@@ -13,7 +13,8 @@ export default function ProbarDemoModal({ onClose }: { onClose: () => void }) {
     setCargando(rol);
     const { error: err } = await entrarAlDemo(rol);
     if (err) {
-      setError('No pudimos abrir el demo. Probá de nuevo en un momento.');
+      console.error('[demo] entrarAlDemo:', err);
+      setError(err);
       setCargando(null);
     }
     // En éxito hay hard-nav, no vuelve.

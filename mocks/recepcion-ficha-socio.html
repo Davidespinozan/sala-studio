@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MOCK · Recepción · Ficha de socio · 4 estados (read-only)</title>
+<!--
+  MOCK VISUAL — sin lógica. Sub-round 1 = SOLO LECTURA.
+  Ajustes pedidos por David:
+   - SIN sección "Acciones" (vienen en Sub-round 2).
+   - 4 estados de membresía lado a lado (Activa / Pausada / Vencida / Sin plan).
+   - Bloque "Notas sobre el socio" read-only (leer ya; escribir = Ola 2).
+  Nota de color: el estado usa verde/ámbar/rojo/gris (semántico). Bajo
+  "solo primario+acento" eso sería monocromo en un tenant → DECISIÓN: ¿el
+  estado de membresía es excepción semántica por claridad operativa?
+-->
+<style>
+  :root{
+    --primary:#3D6B52; --primary-light:#E8F0EB; --primary-soft:rgba(61,107,82,.12);
+    --bg:#FAFAF7; --surface:#FFFFFF; --ink:#1A1F1C; --ink-muted:#5C6660; --ink-faint:#8A938C;
+    --line:rgba(26,31,28,.10);
+    --warning:#C8941F; --warning-bg:#FAF2DC; --warning-line:rgba(200,148,31,.3);
+    --error:#C44A35; --error-bg:#FCE5DF; --error-line:rgba(196,74,53,.3);
+    --neutral:#8A938C; --neutral-bg:#F1EFEA; --neutral-line:rgba(26,31,28,.12);
+    --grad-immersive:linear-gradient(160deg,#315541 0%,#274434 100%);
+    --r-card:16px; --r-md:13px;
+    --font:'Inter',system-ui,sans-serif; --display:'Space Grotesk',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;padding:24px}
+  h0{display:block;font-family:var(--display);font-size:20px;font-weight:700;margin-bottom:4px}
+  .sub{color:var(--ink-muted);font-size:13px;margin-bottom:22px}
+  .row{display:flex;gap:18px;align-items:flex-start;overflow-x:auto;padding-bottom:12px}
+  .col{flex:0 0 300px;width:300px}
+  .col-tag{font-family:var(--display);font-size:13px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--ink-muted);margin-bottom:10px;text-align:center}
+
+  .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+  .card{background:var(--surface);border:.5px solid var(--line);border-radius:var(--r-card);
+    padding:15px;box-shadow:0 1px 3px rgba(26,31,28,.04);margin-bottom:12px}
+
+  /* Hero */
+  .hero{background:var(--grad-immersive);border-radius:var(--r-card);padding:18px;color:#fff;margin-bottom:12px}
+  .avatar{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;
+    font-family:var(--display);font-size:22px;font-weight:700;margin-bottom:10px}
+  .hero h1{font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:-.02em}
+  .hero .contact{font-size:12px;color:rgba(255,255,255,.68);margin-top:3px}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;
+    letter-spacing:.04em;text-transform:uppercase;padding:4px 10px;border-radius:999px;margin-top:10px}
+  .b-ok{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.28)}
+  .b-warn{background:rgba(200,148,31,.22);color:#FBE6B8;border:1px solid rgba(200,148,31,.45)}
+  .b-err{background:rgba(196,74,53,.24);color:#FAD2C8;border:1px solid rgba(196,74,53,.5)}
+  .b-neu{background:rgba(255,255,255,.10);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.2)}
+
+  /* Alertas */
+  .alert{display:flex;gap:9px;align-items:flex-start;border-radius:var(--r-md);padding:10px 12px;margin-bottom:12px;font-size:12.5px;line-height:1.45}
+  .a-warn{background:var(--warning-bg);border:1px solid var(--warning-line);color:#7a5a13}
+  .a-err{background:var(--error-bg);border:1px solid var(--error-line);color:#8a2f20}
+  .a-neu{background:var(--neutral-bg);border:1px solid var(--neutral-line);color:var(--ink-muted)}
+  .alert .ico{font-size:14px}
+  .alert b{font-weight:700}
+
+  /* Membresía grid */
+  .sec-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+  .pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--primary-light);color:var(--primary)}
+  .pill-neu{background:var(--neutral-bg);color:var(--ink-muted)}
+  .mem-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+  .kv .k{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint)}
+  .kv .v{font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:-.02em;margin-top:2px}
+  .kv .v small{font-size:11px;color:var(--ink-muted);font-weight:500;font-family:var(--font)}
+  .empty{color:var(--ink-faint);font-size:13px;padding:6px 0;text-align:center}
+
+  /* Reservas */
+  .resv{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:.5px solid var(--line)}
+  .resv:first-of-type{border-top:0}
+  .resv .when{font-family:var(--display);font-weight:700;font-size:13.5px;min-width:64px}
+  .resv .n{font-weight:600;font-size:13px}
+  .resv .s{font-size:11px;color:var(--ink-faint)}
+
+  /* Stats */
+  .stats{display:flex;gap:8px}
+  .stat{flex:1;text-align:center}
+  .stat .n{font-family:var(--display);font-size:19px;font-weight:700}
+  .stat .l{font-size:10px;color:var(--ink-faint);font-weight:600}
+
+  /* Notas */
+  .nota{padding:9px 0;border-top:.5px solid var(--line);font-size:12.5px}
+  .nota:first-of-type{border-top:0}
+  .nota .meta{font-size:10.5px;color:var(--ink-faint);font-weight:600;margin-bottom:2px}
+  .nota .txt{color:var(--ink);line-height:1.4}
+
+  .legend{margin-top:22px;font-size:12px;color:var(--ink-muted);max-width:900px;line-height:1.6}
+  .legend b{color:var(--ink)}
+</style>
+</head>
+<body>
+  <h0>MOCK · Recepción · Ficha de socio (read-only)</h0>
+  <div class="sub">Sub-round 1 = solo lectura · sin sección de acciones · 4 estados de membresía lado a lado</div>
+
+  <div class="row">
+
+    <!-- ════ ACTIVA ════ -->
+    <div class="col">
+      <div class="col-tag">① Activa</div>
+      <div class="hero">
+        <div class="avatar">JM</div>
+        <h1>Juan Méndez</h1>
+        <div class="contact">+52 667 123 4567 · juanm@gmail.com</div>
+        <span class="badge b-ok">● Membresía activa</span>
+      </div>
+      <!-- activa sano: sin alerta -->
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Membresía</span><span class="pill">Plan Pro</span></div>
+        <div class="mem-grid">
+          <div class="kv"><div class="k">Estado</div><div class="v">Activa</div></div>
+          <div class="kv"><div class="k">Vence</div><div class="v">28 jul</div></div>
+          <div class="kv"><div class="k">Créditos</div><div class="v">8 <small>restantes</small></div></div>
+          <div class="kv"><div class="k">Tipo</div><div class="v">Híbrido</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Próximas reservas</span></div>
+        <div class="resv"><div class="when">Hoy 7:00</div><div><div class="n">Cycling</div><div class="s">Sala A · Caro</div></div></div>
+        <div class="resv"><div class="when">Mié 8:00</div><div><div class="n">Barre</div><div class="s">Sala B · Vale</div></div></div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Asistencia</span></div>
+        <div class="stats"><div class="stat"><div class="n">3</div><div class="l">semana</div></div><div class="stat"><div class="n">11</div><div class="l">mes</div></div><div class="stat"><div class="n">96%</div><div class="l">asist.</div></div></div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Notas sobre el socio</span></div>
+        <div class="nota"><div class="meta">Caro (admin) · 2 jun</div><div class="txt">Socio VIP, referido por Ale. Trato preferente.</div></div>
+      </div>
+    </div>
+
+    <!-- ════ PAUSADA / CONGELADA ════ -->
+    <div class="col">
+      <div class="col-tag">② Pausada</div>
+      <div class="hero">
+        <div class="avatar">AR</div>
+        <h1>Ana Ruiz</h1>
+        <div class="contact">+52 667 222 8899 · anaruiz@gmail.com</div>
+        <span class="badge b-warn">⏸ Membresía pausada</span>
+      </div>
+      <div class="alert a-warn"><span class="ico">⏸</span><div><b>Membresía pausada</b> — no puede reservar hasta reactivarla.</div></div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Membresía</span><span class="pill">Plan Pro</span></div>
+        <div class="mem-grid">
+          <div class="kv"><div class="k">Estado</div><div class="v">Pausada</div></div>
+          <div class="kv"><div class="k">Pausada desde</div><div class="v">1 jun</div></div>
+          <div class="kv"><div class="k">Créditos</div><div class="v">5 <small>congelados</small></div></div>
+          <div class="kv"><div class="k">Tipo</div><div class="v">Híbrido</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Próximas reservas</span></div>
+        <div class="empty">Sin reservas — membresía pausada</div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Asistencia</span></div>
+        <div class="stats"><div class="stat"><div class="n">0</div><div class="l">semana</div></div><div class="stat"><div class="n">6</div><div class="l">mes</div></div><div class="stat"><div class="n">88%</div><div class="l">asist.</div></div></div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Notas sobre el socio</span></div>
+        <div class="nota"><div class="meta">Caro (admin) · 1 jun</div><div class="txt">Pausó 2 semanas por viaje. Reactivar al volver (~15 jun).</div></div>
+      </div>
+    </div>
+
+    <!-- ════ VENCIDA ════ -->
+    <div class="col">
+      <div class="col-tag">③ Vencida</div>
+      <div class="hero">
+        <div class="avatar">LS</div>
+        <h1>Luis Soto</h1>
+        <div class="contact">+52 667 345 1122 · luissoto@gmail.com</div>
+        <span class="badge b-err">● Membresía vencida</span>
+      </div>
+      <div class="alert a-err"><span class="ico">⛔</span><div><b>Plan vencido el 5 jun</b> — renovar para reactivar el acceso.</div></div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Membresía</span><span class="pill pill-neu">Plan Básica</span></div>
+        <div class="mem-grid">
+          <div class="kv"><div class="k">Estado</div><div class="v">Vencida</div></div>
+          <div class="kv"><div class="k">Venció</div><div class="v">5 jun</div></div>
+          <div class="kv"><div class="k">Créditos</div><div class="v">0</div></div>
+          <div class="kv"><div class="k">Tipo</div><div class="v">Tiempo</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Próximas reservas</span></div>
+        <div class="empty">Sin reservas — no puede reservar vencido</div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Asistencia</span></div>
+        <div class="stats"><div class="stat"><div class="n">0</div><div class="l">semana</div></div><div class="stat"><div class="n">2</div><div class="l">mes</div></div><div class="stat"><div class="n">71%</div><div class="l">asist.</div></div></div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Notas sobre el socio</span></div>
+        <div class="empty">Sin notas todavía.</div>
+      </div>
+    </div>
+
+    <!-- ════ SIN PLAN ════ -->
+    <div class="col">
+      <div class="col-tag">④ Sin plan</div>
+      <div class="hero">
+        <div class="avatar">SL</div>
+        <h1>Sofía Lara</h1>
+        <div class="contact">+52 667 998 7766 · sofialara@gmail.com</div>
+        <span class="badge b-neu">○ Sin membresía</span>
+      </div>
+      <div class="alert a-neu"><span class="ico">○</span><div><b>Sin membresía activa</b> — asignale un plan para que pueda reservar.</div></div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Membresía</span></div>
+        <div class="empty">Sin plan activo</div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Próximas reservas</span></div>
+        <div class="empty">Sin reservas</div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Asistencia</span></div>
+        <div class="stats"><div class="stat"><div class="n">—</div><div class="l">semana</div></div><div class="stat"><div class="n">—</div><div class="l">mes</div></div><div class="stat"><div class="n">—</div><div class="l">asist.</div></div></div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="eyebrow">Notas sobre el socio</span></div>
+        <div class="nota"><div class="meta">Diego (recepción) · hoy</div><div class="txt">Alta en mostrador. Pendiente de pago — le mandé el link por WhatsApp.</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="legend">
+    <b>Notas del mock:</b> 4 estados lado a lado · sin sección de acciones (van en Sub-round 2) ·
+    bloque "Notas sobre el socio" read-only (leer ya en Sub-round 1; escribir = Ola 2).
+    <br><b>Decisión de color pendiente:</b> los badges/alertas usan verde/ámbar/rojo/gris (semántico).
+    Bajo "solo primario+acento" en un tenant eso sería monocromo — ¿hacemos del estado de membresía
+    una <b>excepción semántica</b> por claridad operativa en recepción?
+  </div>
+</body>
+</html>
