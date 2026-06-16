@@ -54,6 +54,36 @@ export function useNotificaciones() {
   useEffect(() => { void refetch(); }, [refetch]);
   useVisibilityAwarePolling(refetch, POLL_MS);
 
+  // Realtime: si está habilitado en la DB, las notificaciones aparecen al
+  // instante (sin esperar el poll). Si no lo está, no pasa nada — el polling
+  // sigue cubriendo. Suscribe solo a las del usuario actual (la RLS además
+  // garantiza que solo reciba las suyas).
+  useEffect(() => {
+    if (!usuario) return;
+    const channel = supabase
+      .channel(`notificaciones-${usuario.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `usuario_id=eq.${usuario.id}` },
+        (payload) => {
+          const n = payload.new as unknown as Notificacion;
+          setItems((prev) => (prev.some((x) => x.id === n.id) ? prev : [n, ...prev].slice(0, LIMITE)));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notificaciones', filter: `usuario_id=eq.${usuario.id}` },
+        (payload) => {
+          const n = payload.new as unknown as Notificacion;
+          setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, ...n } : x)));
+        }
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [usuario]);
+
   const noLeidas = items.filter((n) => !n.leida).length;
 
   const marcarLeida = useCallback(async (id: string) => {
