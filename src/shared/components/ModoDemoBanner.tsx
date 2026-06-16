@@ -22,19 +22,21 @@ export function ModoDemoBanner() {
         zIndex: 100,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: '14px',
+        justifyContent: 'space-between',
+        gap: '12px',
         flexWrap: 'wrap',
         padding: '8px 16px',
         background: 'var(--sala-primary)',
         color: 'var(--sala-primary-text)',
         fontSize: '13px',
-        fontWeight: 600,
-        textAlign: 'center'
+        fontWeight: 600
       }}
     >
-      <span>🎬 Modo demo · estás explorando un gimnasio de ejemplo.</span>
-      <span style={{ display: 'inline-flex', gap: '8px' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+        <span aria-hidden="true">🎬</span>
+        <span>Modo demo · estás explorando un gimnasio de ejemplo.</span>
+      </span>
+      <span style={{ display: 'inline-flex', gap: '8px', flexShrink: 0 }}>
         <a
           href="/registro"
           style={{
