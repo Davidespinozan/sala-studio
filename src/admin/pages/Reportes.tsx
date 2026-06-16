@@ -25,6 +25,7 @@ import {
 import { useReportesEconomia, type ReportesEconomiaData } from '../hooks/useReportesEconomia';
 import { useReportesEngagement, type ReportesEngagementData } from '../hooks/useReportesEngagement';
 import { useReportesHeatmap, type ReportesHeatmapData } from '../hooks/useReportesHeatmap';
+import { useReportesRecursos, type ReportesRecursosData, type RendimientoFila } from '../hooks/useReportesRecursos';
 import { useTenant } from '@shared/hooks/useTenant';
 
 const SIMBOLO_MONEDA: Record<string, string> = { mxn: '$', usd: 'US$', eur: '€' };
@@ -81,6 +82,7 @@ export default function Reportes() {
   const { data: economia } = useReportesEconomia();
   const { data: engagement } = useReportesEngagement();
   const { data: heatmap } = useReportesHeatmap();
+  const { data: recursos } = useReportesRecursos();
 
   return (
     <div className="adm-page">
@@ -132,6 +134,7 @@ export default function Reportes() {
           {engagement && <BloqueEngagement eng={engagement} />}
           <BloqueOcupacion data={data} />
           {heatmap && <BloqueHeatmap hm={heatmap} />}
+          {recursos && <BloqueRecursos rec={recursos} />}
           <BloqueMiembros data={data} />
           <BloqueReservas data={data} />
         </div>
@@ -352,6 +355,66 @@ function BloqueHeatmap({ hm }: { hm: ReportesHeatmapData }) {
             </p>
           </>
         )}
+      </ChartCard>
+    </Bloque>
+  );
+}
+
+const celdaBase: React.CSSProperties = { padding: '8px 10px', fontVariantNumeric: 'tabular-nums' };
+const thDer: React.CSSProperties = {
+  ...celdaBase,
+  textAlign: 'right',
+  fontSize: '11px',
+  fontWeight: 700,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+  color: 'var(--sala-text-tertiary)'
+};
+const thIzq: React.CSSProperties = { ...thDer, textAlign: 'left' };
+const tdDer: React.CSSProperties = { ...celdaBase, textAlign: 'right', color: 'var(--sala-text-primary)' };
+const tdIzq: React.CSSProperties = { ...celdaBase, textAlign: 'left', color: 'var(--sala-text-primary)', fontWeight: 600 };
+
+function TablaRendimiento({ filas, colNombre }: { filas: RendimientoFila[]; colNombre: string }) {
+  const { coral } = useChartColors();
+  if (filas.length === 0) return <EmptyChart mensaje="Sin actividad en los últimos 90 días." />;
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '440px' }}>
+        <thead>
+          <tr>
+            <th style={thIzq}>{colNombre}</th>
+            <th style={thDer}>Clases</th>
+            <th style={thDer}>Reservas</th>
+            <th style={thDer}>Ocup.</th>
+            <th style={thDer}>Asist.</th>
+            <th style={thDer}>No-shows</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((f) => (
+            <tr key={f.nombre} style={{ borderTop: '1px solid var(--sala-border)' }}>
+              <td style={tdIzq}>{f.nombre}</td>
+              <td style={tdDer}>{f.clases}</td>
+              <td style={tdDer}>{f.reservas}</td>
+              <td style={tdDer}>{f.ocupacionPct}%</td>
+              <td style={tdDer}>{f.asistenciaPct == null ? '—' : `${f.asistenciaPct}%`}</td>
+              <td style={{ ...tdDer, color: f.noShows > 0 ? coral : 'var(--sala-text-tertiary)' }}>{f.noShows}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function BloqueRecursos({ rec }: { rec: ReportesRecursosData }) {
+  return (
+    <Bloque titulo="Rendimiento por sala e instructor">
+      <ChartCard titulo="Por sala — últimos 90 días">
+        <TablaRendimiento filas={rec.porSala} colNombre="Sala" />
+      </ChartCard>
+      <ChartCard titulo="Por instructor — últimos 90 días">
+        <TablaRendimiento filas={rec.porInstructor} colNombre="Instructor" />
       </ChartCard>
     </Bloque>
   );
