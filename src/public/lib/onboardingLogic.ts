@@ -26,7 +26,7 @@ export const COLOR_ACENTO_DEFAULT = '#3d6b52';
 /** Subdominios que no se pueden usar (técnicos / reservados de la plataforma). */
 export const SUBDOMINIOS_RESERVADOS = new Set<string>([
   'admin', 'www', 'app', 'api', 'mail', 'ftp', 'blog', 'dev', 'staging',
-  'test', 'demo', 'sala', 'sala-demo', 'static', 'assets', 'cdn', 'docs',
+  'test', 'demo', 'sala', 'sala-demo', 'healthyspace', 'static', 'assets', 'cdn', 'docs',
   'help', 'support', 'status', 'login', 'signup', 'registro', 'onboarding',
   'dashboard', 'recepcion', 'public', 'cuenta', 'billing'
 ]);

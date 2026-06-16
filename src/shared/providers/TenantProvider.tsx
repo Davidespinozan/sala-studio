@@ -268,9 +268,9 @@ const TenantContext = createContext<TenantContextValue>({
  * Resuelve el tenant actual y lo expone vía context.
  *
  * Estrategia de resolución (en orden):
- * 1. Subdominio: app.sala.studio → slug 'sala-demo'
+ * 1. Subdominio: app.sala.studio → slug 'healthyspace'
  *                pilates-noria.sala.app → slug 'pilates-noria'
- * 2. Fallback en desarrollo: slug 'sala-demo' (siempre el primer tenant)
+ * 2. Fallback en desarrollo: slug 'healthyspace' (el tenant demo)
  *
  * Para SaaS multi-tenant en producción, el subdominio decide.
  */
@@ -300,7 +300,7 @@ export function isMarketingRoot(): boolean {
  * no de un FALLBACK de desarrollo/preview (localhost / 127.* / *.netlify.app) ni
  * del dominio de marketing.
  *
- * En los fallbacks el tenant cargado es 'sala-demo' POR DEFECTO — no identifica
+ * En los fallbacks el tenant cargado es 'healthyspace' POR DEFECTO — no identifica
  * al gimnasio del usuario. Por eso el TenantGuard solo debe bloquear el cruce de
  * tenants cuando el subdominio ES autoritativo; si no, ninguna cuenta real podría
  * entrar en local/preview (los datos igual los aísla RLS por el tenant del
@@ -318,29 +318,29 @@ export function isTenantFromSubdomain(): boolean {
 }
 
 function resolveTenantSlug(): string {
-  if (typeof window === 'undefined') return 'sala-demo';
+  if (typeof window === 'undefined') return 'healthyspace';
 
   const host = window.location.hostname;
 
-  // Dominio raíz de marketing → carga sala-demo (provee la marca SALA para la
-  // landing de producto; el routing decide mostrar SalaLanding en "/").
+  // Dominio raíz de marketing → carga healthyspace (el tenant demo; provee un
+  // contexto real para el apex; el routing decide mostrar SalaLanding en "/").
   if (MARKETING_HOSTS.has(host)) {
-    return 'sala-demo';
+    return 'healthyspace';
   }
 
-  // localhost / 127.0.0.1 / preview deploys → default sala-demo
+  // localhost / 127.0.0.1 / preview deploys → default healthyspace
   if (host === 'localhost' || host.startsWith('127.') || host.endsWith('.netlify.app')) {
-    return 'sala-demo';
+    return 'healthyspace';
   }
 
-  // app.sala.studio → sala-demo
+  // app.sala.studio → healthyspace
   // pilates-noria.sala.app → pilates-noria
   const parts = host.split('.');
   if (parts.length >= 2) {
     return parts[0] === 'app' && parts.length >= 3 ? parts[1] : parts[0];
   }
 
-  return 'sala-demo';
+  return 'healthyspace';
 }
 
 interface TenantProviderProps {

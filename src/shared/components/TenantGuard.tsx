@@ -14,7 +14,7 @@ import {
  * Impide que un usuario autenticado OPERE en el tenant equivocado. Compara
  * `usuario.tenant_id` (su cuenta) con `tenant.id` (el cargado por el host):
  *
- *  - En el host de MARKETING (salastudio.app), el tenant cargado es sala-demo
+ *  - En el host de MARKETING (salastudio.app), el tenant cargado es healthyspace
  *    por fallback. Si el usuario es de OTRO gym, lo REDIRIGIMOS a su subdominio
  *    (antes se quedaba operando el demo). La sesión es localStorage por origen,
  *    así que entra de nuevo en su sitio — pero en el gym correcto.
@@ -24,7 +24,7 @@ import {
  *
  * Excepciones:
  *  - `?demo=admin-preview` (los "VER COMO…" del admin) → se saltea.
- *  - Localhost / 127.* / *.netlify.app: el tenant es sala-demo por FALLBACK (no
+ *  - Localhost / 127.* / *.netlify.app: el tenant es healthyspace por FALLBACK (no
  *    identifica al gym del usuario) → no bloqueamos ni redirigimos.
  *  - Usuario sin hidratar → deja pasar (cada layout maneja el no-auth/loading).
  */

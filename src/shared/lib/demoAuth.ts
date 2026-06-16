@@ -4,9 +4,9 @@ import type { User } from '@supabase/supabase-js';
 
 /**
  * Demo de SALA con SESIÓN ANÓNIMA: el visitante hace click en una vista y entra
- * a sala-demo con una identidad descartable creada al vuelo (Supabase anonymous
+ * a healthyspace con una identidad descartable creada al vuelo (Supabase anonymous
  * sign-in) — sin registrarse y sin que nadie cree cuentas. Un RPC le da el rol
- * elegido en sala-demo; la RLS + los guardrails lo encierran ahí (no puede tocar
+ * elegido en healthyspace; la RLS + los guardrails lo encierran ahí (no puede tocar
  * otro gym ni la estructura). El reset nocturno limpia a los visitantes.
  *
  * Setup: activar "Allow anonymous sign-ins" en Supabase + VITE_DEMO_ENABLED=true.
@@ -40,13 +40,13 @@ export function esSesionDemo(authUser: User | null | undefined): boolean {
 }
 
 /** Entra al demo en la vista elegida. 'landing' = página pública del subdominio
- *  de sala-demo (sin sesión). El resto = sesión anónima + provisión + hard-nav. */
+ *  de healthyspace (sin sesión). El resto = sesión anónima + provisión + hard-nav. */
 export async function entrarAlDemo(vista: DemoVista): Promise<{ error: string | null }> {
   if (!demoDisponible()) return { error: 'El demo no está disponible.' };
 
-  // Landing: es público, solo abrimos el subdominio de sala-demo.
+  // Landing: es público, solo abrimos el subdominio de healthyspace.
   if (vista === 'landing') {
-    window.location.href = `https://sala-demo.${MARKETING_DOMAIN}`;
+    window.location.href = `https://healthyspace.${MARKETING_DOMAIN}`;
     return { error: null };
   }
 

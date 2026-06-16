@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { isTenantFromSubdomain } from '../TenantProvider';
 
-// Guard de #4: en localhost/preview el tenant cae a 'sala-demo' por fallback, NO
+// Guard de #4: en localhost/preview el tenant cae a 'healthyspace' por fallback, NO
 // por subdominio → el TenantGuard NO debe bloquear (si no, ninguna cuenta real
 // entra en local/preview). En subdominio real de producción SÍ debe bloquear el
 // cruce de tenants. Esta función decide cuál de los dos mundos es.
