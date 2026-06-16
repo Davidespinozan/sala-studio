@@ -8,6 +8,7 @@ import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { DemoBanner } from '@shared/components/DemoBanner';
 import { AppShell } from '@shared/components/AppShell';
 import { TenantGuard } from '@shared/components/TenantGuard';
+import { ModoDemoBanner } from '@shared/components/ModoDemoBanner';
 import { AppSidebar, type AppNavSection } from '@shared/components/AppSidebar';
 
 const Scanner = lazy(() => import('./pages/Scanner'));
@@ -54,6 +55,7 @@ export default function ReceptionLayout() {
 
   return (
     <TenantGuard>
+      <ModoDemoBanner />
       <DemoBanner vista="Recepción" />
       <AppShell
         roleLabel="RECEPCIÓN"

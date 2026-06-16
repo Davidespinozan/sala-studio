@@ -6,8 +6,8 @@ import { esSesionDemo } from '@shared/lib/demoAuth';
  * es un gimnasio de ejemplo y empuja a convertir ("Creá tu gym").
  */
 export function ModoDemoBanner() {
-  const { usuario, signOut } = useAuth();
-  if (!esSesionDemo(usuario?.email)) return null;
+  const { authUser, signOut } = useAuth();
+  if (!esSesionDemo(authUser)) return null;
 
   const salir = async () => {
     await signOut();

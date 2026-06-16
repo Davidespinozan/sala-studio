@@ -18,7 +18,8 @@ import {
 import { SalaLogo } from '@shared/components/SalaLogo';
 import { BrowserFrame, PhoneFrame } from '../components/DeviceFrame';
 import BuscarEstudio from '../components/BuscarEstudio';
-import { demoDisponible, entrarAlDemo } from '@shared/lib/demoAuth';
+import ProbarDemoModal from '../components/ProbarDemoModal';
+import { demoDisponible } from '@shared/lib/demoAuth';
 import {
   MONEDAS,
   PLANES_SAAS,
@@ -197,44 +198,37 @@ function Header({ onBuscar }: { onBuscar: () => void }) {
 // Hero (oscuro inmersivo)
 // ============================================================================
 
-/** CTA que entra al demo (auto-login a sala-demo). Oculto si el demo no está
- *  configurado (sin env). Hard-nav a /admin tras el login. */
+/** CTA que abre el selector de rol del demo. Oculto si el demo no está
+ *  configurado (sin env). */
 function ProbarDemoButton() {
-  const [cargando, setCargando] = useState(false);
+  const [open, setOpen] = useState(false);
   if (!demoDisponible()) return null;
-  const onClick = async () => {
-    setCargando(true);
-    const { error } = await entrarAlDemo();
-    if (error) {
-      setCargando(false);
-      return;
-    }
-    window.location.href = '/admin';
-  };
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={cargando}
-      className="ek-lift"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '15px 28px',
-        minHeight: '52px',
-        fontSize: '16px',
-        fontWeight: 600,
-        borderRadius: '999px',
-        cursor: cargando ? 'default' : 'pointer',
-        fontFamily: 'inherit',
-        color: 'rgba(255, 255, 255, 0.92)',
-        background: 'rgba(255, 255, 255, 0.08)',
-        border: '1px solid rgba(255, 255, 255, 0.16)'
-      }}
-    >
-      {cargando ? 'Entrando…' : 'Probar demo'}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="ek-lift"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '15px 28px',
+          minHeight: '52px',
+          fontSize: '16px',
+          fontWeight: 600,
+          borderRadius: '999px',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          color: 'rgba(255, 255, 255, 0.92)',
+          background: 'rgba(255, 255, 255, 0.08)',
+          border: '1px solid rgba(255, 255, 255, 0.16)'
+        }}
+      >
+        Probar demo
+      </button>
+      {open && <ProbarDemoModal onClose={() => setOpen(false)} />}
+    </>
   );
 }
 

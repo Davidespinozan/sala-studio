@@ -10,6 +10,7 @@ import { ErrorBoundary } from '@shared/components/ErrorBoundary';
 import { BottomNav } from './components/BottomNav';
 import { MembresiaPendiente } from './components/MembresiaPendiente';
 import { TenantGuard } from '@shared/components/TenantGuard';
+import { ModoDemoBanner } from '@shared/components/ModoDemoBanner';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
 import { PwaInstallBanner } from '@shared/components/PwaInstallBanner';
@@ -74,6 +75,7 @@ export default function MemberLayout() {
 
   return (
     <TenantGuard>
+    <ModoDemoBanner />
     <div className="ek-page" style={{ paddingBottom: '88px' /* espacio para bottom nav */ }}>
       <DemoBanner vista="Miembro" />
       <EstadoMembresiaBanner />

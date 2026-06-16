@@ -1,11 +1,12 @@
 -- ============================================================================
--- Reset nocturno del DEMO: limpia la actividad transaccional que dejan los
--- visitantes en sala-demo, sin tocar el seed viejo ni la cuenta demo.
+-- Reset nocturno del DEMO: limpia a los visitantes anónimos y su actividad en
+-- sala-demo, sin tocar el seed viejo.
 -- ----------------------------------------------------------------------------
--- Borra lo creado en las últimas 25h (reservas, lista de espera, movimientos de
--- crédito, membresías, notificaciones y socios nuevos). El seed original (más
--- viejo) sobrevive, así los reportes siguen mostrando datos. La estructura
--- (marca/planes/salas/parrilla) está protegida por los guardrails, no cambia.
+-- Borra lo creado en las últimas 25h: actividad transaccional (reservas, lista
+-- de espera, créditos, membresías, notificaciones) + las filas de usuario de los
+-- visitantes anónimos y de socios que hayan creado. El seed original (más viejo)
+-- sobrevive, así los reportes siguen con datos. La estructura está protegida por
+-- los guardrails.
 -- ============================================================================
 
 CREATE EXTENSION IF NOT EXISTS pg_cron;
@@ -30,13 +31,19 @@ BEGIN
   DELETE FROM membresia_movimientos WHERE tenant_id = v_demo AND created_at > v_corte;
   DELETE FROM reservas              WHERE tenant_id = v_demo AND created_at > v_corte;
   DELETE FROM membresias            WHERE tenant_id = v_demo AND created_at > v_corte;
-  -- Socios creados por visitantes (no toca al admin demo ni a los del seed viejo).
-  DELETE FROM usuarios WHERE tenant_id = v_demo AND rol = 'miembro' AND created_at > v_corte;
+
+  -- Visitantes anónimos del demo + socios creados por visitantes (recientes).
+  -- Borrar la fila de usuario cascada su data restante (reservas/membresías).
+  DELETE FROM usuarios u
+  WHERE u.tenant_id = v_demo
+    AND u.created_at > v_corte
+    AND (u.rol = 'miembro'
+         OR u.auth_id IN (SELECT id FROM auth.users WHERE is_anonymous = true));
 END;
 $$;
 
 COMMENT ON FUNCTION reset_sala_demo() IS
-  'Limpia la actividad transaccional de sala-demo de las últimas 25h (visitantes del demo). Programada de noche vía pg_cron.';
+  'Limpia visitantes anónimos del demo y su actividad transaccional (sala-demo, últimas 25h). Programada de noche vía pg_cron.';
 
 -- Programar el reset diario (08:00 UTC ≈ madrugada en México). Idempotente.
 DO $$

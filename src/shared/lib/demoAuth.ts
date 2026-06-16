@@ -1,32 +1,44 @@
 import { supabase } from '@shared/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 
 /**
- * Cuenta demo de SALA: un visitante entra a explorar sala-demo sin registrarse,
- * con auto-login a una cuenta compartida (admin de sala-demo). Las credenciales
- * viven en env (VITE_DEMO_EMAIL / VITE_DEMO_PASSWORD): son "públicas" por diseño
- * (van en el bundle), aceptable SOLO porque la RLS encierra todo en sala-demo —
- * no puede tocar ningún otro gym. Si las env no están, el demo no existe (el
- * botón no aparece).
+ * Demo de SALA con SESIÓN ANÓNIMA: el visitante hace click en una vista y entra
+ * a sala-demo con una identidad descartable creada al vuelo (Supabase anonymous
+ * sign-in) — sin registrarse y sin que nadie cree cuentas. Un RPC le da el rol
+ * elegido en sala-demo; la RLS + los guardrails lo encierran ahí (no puede tocar
+ * otro gym ni la estructura). El reset nocturno limpia a los visitantes.
+ *
+ * Setup: activar "Allow anonymous sign-ins" en Supabase + VITE_DEMO_ENABLED=true.
  */
-const DEMO_EMAIL = ((import.meta.env.VITE_DEMO_EMAIL as string | undefined) ?? '').trim().toLowerCase();
-const DEMO_PASSWORD = (import.meta.env.VITE_DEMO_PASSWORD as string | undefined) ?? '';
+export type DemoRol = 'admin' | 'miembro' | 'recepcionista';
 
-/** ¿Está configurado el demo? Gate del botón "Probar demo". */
+export const DEMO_VISTAS: { rol: DemoRol; label: string; desc: string; ruta: string }[] = [
+  { rol: 'admin', label: 'Vista admin', desc: 'El panel del dueño: reportes, socios, agenda y planes.', ruta: '/admin' },
+  { rol: 'miembro', label: 'Vista miembro', desc: 'La app del socio: reservar clases y tu QR de acceso.', ruta: '/app' },
+  { rol: 'recepcionista', label: 'Vista recepción', desc: 'El check-in con QR y la lista del día.', ruta: '/recepcion' }
+];
+
+/** ¿Está habilitado el demo? Gate del botón "Probar demo". */
 export function demoDisponible(): boolean {
-  return DEMO_EMAIL.length > 0 && DEMO_PASSWORD.length > 0;
+  return (import.meta.env.VITE_DEMO_ENABLED as string | undefined) === 'true';
 }
 
-/** ¿La sesión/usuario actual es la cuenta demo? */
-export function esSesionDemo(email: string | null | undefined): boolean {
-  return DEMO_EMAIL.length > 0 && !!email && email.trim().toLowerCase() === DEMO_EMAIL;
+/** ¿La sesión actual es un visitante del demo (usuario anónimo)? */
+export function esSesionDemo(authUser: User | null | undefined): boolean {
+  return !!authUser?.is_anonymous;
 }
 
-/** Auto-login con la cuenta demo. */
-export async function entrarAlDemo(): Promise<{ error: string | null }> {
-  if (!demoDisponible()) return { error: 'El demo no está configurado.' };
-  const { error } = await supabase.auth.signInWithPassword({
-    email: DEMO_EMAIL,
-    password: DEMO_PASSWORD
-  });
-  return { error: error?.message ?? null };
+/** Entra al demo en el rol elegido: sesión anónima + provisión + hard-nav. */
+export async function entrarAlDemo(rol: DemoRol): Promise<{ error: string | null }> {
+  if (!demoDisponible()) return { error: 'El demo no está disponible.' };
+
+  const { error: errAnon } = await supabase.auth.signInAnonymously();
+  if (errAnon) return { error: errAnon.message };
+
+  const { error: errProv } = await supabase.rpc('provisionar_demo' as never, { p_rol: rol } as never);
+  if (errProv) return { error: (errProv as { message: string }).message };
+
+  const ruta = DEMO_VISTAS.find((v) => v.rol === rol)?.ruta ?? '/admin';
+  window.location.href = ruta;
+  return { error: null };
 }
