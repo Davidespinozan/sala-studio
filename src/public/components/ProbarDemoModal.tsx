@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ArrowRight } from 'lucide-react';
-import { DEMO_VISTAS, entrarAlDemo, type DemoRol } from '@shared/lib/demoAuth';
+import { DEMO_VISTAS, entrarAlDemo, type DemoVista } from '@shared/lib/demoAuth';
 
 /** Selector de vista del demo: admin / miembro / recepción → entra sin login. */
 export default function ProbarDemoModal({ onClose }: { onClose: () => void }) {
-  const [cargando, setCargando] = useState<DemoRol | null>(null);
+  const [cargando, setCargando] = useState<DemoVista | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const entrar = async (rol: DemoRol) => {
+  const entrar = async (rol: DemoVista) => {
     setError(null);
     setCargando(rol);
     const { error: err } = await entrarAlDemo(rol);
