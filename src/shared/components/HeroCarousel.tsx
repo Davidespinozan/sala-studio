@@ -12,10 +12,14 @@ import type { LandingHeroSlide } from '@shared/hooks/useLandingConfig';
  */
 export function HeroCarousel({
   slides,
-  intervalMs = 5000
+  intervalMs = 5000,
+  forceMobile = false
 }: {
   slides: LandingHeroSlide[];
   intervalMs?: number;
+  /** Preview móvil: fuerza la imagen 3:4 (el <picture> usa el viewport real,
+   *  que en el panel de admin es ancho, así que no cambiaría solo). */
+  forceMobile?: boolean;
 }) {
   const reduced = usePrefersReducedMotion();
   const n = slides.length;
@@ -52,9 +56,9 @@ export function HeroCarousel({
     >
       {slides.map((s, i) => (
         <picture key={`${i}-${s.desktop}`}>
-          <source media="(max-width: 640px)" srcSet={s.mobile || s.desktop} />
+          {!forceMobile && <source media="(max-width: 640px)" srcSet={s.mobile || s.desktop} />}
           <img
-            src={s.desktop}
+            src={forceMobile ? s.mobile || s.desktop : s.desktop}
             alt=""
             aria-hidden="true"
             className={`sala-hero-slide${i === idx ? ' is-active' : ''}`}

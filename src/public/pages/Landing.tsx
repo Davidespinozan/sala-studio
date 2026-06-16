@@ -261,7 +261,16 @@ function parseBeneficios(raw: unknown): string[] {
  * del admin). Con `preview` true, el full-bleed llena el contenedor (en vez de
  * romper a 100vw) y las alturas se acotan para el panel.
  */
-export function HeroView({ hero, preview = false }: { hero: LandingHero; preview?: boolean }) {
+export function HeroView({
+  hero,
+  preview = false,
+  forceMobile = false
+}: {
+  hero: LandingHero;
+  preview?: boolean;
+  /** En el preview móvil del admin, fuerza la imagen 3:4 del hero. */
+  forceMobile?: boolean;
+}) {
   const onSpotlight = useSpotlight();
   const reduced = usePrefersReducedMotion();
   // Slides del carrusel: los configurados o, si no hay, la imagen única (compat).
@@ -413,7 +422,7 @@ export function HeroView({ hero, preview = false }: { hero: LandingHero; preview
         }}
       >
         {/* Carrusel de fondo (1 imagen = solo Ken Burns). */}
-        <HeroCarousel slides={slides} />
+        <HeroCarousel slides={slides} forceMobile={forceMobile} />
         <div
           aria-hidden="true"
           style={{

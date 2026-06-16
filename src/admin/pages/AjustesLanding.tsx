@@ -514,9 +514,15 @@ export default function AjustesLanding() {
         <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '8px' }}>
           VISTA PREVIA EN VIVO
         </p>
-        <div style={{ maxHeight: '46vh', overflow: 'hidden', borderRadius: '14px' }}>
-          <LandingPreview hero={draft.hero} postHero={draft.post_hero} />
-        </div>
+        <LandingPreview
+          hero={draft.hero}
+          secciones={draft.secciones}
+          postHero={draft.post_hero}
+          ctaFinal={draft.cta_final}
+          faq={draft.faq}
+          footer={draft.footer}
+          mostrarInstructores={draft.mostrar_instructores}
+        />
       </div>
 
       <Section title="HERO" description="La primera impresión cuando alguien visita tu landing.">
