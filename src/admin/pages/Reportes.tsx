@@ -23,6 +23,7 @@ import {
   type MiembroRiesgo
 } from '../hooks/useReportesAvanzados';
 import { useReportesEconomia, type ReportesEconomiaData } from '../hooks/useReportesEconomia';
+import { useReportesEngagement, type ReportesEngagementData } from '../hooks/useReportesEngagement';
 import { useTenant } from '@shared/hooks/useTenant';
 
 const SIMBOLO_MONEDA: Record<string, string> = { mxn: '$', usd: 'US$', eur: '€' };
@@ -77,6 +78,7 @@ export default function Reportes() {
   const { data, isLoading } = useReportes(periodo);
   const { data: avanzado, isLoading: avLoading } = useReportesAvanzados(periodo);
   const { data: economia } = useReportesEconomia();
+  const { data: engagement } = useReportesEngagement();
 
   return (
     <div className="adm-page">
@@ -125,6 +127,7 @@ export default function Reportes() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
           {economia && <BloqueEconomia eco={economia} />}
+          {engagement && <BloqueEngagement eng={engagement} />}
           <BloqueOcupacion data={data} />
           <BloqueMiembros data={data} />
           <BloqueReservas data={data} />
@@ -215,6 +218,45 @@ function BloqueEconomia({ eco }: { eco: ReportesEconomiaData }) {
           </ResponsiveContainer>
         )}
       </ChartCard>
+    </Bloque>
+  );
+}
+
+function BloqueEngagement({ eng }: { eng: ReportesEngagementData }) {
+  return (
+    <Bloque titulo="Uso y activación · hoy">
+      <KpiRow>
+        <KpiCard
+          label="Socios que vienen (MAU)"
+          valor={eng.mau}
+          nota={`de ${eng.activosTotal} activos`}
+          ayuda="Socios activos que tuvieron al menos una clase (reserva) en los últimos 30 días. Es tu base que de verdad usa el gym."
+        />
+        <KpiCard
+          label="% activos que vienen"
+          valor={eng.vienenPct == null ? '—' : `${eng.vienenPct}%`}
+          alerta={eng.vienenPct != null && eng.vienenPct < 50}
+          ayuda="De tus socios que pagan, qué % realmente vino en 30 días. El resto paga pero no viene: el grupo en riesgo silencioso de darse de baja."
+        />
+        <KpiCard
+          label="Stickiness (DAU/MAU)"
+          valor={eng.stickinessPct == null ? '—' : `${eng.stickinessPct}%`}
+          nota={`${eng.dauProm} socios/día prom.`}
+          ayuda="Qué tan seguido vuelven los que vienen: socios únicos por día ÷ socios del mes. Más alto = más hábito (vienen varias veces por semana)."
+        />
+        <KpiCard
+          label="Tasa de activación"
+          valor={eng.activacionPct == null ? '—' : `${eng.activacionPct}%`}
+          alerta={eng.activacionPct != null && eng.activacionPct < 50}
+          nota={`cohorte de ${eng.cohorteAltas} altas (90d)`}
+          ayuda="De los socios nuevos (altas de los últimos 90 días), qué % llegó a reservar su primera clase. Mide qué tan bien arranca un socio nuevo."
+        />
+        <KpiCard
+          label="Tiempo a 1ª reserva"
+          valor={eng.ttvDias == null ? '—' : `${eng.ttvDias} d`}
+          ayuda="Días promedio desde que un socio se da de alta hasta que reserva su primera clase. Cuanto más corto, mejor tu onboarding."
+        />
+      </KpiRow>
     </Bloque>
   );
 }
