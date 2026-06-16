@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@shared/lib/supabase';
-import { consumeSessionHandoff } from '@shared/lib/sessionHandoff';
 import type { Database } from '@shared/types/database';
 
 type Usuario = Database['public']['Tables']['usuarios']['Row'];
@@ -60,10 +59,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     let mounted = true;
-    // 1. Si la URL trae una sesión por hand-off (login en el apex → subdominio
-    //    del tenant), aplicarla ANTES de leer la sesión; luego restaurar normal.
+    // 1. Restaurar sesión al mount.
     (async () => {
-      await consumeSessionHandoff();
       const { data: { session: initialSession } } = await supabase.auth.getSession();
       if (!mounted) return;
       setSession(initialSession);

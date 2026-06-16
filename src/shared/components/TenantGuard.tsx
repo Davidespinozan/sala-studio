@@ -9,7 +9,6 @@ import {
   isTenantFromSubdomain,
   MARKETING_DOMAIN
 } from '@shared/providers/TenantProvider';
-import { buildHandoffUrl } from '@shared/lib/sessionHandoff';
 
 /**
  * Impide que un usuario autenticado OPERE en el tenant equivocado. Compara
@@ -59,17 +58,9 @@ export function TenantGuard({ children }: { children: ReactNode }) {
         setRedirigiendo(false);
         return;
       }
-      // Hand-off: pasamos la sesión al subdominio por el fragmento para que
-      // entre sin loguearse de nuevo. window.location porque es cross-origin.
-      const { data: ses } = await supabase.auth.getSession();
-      const session = ses.session;
-      if (session) {
-        window.location.replace(
-          buildHandoffUrl(slug, MARKETING_DOMAIN, session.access_token, session.refresh_token, '/')
-        );
-      } else {
-        window.location.replace(`https://${slug}.${MARKETING_DOMAIN}/login`);
-      }
+      // Cross-origin (subdominio): la sesión es por origen, así que lo mandamos
+      // a SU login. window.location porque es navegación entre orígenes.
+      window.location.replace(`https://${slug}.${MARKETING_DOMAIN}/login`);
     })();
     return () => {
       cancelado = true;

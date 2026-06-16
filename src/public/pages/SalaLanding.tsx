@@ -10,12 +10,14 @@ import {
   Check,
   Palette,
   QrCode,
+  Search,
   Star,
   Users,
   type LucideIcon
 } from 'lucide-react';
 import { SalaLogo } from '@shared/components/SalaLogo';
 import { BrowserFrame, PhoneFrame } from '../components/DeviceFrame';
+import BuscarEstudio from '../components/BuscarEstudio';
 import {
   MONEDAS,
   PLANES_SAAS,
@@ -116,10 +118,12 @@ function detectarMoneda(): MonedaSaas {
 
 export default function SalaLanding() {
   const moneda = detectarMoneda();
+  const [buscarOpen, setBuscarOpen] = useState(false);
+  const abrirBuscar = () => setBuscarOpen(true);
 
   return (
     <div className="sala-brand" style={{ background: 'var(--sala-bg)', minHeight: '100vh' }}>
-      <Header />
+      <Header onBuscar={abrirBuscar} />
       <Hero />
       <TrustStrip />
       <Features />
@@ -128,7 +132,8 @@ export default function SalaLanding() {
       <Pricing moneda={moneda} />
       <Faq />
       <CtaFinal />
-      <Footer />
+      <Footer onBuscar={abrirBuscar} />
+      {buscarOpen && <BuscarEstudio onClose={() => setBuscarOpen(false)} />}
     </div>
   );
 }
@@ -137,7 +142,7 @@ export default function SalaLanding() {
 // Header
 // ============================================================================
 
-function Header() {
+function Header({ onBuscar }: { onBuscar: () => void }) {
   return (
     <header
       style={{
@@ -159,12 +164,25 @@ function Header() {
         <span className="sala-logo-mark"><SalaLogo variant="isotipo" height={34} /></span>
       </Link>
       <nav style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        <Link
-          to="/login"
-          style={{ fontSize: '14px', fontWeight: 600, color: 'var(--sala-text-secondary)', textDecoration: 'none' }}
+        <button
+          type="button"
+          onClick={onBuscar}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '14px',
+            fontWeight: 600,
+            color: 'var(--sala-text-secondary)'
+          }}
         >
-          Iniciar sesión
-        </Link>
+          <Search size={15} strokeWidth={2.25} />
+          Buscá tu estudio
+        </button>
         <Link to={REGISTRO} className="ek-cta ek-lift" style={{ padding: '10px 18px', minHeight: '40px', fontSize: '14px' }}>
           Creá tu gym
           <ArrowRight size={16} strokeWidth={2.25} />
@@ -833,7 +851,7 @@ function CtaFinal() {
 // Footer
 // ============================================================================
 
-function Footer() {
+function Footer({ onBuscar }: { onBuscar: () => void }) {
   const linkStyle: CSSProperties = {
     fontSize: '13px',
     color: 'var(--sala-text-secondary)',
@@ -863,7 +881,13 @@ function Footer() {
           <p className="ek-eyebrow" style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', margin: '0 0 8px' }}>PRODUCTO</p>
           <a href="#precios" style={linkStyle}>Precios</a>
           <Link to={REGISTRO} style={linkStyle}>Creá tu gym</Link>
-          <Link to="/login" style={linkStyle}>Iniciar sesión</Link>
+          <button
+            type="button"
+            onClick={onBuscar}
+            style={{ ...linkStyle, border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '3px 0' }}
+          >
+            Buscá tu estudio
+          </button>
         </div>
         <div>
           <p className="ek-eyebrow" style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', margin: '0 0 8px' }}>CONTACTO</p>
