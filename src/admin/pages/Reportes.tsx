@@ -26,6 +26,7 @@ import { useReportesEconomia, type ReportesEconomiaData } from '../hooks/useRepo
 import { useReportesEngagement, type ReportesEngagementData } from '../hooks/useReportesEngagement';
 import { useReportesHeatmap, type ReportesHeatmapData } from '../hooks/useReportesHeatmap';
 import { useReportesRecursos, type ReportesRecursosData, type RendimientoFila } from '../hooks/useReportesRecursos';
+import { useReportesOperacion, type ReportesOperacionData } from '../hooks/useReportesOperacion';
 import { useTenant } from '@shared/hooks/useTenant';
 
 const SIMBOLO_MONEDA: Record<string, string> = { mxn: '$', usd: 'US$', eur: '€' };
@@ -83,6 +84,7 @@ export default function Reportes() {
   const { data: engagement } = useReportesEngagement();
   const { data: heatmap } = useReportesHeatmap();
   const { data: recursos } = useReportesRecursos();
+  const { data: operacion } = useReportesOperacion();
 
   return (
     <div className="adm-page">
@@ -135,6 +137,9 @@ export default function Reportes() {
           <BloqueOcupacion data={data} />
           {heatmap && <BloqueHeatmap hm={heatmap} />}
           {recursos && <BloqueRecursos rec={recursos} />}
+          {operacion && (operacion.esperaEntradas > 0 || operacion.membresiasConCreditos > 0) && (
+            <BloqueOperacion op={operacion} />
+          )}
           <BloqueMiembros data={data} />
           <BloqueReservas data={data} />
         </div>
@@ -404,6 +409,40 @@ function TablaRendimiento({ filas, colNombre }: { filas: RendimientoFila[]; colN
         </tbody>
       </table>
     </div>
+  );
+}
+
+function BloqueOperacion({ op }: { op: ReportesOperacionData }) {
+  return (
+    <Bloque titulo="Lista de espera y créditos">
+      <KpiRow>
+        {op.esperaEntradas > 0 && (
+          <KpiCard
+            label="Conversión lista de espera"
+            valor={op.esperaConversionPct == null ? '—' : `${op.esperaConversionPct}%`}
+            nota={`${op.esperaPromovidos} de ${op.esperaEntradas} entradas (90d)`}
+            ayuda="De los que entraron a lista de espera, qué % terminó consiguiendo lugar (se les creó reserva). Bajo = tus clases se llenan y la gente se queda afuera: señal para abrir más cupo u horarios."
+          />
+        )}
+        {op.membresiasConCreditos > 0 && (
+          <>
+            <KpiCard
+              label="Créditos sin usar"
+              valor={op.creditosSinUsar}
+              nota={`en ${op.membresiasConCreditos} membresías por crédito`}
+              ayuda="Total de créditos (clases) ya comprados y todavía sin usar en membresías por paquete. Es un pasivo: clases que tus socios pagaron y van a querer usar."
+            />
+            <KpiCard
+              label="Créditos por vencer (14 d)"
+              valor={op.creditosPorVencer}
+              alerta={op.creditosPorVencer > 0}
+              nota={`${op.membresiasPorVencer} membresías`}
+              ayuda="Créditos que vencen en los próximos 14 días. Avisá a esos socios para que los usen antes de perderlos: oportunidad de retención y de que vuelvan al gym."
+            />
+          </>
+        )}
+      </KpiRow>
+    </Bloque>
   );
 }
 
