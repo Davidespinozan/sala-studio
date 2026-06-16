@@ -359,6 +359,14 @@ export function TenantProvider({ children }: TenantProviderProps) {
    */
   const aplicarTenant = useCallback((data: Tenant) => {
     setTenant(data);
+    // En el host de MARKETING (apex salastudio.app) el tenant cargado es solo un
+    // FALLBACK (hoy healthyspace) para tener contexto — NO su marca. La marca SALA
+    // es fija (.sala-brand + el <head> estático de index.html). Si aplicáramos el
+    // branding del fallback, el apex adquiriría sus colores, fuente, título,
+    // favicon y theme-color del navegador. Por eso, en marketing root no tocamos
+    // nada visual: dejamos los defaults de SALA.
+    if (isMarketingRoot()) return;
+
     // D-017 RESUELTO: aplicar color dinámico del tenant al :root.
     // Pisa --sala-primary/-text/-tint y --sala-accent/-text/-tint; los 20
     // derivados se recalculan vía color-mix() en sala.css.
