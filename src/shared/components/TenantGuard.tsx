@@ -1,40 +1,102 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useAdminPreview } from '@shared/hooks/useAdminPreview';
-import { isTenantFromSubdomain } from '@shared/providers/TenantProvider';
+import { supabase } from '@shared/lib/supabase';
+import {
+  isMarketingRoot,
+  isTenantFromSubdomain,
+  MARKETING_DOMAIN
+} from '@shared/providers/TenantProvider';
+import { buildHandoffUrl } from '@shared/lib/sessionHandoff';
 
 /**
- * Impide que un usuario autenticado OPERE en el subdominio de OTRO tenant.
- * Compara `usuario.tenant_id` (su cuenta) con `tenant.id` (el del subdominio):
- * si no coinciden, muestra un bloqueo + cerrar sesión, en vez de dejarlo operar
- * sobre el gimnasio equivocado (lo que confunde — branding de uno, datos de otro).
+ * Impide que un usuario autenticado OPERE en el tenant equivocado. Compara
+ * `usuario.tenant_id` (su cuenta) con `tenant.id` (el cargado por el host):
+ *
+ *  - En el host de MARKETING (salastudio.app), el tenant cargado es sala-demo
+ *    por fallback. Si el usuario es de OTRO gym, lo REDIRIGIMOS a su subdominio
+ *    (antes se quedaba operando el demo). La sesión es localStorage por origen,
+ *    así que entra de nuevo en su sitio — pero en el gym correcto.
+ *  - En un SUBDOMINIO autoritativo equivocado → bloqueo + cerrar sesión.
  *
  * Las RLS YA aíslan los datos (no es una fuga); esto es integridad/UX.
  *
  * Excepciones:
- *  - `?demo=admin-preview` (los "VER COMO…" del admin) → se saltea el guard.
- *  - Localhost / 127.* / *.netlify.app (dev/preview): el tenant cargado es
- *    'sala-demo' por FALLBACK, no por subdominio → no identifica al gimnasio del
- *    usuario, así que NO bloqueamos (si no, ninguna cuenta real entraría en
- *    local/preview). Solo bloqueamos cuando el subdominio es autoritativo.
- *  - Mientras el usuario no esté hidratado, deja pasar (los guards de cada
- *    layout manejan el no-auth / loading).
+ *  - `?demo=admin-preview` (los "VER COMO…" del admin) → se saltea.
+ *  - Localhost / 127.* / *.netlify.app: el tenant es sala-demo por FALLBACK (no
+ *    identifica al gym del usuario) → no bloqueamos ni redirigimos.
+ *  - Usuario sin hidratar → deja pasar (cada layout maneja el no-auth/loading).
  */
 export function TenantGuard({ children }: { children: ReactNode }) {
   const { usuario, signOut } = useAuth();
   const tenant = useTenant();
   const navigate = useNavigate();
   const isDemoPreview = useAdminPreview();
+  const [redirigiendo, setRedirigiendo] = useState(false);
 
-  const mismatch =
-    !!usuario &&
-    usuario.tenant_id !== tenant.id &&
-    !isDemoPreview &&
-    isTenantFromSubdomain();
+  const mismatch = !!usuario && usuario.tenant_id !== tenant.id && !isDemoPreview;
+  // En marketing (apex): el usuario de otro gym debe ir a SU subdominio.
+  const debeRedirigir = mismatch && isMarketingRoot();
+  // En un subdominio real equivocado: bloquear.
+  const debeBloquear = mismatch && !isMarketingRoot() && isTenantFromSubdomain();
 
-  if (!mismatch) return <>{children}</>;
+  useEffect(() => {
+    if (!debeRedirigir || !usuario) return;
+    let cancelado = false;
+    setRedirigiendo(true);
+    (async () => {
+      const { data } = await supabase
+        .from('tenants')
+        .select('slug')
+        .eq('id', usuario.tenant_id)
+        .maybeSingle();
+      if (cancelado) return;
+      const slug = data?.slug;
+      if (!slug) {
+        // No se pudo resolver el subdominio → caer al bloqueo manual.
+        setRedirigiendo(false);
+        return;
+      }
+      // Hand-off: pasamos la sesión al subdominio por el fragmento para que
+      // entre sin loguearse de nuevo. window.location porque es cross-origin.
+      const { data: ses } = await supabase.auth.getSession();
+      const session = ses.session;
+      if (session) {
+        window.location.replace(
+          buildHandoffUrl(slug, MARKETING_DOMAIN, session.access_token, session.refresh_token, '/')
+        );
+      } else {
+        window.location.replace(`https://${slug}.${MARKETING_DOMAIN}/login`);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [debeRedirigir, usuario]);
+
+  if (debeRedirigir || redirigiendo) {
+    return (
+      <div
+        style={{
+          minHeight: '100dvh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          background: 'var(--ek-bg)',
+          textAlign: 'center'
+        }}
+      >
+        <p style={{ fontSize: '15px', color: 'var(--sala-text-secondary)' }}>
+          Te llevamos al sitio de tu gimnasio…
+        </p>
+      </div>
+    );
+  }
+
+  if (!debeBloquear) return <>{children}</>;
 
   const cerrarSesion = async () => {
     await signOut();
