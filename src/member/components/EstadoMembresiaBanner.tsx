@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { useMembresiaActual, membresiaEstado, type EstadoMembresia } from '@member/hooks/useMembresiaActual';
 import ContactoGymCTA from './ContactoGymCTA';
 
@@ -68,7 +70,25 @@ export default function EstadoMembresiaBanner() {
           {mensaje}
         </p>
         <div style={{ marginTop: '10px' }}>
-          <ContactoGymCTA mensaje={waMensaje} label="Escribir al gimnasio" variant="inline" />
+          {estado === 'sin_membresia' || estado === 'vencida' ? (
+            // Compra/renovación → Perfil (flujo de planes, cableado para Stripe).
+            <Link
+              to="/app/perfil"
+              style={{
+                color: 'var(--sala-accent)',
+                fontWeight: 600,
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              {estado === 'vencida' ? 'Renová tu plan' : 'Elegí tu plan'}
+              <ArrowRight size={15} strokeWidth={2.25} />
+            </Link>
+          ) : (
+            <ContactoGymCTA mensaje={waMensaje} label="Escribir al gimnasio" variant="inline" />
+          )}
         </div>
       </div>
     </div>

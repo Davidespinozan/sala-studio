@@ -6,7 +6,7 @@ import { useToast } from '@shared/hooks/useToast';
 import { supabase } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
 import { useMembresiaActual, membresiaEstado } from '@member/hooks/useMembresiaActual';
-import { useLandingConfig } from '@shared/hooks/useLandingConfig';
+import { iniciarCheckout } from '@shared/lib/checkout';
 
 type Reserva = Database['public']['Tables']['reservas']['Row'];
 type Recurso = Database['public']['Tables']['recursos']['Row'];
@@ -414,17 +414,31 @@ function PlanActualYOpciones({
   tenantNombre: string;
 }) {
   const toast = useToast();
-  const { whatsappUrl } = useLandingConfig();
+  const [enProceso, setEnProceso] = useState(false);
   if (tiers.length === 0) return null;
 
-  // Mientras no haya checkout propio (Stripe va al final), "cambiar plan" abre
-  // el WhatsApp del gym con el pedido pre-cargado — un camino real, no un toast.
-  const avisarCambio = (nombre: string) => {
-    const url = whatsappUrl(`Hola, quiero cambiar mi plan a "${nombre}".`);
-    if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } else {
-      toast.info(`Para cambiar a ${nombre}, hablá con ${tenantNombre}.`);
+  const tieneMembresia = !!membresia;
+
+  // Compra/cambio de plan vía el flujo de checkout (cableado para Stripe). Hoy:
+  // en el demo activa al instante (pago simulado); en tenant real avisa "pago en
+  // camino" hasta conectar Stripe. Con Stripe, iniciarCheckout redirige solo.
+  const suscribir = async (tier: Tier) => {
+    if (enProceso) return;
+    setEnProceso(true);
+    try {
+      const res = await iniciarCheckout(tier.id);
+      if (res.url) return; // redirigió a Stripe
+      if (res.activated) {
+        toast.success(`¡Listo! Tu plan ${tier.nombre} quedó activo.`);
+        setTimeout(() => window.location.reload(), 900);
+        return;
+      }
+      // Tenant real sin Stripe todavía.
+      toast.info(`El pago online está en camino. Por ahora, hablá con ${tenantNombre} para activar tu plan.`);
+      setEnProceso(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No pudimos procesar la suscripción.');
+      setEnProceso(false);
     }
   };
 
@@ -437,7 +451,9 @@ function PlanActualYOpciones({
             key={tier.id}
             tier={tier}
             esActual={membresia?.tier_id === tier.id}
-            onCambiar={() => avisarCambio(tier.nombre)}
+            tieneMembresia={tieneMembresia}
+            enProceso={enProceso}
+            onCambiar={() => void suscribir(tier)}
           />
         ))}
       </div>
@@ -448,10 +464,14 @@ function PlanActualYOpciones({
 function PlanOptionCard({
   tier,
   esActual,
+  tieneMembresia,
+  enProceso,
   onCambiar
 }: {
   tier: Tier;
   esActual: boolean;
+  tieneMembresia: boolean;
+  enProceso: boolean;
   onCambiar: () => void;
 }) {
   const beneficios = Array.isArray(tier.beneficios)
@@ -543,11 +563,12 @@ function PlanOptionCard({
         <button
           type="button"
           onClick={onCambiar}
+          disabled={enProceso}
           className="ek-cta ek-lift ek-cta--full"
-          style={{ marginTop: 'auto', paddingTop: '12px', paddingBottom: '12px', fontSize: '13px' }}
+          style={{ marginTop: 'auto', paddingTop: '12px', paddingBottom: '12px', fontSize: '13px', opacity: enProceso ? 0.6 : 1 }}
         >
-          Cambiar
-          <ArrowRight size={15} strokeWidth={2.25} />
+          {enProceso ? 'Procesando…' : tieneMembresia ? 'Cambiar' : 'Suscribirme'}
+          {!enProceso && <ArrowRight size={15} strokeWidth={2.25} />}
         </button>
       )}
     </div>
