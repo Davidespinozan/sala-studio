@@ -13,7 +13,9 @@ export type LandingHero = {
   titulo_accent: string;
   subtitulo: string;
   cta_texto: string;
-  cta_link: string;
+  /** Link del botón del hero. Opcional: si falta, cae a '#membresias' (el botón
+   *  siempre lleva a la sección de membresías; ya no se edita desde el admin). */
+  cta_link?: string;
   /** Imagen de fondo del hero para DESKTOP (16:9). Vacío = hero de texto. */
   image_url: string;
   /** Imagen de fondo del hero para MÓVIL (3:4 vertical). Cae a la desktop si falta. */

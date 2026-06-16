@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
+import { Link } from 'react-router-dom';
 import { useTenantConfigEditor } from '../hooks/useTenantConfigEditor';
 import { useToast } from '@shared/hooks/useToast';
 import { useTenant } from '@shared/hooks/useTenant';
@@ -60,7 +61,6 @@ type HeroDraft = {
   titulo_accent: string;
   subtitulo: string;
   cta_texto: string;
-  cta_link: string;
   image_url: string;
   image_url_mobile: string;
   imagenes: { desktop: string; mobile: string }[];
@@ -158,7 +158,7 @@ const FAQ_STARTER: FaqDraftItem[] = [
 ];
 
 const EMPTY: LandingDraft = {
-  hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta_link: '', image_url: '', image_url_mobile: '', imagenes: [], layout: 'contenido' },
+  hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', image_url: '', image_url_mobile: '', imagenes: [], layout: 'contenido' },
   secciones: SECCIONES_DEFAULT,
   post_hero: POST_HERO_DEFAULT,
   cta_final: { eyebrow: '', titulo: '', subtitulo: '', cta_texto: '' },
@@ -203,7 +203,6 @@ function readLanding(config: Record<string, unknown> | null): LandingDraft {
       titulo_accent: String(hero.titulo_accent ?? ''),
       subtitulo: String(hero.subtitulo ?? ''),
       cta_texto: String(hero.cta_texto ?? ''),
-      cta_link: String(hero.cta_link ?? ''),
       image_url: String(hero.image_url ?? ''),
       image_url_mobile: String(hero.image_url_mobile ?? ''),
       imagenes: readHeroSlides(hero),
@@ -294,15 +293,35 @@ function PageHeader({
 function FormField({
   label,
   helper,
+  count,
+  max,
   children
 }: {
   label: string;
   helper?: string;
+  /** Si se pasan count+max, muestra un contador "X/N" (ámbar si se pasa). */
+  count?: number;
+  max?: number;
   children: React.ReactNode;
 }) {
+  const showCount = count != null && max != null;
+  const over = showCount && count > max;
   return (
     <div className="ek-form-field" style={{ marginBottom: '14px' }}>
-      <label className="ek-label">{label}</label>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px' }}>
+        <label className="ek-label">{label}</label>
+        {showCount && (
+          <span
+            style={{
+              fontSize: '11px',
+              fontVariantNumeric: 'tabular-nums',
+              color: over ? 'var(--sala-warning)' : 'var(--ek-ink-faint)'
+            }}
+          >
+            {count}/{max}
+          </span>
+        )}
+      </div>
       {children}
       {helper && (
         <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>{helper}</p>
@@ -470,7 +489,9 @@ export default function AjustesLanding() {
   }
 
   function handleDiscard() {
-    setDraft(original);
+    if (window.confirm('¿Descartar los cambios sin guardar? Esta acción no se puede deshacer.')) {
+      setDraft(original);
+    }
   }
 
   // Helpers del carrusel del hero (slides desktop/móvil).
@@ -629,6 +650,8 @@ export default function AjustesLanding() {
         <FormField
           label="Etiqueta superior"
           helper="Texto pequeño que aparece arriba del título principal."
+          count={draft.hero.eyebrow.length}
+          max={40}
         >
           <input
             value={draft.hero.eyebrow}
@@ -638,7 +661,7 @@ export default function AjustesLanding() {
           />
         </FormField>
 
-        <FormField label="Título principal">
+        <FormField label="Título principal" count={draft.hero.titulo.length} max={48}>
           <input
             value={draft.hero.titulo}
             onChange={(e) => setDraft({ ...draft, hero: { ...draft.hero, titulo: e.target.value } })}
@@ -650,6 +673,8 @@ export default function AjustesLanding() {
         <FormField
           label="Palabra destacada (mostaza)"
           helper="Aparece al final del título en color mostaza. Dejá vacío si no querés highlight."
+          count={draft.hero.titulo_accent.length}
+          max={40}
         >
           <input
             value={draft.hero.titulo_accent}
@@ -661,7 +686,7 @@ export default function AjustesLanding() {
           />
         </FormField>
 
-        <FormField label="Subtítulo" helper="Descripción corta del producto.">
+        <FormField label="Subtítulo" helper="Descripción corta del producto." count={draft.hero.subtitulo.length} max={160}>
           <textarea
             value={draft.hero.subtitulo}
             onChange={(e) =>
@@ -675,6 +700,8 @@ export default function AjustesLanding() {
         <FormField
           label="Texto del botón principal"
           helper="El botón lleva automáticamente a la sección de membresías."
+          count={draft.hero.cta_texto.length}
+          max={28}
         >
           <input
             value={draft.hero.cta_texto}
@@ -817,7 +844,7 @@ export default function AjustesLanding() {
       </Section>
 
       <Section title="CALL TO ACTION FINAL" description="El último empujón antes del footer.">
-        <FormField label="Etiqueta superior">
+        <FormField label="Etiqueta superior" count={draft.cta_final.eyebrow.length} max={40}>
           <input
             value={draft.cta_final.eyebrow}
             onChange={(e) =>
@@ -828,7 +855,7 @@ export default function AjustesLanding() {
           />
         </FormField>
 
-        <FormField label="Título">
+        <FormField label="Título" count={draft.cta_final.titulo.length} max={48}>
           <input
             value={draft.cta_final.titulo}
             onChange={(e) =>
@@ -838,7 +865,7 @@ export default function AjustesLanding() {
           />
         </FormField>
 
-        <FormField label="Subtítulo">
+        <FormField label="Subtítulo" count={draft.cta_final.subtitulo.length} max={160}>
           <textarea
             value={draft.cta_final.subtitulo}
             onChange={(e) =>
@@ -852,6 +879,8 @@ export default function AjustesLanding() {
         <FormField
           label="Texto del botón"
           helper={'El número de WhatsApp se configura en "Contacto".'}
+          count={draft.cta_final.cta_texto.length}
+          max={32}
         >
           <input
             value={draft.cta_final.cta_texto}
@@ -865,6 +894,24 @@ export default function AjustesLanding() {
       </Section>
 
       <Section title="FOOTER" description="El pie de página de tu landing.">
+        <p
+          style={{
+            fontSize: '12px',
+            color: 'var(--sala-text-secondary)',
+            background: 'var(--ek-bg-soft)',
+            border: '1px solid var(--ek-line)',
+            borderRadius: '10px',
+            padding: '10px 12px',
+            margin: '0 0 18px',
+            lineHeight: 1.5
+          }}
+        >
+          El WhatsApp y las redes sociales del footer se configuran en{' '}
+          <Link to="/admin/contacto" style={{ color: 'var(--sala-primary)', fontWeight: 600 }}>
+            Ajustes › Contacto
+          </Link>
+          .
+        </p>
         <FormField label="Tagline (debajo del logo)">
           <input
             value={draft.footer.tagline}
