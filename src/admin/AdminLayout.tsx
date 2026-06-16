@@ -4,6 +4,7 @@ import { useAdminGuard } from './hooks/useAdminGuard';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { AppShell } from '@shared/components/AppShell';
 import { TenantGuard } from '@shared/components/TenantGuard';
+import { ModoDemoBanner } from '@shared/components/ModoDemoBanner';
 import { Sidebar } from './components/Sidebar';
 import { SucursalProvider } from './providers/SucursalProvider';
 import { SucursalSelectorBar } from './components/SucursalSelectorBar';
@@ -34,6 +35,7 @@ export default function AdminLayout() {
 
   return (
     <TenantGuard>
+    <ModoDemoBanner />
     <SucursalProvider>
       <AppShell sidebar={({ onNavigate }) => <Sidebar onNavigate={onNavigate} />} roleLabel="ADMIN">
         <SucursalSelectorBar />
