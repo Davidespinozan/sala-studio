@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useVisibilityAwarePolling } from '@shared/hooks/useVisibilityAwarePolling';
@@ -59,12 +59,14 @@ export function useNotificaciones() {
   // sigue cubriendo. Suscribe solo a las del usuario actual (la RLS además
   // garantiza que solo reciba las suyas).
   const usuarioId = usuario?.id;
+  // ID único por INSTANCIA del hook. AppShell monta 2 NotificacionesBell a la vez
+  // (topbar desktop + mobile); con Date.now() ambas colisionaban en el mismo ms →
+  // supabase devolvía el mismo canal ya suscrito y `.on()` tiraba "cannot add
+  // callbacks after subscribe()". useId() garantiza un nombre distinto por bell.
+  const instanceId = useId();
   useEffect(() => {
     if (!usuarioId) return;
-    // Nombre de canal ÚNICO por suscripción: si reusáramos el mismo nombre,
-    // supabase puede devolver un canal ya suscrito y `.on()` tira "cannot add
-    // callbacks after subscribe()". El cleanup remueve este canal puntual.
-    const channel = supabase.channel(`notificaciones:${usuarioId}:${Date.now()}`);
+    const channel = supabase.channel(`notificaciones:${usuarioId}:${instanceId}`);
     channel
       .on(
         'postgres_changes',
@@ -86,7 +88,7 @@ export function useNotificaciones() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [usuarioId]);
+  }, [usuarioId, instanceId]);
 
   const noLeidas = items.filter((n) => !n.leida).length;
 

@@ -296,6 +296,20 @@ export function isMarketingRoot(): boolean {
 }
 
 /**
+ * true si el pathname es una página de MARKETING (landing de producto + onboarding).
+ * Se usa junto con isMarketingRoot para decidir si aplicar el branding del tenant:
+ * en estas páginas NO se aplica (marca SALA fija); en el resto del apex —las vistas
+ * del demo /admin, /app, /recepcion— SÍ se aplica la marca del tenant (healthyspace).
+ */
+export function esRutaMarketing(pathname: string): boolean {
+  return (
+    pathname === '/' ||
+    pathname.startsWith('/para-gimnasios') ||
+    pathname.startsWith('/registro')
+  );
+}
+
+/**
  * true si el slug del tenant viene de un SUBDOMINIO autoritativo (producción),
  * no de un FALLBACK de desarrollo/preview (localhost / 127.* / *.netlify.app) ni
  * del dominio de marketing.
@@ -359,13 +373,15 @@ export function TenantProvider({ children }: TenantProviderProps) {
    */
   const aplicarTenant = useCallback((data: Tenant) => {
     setTenant(data);
-    // En el host de MARKETING (apex salastudio.app) el tenant cargado es solo un
-    // FALLBACK (hoy healthyspace) para tener contexto — NO su marca. La marca SALA
-    // es fija (.sala-brand + el <head> estático de index.html). Si aplicáramos el
-    // branding del fallback, el apex adquiriría sus colores, fuente, título,
-    // favicon y theme-color del navegador. Por eso, en marketing root no tocamos
-    // nada visual: dejamos los defaults de SALA.
-    if (isMarketingRoot()) return;
+    // Solo las PÁGINAS de marketing del apex (landing de producto + onboarding)
+    // deben conservar la marca SALA fija; ahí el tenant es solo un fallback de
+    // contexto y aplicar su branding filtraría sus colores/fuente/título/favicon/
+    // theme-color a superficies que son marca SALA. PERO las vistas del DEMO
+    // (/admin, /app, /recepcion) también viven en el apex y SÍ deben mostrar la
+    // marca del tenant (healthyspace). El demo entra con recarga completa, así que
+    // el pathname al bootear distingue bien marketing de app. Ver memoria
+    // "SALA vs tenant".
+    if (isMarketingRoot() && esRutaMarketing(window.location.pathname)) return;
 
     // D-017 RESUELTO: aplicar color dinámico del tenant al :root.
     // Pisa --sala-primary/-text/-tint y --sala-accent/-text/-tint; los 20
