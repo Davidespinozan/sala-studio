@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { ArrowDown, ArrowUp, Minus, Info } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -24,6 +24,7 @@ import {
 } from '../hooks/useReportesAvanzados';
 import { useReportesEconomia, type ReportesEconomiaData } from '../hooks/useReportesEconomia';
 import { useReportesEngagement, type ReportesEngagementData } from '../hooks/useReportesEngagement';
+import { useReportesHeatmap, type ReportesHeatmapData } from '../hooks/useReportesHeatmap';
 import { useTenant } from '@shared/hooks/useTenant';
 
 const SIMBOLO_MONEDA: Record<string, string> = { mxn: '$', usd: 'US$', eur: '€' };
@@ -79,6 +80,7 @@ export default function Reportes() {
   const { data: avanzado, isLoading: avLoading } = useReportesAvanzados(periodo);
   const { data: economia } = useReportesEconomia();
   const { data: engagement } = useReportesEngagement();
+  const { data: heatmap } = useReportesHeatmap();
 
   return (
     <div className="adm-page">
@@ -129,6 +131,7 @@ export default function Reportes() {
           {economia && <BloqueEconomia eco={economia} />}
           {engagement && <BloqueEngagement eng={engagement} />}
           <BloqueOcupacion data={data} />
+          {heatmap && <BloqueHeatmap hm={heatmap} />}
           <BloqueMiembros data={data} />
           <BloqueReservas data={data} />
         </div>
@@ -257,6 +260,99 @@ function BloqueEngagement({ eng }: { eng: ReportesEngagementData }) {
           ayuda="Días promedio desde que un socio se da de alta hasta que reserva su primera clase. Cuanto más corto, mejor tu onboarding."
         />
       </KpiRow>
+    </Bloque>
+  );
+}
+
+const DOW_LABELS: { dow: number; label: string }[] = [
+  { dow: 1, label: 'Lun' },
+  { dow: 2, label: 'Mar' },
+  { dow: 3, label: 'Mié' },
+  { dow: 4, label: 'Jue' },
+  { dow: 5, label: 'Vie' },
+  { dow: 6, label: 'Sáb' },
+  { dow: 0, label: 'Dom' }
+];
+
+function BloqueHeatmap({ hm }: { hm: ReportesHeatmapData }) {
+  const { salvia } = useChartColors();
+  return (
+    <Bloque titulo="Demanda por día y hora">
+      <ChartCard titulo="Reservas por franja — últimos 90 días (hora local)">
+        {hm.total === 0 ? (
+          <EmptyChart mensaje="Sin reservas suficientes para armar el mapa de demanda." />
+        ) : (
+          <>
+            <div style={{ overflowX: 'auto' }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '38px repeat(7, minmax(32px, 1fr))',
+                  gap: '3px',
+                  minWidth: '320px'
+                }}
+              >
+                <span />
+                {DOW_LABELS.map((d) => (
+                  <span
+                    key={d.dow}
+                    style={{ textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--sala-text-tertiary)' }}
+                  >
+                    {d.label}
+                  </span>
+                ))}
+                {hm.horas.map((h) => (
+                  <Fragment key={h}>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        color: 'var(--sala-text-tertiary)',
+                        textAlign: 'right',
+                        paddingRight: '4px',
+                        alignSelf: 'center',
+                        fontVariantNumeric: 'tabular-nums'
+                      }}
+                    >
+                      {String(h).padStart(2, '0')}h
+                    </span>
+                    {DOW_LABELS.map((d) => {
+                      const c = hm.counts[h][d.dow];
+                      const intensity = c > 0 ? 0.12 + (c / hm.maxCount) * 0.88 : 0;
+                      return (
+                        <div
+                          key={d.dow}
+                          title={`${d.label} ${String(h).padStart(2, '0')}:00 · ${c} reserva${c === 1 ? '' : 's'}`}
+                          style={{
+                            aspectRatio: '1',
+                            borderRadius: '4px',
+                            border: '1px solid var(--sala-border)',
+                            background:
+                              c > 0
+                                ? `color-mix(in srgb, ${salvia} ${Math.round(intensity * 100)}%, transparent)`
+                                : 'var(--sala-bg)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '10px',
+                            fontWeight: 600,
+                            fontVariantNumeric: 'tabular-nums',
+                            color: intensity > 0.55 ? '#fff' : 'var(--sala-text-tertiary)'
+                          }}
+                        >
+                          {c > 0 ? c : ''}
+                        </div>
+                      );
+                    })}
+                  </Fragment>
+                ))}
+              </div>
+            </div>
+            <p style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', margin: '14px 0 0' }}>
+              Más oscuro = más demanda. Abrí clases en las horas pico y recortá el valle.
+            </p>
+          </>
+        )}
+      </ChartCard>
     </Bloque>
   );
 }
