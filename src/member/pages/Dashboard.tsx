@@ -161,7 +161,9 @@ function useClasesDeHoy(tenantId: string, tz: string) {
     }
     void load();
     return () => { mounted = false; };
-  }, [tenantId, usuario, tz]);
+    // usuario?.id (no el objeto): el objeto cambia de referencia en cada
+    // re-hidratación del auth y disparaba re-fetches innecesarios.
+  }, [tenantId, usuario?.id, tz]);
 
   return { clases, reservasMiembro, isLoading };
 }

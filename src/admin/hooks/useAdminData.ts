@@ -74,20 +74,23 @@ export function useMiembroDetalle(miembroId: string | undefined) {
   const refetch = useCallback(async () => {
     if (!miembroId) return;
     setIsLoading(true);
-
-    const [m, r] = await Promise.all([
-      supabase.from('usuarios').select('*').eq('id', miembroId).maybeSingle(),
-      supabase
-        .from('reservas')
-        .select('*, recurso:recursos(id, slug, nombre)')
-        .eq('usuario_id', miembroId)
-        .order('slot_inicio', { ascending: false })
-        .limit(50)
-    ]);
-
-    setMiembro(m.data);
-    setReservas((r.data ?? []) as unknown as ReservaConJoin[]);
-    setIsLoading(false);
+    try {
+      const [m, r] = await Promise.all([
+        supabase.from('usuarios').select('*').eq('id', miembroId).maybeSingle(),
+        supabase
+          .from('reservas')
+          .select('*, recurso:recursos(id, slug, nombre)')
+          .eq('usuario_id', miembroId)
+          .order('slot_inicio', { ascending: false })
+          .limit(50)
+      ]);
+      setMiembro(m.data);
+      setReservas((r.data ?? []) as unknown as ReservaConJoin[]);
+    } catch (err) {
+      console.error('[useMiembroDetalle]', err);
+    } finally {
+      setIsLoading(false);
+    }
   }, [miembroId]);
 
   useEffect(() => { refetch(); }, [refetch]);
@@ -242,6 +245,8 @@ export function useAdminMetrics() {
     let mounted = true;
 
     async function load() {
+      // try/finally: una query que rechace no debe dejar las métricas colgadas.
+      try {
       const now = new Date();
       const inicioHoy = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const finHoy = new Date(inicioHoy.getTime() + 24 * 60 * 60 * 1000);
@@ -333,7 +338,11 @@ export function useAdminMetrics() {
         ocupacion7d,
         proximasReservas: (proximas.data ?? []) as unknown as ReservaConJoin[]
       });
-      setIsLoading(false);
+      } catch (err) {
+        console.error('[useAdminMetrics]', err);
+      } finally {
+        setIsLoading(false);
+      }
     }
 
     load();
