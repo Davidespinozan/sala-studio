@@ -100,7 +100,7 @@ export default function Reservar() {
 
     async function load() {
       // expandir_clases no está en los tipos generados → cast.
-      const rpc = supabase.rpc as unknown as (
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
         name: string,
         args: Record<string, unknown>
       ) => Promise<{ data: ClaseExpansionRow[] | null; error: { message: string } | null }>;

@@ -40,7 +40,7 @@ export function useBitacora() {
     setIsLoading(true);
     setError(null);
 
-    const from = supabase.from as unknown as (t: string) => BitacoraQuery;
+    const from = supabase.from.bind(supabase) as unknown as (t: string) => BitacoraQuery;
     const { data, error: qErr } = await from('auditoria_recepcion')
       .select('id, actor_nombre, actor_rol, accion, entidad, socio_nombre, resumen, detalle, creado_en')
       .eq('tenant_id', tenant.id)

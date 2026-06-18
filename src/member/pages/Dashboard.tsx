@@ -123,7 +123,7 @@ function useClasesDeHoy(tenantId: string, tz: string) {
 
       // Modelo virtual: expandir_clases trae las clases de hoy (virtuales +
       // materializadas) con cupos en `reservados`.
-      const rpc = supabase.rpc as unknown as (
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
         name: string, args: Record<string, unknown>
       ) => Promise<{ data: ClaseExpansionRow[] | null; error: { message: string } | null }>;
       const { data, error } = await rpc('expandir_clases', {

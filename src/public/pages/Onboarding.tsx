@@ -335,7 +335,7 @@ function PasoGym({
       // RPC slug_disponible (SECURITY DEFINER): ve TODOS los estados. Leer
       // `tenants` como anon solo veía los activos → falso "disponible" para
       // slugs de tenants suspendidos.
-      const rpc = supabase.rpc as unknown as (
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
         n: string, a: Record<string, unknown>
       ) => Promise<{ data: boolean | null; error: { message: string } | null }>;
       const { data, error } = await rpc('slug_disponible', { p_slug: slug });

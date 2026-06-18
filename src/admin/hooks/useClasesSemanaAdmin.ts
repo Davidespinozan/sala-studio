@@ -38,7 +38,7 @@ export function useClasesSemanaAdmin(inicioSemana: Date, salaIdFilter?: string) 
     const desdeISO = ymd(new Date(inicioMs));
     const hastaISO = ymd(new Date(inicioMs + 6 * 24 * 60 * 60 * 1000)); // inclusivo
 
-    const rpc = supabase.rpc as unknown as (
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
       name: string, args: Record<string, unknown>
     ) => Promise<{ data: ClaseExpansionRow[] | null; error: { message: string } | null }>;
     const { data, error } = await rpc('expandir_clases', {

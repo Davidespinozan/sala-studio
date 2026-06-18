@@ -125,7 +125,7 @@ export default function ClaseDetalle() {
       }
 
       // 2) Expandir ese día y encontrar la instancia.
-      const rpc = supabase.rpc as unknown as (
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
         name: string, args: Record<string, unknown>
       ) => Promise<{ data: ClaseExpansionRow[] | null; error: { message: string } | null }>;
       const { data, error } = await rpc('expandir_clases', {

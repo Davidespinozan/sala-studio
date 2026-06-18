@@ -21,7 +21,7 @@ export function useAccionRecepcion<TArgs extends Record<string, unknown> = Recor
     setSubmitting(true);
     try {
       // rpcName es dinámico → casteamos para esquivar la unión tipada de rpc().
-      const rpc = supabase.rpc as unknown as (
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
         fn: string,
         params?: Record<string, unknown>
       ) => Promise<{ error: { message: string } | null }>;

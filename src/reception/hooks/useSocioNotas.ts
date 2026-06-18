@@ -25,7 +25,7 @@ export function useSocioNotas(usuarioId: string | undefined) {
     }
     setIsLoading(true);
     // socio_notas no está en los tipos generados → cast.
-    const from = supabase.from as unknown as (t: string) => {
+    const from = supabase.from.bind(supabase) as unknown as (t: string) => {
       select: (c: string) => {
         eq: (col: string, val: string) => {
           order: (col: string, opts: { ascending: boolean }) => PromiseLike<{ data: SocioNota[] | null }>;

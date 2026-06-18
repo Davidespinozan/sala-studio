@@ -25,7 +25,7 @@ export function useEditarCancelarClase(ref: ClaseRef) {
   const [cancelling, setCancelling] = useState(false);
 
   // cancelar_clase / editar_clase_override no están en los tipos generados → cast.
-  const rpc = supabase.rpc as unknown as (
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
     name: string,
     args: Record<string, unknown>
   ) => Promise<{ data: unknown; error: { message: string } | null }>;
