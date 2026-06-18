@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTenant } from '@shared/hooks/useTenant';
 import { type Clase } from '@member/logic/claseAdapter';
 
 interface Props {
@@ -8,15 +9,18 @@ interface Props {
 }
 
 /**
- * Hero dominante del Home: la próxima clase como una EXPERIENCIA con foto de
- * fondo (la sala de esa clase → o la imagen del tenant → o su gradiente), scrim
- * para que el texto se lea, y los CTAs Ver detalle + Mi QR. Todo de datos
- * editables desde admin (foto de la sala, color/acento del tenant).
+ * Hero dominante del Home ("Tu próxima clase", donde está el botón Mi QR): una
+ * EXPERIENCIA con foto de fondo + scrim para que el texto se lea. La foto es la
+ * IMAGEN DEL SOCIO que el tenant eligió en admin (config.member.qr_bg_url); si
+ * no la subió, cae a la foto de la sala de esa clase, y si no, a su gradiente.
  */
 export function ProximaClaseHero({ clase, reservaId }: Props) {
-  // Foto de la SALA de la clase → (sin foto) gradiente de marca. La imagen del
-  // tenant (config.member.qr_bg_url) es solo para el QR, no para acá.
-  const bg = clase.imagenUrl;
+  const tenant = useTenant();
+  const heroImg = (
+    (tenant.config as Record<string, unknown> | null)?.member as Record<string, unknown> | undefined
+  )?.qr_bg_url as string | undefined;
+  // Imagen del socio (admin) → foto de la sala → gradiente de marca.
+  const bg = heroImg || clase.imagenUrl;
 
   return (
     <div

@@ -94,76 +94,44 @@ export default function MiQR() {
     );
   }
 
-  // Foto de fondo del QR, editable por el tenant (config.member.qr_bg_url).
-  const qrBg = ((tenant.config as Record<string, unknown> | null)?.member as
-    | Record<string, unknown>
-    | undefined)?.qr_bg_url as string | undefined;
-
   return (
     <div className="ek-container">
       <div className="ek-stack-xl">
         <Link to="/app/historial" className="adm-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><ArrowLeft size={15} strokeWidth={2.25} />Volver al historial</Link>
 
-        {/* Hero con foto de fondo + scrim a la izquierda (texto legible). Si el
-            tenant no subió foto, cae al gradiente inmersivo de su marca. */}
-        <div
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            borderRadius: 'var(--ek-r-card)',
-            minHeight: '210px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'flex-end',
-            padding: '22px',
-            ...(qrBg
-              ? { backgroundImage: `url(${qrBg})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-              : { background: 'var(--grad-immersive)' })
-          }}
-        >
-          <div
-            aria-hidden="true"
+        <div className="ek-stack-md">
+          <p
             style={{
-              position: 'absolute',
-              inset: 0,
-              background:
-                'linear-gradient(90deg, rgba(8, 12, 10, 0.88) 0%, rgba(8, 12, 10, 0.6) 42%, rgba(8, 12, 10, 0.12) 100%)'
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: 'var(--sala-accent)',
+              margin: 0
             }}
-          />
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <p
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                letterSpacing: '0.16em',
-                textTransform: 'uppercase',
-                color: 'color-mix(in srgb, var(--sala-accent), white 35%)',
-                margin: '0 0 8px'
-              }}
-            >
-              Tu QR de acceso
-            </p>
-            <h1
-              style={{
-                fontFamily: 'var(--ek-font-display)',
-                fontSize: 'clamp(26px, 6vw, 32px)',
-                fontWeight: 700,
-                letterSpacing: '-0.03em',
-                lineHeight: 1.05,
-                color: '#fff',
-                margin: 0
-              }}
-            >
-              {reserva?.recurso?.nombre ?? 'Sala'}
-            </h1>
-            <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.82)', margin: '8px 0 0', lineHeight: 1.45 }}>
-              {new Date(reserva.slot_inicio).toLocaleDateString('es-MX', {
-                weekday: 'long', day: 'numeric', month: 'long', timeZone: tz
-              })}
-              <br />
-              {formatHoraEnTz(new Date(reserva.slot_inicio), tz)} – {formatHoraEnTz(new Date(reserva.slot_fin), tz)}
-            </p>
-          </div>
+          >
+            Tu QR de acceso
+          </p>
+          <h1
+            style={{
+              fontFamily: 'var(--ek-font-display)',
+              fontSize: 'clamp(26px, 6vw, 32px)',
+              fontWeight: 700,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.05,
+              color: 'var(--sala-text-primary)',
+              margin: 0
+            }}
+          >
+            {reserva?.recurso?.nombre ?? 'Sala'}
+          </h1>
+          <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', margin: 0, lineHeight: 1.45 }}>
+            {new Date(reserva.slot_inicio).toLocaleDateString('es-MX', {
+              weekday: 'long', day: 'numeric', month: 'long', timeZone: tz
+            })}
+            <br />
+            {formatHoraEnTz(new Date(reserva.slot_inicio), tz)} – {formatHoraEnTz(new Date(reserva.slot_fin), tz)}
+          </p>
         </div>
 
         {/* Contenedor blanco DELIBERADO: el scanner necesita contraste

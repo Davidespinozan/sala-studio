@@ -288,8 +288,8 @@ export default function AjustesMarca() {
       </Section>
 
       <Section
-        title="IMAGEN DEL QR DEL SOCIO"
-        description="Foto de fondo de la pantalla 'Mi QR' en la app del socio (lleva un degradé a la izquierda para que el texto se lea encima). Se guarda al instante. Recomendado: foto apaisada de tu espacio, mínimo 1200px de ancho."
+        title="IMAGEN DE LA PRÓXIMA CLASE (SOCIO)"
+        description="Foto de fondo del bloque 'Tu próxima clase' en el inicio de la app del socio (lleva un degradé a la izquierda para que el texto se lea encima). Se guarda al instante. Recomendado: foto apaisada de tu espacio, mínimo 1200px de ancho."
       >
         <ImageUploader
           bucket="estudios"
