@@ -2470,7 +2470,11 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   align-items: center;
 }
 @media (min-width: 860px) {
-  .sala-showcase-row { grid-template-columns: 1fr 1fr; }
+  /* La columna del media (captura) es ~15% más ancha que la del texto: las
+     capturas de escritorio se ven más grandes. En reverse se invierte para que
+     el media siga siendo el lado ancho. Los teléfonos (ancho fijo) no cambian. */
+  .sala-showcase-row { grid-template-columns: 0.85fr 1.15fr; }
+  .sala-showcase-row.reverse { grid-template-columns: 1.15fr 0.85fr; }
   .sala-showcase-row.reverse .sala-showcase-media { order: -1; }
 }
 

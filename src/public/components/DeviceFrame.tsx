@@ -29,16 +29,9 @@ function Placeholder({ label }: { label: string }) {
   );
 }
 
-/** Marco de ventana de browser para capturas de escritorio (16:10). */
-export function BrowserFrame({
-  src,
-  alt,
-  url = 'tu-estudio.salastudio.app'
-}: {
-  src?: string;
-  alt: string;
-  url?: string;
-}) {
+/** Marco de ventana (macOS) para capturas de escritorio (16:10). Sin barra de
+ *  URL — solo el titlebar con los 3 puntos, para que la captura mande. */
+export function BrowserFrame({ src, alt }: { src?: string; alt: string }) {
   return (
     <div
       style={{
@@ -54,37 +47,15 @@ export function BrowserFrame({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
-          padding: '10px 14px',
+          gap: '6px',
+          padding: '9px 14px',
           borderBottom: '1px solid var(--sala-border)',
           background: 'var(--sala-bg)'
         }}
       >
-        <span style={{ display: 'flex', gap: '6px' }}>
-          {['#f0625a', '#f6be4f', '#5bcf66'].map((c) => (
-            <span key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c, opacity: 0.85 }} />
-          ))}
-        </span>
-        <span
-          style={{
-            flex: 1,
-            textAlign: 'center',
-            fontSize: '11px',
-            color: 'var(--sala-text-tertiary)',
-            background: 'var(--sala-surface)',
-            border: '1px solid var(--sala-border)',
-            borderRadius: '999px',
-            padding: '3px 12px',
-            maxWidth: '260px',
-            margin: '0 auto',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          {url}
-        </span>
-        <span style={{ width: 34 }} />
+        {['#f0625a', '#f6be4f', '#5bcf66'].map((c) => (
+          <span key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c, opacity: 0.85 }} />
+        ))}
       </div>
       <div style={{ position: 'relative', aspectRatio: '16 / 10', background: 'var(--sala-surface)' }}>
         {src ? (
