@@ -1,5 +1,5 @@
-import { useState, FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect, FormEvent } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
@@ -8,14 +8,23 @@ import { esTenantDemo, DEMO_LOGIN } from '@shared/lib/demoAuth';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const tenant = useTenant();
   const tieneIsotipo =
     typeof (tenant.branding as Record<string, unknown> | null)?.isotipo_url === 'string';
-  // En el gym demo: pre-cargamos el socio de ejemplo para que el visitante solo
-  // tenga que tocar "Iniciar sesión" y vea el flujo real de login.
+  // En el gym demo: pre-cargamos el socio de ejemplo para que se vea cómo luce
+  // el login personalizado. `preview` = abrieron "Vista login" desde el demo:
+  // es solo para MOSTRAR la pantalla, no para loguear.
   const esDemo = esTenantDemo(tenant.slug);
+  const preview = new URLSearchParams(location.search).get('demo') === 'login-preview';
   const [email, setEmail] = useState(esDemo ? DEMO_LOGIN.email : '');
   const [password, setPassword] = useState(esDemo ? DEMO_LOGIN.password : '');
+
+  // Preview del login: si quedó una sesión previa, la cerramos para mostrar la
+  // pantalla logueada-out de verdad (sin esto rebotaba a /app = "se logea solo").
+  useEffect(() => {
+    if (preview) void supabase.auth.signOut().catch(() => {});
+  }, [preview]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,8 +91,8 @@ export default function Login() {
                   color: 'var(--sala-text-secondary)'
                 }}
               >
-                <strong style={{ color: 'var(--sala-text-primary)' }}>Demo:</strong> ya cargamos un
-                socio de ejemplo. Solo tocá <strong>Iniciar sesión</strong> para entrar.
+                <strong style={{ color: 'var(--sala-text-primary)' }}>Vista previa:</strong> así ven
+                tus socios su login. Cargamos un socio de ejemplo por si querés entrar.
               </div>
             )}
             <div className="ek-form-field">

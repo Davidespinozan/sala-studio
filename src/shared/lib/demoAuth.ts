@@ -67,11 +67,13 @@ export async function entrarAlDemo(vista: DemoVista): Promise<{ error: string | 
     return { error: null };
   }
 
-  // Login: abre la pantalla de inicio de sesión del gym demo (que pre-carga el
-  // socio de ejemplo). Cerramos sesión previa para no rebotar al área logueada.
+  // Login: PREVIEW del login personalizado del gym — solo para que vean cómo se
+  // ve su pantalla de inicio de sesión con su marca. NO loguea. El flag
+  // ?demo=login-preview evita que el role-redirect saque al visitante a /app si
+  // quedó una sesión previa (ese era el "se logea automáticamente").
   if (vista === 'login') {
     await supabase.auth.signOut().catch(() => {});
-    window.location.href = `https://healthyspace.${MARKETING_DOMAIN}/login`;
+    window.location.href = `https://healthyspace.${MARKETING_DOMAIN}/login?demo=login-preview`;
     return { error: null };
   }
 

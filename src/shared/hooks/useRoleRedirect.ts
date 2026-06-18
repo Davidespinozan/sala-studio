@@ -31,6 +31,10 @@ export function useRoleRedirect(redirectPaths: string[] = ['/', '/login', '/sign
     latchAdminPreview(location.search);
     if (isAdminPreview(location.search)) return;
 
+    // Vista login del demo: previsualizar el login personalizado sin que el
+    // redirect saque al visitante a /app aunque quede una sesión.
+    if (new URLSearchParams(location.search).get('demo') === 'login-preview') return;
+
     if (usuario.rol === 'admin') navigate('/admin', { replace: true });
     else if (usuario.rol === 'recepcionista') navigate('/recepcion', { replace: true });
     else navigate('/app', { replace: true });
