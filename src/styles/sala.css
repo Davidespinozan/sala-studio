@@ -2304,11 +2304,41 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 }
 
 /* Móvil: "Creá tu gym" del hero es redundante (vive fijo en el menú de arriba).
-   Lo ocultamos para limpiar y dejar el demo como acción principal. */
+   Lo ocultamos; y los 2 CTAs que quedan (Probar demo / Ver precios) van lado a
+   lado en una sola fila para no dejar aire vacío. */
 @media (max-width: 640px) {
   .sala-hero-cta-primary {
     display: none;
   }
+  .sala-hero-ctas {
+    flex-wrap: nowrap;
+    gap: 10px;
+  }
+  .sala-hero-ctas > * {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}
+
+/* Showcase del producto sobre una banda verde SALA (primario): da identidad y
+   profundidad a toda la sección (de "Tu web, tu marca" hasta "Mapa de salón"). */
+.sala-showcase-band {
+  background:
+    radial-gradient(
+      110% 60% at 50% 0%,
+      color-mix(in srgb, var(--sala-primary) 22%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--sala-primary) 12%, var(--sala-bg)) 0%,
+      color-mix(in srgb, var(--sala-primary) 7%, var(--sala-bg)) 100%
+    );
+  border-top: 1px solid var(--sala-border);
+  border-bottom: 1px solid var(--sala-border);
 }
 
 /* ============================================================================

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { ImageIcon } from 'lucide-react';
 
 /**
@@ -29,9 +30,30 @@ function Placeholder({ label }: { label: string }) {
   );
 }
 
+// Sangra 1px por todos lados → mata el sliver de fondo en las esquinas
+// redondeadas (el "margen blanco"). El recorte es imperceptible.
+const BLEED: CSSProperties = {
+  position: 'absolute',
+  top: '-1px',
+  left: '-1px',
+  width: 'calc(100% + 2px)',
+  height: 'calc(100% + 2px)',
+  objectFit: 'cover',
+  display: 'block'
+};
+
 /** Marco para capturas de escritorio (16:10). Sin barra de ventana — solo la
- *  captura en un marco redondeado, para que la imagen mande. */
-export function BrowserFrame({ src, alt }: { src?: string; alt: string }) {
+ *  captura/video en un marco redondeado, para que la imagen mande. Si se pasa
+ *  `video`, reproduce un loop mudo (con `src` como poster); si no, la imagen. */
+export function BrowserFrame({
+  src,
+  alt,
+  video
+}: {
+  src?: string;
+  alt: string;
+  video?: { mp4?: string; webm?: string };
+}) {
   return (
     <div
       style={{
@@ -45,22 +67,22 @@ export function BrowserFrame({ src, alt }: { src?: string; alt: string }) {
         boxShadow: '0 30px 70px rgba(10, 15, 12, 0.28)'
       }}
     >
-      {src ? (
-        // Sangra 1px por todos lados → mata el sliver de fondo en las esquinas
-        // redondeadas (el "margen blanco"). El recorte es imperceptible.
-        <img
-          src={src}
-          alt={alt}
-          style={{
-            position: 'absolute',
-            top: '-1px',
-            left: '-1px',
-            width: 'calc(100% + 2px)',
-            height: 'calc(100% + 2px)',
-            objectFit: 'cover',
-            display: 'block'
-          }}
-        />
+      {video ? (
+        <video
+          poster={src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-label={alt}
+          style={BLEED}
+        >
+          {video.webm && <source src={video.webm} type="video/webm" />}
+          {video.mp4 && <source src={video.mp4} type="video/mp4" />}
+        </video>
+      ) : src ? (
+        <img src={src} alt={alt} style={BLEED} />
       ) : (
         <Placeholder label="Vista del producto" />
       )}

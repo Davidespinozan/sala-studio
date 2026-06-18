@@ -313,7 +313,7 @@ function Hero() {
                 Reservas, membresías, check-in y reportes — el sistema operativo de tu estudio,
                 con tu marca y tu dominio.
               </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '32px' }}>
+              <div className="sala-hero-ctas" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '32px' }}>
                 <Link
                   to={REGISTRO}
                   className="ek-cta ek-lift sala-hero-cta-primary"
@@ -517,23 +517,30 @@ function ShowcaseRow({
 
 function Showcase() {
   return (
-    <section
-      style={{
-        padding: 'clamp(40px, 7vw, 80px) clamp(16px, 5vw, 48px)',
-        maxWidth: '1280px',
-        margin: '0 auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'clamp(48px, 8vw, 96px)'
-      }}
-    >
+    <section className="sala-showcase-band">
+      <div
+        style={{
+          padding: 'clamp(40px, 7vw, 80px) clamp(16px, 5vw, 48px)',
+          maxWidth: '1280px',
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'clamp(48px, 8vw, 96px)'
+        }}
+      >
       <Reveal>
         <ShowcaseRow
           reverse
           eyebrow="Tu web, tu marca"
           titulo="Tu propia web, con tu cara."
           texto="Tu hero, tus salas, tus instructores y tus planes — en tu dominio y con tu marca. Tus socios llegan a una página que es 100% tuya y reservan al instante. La nuestra no aparece por ningún lado."
-          media={<BrowserFrame src={shot('estudio')} alt="Landing pública del gym con su propia marca" />}
+          media={
+            <BrowserFrame
+              src={shot('estudio')}
+              video={{ webm: '/shots/estudio-hero.webm', mp4: '/shots/estudio-hero.mp4' }}
+              alt="Landing pública del gym con su propia marca y hero rotativo"
+            />
+          }
         />
       </Reveal>
       <Reveal>
@@ -570,6 +577,7 @@ function Showcase() {
           media={<PhoneFrame src={shot('mapa')} alt="Socio eligiendo su lugar en el Mapa de Salón" />}
         />
       </Reveal>
+      </div>
     </section>
   );
 }
