@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowDown, ArrowRight, Clock, Sparkles, type LucideIcon } from 'lucide-react';
+import { Activity, ArrowDown, ArrowRight, CalendarCheck, Clock, Sparkles, type LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
@@ -169,6 +169,51 @@ function useClasesDeHoy(tenantId: string, tz: string) {
   return { clases, reservasMiembro, isLoading };
 }
 
+/**
+ * Resumen rápido del socio (chips de progreso del Home): cuántas reservas
+ * próximas tiene y cuántas sesiones completó este mes. Datos del PROPIO socio
+ * (no del tenant) → no hay nada que configurar en admin.
+ */
+function useResumenRapido(usuarioId: string | undefined) {
+  const [proximas, setProximas] = useState(0);
+  const [sesionesMes, setSesionesMes] = useState(0);
+
+  useEffect(() => {
+    if (!usuarioId) return;
+    let mounted = true;
+    async function load() {
+      const inicioMes = new Date();
+      inicioMes.setDate(1);
+      inicioMes.setHours(0, 0, 0, 0);
+
+      const [px, ses] = await Promise.all([
+        supabase
+          .from('reservas')
+          .select('id', { count: 'exact', head: true })
+          .eq('usuario_id', usuarioId!)
+          .eq('status', 'confirmada')
+          .gte('slot_inicio', new Date().toISOString()),
+        supabase
+          .from('reservas')
+          .select('id', { count: 'exact', head: true })
+          .eq('usuario_id', usuarioId!)
+          .eq('status', 'completada')
+          .gte('check_in_at', inicioMes.toISOString())
+      ]);
+
+      if (!mounted) return;
+      setProximas(px.count ?? 0);
+      setSesionesMes(ses.count ?? 0);
+    }
+    void load();
+    return () => {
+      mounted = false;
+    };
+  }, [usuarioId]);
+
+  return { proximas, sesionesMes };
+}
+
 // ============================================================================
 // Helpers
 // ============================================================================
@@ -202,6 +247,7 @@ export default function Dashboard() {
     tz
   );
   const { items: listasEspera } = useMisListasEspera();
+  const { proximas, sesionesMes } = useResumenRapido(usuario?.id);
 
   const ahora = new Date();
   const bloqueado = !!usuario?.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > ahora;
@@ -281,6 +327,11 @@ export default function Dashboard() {
       ) : (
         <EmptyProximaClaseInline />
       )}
+
+      {/* Resumen rápido (chips de progreso) */}
+      <section style={{ marginBottom: '40px' }}>
+        <ResumenRapido proximas={proximas} sesionesMes={sesionesMes} />
+      </section>
 
       {/* En lista de espera */}
       {listasEspera.length > 0 && (
@@ -613,6 +664,92 @@ function SkeletonScrollRow() {
           style={{ width: '180px', height: '140px', flexShrink: 0, borderRadius: '16px' }}
         />
       ))}
+    </div>
+  );
+}
+
+// ============================================================================
+// ResumenRapido — chips de progreso glanceables del Home
+// ============================================================================
+
+/**
+ * Fila de chips de progreso del socio (Reservas próximas · Sesiones este mes ·
+ * Membresía). Convierte el Home de "herramienta de reserva" a "tu progreso":
+ * lo primero que ves al abrir. Usa tokens → se adapta a la marca del tenant.
+ */
+function ResumenRapido({ proximas, sesionesMes }: { proximas: number; sesionesMes: number }) {
+  const { membresia } = useMembresiaActual();
+  const estado = membresiaEstado(membresia);
+  const memTexto =
+    estado === 'sana'
+      ? 'Activa'
+      : estado === 'congelada'
+        ? 'Pausada'
+        : estado === 'vencida'
+          ? 'Vencida'
+          : estado === 'sin_creditos'
+            ? 'Sin créditos'
+            : 'Sin plan';
+
+  const chips: { icon: LucideIcon; label: string; value: string }[] = [
+    {
+      icon: CalendarCheck,
+      label: 'Reservas',
+      value: `${proximas} ${proximas === 1 ? 'próxima' : 'próximas'}`
+    },
+    { icon: Activity, label: 'Sesiones', value: `${sesionesMes} este mes` },
+    { icon: Sparkles, label: 'Membresía', value: memTexto }
+  ];
+
+  return (
+    <div style={{ display: 'flex', gap: '10px' }}>
+      {chips.map((c) => {
+        const Icon = c.icon;
+        return (
+          <div
+            key={c.label}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '7px',
+              padding: '14px 13px',
+              background: 'var(--sala-surface)',
+              border: '1px solid var(--sala-border)',
+              borderRadius: '16px'
+            }}
+          >
+            <Icon size={17} strokeWidth={2} style={{ color: 'var(--sala-primary)' }} />
+            <span
+              style={{
+                fontFamily: 'var(--ek-font-display)',
+                fontSize: '16px',
+                fontWeight: 700,
+                letterSpacing: '-0.02em',
+                lineHeight: 1.1,
+                color: 'var(--sala-text-primary)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              {c.value}
+            </span>
+            <span
+              style={{
+                fontSize: '10.5px',
+                fontWeight: 600,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                color: 'var(--sala-text-tertiary)'
+              }}
+            >
+              {c.label}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
