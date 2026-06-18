@@ -107,6 +107,52 @@ export function applyBranding(branding: BrandingColors | null | undefined): void
 }
 
 /**
+ * Tema del tenant (claro/oscuro), elegible desde admin (config.tema). El OSCURO
+ * deriva los NEUTROS (lienzo/superficies/texto/border) del PRIMARIO del tenant
+ * → cada gym se viste de SU color en versión oscura premium (verde bosque para
+ * healthyspace, navy para uno azul, etc.). No es una paleta preestablecida:
+ * todo nace de los colores que el tenant ya eligió. 'claro' (o ausente) deja los
+ * neutros claros del :root (lo de siempre).
+ */
+const TEMA_NEUTROS = [
+  '--sala-bg',
+  '--sala-surface',
+  '--sala-border',
+  '--sala-border-strong',
+  '--sala-text-primary',
+  '--sala-text-secondary',
+  '--sala-text-tertiary',
+  '--sala-primary-light',
+  '--sala-accent-light'
+];
+
+export function applyTema(tema: string | null | undefined): void {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  if (tema !== 'oscuro') {
+    // Vuelve a los defaults claros del :root.
+    TEMA_NEUTROS.forEach((k) => root.style.removeProperty(k));
+    root.style.removeProperty('color-scheme');
+    return;
+  }
+  const set = (k: string, v: string) => root.style.setProperty(k, v);
+  // Lienzo oscuro tintado con el primario del tenant (como --grad-immersive).
+  set('--sala-bg', 'color-mix(in srgb, var(--sala-primary) 14%, #070a08)');
+  set('--sala-surface', 'color-mix(in srgb, var(--sala-primary) 22%, #0c100e)');
+  set('--sala-border', 'rgba(255, 255, 255, 0.09)');
+  set('--sala-border-strong', 'rgba(255, 255, 255, 0.17)');
+  set('--sala-text-primary', '#F1F4F1');
+  set('--sala-text-secondary', 'color-mix(in srgb, var(--sala-primary) 14%, #9aa9a0)');
+  set('--sala-text-tertiary', 'color-mix(in srgb, var(--sala-primary) 10%, #6c776f)');
+  // Los tints "-light" se usan para tiles/badges claros; sobre oscuro hay que
+  // subirlos para que se vean (si no, quedan casi como el fondo).
+  set('--sala-primary-light', 'color-mix(in srgb, var(--sala-primary) 26%, var(--sala-surface))');
+  set('--sala-accent-light', 'color-mix(in srgb, var(--sala-accent) 26%, var(--sala-surface))');
+  // Form controls nativos (scrollbars, inputs) en modo oscuro.
+  set('color-scheme', 'dark');
+}
+
+/**
  * Aplica el branding del tenant al <head>: favicon (= isotipo, o favicon_url si
  * lo definió), apple-touch-icon, y meta OG/Twitter (título + imagen social).
  * Así el isotipo aparece en la pestaña del navegador, al instalar la PWA, y al
@@ -387,6 +433,7 @@ export function TenantProvider({ children }: TenantProviderProps) {
     // Pisa --sala-primary/-text/-tint y --sala-accent/-text/-tint; los 20
     // derivados se recalculan vía color-mix() en sala.css.
     applyBranding(data.branding as BrandingColors | null);
+    applyTema((data.config as Record<string, unknown> | null)?.tema as string | undefined);
     if (data.nombre) document.title = data.nombre;
     // Favicon (= isotipo), apple-touch-icon y meta OG/Twitter desde el branding:
     // el isotipo del tenant aparece en la pestaña, en la PWA y al compartir el link.
