@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTenant } from '@shared/hooks/useTenant';
 import { type Clase } from '@member/logic/claseAdapter';
 
 interface Props {
@@ -7,133 +8,145 @@ interface Props {
   reservaId: string;
 }
 
-/** Card hero del Home con la próxima clase reservada del miembro.
- *  Banda lateral salvia + degradé suave + 2 CTAs (Ver detalle + Mi QR). */
+/**
+ * Hero dominante del Home: la próxima clase como una EXPERIENCIA con foto de
+ * fondo (la sala de esa clase → o la imagen del tenant → o su gradiente), scrim
+ * para que el texto se lea, y los CTAs Ver detalle + Mi QR. Todo de datos
+ * editables desde admin (foto de la sala, color/acento del tenant).
+ */
 export function ProximaClaseHero({ clase, reservaId }: Props) {
+  const tenant = useTenant();
+  const tenantBg = (
+    (tenant.config as Record<string, unknown> | null)?.member as Record<string, unknown> | undefined
+  )?.qr_bg_url as string | undefined;
+  // Foto de la sala de la clase → imagen del tenant → (sin foto) gradiente marca.
+  const bg = clase.imagenUrl || tenantBg;
+
   return (
     <div
       style={{
         position: 'relative',
-        background: 'linear-gradient(135deg, var(--sala-surface) 0%, var(--sala-primary-light) 100%)',
-        border: '1px solid var(--sala-border)',
-        borderRadius: '20px',
-        padding: '24px',
-        paddingLeft: '28px',
-        boxShadow: '0 4px 16px rgba(26, 31, 28, 0.06)',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        borderRadius: '22px',
+        minHeight: '264px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+        padding: '22px',
+        boxShadow: '0 24px 56px -18px rgba(0, 0, 0, 0.55)',
+        ...(bg
+          ? {
+              backgroundColor: '#0c100e',
+              backgroundImage: `url(${bg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }
+          : { background: 'var(--grad-immersive)' })
       }}
     >
-      {/* Banda lateral salvia */}
+      {/* Scrim: oscuro suave a la izquierda + abajo → la FOTO se ve y el texto
+          igual se lee. Más liviano que un overlay que la tape. */}
       <div
         aria-hidden="true"
         style={{
           position: 'absolute',
-          top: 0,
-          bottom: 0,
-          left: 0,
-          width: '4px',
-          background: 'var(--sala-primary)',
-          borderRadius: '20px 0 0 20px'
+          inset: 0,
+          background:
+            'linear-gradient(116deg, rgba(7, 11, 9, 0.78) 0%, rgba(7, 11, 9, 0.34) 52%, rgba(7, 11, 9, 0) 100%), linear-gradient(0deg, rgba(7, 11, 9, 0.72) 0%, transparent 50%)'
         }}
       />
 
-      <p
-        style={{
-          fontSize: '11px',
-          fontWeight: 700,
-          letterSpacing: '0.18em',
-          textTransform: 'uppercase',
-          color: 'var(--sala-primary)',
-          margin: 0,
-          marginBottom: '10px'
-        }}
-      >
-        Tu próxima clase
-      </p>
-
-      <h2
-        style={{
-          fontFamily: 'var(--ek-font-display)',
-          fontSize: 'clamp(26px, 6vw, 32px)',
-          fontWeight: 700,
-          letterSpacing: '-0.03em',
-          lineHeight: 1.1,
-          margin: 0,
-          marginBottom: '8px',
-          color: 'var(--sala-text-primary)'
-        }}
-      >
-        {clase.nombre}
-      </h2>
-
-      <p
-        style={{
-          fontSize: '15px',
-          fontWeight: 500,
-          color: 'var(--sala-text-secondary)',
-          margin: 0,
-          marginBottom: '4px',
-          fontVariantNumeric: 'tabular-nums'
-        }}
-      >
-        {clase.horaHumanaLabel}
-      </p>
-
-      <p
-        style={{
-          fontSize: '13px',
-          color: 'var(--sala-text-tertiary)',
-          margin: 0,
-          marginBottom: '20px'
-        }}
-      >
-        {clase.instructorNombre ? `con ${clase.instructorNombre}` : 'Instructor por confirmar'}
-        {clase.salaNombre && clase.salaNombre !== clase.nombre && ` · ${clase.salaNombre}`}
-      </p>
-
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        <Link
-          to={`/app/clase/${encodeURIComponent(clase.id)}`}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <p
           style={{
-            padding: '10px 18px',
-            minHeight: '40px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '999px',
-            background: 'var(--sala-surface)',
-            color: 'var(--sala-text-primary)',
-            border: '1px solid var(--sala-border-strong)',
-            fontSize: '13px',
-            fontWeight: 600,
-            textDecoration: 'none'
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'color-mix(in srgb, var(--sala-accent), white 38%)',
+            margin: '0 0 9px'
           }}
         >
-          Ver detalle
-        </Link>
-        <Link
-          to={`/app/qr/${reservaId}`}
-          className="ek-lift"
+          Tu próxima clase
+        </p>
+
+        <h2
           style={{
-            padding: '10px 22px',
-            minHeight: '40px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '999px',
-            background: 'var(--grad-accent)',
-            color: 'var(--sala-text-on-accent)',
-            border: '1px solid var(--sala-accent)',
-            fontSize: '13px',
-            fontWeight: 600,
-            textDecoration: 'none',
-            boxShadow: '0 4px 14px var(--sala-accent-dim), inset 0 1px 0 rgba(255, 255, 255, 0.16)',
-            gap: '6px'
+            fontFamily: 'var(--ek-font-display)',
+            fontSize: 'clamp(28px, 7vw, 36px)',
+            fontWeight: 700,
+            letterSpacing: '-0.03em',
+            lineHeight: 1.05,
+            margin: '0 0 8px',
+            color: '#fff'
           }}
         >
-          Mi QR
-          <ArrowRight size={16} strokeWidth={2.25} />
-        </Link>
+          {clase.nombre}
+        </h2>
+
+        <p
+          style={{
+            fontSize: '15px',
+            fontWeight: 600,
+            color: 'rgba(255, 255, 255, 0.9)',
+            margin: '0 0 3px',
+            fontVariantNumeric: 'tabular-nums'
+          }}
+        >
+          {clase.horaHumanaLabel}
+        </p>
+
+        <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.66)', margin: '0 0 20px' }}>
+          {clase.instructorNombre ? `con ${clase.instructorNombre}` : 'Instructor por confirmar'}
+          {clase.salaNombre && clase.salaNombre !== clase.nombre && ` · ${clase.salaNombre}`}
+        </p>
+
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <Link
+            to={`/app/clase/${encodeURIComponent(clase.id)}`}
+            style={{
+              padding: '11px 18px',
+              minHeight: '42px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '999px',
+              background: 'rgba(255, 255, 255, 0.12)',
+              color: '#fff',
+              border: '1px solid rgba(255, 255, 255, 0.28)',
+              fontSize: '13px',
+              fontWeight: 600,
+              textDecoration: 'none',
+              backdropFilter: 'blur(6px)',
+              WebkitBackdropFilter: 'blur(6px)'
+            }}
+          >
+            Ver detalle
+          </Link>
+          <Link
+            to={`/app/qr/${reservaId}`}
+            className="ek-lift"
+            style={{
+              padding: '11px 22px',
+              minHeight: '42px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '999px',
+              background: 'var(--grad-accent)',
+              color: 'var(--sala-text-on-accent)',
+              border: '1px solid var(--sala-accent)',
+              fontSize: '13px',
+              fontWeight: 600,
+              textDecoration: 'none',
+              boxShadow: '0 6px 18px var(--sala-accent-dim), inset 0 1px 0 rgba(255, 255, 255, 0.18)',
+              gap: '6px'
+            }}
+          >
+            Mi QR
+            <ArrowRight size={16} strokeWidth={2.25} />
+          </Link>
+        </div>
       </div>
     </div>
   );
