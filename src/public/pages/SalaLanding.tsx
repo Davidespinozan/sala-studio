@@ -396,7 +396,7 @@ function TrustStrip() {
 
 function Features() {
   return (
-    <section className="sala-section-features">
+    <section className="sala-band sala-section-features">
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 clamp(16px, 5vw, 48px)' }}>
         <SectionEyebrow label="Todo lo que necesitás" />
         <h2 style={sectionTitle}>Una plataforma, no diez herramientas sueltas.</h2>
@@ -526,32 +526,40 @@ function Showcase() {
         gap: 'clamp(48px, 8vw, 96px)'
       }}
     >
-      <ShowcaseRow
-        eyebrow="Para tus socios"
-        titulo="Tu app, en el bolsillo de cada socio."
-        texto="Reservan, entran a lista de espera y muestran su QR desde el celular. Sin descargar nada: es una web app instalable con tu marca."
-        media={<PhoneFrame src={shot('socio')} alt="App del socio reservando una clase" />}
-      />
-      <ShowcaseRow
-        reverse
-        eyebrow="Para tu recepción"
-        titulo="Check-in con QR. Cero filas, cero planillas."
-        texto="Cada socio llega con su código. Recepción escanea, valida el acceso y registra la asistencia en segundos — todo queda en la ficha."
-        media={<BrowserFrame src={shot('checkin')} alt="Check-in con QR en recepción" />}
-      />
-      <ShowcaseRow
-        eyebrow="Para vos, el dueño"
-        titulo="Sabé qué clases llenan y a quién estás perdiendo."
-        texto="Ocupación, asistencia, retención y churn en un panel claro. Dejás de adivinar y empezás a decidir con datos."
-        media={<BrowserFrame src={shot('dashboard')} alt="Dashboard con métricas de retención" />}
-      />
-      <ShowcaseRow
-        reverse
-        eyebrow="Mapa de salón"
-        titulo="Cada socio elige su lugar."
-        texto="Diseñás tu salón —bicis, mats o reformers— y cada socio reserva su lugar exacto desde la app. Recepción ve quién va dónde y reacomoda en segundos. El detalle premium que un estudio boutique merece."
-        media={<PhoneFrame src={shot('mapa')} alt="Socio eligiendo su lugar en el Mapa de Salón" />}
-      />
+      <Reveal>
+        <ShowcaseRow
+          eyebrow="Para tus socios"
+          titulo="Tu app, en el bolsillo de cada socio."
+          texto="Reservan, entran a lista de espera y muestran su QR desde el celular. Sin descargar nada: es una web app instalable con tu marca."
+          media={<PhoneFrame src={shot('socio')} alt="App del socio reservando una clase" />}
+        />
+      </Reveal>
+      <Reveal>
+        <ShowcaseRow
+          reverse
+          eyebrow="Para tu recepción"
+          titulo="Check-in con QR. Cero filas, cero planillas."
+          texto="Cada socio llega con su código. Recepción escanea, valida el acceso y registra la asistencia en segundos — todo queda en la ficha."
+          media={<BrowserFrame src={shot('checkin')} alt="Check-in con QR en recepción" />}
+        />
+      </Reveal>
+      <Reveal>
+        <ShowcaseRow
+          eyebrow="Para vos, el dueño"
+          titulo="Sabé qué clases llenan y a quién estás perdiendo."
+          texto="Ocupación, asistencia, retención y churn en un panel claro. Dejás de adivinar y empezás a decidir con datos."
+          media={<BrowserFrame src={shot('dashboard')} alt="Dashboard con métricas de retención" />}
+        />
+      </Reveal>
+      <Reveal>
+        <ShowcaseRow
+          reverse
+          eyebrow="Mapa de salón"
+          titulo="Cada socio elige su lugar."
+          texto="Diseñás tu salón —bicis, mats o reformers— y cada socio reserva su lugar exacto desde la app. Recepción ve quién va dónde y reacomoda en segundos. El detalle premium que un estudio boutique merece."
+          media={<PhoneFrame src={shot('mapa')} alt="Socio eligiendo su lugar en el Mapa de Salón" />}
+        />
+      </Reveal>
     </section>
   );
 }
@@ -562,49 +570,51 @@ function Showcase() {
 
 function Pasos() {
   return (
-    <section style={{ padding: 'clamp(32px, 6vw, 64px) clamp(16px, 5vw, 48px)', maxWidth: '1100px', margin: '0 auto' }}>
-      <SectionEyebrow label="Cómo funciona" />
-      <h2 style={sectionTitle}>De cero a recibiendo reservas en una tarde.</h2>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
-          gap: '16px',
-          marginTop: '32px'
-        }}
-      >
-        {PASOS.map((p) => (
-          <div key={p.n}>
-            <p
-              style={{
-                fontFamily: 'var(--ek-font-display)',
-                fontSize: '40px',
-                fontWeight: 700,
-                letterSpacing: '-0.04em',
-                color: 'var(--sala-primary)',
-                margin: 0,
-                opacity: 0.9
-              }}
-            >
-              {p.n}
-            </p>
-            <h3
-              style={{
-                fontFamily: 'var(--ek-font-display)',
-                fontSize: '20px',
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
-                margin: '8px 0 6px',
-                color: 'var(--sala-text-primary)'
-              }}
-            >
-              {p.titulo}
-            </h3>
-            <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--sala-text-secondary)', margin: 0 }}>
-              {p.texto}
-            </p>
-          </div>
-        ))}
+    <section className="sala-band">
+      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 clamp(16px, 5vw, 48px)' }}>
+        <SectionEyebrow label="Cómo funciona" />
+        <h2 style={sectionTitle}>De cero a recibiendo reservas en una tarde.</h2>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
+            gap: '16px',
+            marginTop: '32px'
+          }}
+        >
+          {PASOS.map((p, i) => (
+            <Reveal key={p.n} delay={((i % 3) + 1) as 1 | 2 | 3}>
+              <p
+                style={{
+                  fontFamily: 'var(--ek-font-display)',
+                  fontSize: '40px',
+                  fontWeight: 700,
+                  letterSpacing: '-0.04em',
+                  color: 'var(--sala-primary)',
+                  margin: 0,
+                  opacity: 0.9
+                }}
+              >
+                {p.n}
+              </p>
+              <h3
+                style={{
+                  fontFamily: 'var(--ek-font-display)',
+                  fontSize: '20px',
+                  fontWeight: 700,
+                  letterSpacing: '-0.02em',
+                  margin: '8px 0 6px',
+                  color: 'var(--sala-text-primary)'
+                }}
+              >
+                {p.titulo}
+              </h3>
+              <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--sala-text-secondary)', margin: 0 }}>
+                {p.texto}
+              </p>
+            </Reveal>
+          ))}
+        </div>
       </div>
     </section>
   );

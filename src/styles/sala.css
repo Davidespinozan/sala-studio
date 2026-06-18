@@ -2314,9 +2314,10 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 /* ============================================================================
    SECCIÓN FEATURES — banda propia (no plana) + tarjetas con vida
    ============================================================================ */
-.sala-section-features {
-  /* Banda diferenciada: matiz de marca arriba que se funde al fondo + filos
-     finos → se siente una sección distinta, no un lienzo plano. */
+/* Banda de sección diferenciada: matiz de marca arriba que se funde al fondo +
+   filos finos → cada banda se siente una sección distinta, no un lienzo plano.
+   Se alterna con secciones planas (Showcase/Pricing) para dar ritmo a la página. */
+.sala-band {
   padding: clamp(44px, 7vw, 84px) 0;
   background: linear-gradient(
     180deg,
