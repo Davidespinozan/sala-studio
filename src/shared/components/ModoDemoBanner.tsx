@@ -43,7 +43,7 @@ export function ModoDemoBanner() {
             fontWeight: 700
           }}
         >
-          Creá tu gym
+          Crea tu gym
         </a>
         <button
           type="button"

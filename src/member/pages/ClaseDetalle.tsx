@@ -711,7 +711,9 @@ export default function ClaseDetalle() {
                 {llena
                   ? 'Clase llena'
                   : pocos
-                    ? `¡Quedan ${clase.cupoMax - clase.cuposReservados} lugares!`
+                    ? clase.cupoMax - clase.cuposReservados === 1
+                      ? '¡Queda 1 lugar!'
+                      : `¡Quedan ${clase.cupoMax - clase.cuposReservados} lugares!`
                     : `${clase.cuposReservados}/${clase.cupoMax} reservados`}
               </p>
               {!llena && !pocos && (
