@@ -39,7 +39,10 @@ export function ProximaClaseHero({ clase, reservaId }: Props) {
               backgroundColor: '#0c100e',
               backgroundImage: `url(${bg})`,
               backgroundSize: 'cover',
-              backgroundPosition: 'center'
+              // Anclá la foto a la DERECHA: el scrim oscuro y el texto van a la
+              // izquierda, así que si el alto/ancho obliga a recortar, que recorte
+              // del lado izquierdo (tapado por el scrim) y nunca del derecho.
+              backgroundPosition: 'right center'
             }
           : { background: 'var(--grad-immersive)' })
       }}
