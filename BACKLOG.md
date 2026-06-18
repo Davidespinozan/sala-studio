@@ -43,7 +43,7 @@ Conectar = seguir `STRIPE.md` + `grep -rn "TODO STRIPE"`. No requiere UI ni lóg
 - [ ] **Soporte SALA por WhatsApp** en el panel admin (botón directo dueño→soporte). Retención. *No existe (el WhatsApp actual es tenant→sus socios).*
 
 ### Tier 2 — Diferenciador de producto (el corazón del plan)
-- [ ] **Creador de Mapa de Salón dinámico** (drag-and-drop): el admin diseña el salón con iconos según disciplina (bici / mat / reformer). + **selección de lugar al reservar** (socio elige su spot). *No depende de Stripe. EL feature.*
+- [x] **Creador de Mapa de Salón dinámico** ✅ (Lotes 1–5): builder admin + selección de lugar del socio + ocupación en recepción/admin + seed demo (Cycling). Multidisciplina (bici/mat/reformer), editable por gym.
 - [ ] **Módulo de Asignación de Accesorios** (genérico): tallas de zapatillas (spinning), guantes (boxeo), mats/bloques (yoga). Supera al "Shoe Manager" por ser multidisciplina.
 
 ### Tier 3 — Adquisición / canales
@@ -68,9 +68,11 @@ Conectar = seguir `STRIPE.md` + `grep -rn "TODO STRIPE"`. No requiere UI ni lóg
 
 ---
 
-## Hecho esta semana (referencia)
+## Hecho (referencia)
 - Demo migrado a `healthyspace` (sala-demo borrado), apex con marca SALA fija.
-- Demo pulido: 4 vistas, 2 sedes pobladas, ~1.6k reservas, MRR ~$35k.
+- Demo pulido: 4 vistas, 2 sedes pobladas, ~1.6k reservas, MRR ~$35k, Bitácora sembrada.
 - Compra de membresía **cableada** para Stripe (RPC + functions + UI + `STRIPE.md`).
 - Hardening post-auditoría (slug real, dashboards sin loading eterno, stubs borrados).
 - e2e Fase 1 (read-only) + runbook de staging (`E2E.md`).
+- **Mapa de Salón completo** (Tier 2) — builder + selección + ocupación + seed.
+- Fixes: crash `this.rest` (bind supabase tras bump), menú ⋮ recortado (portal).
