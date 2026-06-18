@@ -51,13 +51,27 @@ export function SeleccionarLugar({
                   justifyContent: 'center', borderRadius: '9px', fontFamily: 'inherit',
                   fontSize: layout.cols > 8 ? '11px' : '13px', fontWeight: 700, lineHeight: 1,
                   cursor: ocupado ? 'not-allowed' : 'pointer',
-                  border: elegido ? '2px solid var(--sala-primary)' : '1px solid var(--sala-border)',
-                  background: elegido ? 'var(--sala-primary)' : ocupado ? 'var(--sala-bg)' : 'var(--sala-surface)',
-                  color: elegido ? 'var(--sala-primary-text)' : ocupado ? 'var(--sala-text-tertiary)' : 'var(--sala-text-primary)',
-                  opacity: ocupado ? 0.45 : 1
+                  // Contraste fuerte: ELEGIDO = primario sólido; OCUPADO = gris
+                  // sólido apagado; LIBRE = borde primario + fondo claro (tappable).
+                  border: elegido
+                    ? '2px solid var(--sala-primary)'
+                    : ocupado
+                      ? '1px solid transparent'
+                      : '1.5px solid var(--sala-primary)',
+                  background: elegido
+                    ? 'var(--sala-primary)'
+                    : ocupado
+                      ? 'color-mix(in srgb, var(--sala-text-tertiary) 32%, var(--sala-bg))'
+                      : 'color-mix(in srgb, var(--sala-primary) 8%, var(--sala-surface))',
+                  color: elegido
+                    ? 'var(--sala-primary-text)'
+                    : ocupado
+                      ? 'var(--sala-text-tertiary)'
+                      : 'var(--sala-primary)',
+                  opacity: ocupado ? 0.6 : 1
                 }}
               >
-                <span style={{ fontSize: layout.cols > 8 ? '13px' : '16px' }}>{emoji}</span>
+                <span style={{ fontSize: layout.cols > 8 ? '13px' : '16px' }}>{ocupado ? '×' : emoji}</span>
                 <span>{lugar.label}</span>
               </button>
             );
@@ -66,9 +80,9 @@ export function SeleccionarLugar({
       </div>
 
       <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', marginTop: '10px', fontSize: '11px', color: 'var(--sala-text-tertiary)' }}>
-        <Leyenda color="var(--sala-surface)" borde="var(--sala-border)" label="Libre" />
+        <Leyenda color="color-mix(in srgb, var(--sala-primary) 8%, var(--sala-surface))" borde="var(--sala-primary)" label="Libre" />
         <Leyenda color="var(--sala-primary)" borde="var(--sala-primary)" label="Tu lugar" />
-        <Leyenda color="var(--sala-bg)" borde="var(--sala-border)" label="Ocupado" />
+        <Leyenda color="color-mix(in srgb, var(--sala-text-tertiary) 32%, var(--sala-bg))" borde="transparent" label="Ocupado" />
       </div>
     </div>
   );
