@@ -37,7 +37,8 @@ const SHOTS = {
   agenda: '/shots/agenda.png',
   socio: '/shots/socio.png',
   checkin: '/shots/checkin.png',
-  dashboard: '/shots/dashboard.png'
+  dashboard: '/shots/dashboard.png',
+  mapa: '/shots/mapa.png'
 };
 // Mientras no existan los archivos, mostramos placeholder (evita el ícono de
 // imagen rota). Cuando subas las capturas, poné USAR_SHOTS = true.
@@ -525,12 +526,19 @@ function Showcase() {
       />
       <ShowcaseRow
         reverse
+        eyebrow="Mapa de salón"
+        titulo="Cada socio elige su lugar."
+        texto="Diseñás tu salón —bicis, mats o reformers— y cada socio reserva su lugar exacto desde la app. Recepción ve quién va dónde y reacomoda en segundos. El detalle premium que un estudio boutique merece."
+        media={<PhoneFrame src={shot('mapa')} alt="Socio eligiendo su lugar en el Mapa de Salón" />}
+      />
+      <ShowcaseRow
         eyebrow="Para tu recepción"
         titulo="Check-in con QR. Cero filas, cero planillas."
         texto="Cada socio llega con su código. Recepción escanea, valida el acceso y registra la asistencia en segundos — todo queda en la ficha."
         media={<BrowserFrame src={shot('checkin')} alt="Check-in con QR en recepción" url="recepcion.salastudio.app" />}
       />
       <ShowcaseRow
+        reverse
         eyebrow="Para vos, el dueño"
         titulo="Sabé qué clases llenan y a quién estás perdiendo."
         texto="Ocupación, asistencia, retención y churn en un panel claro. Dejás de adivinar y empezás a decidir con datos."
