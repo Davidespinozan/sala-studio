@@ -43,6 +43,20 @@ test('admin — dashboard + agenda', async ({ page }) => {
   await page.screenshot({ path: `${DIR}/agenda.png` });
 });
 
+test('estudio — landing pública del gym', async ({ page }) => {
+  // La landing del tenant vive en su subdominio (no en localhost), así que esta
+  // se captura contra PROD. Es el hero branded de healthyspace para el showcase.
+  await page.setViewportSize({ width: 1040, height: 650 }); // 16:10 para el BrowserFrame
+  await page.goto('https://healthyspace.salastudio.app', { waitUntil: 'networkidle', timeout: 45_000 });
+  await page.waitForTimeout(2500);
+  await page.addStyleTag({
+    content: `.modo-demo-banner,[class*="DemoBanner"],[class*="demo-banner"]{display:none!important}`
+  });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${DIR}/estudio.png` });
+});
+
 test('recepción — check-in', async ({ page }) => {
   await page.setViewportSize({ width: 1040, height: 650 }); // 16:10 para el BrowserFrame
   await entrarDemo(page, 'Vista recepción');

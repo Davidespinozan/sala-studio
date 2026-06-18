@@ -39,7 +39,8 @@ const SHOTS = {
   socio: '/shots/socio.png',
   checkin: '/shots/checkin.png',
   dashboard: '/shots/dashboard.png',
-  mapa: '/shots/mapa.png'
+  mapa: '/shots/mapa.png',
+  estudio: '/shots/estudio.png'
 };
 // Mientras no existan los archivos, mostramos placeholder (evita el ícono de
 // imagen rota). Cuando subas las capturas, poné USAR_SHOTS = true.
@@ -526,6 +527,15 @@ function Showcase() {
         gap: 'clamp(48px, 8vw, 96px)'
       }}
     >
+      <Reveal>
+        <ShowcaseRow
+          reverse
+          eyebrow="Tu web, tu marca"
+          titulo="Tu propia web, con tu cara."
+          texto="Tu hero, tus salas, tus instructores y tus planes — en tu dominio y con tu marca. Tus socios llegan a una página que es 100% tuya y reservan al instante. La nuestra no aparece por ningún lado."
+          media={<BrowserFrame src={shot('estudio')} alt="Landing pública del gym con su propia marca" />}
+        />
+      </Reveal>
       <Reveal>
         <ShowcaseRow
           eyebrow="Para tus socios"

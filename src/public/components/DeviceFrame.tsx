@@ -40,13 +40,27 @@ export function BrowserFrame({ src, alt }: { src?: string; alt: string }) {
         aspectRatio: '16 / 10',
         borderRadius: '14px',
         overflow: 'hidden',
-        border: '1px solid var(--sala-border)',
+        // Sin borde: leía como un margen blanco milimétrico. La sombra ya separa.
         background: 'var(--sala-surface)',
         boxShadow: '0 30px 70px rgba(10, 15, 12, 0.28)'
       }}
     >
       {src ? (
-        <img src={src} alt={alt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        // Sangra 1px por todos lados → mata el sliver de fondo en las esquinas
+        // redondeadas (el "margen blanco"). El recorte es imperceptible.
+        <img
+          src={src}
+          alt={alt}
+          style={{
+            position: 'absolute',
+            top: '-1px',
+            left: '-1px',
+            width: 'calc(100% + 2px)',
+            height: 'calc(100% + 2px)',
+            objectFit: 'cover',
+            display: 'block'
+          }}
+        />
       ) : (
         <Placeholder label="Vista del producto" />
       )}
