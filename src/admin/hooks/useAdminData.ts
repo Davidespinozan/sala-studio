@@ -4,6 +4,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { useSucursal } from '@admin/providers/SucursalProvider';
 import { backendPost } from '@shared/lib/backend';
 import type { Database } from '@shared/types/database';
+import type { SalaLayout } from '@shared/lib/salaLayout';
 
 type Usuario = Database['public']['Tables']['usuarios']['Row'];
 type Recurso = Database['public']['Tables']['recursos']['Row'];
@@ -164,6 +165,21 @@ export async function updateRecurso(
   >>
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.from('recursos').update(patch).eq('id', recursoId);
+  return { error: error?.message ?? null };
+}
+
+/**
+ * Guarda (o quita) el Mapa de Salón de una sala. `layout` aún no está en los
+ * tipos generados → cast. Al guardar un mapa, sincroniza `cupo_max_default` con
+ * la cantidad de lugares (con mapa, el cupo = nº de lugares).
+ */
+export async function updateRecursoLayout(
+  recursoId: string,
+  layout: SalaLayout | null
+): Promise<{ error: string | null }> {
+  const patch: Record<string, unknown> = { layout };
+  if (layout) patch.cupo_max_default = Math.max(1, layout.lugares.length);
+  const { error } = await supabase.from('recursos').update(patch as never).eq('id', recursoId);
   return { error: error?.message ?? null };
 }
 

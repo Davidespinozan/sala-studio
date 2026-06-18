@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pencil, Copy, Trash2, Check, Circle, ChevronDown, ChevronRight, X, RotateCcw } from 'lucide-react';
+import { Pencil, Copy, Trash2, Check, Circle, ChevronDown, ChevronRight, X, RotateCcw, Map } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useSucursal } from '../providers/SucursalProvider';
@@ -16,7 +16,14 @@ import Toggle from '../components/Toggle';
 import ImageUploader from '../components/ImageUploader';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CardMenuDropdown from '../components/CardMenuDropdown';
+import { MapaBuilderModal } from '../components/recurso/MapaBuilderModal';
+import type { SalaLayout } from '@shared/lib/salaLayout';
 import type { Database } from '@shared/types/database';
+
+/** layout aún no está en los tipos generados → lectura con cast. */
+function getLayout(r: unknown): SalaLayout | null {
+  return ((r as { layout?: SalaLayout | null }).layout) ?? null;
+}
 
 type Recurso = Database['public']['Tables']['recursos']['Row'];
 type RecursoInsert = Database['public']['Tables']['recursos']['Insert'];
@@ -81,6 +88,7 @@ export default function Recursos() {
   const toast = useToast();
   const { recursos, isLoading, refetch } = useRecursosAdmin();
   const [modal, setModal] = useState<ModalState>(null);
+  const [mapaRecurso, setMapaRecurso] = useState<Recurso | null>(null);
   const [archivando, setArchivando] = useState<Recurso | null>(null);
   const [borrarPerm, setBorrarPerm] = useState<HardDeleteState>(null);
   const [mostrarArchivados, setMostrarArchivados] = useState(false);
@@ -251,6 +259,7 @@ export default function Recursos() {
                   onEdit={() => setModal({ mode: 'edit', recurso: r })}
                   onDuplicate={() => handleDuplicar(r)}
                   onArchive={() => setArchivando(r)}
+                  onMapa={() => setMapaRecurso(r)}
                   duplicating={duplicandoId === r.id}
                 />
               ))
@@ -313,6 +322,19 @@ export default function Recursos() {
           onSaved={async () => {
             await refetch();
             setModal(null);
+          }}
+        />
+      )}
+
+      {mapaRecurso && (
+        <MapaBuilderModal
+          recursoId={mapaRecurso.id}
+          recursoNombre={mapaRecurso.nombre}
+          layoutActual={getLayout(mapaRecurso)}
+          onClose={() => setMapaRecurso(null)}
+          onSaved={async () => {
+            await refetch();
+            setMapaRecurso(null);
           }}
         />
       )}
@@ -395,17 +417,20 @@ function RecursoRow({
   onEdit,
   onDuplicate,
   onArchive,
+  onMapa,
   duplicating
 }: {
   recurso: Recurso;
   onEdit: () => void;
   onDuplicate: () => void;
   onArchive: () => void;
+  onMapa: () => void;
   duplicating: boolean;
 }) {
   const equipo = (r.equipo_incluido ?? []).slice(0, 3).join(', ');
   const equipoMas = (r.equipo_incluido?.length ?? 0) > 3 ? '…' : '';
   const contenido = (r.tipo_contenido ?? []).join(' / ');
+  const layout = getLayout(r);
 
   return (
     <div
@@ -462,7 +487,9 @@ function RecursoRow({
           </p>
         )}
         <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '2px' }}>
-          Cupo: {r.cupo_max_default} por clase
+          {layout
+            ? `Mapa: ${layout.lugares.length} lugar(es) · el socio elige su lugar`
+            : `Cupo: ${r.cupo_max_default} por clase`}
         </p>
         <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '4px' }}>
           Plan: {r.tiers_permitidos.join(', ') || '—'}
@@ -485,6 +512,7 @@ function RecursoRow({
       <CardMenuDropdown
         items={[
           { label: 'Editar', icon: <Pencil size={15} />, onClick: onEdit },
+          { label: layout ? 'Editar mapa' : 'Diseñar mapa', icon: <Map size={15} />, onClick: onMapa },
           { label: duplicating ? 'Duplicando…' : 'Duplicar', icon: <Copy size={15} />, onClick: onDuplicate, disabled: duplicating },
           { label: 'Eliminar', icon: <Trash2 size={15} />, onClick: onArchive, danger: true, divider: true }
         ]}
