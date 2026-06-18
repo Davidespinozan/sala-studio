@@ -1,6 +1,5 @@
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useTenant } from '@shared/hooks/useTenant';
 import { type Clase } from '@member/logic/claseAdapter';
 
 interface Props {
@@ -15,12 +14,9 @@ interface Props {
  * editables desde admin (foto de la sala, color/acento del tenant).
  */
 export function ProximaClaseHero({ clase, reservaId }: Props) {
-  const tenant = useTenant();
-  const tenantBg = (
-    (tenant.config as Record<string, unknown> | null)?.member as Record<string, unknown> | undefined
-  )?.qr_bg_url as string | undefined;
-  // Foto de la sala de la clase → imagen del tenant → (sin foto) gradiente marca.
-  const bg = clase.imagenUrl || tenantBg;
+  // Foto de la SALA de la clase → (sin foto) gradiente de marca. La imagen del
+  // tenant (config.member.qr_bg_url) es solo para el QR, no para acá.
+  const bg = clase.imagenUrl;
 
   return (
     <div
