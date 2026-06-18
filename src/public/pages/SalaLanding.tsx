@@ -42,7 +42,7 @@ const SHOTS = {
 };
 // Mientras no existan los archivos, mostramos placeholder (evita el ícono de
 // imagen rota). Cuando subas las capturas, poné USAR_SHOTS = true.
-const USAR_SHOTS = false;
+const USAR_SHOTS = true;
 const shot = (key: keyof typeof SHOTS): string | undefined => (USAR_SHOTS ? SHOTS[key] : undefined);
 
 /**
