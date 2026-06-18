@@ -643,50 +643,85 @@ function MembresiaCard() {
   const estado = membresiaEstado(membresia);
   const { value, problema } = membresiaCardTexto(membresia, estado);
 
-  // Paleta — sana usa el estilo neutro del QuickAccessCard; estado problemático
-  // tinta sutilmente el borde y el eyebrow (no llega a banner — eso ya está
-  // en el layout). Mantiene la altura para no romper el grid.
-  const eyebrowColor = problema
-    ? estado === 'vencida' || estado === 'sin_membresia'
-      ? 'var(--sala-error)'
-      : 'var(--sala-warning)'
-    : 'var(--sala-text-tertiary)';
-  const borderColor = problema
-    ? estado === 'vencida' || estado === 'sin_membresia'
-      ? 'var(--sala-error-glow)'
-      : 'var(--sala-warning-glow)'
-    : 'var(--sala-border)';
+  // Estado problemático → card neutra con borde/eyebrow tintados (no carnet).
+  if (problema) {
+    const eyebrowColor =
+      estado === 'vencida' || estado === 'sin_membresia'
+        ? 'var(--sala-error)'
+        : 'var(--sala-warning)';
+    const borderColor =
+      estado === 'vencida' || estado === 'sin_membresia'
+        ? 'var(--sala-error-glow)'
+        : 'var(--sala-warning-glow)';
+    return (
+      <Link
+        to="/app/perfil"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px',
+          height: '100%',
+          padding: '16px 18px',
+          background: 'var(--sala-surface)',
+          border: `1px solid ${borderColor}`,
+          borderRadius: '14px',
+          textDecoration: 'none',
+          color: 'var(--sala-text-primary)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Sparkles aria-hidden="true" size={16} strokeWidth={2.25} style={{ color: eyebrowColor }} />
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: eyebrowColor
+            }}
+          >
+            Mi membresía
+          </span>
+        </div>
+        <p style={{ fontSize: '15px', fontWeight: 600, margin: 0, color: 'var(--sala-text-primary)', lineHeight: 1.35 }}>
+          {value}
+        </p>
+      </Link>
+    );
+  }
 
+  // Membresía sana → CARNET dorado (acento del tenant) con el nombre del plan.
   return (
     <Link
       to="/app/perfil"
+      className="ek-lift"
       style={{
+        position: 'relative',
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        gap: '6px',
+        gap: '5px',
+        height: '100%',
         padding: '16px 18px',
-        background: 'var(--sala-surface)',
-        border: `1px solid ${borderColor}`,
         borderRadius: '14px',
+        background: 'var(--grad-accent)',
+        border: '1px solid var(--sala-accent)',
+        boxShadow:
+          '0 8px 22px var(--sala-accent-dim), inset 0 1px 0 rgba(255, 255, 255, 0.28)',
         textDecoration: 'none',
-        color: 'var(--sala-text-primary)',
-        transition: 'border-color 0.18s ease, transform 0.12s ease'
+        color: 'var(--sala-text-on-accent)'
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Sparkles
-          aria-hidden="true"
-          size={16}
-          strokeWidth={2.25}
-          style={{ color: problema ? eyebrowColor : 'var(--sala-primary)' }}
-        />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+        <Sparkles aria-hidden="true" size={14} strokeWidth={2.5} style={{ color: 'var(--sala-text-on-accent)', opacity: 0.85 }} />
         <span
           style={{
-            fontSize: '11px',
+            fontSize: '10.5px',
             fontWeight: 700,
-            letterSpacing: '0.12em',
+            letterSpacing: '0.14em',
             textTransform: 'uppercase',
-            color: eyebrowColor
+            color: 'var(--sala-text-on-accent)',
+            opacity: 0.82
           }}
         >
           Mi membresía
@@ -694,13 +729,18 @@ function MembresiaCard() {
       </div>
       <p
         style={{
-          fontSize: '15px',
-          fontWeight: 600,
+          fontFamily: 'var(--ek-font-display)',
+          fontSize: '19px',
+          fontWeight: 700,
+          letterSpacing: '-0.02em',
           margin: 0,
-          color: 'var(--sala-text-primary)',
-          lineHeight: 1.35
+          color: 'var(--sala-text-on-accent)',
+          lineHeight: 1.1
         }}
       >
+        {membresia?.tier_nombre ?? 'Plan'}
+      </p>
+      <p style={{ fontSize: '12.5px', fontWeight: 600, margin: 0, color: 'var(--sala-text-on-accent)', opacity: 0.84, lineHeight: 1.3 }}>
         {value}
       </p>
     </Link>
