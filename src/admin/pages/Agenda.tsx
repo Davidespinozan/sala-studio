@@ -118,21 +118,29 @@ export default function Agenda() {
 
   return (
     <div className="adm-page">
-      <div className="adm-hero">
-        <p className="adm-hero-eyebrow">Agenda semanal</p>
-        <h1 className="adm-hero-title">Tus clases de la semana</h1>
-        <p className="adm-hero-subtitle">
-          Todas las salas, en una sola vista. Click en una clase para gestionar inscritos.
-        </p>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+      <div
+        className="adm-hero"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+          flexWrap: 'wrap'
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <p className="adm-hero-eyebrow">Agenda semanal</p>
+          <h1 className="adm-hero-title">Tus clases de la semana</h1>
+          <p className="adm-hero-subtitle">
+            Todas las salas, en una sola vista. Click en una clase para gestionar inscritos.
+          </p>
+        </div>
         <button
           type="button"
           onClick={() => setCrearClaseOpen(true)}
           disabled={recursosActivos.length === 0}
           className="ek-cta"
-          style={{ padding: '10px 18px', fontSize: '13px' }}
+          style={{ padding: '10px 18px', fontSize: '13px', flexShrink: 0 }}
         >
           + Nueva clase
         </button>
