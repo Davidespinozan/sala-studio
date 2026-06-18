@@ -2294,9 +2294,12 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   z-index: 1;
 }
 @media (min-width: 900px) {
+  /* La captura crece desde su borde izquierdo: llena el alto (mata el verde
+     muerto de antes) y SANGRA por el borde derecho del bloque (clip por el
+     overflow:hidden) → se siente que "hay más", con dinamismo premium. */
   .sala-hero-media {
-    transform: scale(1.06);
-    transform-origin: center left;
+    transform: scale(1.2);
+    transform-origin: left center;
   }
 }
 

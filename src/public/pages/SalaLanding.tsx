@@ -246,7 +246,7 @@ function Hero() {
           position: 'relative',
           overflow: 'hidden',
           borderRadius: 'var(--ek-r-card)',
-          padding: 'clamp(40px, 7vw, 88px) clamp(24px, 5vw, 64px)',
+          padding: 'clamp(32px, 4.5vw, 60px) clamp(24px, 5vw, 56px)',
           background: 'var(--grad-immersive)',
           boxShadow: '0 24px 60px rgba(10, 15, 12, 0.32)',
           textAlign: 'center'
