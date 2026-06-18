@@ -4,14 +4,18 @@ import { supabase } from '@shared/lib/supabase';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
 import { useTenant } from '@shared/hooks/useTenant';
+import { esTenantDemo, DEMO_LOGIN } from '@shared/lib/demoAuth';
 
 export default function Login() {
   const navigate = useNavigate();
   const tenant = useTenant();
   const tieneIsotipo =
     typeof (tenant.branding as Record<string, unknown> | null)?.isotipo_url === 'string';
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // En el gym demo: pre-cargamos el socio de ejemplo para que el visitante solo
+  // tenga que tocar "Iniciar sesión" y vea el flujo real de login.
+  const esDemo = esTenantDemo(tenant.slug);
+  const [email, setEmail] = useState(esDemo ? DEMO_LOGIN.email : '');
+  const [password, setPassword] = useState(esDemo ? DEMO_LOGIN.password : '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,6 +70,22 @@ export default function Login() {
           }}
         >
           <form onSubmit={handleSubmit} className="ek-stack-md">
+            {esDemo && (
+              <div
+                style={{
+                  background: 'var(--sala-accent-soft)',
+                  border: '1px solid var(--sala-accent)',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  fontSize: '12.5px',
+                  lineHeight: 1.45,
+                  color: 'var(--sala-text-secondary)'
+                }}
+              >
+                <strong style={{ color: 'var(--sala-text-primary)' }}>Demo:</strong> ya cargamos un
+                socio de ejemplo. Solo tocá <strong>Iniciar sesión</strong> para entrar.
+              </div>
+            )}
             <div className="ek-form-field">
               <label htmlFor="email" className="ek-label">Email</label>
               <input

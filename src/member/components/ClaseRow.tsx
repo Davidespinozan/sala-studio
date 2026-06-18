@@ -2,6 +2,7 @@ import { Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { estadoCupos, type Clase } from '@member/logic/claseAdapter';
 import { CupoBar } from './CupoBar';
+import { CoachAvatar, SalaImg } from './claseMedia';
 
 interface Props {
   clase: Clase;
@@ -87,6 +88,7 @@ export function ClaseRow({
         nombre={clase.salaNombre}
         disciplina={clase.disciplina}
         dim={esCancelada}
+        style={{ width: '88px', height: '100%', minHeight: '88px', borderRadius: '12px' }}
       />
 
       {/* Info: disciplina · clase · coach + cupo */}
@@ -330,99 +332,5 @@ function ActionButton({
     >
       {reservando ? 'Reservando…' : 'Reservar'}
     </button>
-  );
-}
-
-/** Iniciales (máx 2) de un nombre, para los avatares sin foto. */
-function iniciales(nombre?: string): string {
-  const partes = (nombre ?? '').trim().split(/\s+/).filter(Boolean);
-  if (partes.length === 0) return '?';
-  return partes
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? '')
-    .join('');
-}
-
-/** Avatar circular del coach. Foto si hay; si no, iniciales sobre tinte de marca. */
-function CoachAvatar({ url, nombre, dim }: { url?: string; nombre?: string; dim?: boolean }) {
-  const size = 30;
-  return (
-    <div
-      aria-hidden="true"
-      style={{
-        width: size,
-        height: size,
-        borderRadius: '999px',
-        flexShrink: 0,
-        overflow: 'hidden',
-        background: 'var(--sala-primary-light)',
-        border: '1px solid var(--sala-border)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: dim ? 0.55 : 1
-      }}
-    >
-      {url ? (
-        <img
-          src={url}
-          alt={nombre ?? ''}
-          loading="lazy"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        />
-      ) : (
-        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--sala-primary)' }}>
-          {iniciales(nombre)}
-        </span>
-      )}
-    </div>
-  );
-}
-
-/** Foto grande de la sala (banner izquierdo). Foto si hay; si no, tile de marca. */
-function SalaImg({
-  url,
-  nombre,
-  disciplina,
-  dim
-}: {
-  url?: string;
-  nombre?: string;
-  disciplina?: string;
-  dim?: boolean;
-}) {
-  const label = (disciplina || nombre || '').trim();
-  const inicial = label ? label[0].toUpperCase() : '';
-  return (
-    <div
-      aria-hidden="true"
-      title={nombre}
-      style={{
-        width: '88px',
-        height: '100%',
-        minHeight: '88px',
-        borderRadius: '12px',
-        flexShrink: 0,
-        overflow: 'hidden',
-        border: '1px solid var(--sala-border)',
-        background:
-          'linear-gradient(135deg, var(--sala-primary-light), color-mix(in srgb, var(--sala-accent) 16%, var(--sala-surface)))',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: dim ? 0.55 : 1
-      }}
-    >
-      {url ? (
-        <img
-          src={url}
-          alt={nombre ?? ''}
-          loading="lazy"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        />
-      ) : (
-        <span style={{ fontSize: '26px', fontWeight: 700, color: 'var(--sala-primary)' }}>{inicial}</span>
-      )}
-    </div>
   );
 }

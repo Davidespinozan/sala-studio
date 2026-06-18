@@ -11,15 +11,21 @@ import type { User } from '@supabase/supabase-js';
  *
  * Setup: activar "Allow anonymous sign-ins" en Supabase + VITE_DEMO_ENABLED=true.
  */
-/** Vistas del demo. 'landing' es la página pública del gym (sin login); el resto
- *  son áreas con sesión (anónima). */
-export type DemoVista = 'admin' | 'miembro' | 'recepcionista' | 'landing';
-type DemoRol = Exclude<DemoVista, 'landing'>;
+/** Vistas del demo. 'landing' es la página pública del gym (sin login); 'login'
+ *  abre la pantalla de inicio de sesión con un socio de ejemplo pre-cargado; el
+ *  resto son áreas con sesión (anónima). */
+export type DemoVista = 'admin' | 'miembro' | 'recepcionista' | 'login' | 'landing';
+type DemoRol = Exclude<DemoVista, 'landing' | 'login'>;
+
+/** Credenciales del socio de ejemplo para "Vista login" (cuenta pública del demo,
+ *  creada por migración en healthyspace). El login del tenant demo las pre-carga. */
+export const DEMO_LOGIN = { email: 'demo@healthyspace.app', password: 'demo1234' };
 
 export const DEMO_VISTAS: { rol: DemoVista; label: string; desc: string }[] = [
   { rol: 'admin', label: 'Vista admin', desc: 'El panel del dueño: reportes, socios, agenda y planes.' },
   { rol: 'miembro', label: 'Vista miembro', desc: 'La app del socio: reservar clases y tu QR de acceso.' },
   { rol: 'recepcionista', label: 'Vista recepción', desc: 'El check-in con QR y la lista del día.' },
+  { rol: 'login', label: 'Vista login', desc: 'La pantalla de inicio de sesión, con un socio de ejemplo ya cargado.' },
   { rol: 'landing', label: 'Vista landing', desc: 'La página pública del gym: clases, planes y reservas.' }
 ];
 
@@ -58,6 +64,14 @@ export async function entrarAlDemo(vista: DemoVista): Promise<{ error: string | 
   if (vista === 'landing') {
     await supabase.auth.signOut().catch(() => {});
     window.location.href = `https://healthyspace.${MARKETING_DOMAIN}`;
+    return { error: null };
+  }
+
+  // Login: abre la pantalla de inicio de sesión del gym demo (que pre-carga el
+  // socio de ejemplo). Cerramos sesión previa para no rebotar al área logueada.
+  if (vista === 'login') {
+    await supabase.auth.signOut().catch(() => {});
+    window.location.href = `https://healthyspace.${MARKETING_DOMAIN}/login`;
     return { error: null };
   }
 
