@@ -38,11 +38,12 @@ export function useLugaresSala(
 
       let taken = new Set<string>();
       if (lay && claseId) {
-        const { data: res } = await supabase
-          .from('reservas')
-          .select('*')
-          .eq('clase_id', claseId)
-          .in('status', ['confirmada', 'completada']);
+        // RPC SECURITY DEFINER: la RLS reservas_read_self solo deja ver las
+        // reservas propias, así que un select directo mostraría todos los
+        // lugares libres. El RPC devuelve solo los lugar_id ocupados (sin quién).
+        const { data: res } = await supabase.rpc('lugares_ocupados' as never, {
+          p_clase_id: claseId
+        } as never);
         taken = new Set(
           ((res ?? []) as unknown as { lugar_id: string | null }[])
             .map((r) => r.lugar_id)

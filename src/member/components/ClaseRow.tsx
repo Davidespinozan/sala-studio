@@ -12,8 +12,12 @@ interface Props {
   onCancelar?: () => void;
 }
 
-/** Row grande para la lista de agenda semanal. Mobile: hora + info + acción.
- *  En mobile angosto la acción cae debajo en stack. */
+/**
+ * Tarjeta de clase del socio. Distribución densa y visual:
+ *  [ foto de la sala ]  disciplina · clase · coach (avatar) · cupo  [ hora / Reservar ]
+ * Sin aire muerto: la foto manda a la izquierda, la info se apila compacta y la
+ * hora + acción viven juntas a la derecha.
+ */
 export function ClaseRow({
   clase,
   yaReservada,
@@ -27,12 +31,20 @@ export function ClaseRow({
   const estado = estadoCupos(clase);
   const llena = estado === 'llena';
   const pocos = estado === 'pocos';
+  const tieneDisciplina = !!clase.disciplina && clase.disciplina !== clase.nombre;
 
   const onRowClick = (e: React.MouseEvent) => {
-    // Si el click fue en el botón derecho, no navegamos
     if ((e.target as HTMLElement).closest('button')) return;
     navigate(`/app/clase/${encodeURIComponent(clase.id)}`);
   };
+
+  const stripe = esCancelada
+    ? 'var(--sala-text-tertiary)'
+    : yaReservada
+      ? 'var(--sala-primary)'
+      : pocos
+        ? 'var(--sala-accent)'
+        : 'var(--sala-border)';
 
   return (
     <div
@@ -41,34 +53,27 @@ export function ClaseRow({
       aria-label={`Ver detalles de ${clase.nombre}`}
       onClick={onRowClick}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          if ((e.target as HTMLElement).tagName !== 'BUTTON') {
-            e.preventDefault();
-            navigate(`/app/clase/${encodeURIComponent(clase.id)}`);
-          }
+        if ((e.key === 'Enter' || e.key === ' ') && (e.target as HTMLElement).tagName !== 'BUTTON') {
+          e.preventDefault();
+          navigate(`/app/clase/${encodeURIComponent(clase.id)}`);
         }
       }}
       style={{
         display: 'grid',
-        gridTemplateColumns: '76px 1fr',
+        gridTemplateColumns: '88px minmax(0, 1fr) auto',
         gap: '14px',
-        padding: '16px 18px',
+        alignItems: 'stretch',
+        padding: '12px',
         background: esCancelada ? 'var(--sala-bg)' : 'var(--sala-surface)',
         border: '1px solid var(--sala-border)',
-        borderLeft: esCancelada
-          ? '3px solid var(--sala-text-tertiary)'
-          : yaReservada
-            ? '3px solid var(--sala-primary)'
-            : pocos
-              ? '3px solid var(--sala-accent)'
-              : '1px solid var(--sala-border)',
-        borderRadius: '14px',
+        borderLeft: `3px solid ${stripe}`,
+        borderRadius: '16px',
         cursor: 'pointer',
         transition: 'border-color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease',
         boxShadow: '0 1px 3px rgba(26, 31, 28, 0.04)'
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '0 4px 12px rgba(26, 31, 28, 0.08)';
+        e.currentTarget.style.boxShadow = '0 6px 18px rgba(26, 31, 28, 0.10)';
         e.currentTarget.style.transform = 'translateY(-1px)';
       }}
       onMouseLeave={(e) => {
@@ -76,143 +81,115 @@ export function ClaseRow({
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
-      {/* Hora + duración */}
+      {/* Foto de la sala — grande, manda visualmente */}
+      <SalaImg
+        url={clase.imagenUrl}
+        nombre={clase.salaNombre}
+        disciplina={clase.disciplina}
+        dim={esCancelada}
+      />
+
+      {/* Info: disciplina · clase · coach + cupo */}
       <div
         style={{
+          minWidth: 0,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'flex-start',
           justifyContent: 'center',
-          minWidth: 0
+          gap: '6px'
         }}
       >
-        <span
-          style={{
-            fontFamily: 'var(--ek-font-display)',
-            fontSize: '24px',
-            fontWeight: 700,
-            letterSpacing: '-0.03em',
-            lineHeight: 1,
-            color: 'var(--sala-text-primary)',
-            fontVariantNumeric: 'tabular-nums'
-          }}
-        >
-          {clase.horaLabel}
-        </span>
-        <span
-          style={{
-            fontSize: '11px',
-            color: 'var(--sala-text-tertiary)',
-            marginTop: '4px',
-            fontVariantNumeric: 'tabular-nums'
-          }}
-        >
-          {clase.duracionMinutos} min
-        </span>
-      </div>
-
-      {/* Info + acción */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-          minWidth: 0
-        }}
-      >
-        {/* Encabezado: coach (avatar a la izquierda) + disciplina/nombre/instructor */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0 }}>
-          <CoachAvatar
-            url={clase.instructorFotoUrl}
-            nombre={clase.instructorNombre}
-            dim={esCancelada}
-          />
-          <div style={{ minWidth: 0 }}>
-            {clase.disciplina && clase.disciplina !== clase.nombre && (
-              <p
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  color: 'var(--sala-primary)',
-                  margin: 0,
-                  marginBottom: '4px'
-                }}
-              >
-                {clase.disciplina}
-              </p>
-            )}
-            <p
-              style={{
-                fontFamily: 'var(--ek-font-display)',
-                fontSize: '16px',
-                fontWeight: 600,
-                letterSpacing: '-0.02em',
-                color: 'var(--sala-text-primary)',
-                margin: 0,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                textDecoration: esCancelada ? 'line-through' : 'none',
-                opacity: esCancelada ? 0.6 : 1
-              }}
-            >
-              {clase.nombre}
-            </p>
-            <p
-              style={{
-                fontSize: '13px',
-                color: 'var(--sala-text-secondary)',
-                margin: 0,
-                marginTop: '2px'
-              }}
-            >
-              {clase.instructorNombre ? `con ${clase.instructorNombre}` : 'Instructor por confirmar'}
-            </p>
-          </div>
-        </div>
-
-        {/* Cupos + acción. A la derecha: miniatura de la sala ARRIBA del botón. */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'space-between',
-            gap: '12px',
-            flexWrap: 'wrap'
-          }}
-        >
-          <div style={{ flex: '1 1 120px', minWidth: '100px' }}>
-            <CupoBar clase={clase} size="md" />
-          </div>
-          <div
+        {tieneDisciplina && (
+          <p
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-end',
-              gap: '8px',
-              flexShrink: 0
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: 'var(--sala-primary)',
+              margin: 0
             }}
           >
-            <SalaThumb
-              url={clase.imagenUrl}
-              nombre={clase.salaNombre}
-              disciplina={clase.disciplina}
-              dim={esCancelada}
-            />
-            <ActionButton
-              cancelada={esCancelada}
-              yaReservada={yaReservada}
-              puedeReservar={puedeReservar}
-              llena={llena}
-              pocos={pocos}
-              reservando={!!reservando}
-              onReservar={onReservar}
-              onCancelar={onCancelar}
-            />
-          </div>
+            {clase.disciplina}
+          </p>
+        )}
+        <p
+          style={{
+            fontFamily: 'var(--ek-font-display)',
+            fontSize: '17px',
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            color: 'var(--sala-text-primary)',
+            margin: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            textDecoration: esCancelada ? 'line-through' : 'none',
+            opacity: esCancelada ? 0.6 : 1
+          }}
+        >
+          {clase.nombre}
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+          <CoachAvatar url={clase.instructorFotoUrl} nombre={clase.instructorNombre} dim={esCancelada} />
+          <span
+            style={{
+              fontSize: '13px',
+              color: 'var(--sala-text-secondary)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              minWidth: 0
+            }}
+          >
+            {clase.instructorNombre ? `con ${clase.instructorNombre}` : 'Instructor por confirmar'}
+          </span>
         </div>
+        <div style={{ marginTop: '2px' }}>
+          <CupoBar clase={clase} size="md" />
+        </div>
+      </div>
+
+      {/* Hora arriba + acción abajo, juntas a la derecha */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: '8px',
+          minWidth: 0
+        }}
+      >
+        <div style={{ textAlign: 'right' }}>
+          <p
+            style={{
+              fontFamily: 'var(--ek-font-display)',
+              fontSize: '22px',
+              fontWeight: 700,
+              letterSpacing: '-0.03em',
+              lineHeight: 1,
+              color: 'var(--sala-text-primary)',
+              margin: 0,
+              fontVariantNumeric: 'tabular-nums'
+            }}
+          >
+            {clase.horaLabel}
+          </p>
+          <p style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', margin: '3px 0 0' }}>
+            {clase.duracionMinutos} min
+          </p>
+        </div>
+        <ActionButton
+          cancelada={esCancelada}
+          yaReservada={yaReservada}
+          puedeReservar={puedeReservar}
+          llena={llena}
+          pocos={pocos}
+          reservando={!!reservando}
+          onReservar={onReservar}
+          onCancelar={onCancelar}
+        />
       </div>
     </div>
   );
@@ -268,7 +245,7 @@ function ActionButton({
           cursor: 'not-allowed'
         }}
       >
-        Clase cancelada
+        Cancelada
       </button>
     );
   }
@@ -356,7 +333,7 @@ function ActionButton({
   );
 }
 
-/** Iniciales (máx 2) de un nombre, para el avatar sin foto. */
+/** Iniciales (máx 2) de un nombre, para los avatares sin foto. */
 function iniciales(nombre?: string): string {
   const partes = (nombre ?? '').trim().split(/\s+/).filter(Boolean);
   if (partes.length === 0) return '?';
@@ -368,7 +345,7 @@ function iniciales(nombre?: string): string {
 
 /** Avatar circular del coach. Foto si hay; si no, iniciales sobre tinte de marca. */
 function CoachAvatar({ url, nombre, dim }: { url?: string; nombre?: string; dim?: boolean }) {
-  const size = 36;
+  const size = 30;
   return (
     <div
       aria-hidden="true"
@@ -394,7 +371,7 @@ function CoachAvatar({ url, nombre, dim }: { url?: string; nombre?: string; dim?
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
       ) : (
-        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--sala-primary)', letterSpacing: '0.01em' }}>
+        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--sala-primary)' }}>
           {iniciales(nombre)}
         </span>
       )}
@@ -402,8 +379,8 @@ function CoachAvatar({ url, nombre, dim }: { url?: string; nombre?: string; dim?
   );
 }
 
-/** Miniatura de la sala. Foto si hay; si no, tile de marca con la inicial. */
-function SalaThumb({
+/** Foto grande de la sala (banner izquierdo). Foto si hay; si no, tile de marca. */
+function SalaImg({
   url,
   nombre,
   disciplina,
@@ -421,9 +398,10 @@ function SalaThumb({
       aria-hidden="true"
       title={nombre}
       style={{
-        width: '48px',
-        height: '44px',
-        borderRadius: '11px',
+        width: '88px',
+        height: '100%',
+        minHeight: '88px',
+        borderRadius: '12px',
         flexShrink: 0,
         overflow: 'hidden',
         border: '1px solid var(--sala-border)',
@@ -443,7 +421,7 @@ function SalaThumb({
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
       ) : (
-        <span style={{ fontSize: '17px', fontWeight: 700, color: 'var(--sala-primary)' }}>{inicial}</span>
+        <span style={{ fontSize: '26px', fontWeight: 700, color: 'var(--sala-primary)' }}>{inicial}</span>
       )}
     </div>
   );
