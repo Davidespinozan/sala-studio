@@ -91,6 +91,38 @@ export default function AjustesMarca() {
   const [originalJson, setOriginalJson] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
+  // Imagen de fondo de la pantalla "Mi QR" del socio (config.member.qr_bg_url).
+  // Se guarda al instante (en su propio config, no en branding).
+  const [qrBg, setQrBg] = useState<string | null>(
+    ((
+      (tenant.config as Record<string, unknown> | null)?.member as
+        | Record<string, unknown>
+        | undefined
+    )?.qr_bg_url as string | undefined) ?? null
+  );
+
+  async function saveQrBg(url: string | null) {
+    const { data: cur } = await supabase
+      .from('tenants')
+      .select('config')
+      .eq('id', tenant.id)
+      .single();
+    const config = (cur?.config as Record<string, unknown> | null) ?? {};
+    const member = (config.member as Record<string, unknown> | undefined) ?? {};
+    const nextConfig = { ...config, member: { ...member, qr_bg_url: url } };
+    const { error } = await supabase
+      .from('tenants')
+      .update({ config: nextConfig as never })
+      .eq('id', tenant.id);
+    if (error) {
+      toast.error('No pudimos guardar la imagen del QR.');
+      return;
+    }
+    setQrBg(url);
+    await refetchTenant();
+    toast.success('Imagen del QR actualizada.');
+  }
+
   const loadBranding = useCallback(async () => {
     const { data, error } = await supabase
       .from('tenants')
@@ -253,6 +285,21 @@ export default function AjustesMarca() {
             Mientras no subas tu isotipo, se muestra el isotipo de SALA como placeholder.
           </p>
         )}
+      </Section>
+
+      <Section
+        title="IMAGEN DEL QR DEL SOCIO"
+        description="Foto de fondo de la pantalla 'Mi QR' en la app del socio (lleva un degradé a la izquierda para que el texto se lea encima). Se guarda al instante. Recomendado: foto apaisada de tu espacio, mínimo 1200px de ancho."
+      >
+        <ImageUploader
+          bucket="estudios"
+          pathPrefix={`${tenant.slug}/member-qr`}
+          currentUrl={qrBg}
+          onUploaded={(url) => void saveQrBg(url || null)}
+          label=""
+          previewFit="cover"
+          helperText="Foto apaisada (16:9 o similar) de tu espacio. Máx 2MB. Sin imagen, el QR usa el gradiente de tu marca."
+        />
       </Section>
 
       <Section
