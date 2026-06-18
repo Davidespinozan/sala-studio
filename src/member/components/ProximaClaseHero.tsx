@@ -52,7 +52,7 @@ export function ProximaClaseHero({ clase, reservaId }: Props) {
           position: 'absolute',
           inset: 0,
           background:
-            'linear-gradient(116deg, rgba(7, 11, 9, 0.78) 0%, rgba(7, 11, 9, 0.34) 52%, rgba(7, 11, 9, 0) 100%), linear-gradient(0deg, rgba(7, 11, 9, 0.72) 0%, transparent 50%)'
+            'linear-gradient(108deg, rgba(7, 11, 9, 0.94) 0%, rgba(7, 11, 9, 0.7) 32%, rgba(7, 11, 9, 0.28) 62%, rgba(7, 11, 9, 0) 100%), linear-gradient(0deg, rgba(7, 11, 9, 0.78) 0%, transparent 52%)'
         }}
       />
 
