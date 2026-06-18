@@ -2252,6 +2252,14 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   --ek-mustard:      #3D6B52;
   --ek-mustard-dim:  color-mix(in srgb, #3D6B52 24%, transparent);
   --ek-mustard-soft: color-mix(in srgb, #3D6B52 10%, var(--sala-bg));
+  /* Los gradientes se declaran en :root con var(--sala-accent/primary), así que
+     se RESUELVEN en :root (con el tenant cargado por applyBranding) y se heredan
+     ya resueltos — NO se recalculan acá solos. Los re-declaramos en verde SALA
+     para que la marca sea verde siempre, también en localhost (donde :root tiene
+     el branding del tenant demo healthyspace). */
+  --grad-primary:   linear-gradient(135deg, #4A7D62 0%, #3D6B52 52%, #294938 100%);
+  --grad-accent:    linear-gradient(135deg, #4A7D62 0%, #3D6B52 52%, #294938 100%);
+  --grad-immersive: linear-gradient(160deg, #315541 0%, #274434 100%);
 }
 
 /* ============================================================================
@@ -2273,20 +2281,106 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
 /* La captura del hero "iluminada": halo cálido detrás + un pelín más grande en
    desktop para que resalte sobre el verde inmersivo. */
+/* Fondo del hero como iluminación ambiental premium (Linear/Stripe/Arc): capas
+   de gradientes radiales que dan profundidad + spotlight detrás del dashboard +
+   textura casi imperceptible. El producto manda; el fondo aporta volumen. */
+.sala-hero-immersive {
+  background:
+    /* bloom claro en el borde superior del dashboard (donde hay aire oscuro) */
+    radial-gradient(34% 42% at 66% 22%, rgba(210, 246, 226, 0.22), transparent 60%),
+    /* halo verde grande detrás del dashboard */
+    radial-gradient(64% 80% at 80% 42%, color-mix(in srgb, var(--sala-primary) 92%, transparent), transparent 58%),
+    /* luz fría arriba-izquierda → volumen */
+    radial-gradient(52% 60% at 6% 2%, color-mix(in srgb, var(--sala-primary) 40%, transparent), transparent 58%),
+    /* vignettes de esquina → profundidad / contraste */
+    radial-gradient(80% 90% at 0% 120%, rgba(0, 0, 0, 0.6), transparent 60%),
+    radial-gradient(150% 120% at 50% 150%, rgba(0, 0, 0, 0.55), transparent 68%),
+    /* base muy oscura y rica → el producto y los glows resaltan */
+    linear-gradient(160deg, #244236 0%, #16291f 50%, #0d1812 100%);
+}
+/* Arcos concéntricos detrás del dashboard + hatch diagonal arriba-izquierda —
+   sutiles pero visibles (movimiento/tech). */
+.sala-hero-immersive::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    repeating-radial-gradient(
+      circle at 82% 46%,
+      transparent 0 44px,
+      rgba(255, 255, 255, 0.06) 44px 45.5px,
+      transparent 45.5px 90px
+    ),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 16px);
+  -webkit-mask-image:
+    radial-gradient(85% 100% at 82% 44%, #000 0%, transparent 58%),
+    radial-gradient(50% 56% at 6% 4%, #000 0%, transparent 64%);
+  mask-image:
+    radial-gradient(85% 100% at 82% 44%, #000 0%, transparent 58%),
+    radial-gradient(50% 56% at 6% 4%, #000 0%, transparent 64%);
+}
+/* Grano premium → rompe el color sólido. */
+.sala-hero-immersive::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* MÓVIL: el layout es vertical (copy arriba, dashboard abajo), así que el
+   spotlight va de ARRIBA→ABAJO (no derecha→izquierda), y bajamos el halo blanco
+   del dispositivo (la "sombra blanca" se notaba de más). */
+@media (max-width: 760px) {
+  .sala-hero-immersive {
+    background:
+      radial-gradient(70% 26% at 50% 56%, rgba(210, 246, 226, 0.14), transparent 60%),
+      radial-gradient(95% 52% at 50% 80%, color-mix(in srgb, var(--sala-primary) 82%, transparent), transparent 62%),
+      radial-gradient(85% 32% at 50% 0%, color-mix(in srgb, var(--sala-primary) 32%, transparent), transparent 60%),
+      radial-gradient(150% 55% at 50% 152%, rgba(0, 0, 0, 0.5), transparent 70%),
+      linear-gradient(180deg, #244236 0%, #16291f 56%, #0d1812 100%);
+  }
+  .sala-hero-immersive::before {
+    background-image: repeating-radial-gradient(
+      circle at 50% 78%,
+      transparent 0 40px,
+      rgba(255, 255, 255, 0.05) 40px 41.5px,
+      transparent 41.5px 82px
+    );
+    -webkit-mask-image: radial-gradient(82% 56% at 50% 78%, #000 0%, transparent 62%);
+    mask-image: radial-gradient(82% 56% at 50% 78%, #000 0%, transparent 62%);
+  }
+  .sala-hero-media::before {
+    inset: -14% -12%;
+    background: radial-gradient(
+      closest-side,
+      rgba(205, 245, 222, 0.2) 0%,
+      color-mix(in srgb, var(--sala-primary) 34%, transparent) 48%,
+      transparent 78%
+    );
+    filter: blur(20px);
+  }
+}
+
 .sala-hero-media {
   position: relative;
 }
 .sala-hero-media::before {
   content: '';
   position: absolute;
-  inset: -14% -10%;
+  inset: -30% -24%;
   background: radial-gradient(
     closest-side,
-    rgba(255, 255, 255, 0.26) 0%,
-    var(--sala-accent-glow) 45%,
+    rgba(205, 245, 222, 0.42) 0%,
+    color-mix(in srgb, var(--sala-primary) 48%, transparent) 44%,
     transparent 76%
   );
-  filter: blur(10px);
+  filter: blur(26px);
   z-index: 0;
   pointer-events: none;
 }
@@ -2330,10 +2424,84 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 /* Showcase del producto sobre el VERDE OSCURO inmersivo de SALA (como el hero):
    texto blanco y marcos con contorno claro que hacen resaltar las capturas.
    Sección de "Tu web, tu marca" hasta "Mapa de salón". */
+/* Fondo como marco premium (no superficie plana): base inmersiva + zonas de luz
+   orgánicas (variación tonal) + vignette + grano casi imperceptible. El mockup
+   manda; el fondo aporta profundidad sin competir. */
 .sala-showcase-band {
-  background: var(--grad-immersive);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(58% 48% at 15% 10%, color-mix(in srgb, var(--sala-primary) 46%, transparent), transparent 60%),
+    radial-gradient(54% 46% at 88% 80%, color-mix(in srgb, var(--sala-primary) 38%, transparent), transparent 58%),
+    radial-gradient(42% 36% at 72% 26%, color-mix(in srgb, #8fc7a8 20%, transparent), transparent 60%),
+    radial-gradient(130% 80% at 50% 132%, rgba(0, 0, 0, 0.5), transparent 72%),
+    var(--grad-immersive);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+/* Grano premium casi imperceptible — rompe el color sólido. */
+.sala-showcase-band::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.sala-showcase-band > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Spotlight por mockup: cada captura tiene su propia zona de luz ambiental
+   (gradiente radial grande y suave) → parece flotar sobre la página. */
+.sala-showcase-media {
+  position: relative;
+}
+.sala-showcase-media::before {
+  content: '';
+  position: absolute;
+  inset: -30% -22%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--sala-primary) 64%, white) 0%,
+    color-mix(in srgb, var(--sala-primary) 34%, transparent) 46%,
+    transparent 74%
+  );
+  opacity: 0.5;
+  filter: blur(28px);
+}
+.sala-showcase-media > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Trust strip: fila centrada en desktop; 2×2 prolijo en móvil (no wrap feo). */
+.sala-trust-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+  justify-content: center;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: var(--sala-surface);
+  border: 1px solid var(--sala-border);
+}
+@media (max-width: 560px) {
+  .sala-trust-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+    padding: 16px;
+  }
+  .sala-trust-strip > span {
+    justify-content: flex-start;
+  }
 }
 
 /* CTAs del hero/secciones oscuras: el contraste lo da la luminosidad. */
@@ -2388,40 +2556,131 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
    filos finos → cada banda se siente una sección distinta, no un lienzo plano.
    Se alterna con secciones planas (Showcase/Pricing) para dar ritmo a la página. */
 .sala-band {
+  position: relative;
   padding: clamp(44px, 7vw, 84px) 0;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--sala-primary) 5%, var(--sala-surface)) 0%,
-    var(--sala-bg) 100%
-  );
+  /* No plana: zonas de luz suaves para profundidad premium también en claro. */
+  background:
+    radial-gradient(58% 50% at 82% 6%, color-mix(in srgb, var(--sala-primary) 8%, transparent), transparent 60%),
+    radial-gradient(50% 46% at 10% 96%, color-mix(in srgb, var(--sala-primary) 6%, transparent), transparent 60%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--sala-primary) 5%, var(--sala-surface)) 0%,
+      var(--sala-bg) 100%
+    );
   border-top: 1px solid var(--sala-border);
   border-bottom: 1px solid var(--sala-border);
 }
 
-.sala-feature-card .ek-card {
+/* CTA final: misma iluminación ambiental premium que el hero, pero centrada
+   (el contenido va al medio, no hay dashboard a un lado). */
+.sala-cta-immersive {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(40% 42% at 50% 16%, rgba(205, 245, 222, 0.14), transparent 60%),
+    radial-gradient(64% 72% at 50% 30%, color-mix(in srgb, var(--sala-primary) 72%, transparent), transparent 62%),
+    radial-gradient(140% 110% at 50% 152%, rgba(0, 0, 0, 0.5), transparent 70%),
+    linear-gradient(160deg, #244236 0%, #16291f 58%, #0d1812 100%);
+}
+.sala-cta-immersive::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.sala-cta-immersive > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Features: en MÓVIL es un carrusel horizontal scrolleable (cards que asoman);
+   en DESKTOP, grid de 3. Cada card abre su descripción en un popout. */
+.sala-features-track {
+  display: flex;
+  gap: 14px;
+  margin-top: 32px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 4px 0 14px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.sala-features-track::-webkit-scrollbar {
+  display: none;
+}
+
+.sala-feature-tile {
+  /* Móvil: cards angostas/verticales → entran ~2.4 en pantalla, menos aire. */
+  flex: 0 0 43%;
+  max-width: 200px;
+  min-height: 158px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--sala-surface);
+  border: 1px solid var(--sala-border);
+  box-shadow: 0 1px 3px rgba(26, 31, 28, 0.04);
+  cursor: pointer;
+  font-family: inherit;
   transition:
-    transform 0.22s var(--ease-premium),
-    box-shadow 0.26s var(--ease-premium),
+    transform 0.2s var(--ease-premium),
+    box-shadow 0.24s var(--ease-premium),
     border-color 0.2s ease;
 }
-.sala-feature-card .sala-feature-icon {
-  transition: background 0.2s ease;
+.sala-feature-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 34px rgba(26, 31, 28, 0.1);
+  border-color: var(--sala-primary-soft);
 }
-.sala-feature-card .sala-feature-icon svg {
-  transition: color 0.2s ease;
+.sala-feature-icon {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--sala-primary-light);
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
-/* Hover: se levanta y el ícono salta a coral (acento) → toque de color + vida.
-   El transform va en .ek-card (no en .reveal), así no pelea con el scroll-reveal. */
-.sala-feature-card:hover .ek-card {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(10, 15, 12, 0.10);
-  border-color: var(--sala-accent-soft);
+.sala-feature-tile-title {
+  font-family: var(--ek-font-display);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--sala-text-primary);
 }
-.sala-feature-card:hover .sala-feature-icon {
-  background: var(--sala-accent-soft);
+.sala-feature-tile-more {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sala-primary);
 }
-.sala-feature-card:hover .sala-feature-icon svg {
-  color: var(--sala-accent) !important;
+
+@media (min-width: 860px) {
+  .sala-features-track {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+  .sala-feature-tile {
+    flex: none;
+    max-width: none;
+  }
 }
 
 /* ============================================================================

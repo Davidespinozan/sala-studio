@@ -30,14 +30,15 @@ function Placeholder({ label }: { label: string }) {
   );
 }
 
-// Sangra 1px por todos lados → mata el sliver de fondo en las esquinas
-// redondeadas (el "margen blanco"). El recorte es imperceptible.
+// Sangra 2px por todos lados → mata cualquier sliver de fondo en las esquinas
+// redondeadas (el "margen blanco" que se nota sobre oscuro). El recorte es
+// imperceptible.
 const BLEED: CSSProperties = {
   position: 'absolute',
-  top: '-1px',
-  left: '-1px',
-  width: 'calc(100% + 2px)',
-  height: 'calc(100% + 2px)',
+  top: '-2px',
+  left: '-2px',
+  width: 'calc(100% + 4px)',
+  height: 'calc(100% + 4px)',
   objectFit: 'cover',
   display: 'block'
 };
@@ -62,10 +63,12 @@ export function BrowserFrame({
         aspectRatio: '16 / 10',
         borderRadius: '14px',
         overflow: 'hidden',
-        background: 'var(--sala-surface)',
-        // Contorno claro (ring) + sombra: hace resaltar la captura sobre el
-        // verde oscuro del showcase, sin el "margen blanco" de un borde sólido.
-        boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.18), 0 30px 70px rgba(10, 15, 12, 0.45)'
+        // Fondo OSCURO (no blanco): si quedara cualquier sub-píxel sin cubrir,
+        // se funde con el fondo oscuro en vez de mostrar un margen blanco.
+        background: '#0d1812',
+        // Contorno claro (ring) + sombra ancha y difusa: la captura "flota".
+        boxShadow:
+          '0 0 0 1px rgba(255, 255, 255, 0.18), 0 50px 110px -12px rgba(0, 0, 0, 0.6), 0 18px 50px -20px rgba(0, 0, 0, 0.5)'
       }}
     >
       {video ? (
@@ -104,7 +107,7 @@ export function PhoneFrame({ src, alt }: { src?: string; alt: string }) {
         boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.14), 0 30px 70px rgba(10, 15, 12, 0.5)'
       }}
     >
-      <div style={{ position: 'relative', borderRadius: '26px', overflow: 'hidden', aspectRatio: '9 / 19.5', background: 'var(--sala-surface)' }}>
+      <div style={{ position: 'relative', borderRadius: '26px', overflow: 'hidden', aspectRatio: '9 / 19.5', background: '#0d1812' }}>
         <span
           aria-hidden="true"
           style={{
@@ -120,7 +123,7 @@ export function PhoneFrame({ src, alt }: { src?: string; alt: string }) {
           }}
         />
         {src ? (
-          <img src={src} alt={alt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <img src={src} alt={alt} style={BLEED} />
         ) : (
           <Placeholder label="App del socio" />
         )}

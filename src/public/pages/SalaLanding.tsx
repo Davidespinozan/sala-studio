@@ -1,7 +1,6 @@
 import { useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { useSpotlight } from '@shared/hooks/useSpotlight';
-import { usePrefersReducedMotion } from '@shared/hooks/usePrefersReducedMotion';
 import {
   ArrowRight,
   BarChart3,
@@ -13,6 +12,7 @@ import {
   Search,
   Star,
   Users,
+  X,
   type LucideIcon
 } from 'lucide-react';
 import { SalaLogo } from '@shared/components/SalaLogo';
@@ -86,26 +86,26 @@ const FEATURES: Array<{ icon: LucideIcon; titulo: string; texto: string }> = [
   {
     icon: BarChart3,
     titulo: 'Reportes que importan',
-    texto: 'Ocupación, retención y churn. Sabé qué clases funcionan y a quién estás perdiendo.'
+    texto: 'Ocupación, retención y churn. Sabe qué clases funcionan y a quién estás perdiendo.'
   },
   {
     icon: Building2,
     titulo: 'Multi-sucursal',
-    texto: 'Manejá varias sedes desde una sola cuenta, con su agenda y su equipo.'
+    texto: 'Maneja varias sedes desde una sola cuenta, con su agenda y su equipo.'
   }
 ];
 
 const PASOS: Array<{ n: string; titulo: string; texto: string }> = [
-  { n: '01', titulo: 'Creá tu gym', texto: 'Registrate en minutos: nombre, subdominio y tu primer plan.' },
-  { n: '02', titulo: 'Configurá tu marca', texto: 'Subí tu logo, elegí tus colores, cargá tus salas y membresías.' },
-  { n: '03', titulo: 'Recibí reservas', texto: 'Compartí tu link y tus socios empiezan a reservar al instante.' }
+  { n: '01', titulo: 'Crea tu gym', texto: 'Regístrate en minutos: nombre, subdominio y tu primer plan.' },
+  { n: '02', titulo: 'Configura tu marca', texto: 'Sube tu logo, elige tus colores, carga tus salas y membresías.' },
+  { n: '03', titulo: 'Recibe reservas', texto: 'Comparte tu link y tus socios empiezan a reservar al instante.' }
 ];
 
 const FAQS: Array<{ q: string; a: string }> = [
-  { q: '¿Necesito conocimientos técnicos?', a: 'No. Configurás todo desde un panel visual, sin programar ni instalar nada.' },
+  { q: '¿Necesito conocimientos técnicos?', a: 'No. Configuras todo desde un panel visual, sin programar ni instalar nada.' },
   { q: '¿Mis socios tienen que bajar una app?', a: 'No. Es una web app instalable (PWA): la abren desde el navegador y la suman a su pantalla de inicio.' },
   { q: '¿Puedo usar mi propio dominio?', a: 'Sí, desde el plan Pro. Tu estudio vive en tu dominio, con tu marca.' },
-  { q: '¿Puedo cambiar de plan después?', a: `Cuando quieras. Empezás con ${TRIAL_DIAS} días gratis y ajustás según crezcas.` }
+  { q: '¿Puedo cambiar de plan después?', a: `Cuando quieras. Empiezas con ${TRIAL_DIAS} días gratis y ajustas según crezcas.` }
 ];
 
 /**
@@ -186,10 +186,10 @@ function Header({ onBuscar }: { onBuscar: () => void }) {
           }}
         >
           <Search size={15} strokeWidth={2.25} />
-          Buscá tu estudio
+          Busca tu estudio
         </button>
         <Link to={REGISTRO} className="ek-cta ek-lift" style={{ padding: '10px 18px', minHeight: '40px', fontSize: '14px' }}>
-          Creá tu gym
+          Crea tu gym
           <ArrowRight size={16} strokeWidth={2.25} />
         </Link>
       </nav>
@@ -221,19 +221,15 @@ function ProbarDemoButton() {
 }
 
 function Hero() {
-  const onSpotlight = useSpotlight();
-  const reduced = usePrefersReducedMotion();
   return (
     <section style={{ padding: 'clamp(16px, 5vw, 48px)' }}>
       <div
-        className="sala-spotlight-host"
-        onMouseMove={onSpotlight}
+        className="sala-hero-immersive"
         style={{
           position: 'relative',
           overflow: 'hidden',
           borderRadius: 'var(--ek-r-card)',
           padding: 'clamp(32px, 4.5vw, 60px) clamp(24px, 5vw, 56px)',
-          background: 'var(--grad-immersive)',
           boxShadow: '0 24px 60px rgba(10, 15, 12, 0.32)',
           textAlign: 'center'
         }}
@@ -244,22 +240,6 @@ function Hero() {
         <div className="sala-orb" aria-hidden="true" style={{ width: 300, height: 300, top: '-12%', left: '-6%', opacity: 0.12, animationDelay: '0s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
         <div className="sala-orb" aria-hidden="true" style={{ width: 200, height: 200, bottom: '4%', right: '8%', opacity: 0.12, animationDelay: '3s', '--orb-color': ACCENT_DARK } as CSSProperties} />
         <div className="sala-orb" aria-hidden="true" style={{ width: 120, height: 120, top: '28%', right: '24%', opacity: 0.10, animationDelay: '6s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
-        {/* glow de marca detrás */}
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            top: '-30%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '70%',
-            height: '80%',
-            background: 'radial-gradient(circle, var(--sala-primary-glow) 0%, transparent 70%)',
-            pointerEvents: 'none'
-          }}
-        />
-        {/* glow ambiental que sigue el cursor (desktop) */}
-        <div className="sala-spotlight" aria-hidden="true" />
         <div className="sala-fade-up" style={{ position: 'relative', zIndex: 4, maxWidth: '1180px', margin: '0 auto' }}>
           <div className="sala-hero-grid" style={{ textAlign: 'left' }}>
             {/* Columna izquierda — copy */}
@@ -277,14 +257,21 @@ function Hero() {
                 Plataforma para estudios y gimnasios
               </p>
               <h1
-                className={reduced ? undefined : 'sala-shimmer'}
-                style={
-                  reduced
-                    ? { fontFamily: 'var(--ek-font-display)', fontSize: 'clamp(28px, 6vw, 56px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.04, margin: 0, color: 'rgba(255, 255, 255, 0.97)' }
-                    : ({ fontFamily: 'var(--ek-font-display)', fontSize: 'clamp(28px, 6vw, 56px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.04, margin: 0, '--shim-1': 'rgba(255,255,255,0.72)', '--shim-2': '#ffffff' } as CSSProperties)
-                }
+                style={{
+                  fontFamily: 'var(--ek-font-display)',
+                  fontSize: 'clamp(28px, 6vw, 56px)',
+                  fontWeight: 700,
+                  letterSpacing: '-0.04em',
+                  lineHeight: 1.04,
+                  margin: 0,
+                  color: 'rgba(255, 255, 255, 0.97)'
+                }}
               >
-                Llená tus clases.<br />Olvidate del Excel.
+                Llena tus clases
+                <br />
+                <span style={{ color: 'color-mix(in srgb, var(--sala-primary), white 48%)' }}>
+                  y automatizá tu negocio.
+                </span>
               </h1>
               <p
                 style={{
@@ -295,8 +282,8 @@ function Hero() {
                   maxWidth: '520px'
                 }}
               >
-                Reservas, membresías, check-in y reportes — el sistema operativo de tu estudio,
-                con tu marca y tu dominio.
+                Olvídate del Excel y del caos de WhatsApp. Automatiza tus reservas, membresías,
+                check-ins y reportes con una plataforma personalizada con tu marca y tu dominio propio.
               </p>
               <div className="sala-hero-ctas" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '32px' }}>
                 <ProbarDemoButton />
@@ -304,7 +291,7 @@ function Hero() {
                   to={REGISTRO}
                   className="sala-hero-cta sala-hero-cta--outline ek-lift sala-hero-cta-primary"
                 >
-                  Creá tu gym
+                  Crea tu gym
                   <ArrowRight size={18} strokeWidth={2.25} />
                 </Link>
                 <a href="#precios" className="sala-hero-cta sala-hero-cta--ghost ek-lift">
@@ -312,7 +299,7 @@ function Hero() {
                 </a>
               </div>
               <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.5)', margin: '18px 0 0' }}>
-                {TRIAL_DIAS} días gratis · sin tarjeta · cancelás cuando quieras
+                {TRIAL_DIAS} días gratis · sin tarjeta · cancela cuando quieras
               </p>
             </div>
 
@@ -335,18 +322,7 @@ function TrustStrip() {
   const items = ['Sin instalar nada', 'Tu marca y tu dominio', 'Datos seguros', 'Soporte en español'];
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '8px clamp(16px, 5vw, 48px) 0' }}>
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '10px 28px',
-          justifyContent: 'center',
-          padding: '18px 20px',
-          borderRadius: '14px',
-          background: 'var(--sala-surface)',
-          border: '1px solid var(--sala-border)'
-        }}
-      >
+      <div className="sala-trust-strip">
         {items.map((i) => (
           <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '13px', fontWeight: 600, color: 'var(--sala-text-secondary)' }}>
             <Check size={15} strokeWidth={2.5} style={{ color: 'var(--sala-primary)', flexShrink: 0 }} />
@@ -363,76 +339,138 @@ function TrustStrip() {
 // ============================================================================
 
 function Features() {
+  // La descripción vive en un popout: la card muestra ícono + título, y al
+  // tocarla se abre el detalle. En móvil las cards son un carrusel scrolleable.
+  const [abierto, setAbierto] = useState<number | null>(null);
   return (
     <section className="sala-band sala-section-features">
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 clamp(16px, 5vw, 48px)' }}>
         <SectionEyebrow label="Todo lo que necesitás" />
         <h2 style={sectionTitle}>Una plataforma, no diez herramientas sueltas.</h2>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-            gap: '16px',
-            marginTop: '32px'
-          }}
-        >
+        <div className="sala-features-track">
           {FEATURES.map((f, i) => {
             const Icon = f.icon;
             return (
-              <Reveal
+              <button
                 key={f.titulo}
-                delay={((i % 3) + 1) as 1 | 2 | 3}
-                className="sala-feature-card"
+                type="button"
+                className="sala-feature-tile"
+                onClick={() => setAbierto(i)}
+                aria-label={`Ver detalle de ${f.titulo}`}
               >
-                <div
-                  className="ek-card"
-                  style={{
-                    background: 'var(--sala-surface)',
-                    border: '1px solid var(--sala-border)',
-                    height: '100%'
-                  }}
-                >
-                  {/* Ícono EN LÍNEA con el título → menos aire, más fácil de leer. */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
-                    <div
-                      aria-hidden="true"
-                      className="sala-feature-icon"
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '11px',
-                        background: 'var(--sala-primary-light)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}
-                    >
-                      <Icon size={20} strokeWidth={2} style={{ color: 'var(--sala-primary)' }} />
-                    </div>
-                    <h3
-                      style={{
-                        fontFamily: 'var(--ek-font-display)',
-                        fontSize: '18px',
-                        fontWeight: 700,
-                        letterSpacing: '-0.02em',
-                        margin: 0,
-                        color: 'var(--sala-text-primary)'
-                      }}
-                    >
-                      {f.titulo}
-                    </h3>
-                  </div>
-                  <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--sala-text-secondary)', margin: 0 }}>
-                    {f.texto}
-                  </p>
-                </div>
-              </Reveal>
+                <span className="sala-feature-icon" aria-hidden="true">
+                  <Icon size={20} strokeWidth={2} style={{ color: 'var(--sala-primary)' }} />
+                </span>
+                <span className="sala-feature-tile-title">{f.titulo}</span>
+                <span className="sala-feature-tile-more">
+                  Ver más
+                  <ArrowRight size={14} strokeWidth={2.5} />
+                </span>
+              </button>
             );
           })}
         </div>
       </div>
+      {abierto !== null &&
+        createPortal(
+          <FeaturePopout f={FEATURES[abierto]} onClose={() => setAbierto(null)} />,
+          document.body
+        )}
     </section>
+  );
+}
+
+/** Popout con el detalle de un feature (ícono + título + descripción). */
+function FeaturePopout({
+  f,
+  onClose
+}: {
+  f: { icon: LucideIcon; titulo: string; texto: string };
+  onClose: () => void;
+}) {
+  const Icon = f.icon;
+  return (
+    <div
+      className="sala-brand"
+      role="dialog"
+      aria-modal="true"
+      aria-label={f.titulo}
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 200,
+        background: 'rgba(10, 15, 12, 0.55)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: '420px',
+          background: 'var(--sala-surface)',
+          borderRadius: '18px',
+          boxShadow: '0 24px 60px rgba(10, 15, 12, 0.32)',
+          padding: '24px',
+          position: 'relative'
+        }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          style={{
+            position: 'absolute',
+            top: '14px',
+            right: '14px',
+            display: 'inline-flex',
+            padding: '6px',
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            color: 'var(--sala-text-tertiary)'
+          }}
+        >
+          <X size={18} strokeWidth={2.25} />
+        </button>
+        <span
+          aria-hidden="true"
+          style={{
+            display: 'inline-flex',
+            width: '48px',
+            height: '48px',
+            borderRadius: '13px',
+            background: 'var(--sala-primary-light)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '14px'
+          }}
+        >
+          <Icon size={24} strokeWidth={2} style={{ color: 'var(--sala-primary)' }} />
+        </span>
+        <h3
+          style={{
+            fontFamily: 'var(--ek-font-display)',
+            fontSize: '20px',
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            margin: '0 0 8px',
+            color: 'var(--sala-text-primary)'
+          }}
+        >
+          {f.titulo}
+        </h3>
+        <p style={{ fontSize: '15px', lineHeight: 1.55, color: 'var(--sala-text-secondary)', margin: 0 }}>
+          {f.texto}
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -541,9 +579,9 @@ function Showcase() {
       </Reveal>
       <Reveal>
         <ShowcaseRow
-          eyebrow="Para vos, el dueño"
-          titulo="Sabé qué clases llenan y a quién estás perdiendo."
-          texto="Ocupación, asistencia, retención y churn en un panel claro. Dejás de adivinar y empezás a decidir con datos."
+          eyebrow="Para ti, el dueño"
+          titulo="Sabe qué clases llenan y a quién estás perdiendo."
+          texto="Ocupación, asistencia, retención y churn en un panel claro. Dejas de adivinar y empiezas a decidir con datos."
           media={<BrowserFrame src={shot('dashboard')} alt="Dashboard con métricas de retención" />}
         />
       </Reveal>
@@ -552,7 +590,7 @@ function Showcase() {
           reverse
           eyebrow="Mapa de salón"
           titulo="Cada socio elige su lugar."
-          texto="Diseñás tu salón —bicis, mats o reformers— y cada socio reserva su lugar exacto desde la app. Recepción ve quién va dónde y reacomoda en segundos. El detalle premium que un estudio boutique merece."
+          texto="Diseñas tu salón —bicis, mats o reformers— y cada socio reserva su lugar exacto desde la app. Recepción ve quién va dónde y reacomoda en segundos. El detalle premium que un estudio boutique merece."
           media={<PhoneFrame src={shot('mapa')} alt="Socio eligiendo su lugar en el Mapa de Salón" />}
         />
       </Reveal>
@@ -580,35 +618,48 @@ function Pasos() {
           }}
         >
           {PASOS.map((p, i) => (
-            <Reveal key={p.n} delay={((i % 3) + 1) as 1 | 2 | 3}>
-              <p
+            <Reveal
+              key={p.n}
+              delay={((i % 3) + 1) as 1 | 2 | 3}
+              style={{ display: 'flex', gap: '13px', alignItems: 'flex-start' }}
+            >
+              <span
+                aria-hidden="true"
                 style={{
-                  fontFamily: 'var(--ek-font-display)',
-                  fontSize: '40px',
-                  fontWeight: 700,
-                  letterSpacing: '-0.04em',
+                  flexShrink: 0,
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  background: 'var(--sala-primary-light)',
                   color: 'var(--sala-primary)',
-                  margin: 0,
-                  opacity: 0.9
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: 'var(--ek-font-display)',
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  letterSpacing: '-0.02em'
                 }}
               >
                 {p.n}
-              </p>
-              <h3
-                style={{
-                  fontFamily: 'var(--ek-font-display)',
-                  fontSize: '20px',
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                  margin: '8px 0 6px',
-                  color: 'var(--sala-text-primary)'
-                }}
-              >
-                {p.titulo}
-              </h3>
-              <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--sala-text-secondary)', margin: 0 }}>
-                {p.texto}
-              </p>
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <h3
+                  style={{
+                    fontFamily: 'var(--ek-font-display)',
+                    fontSize: '17px',
+                    fontWeight: 700,
+                    letterSpacing: '-0.02em',
+                    margin: '2px 0 4px',
+                    color: 'var(--sala-text-primary)'
+                  }}
+                >
+                  {p.titulo}
+                </h3>
+                <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--sala-text-secondary)', margin: 0 }}>
+                  {p.texto}
+                </p>
+              </div>
             </Reveal>
           ))}
         </div>
@@ -871,13 +922,13 @@ function CtaFinal() {
   return (
     <section style={{ padding: 'clamp(16px, 5vw, 48px)' }}>
       <div
+        className="sala-cta-immersive"
         style={{
           maxWidth: '900px',
           margin: '0 auto',
           textAlign: 'center',
           borderRadius: 'var(--ek-r-card)',
           padding: 'clamp(40px, 6vw, 72px) clamp(24px, 5vw, 48px)',
-          background: 'var(--grad-immersive)',
           boxShadow: '0 24px 60px rgba(10, 15, 12, 0.32)'
         }}
       >
@@ -892,14 +943,14 @@ function CtaFinal() {
             color: 'rgba(255, 255, 255, 0.97)'
           }}
         >
-          Empezá hoy. Tu primer socio reserva esta semana.
+          Empieza hoy. Tu primer socio reserva esta semana.
         </h2>
         <Link
           to={REGISTRO}
           className="sala-hero-cta sala-hero-cta--fill ek-lift"
           style={{ marginTop: '28px' }}
         >
-          Creá tu gym
+          Crea tu gym
           <ArrowRight size={18} strokeWidth={2.25} />
         </Link>
       </div>
@@ -940,13 +991,13 @@ function Footer({ onBuscar }: { onBuscar: () => void }) {
         <div>
           <p className="ek-eyebrow" style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', margin: '0 0 8px' }}>PRODUCTO</p>
           <a href="#precios" style={linkStyle}>Precios</a>
-          <Link to={REGISTRO} style={linkStyle}>Creá tu gym</Link>
+          <Link to={REGISTRO} style={linkStyle}>Crea tu gym</Link>
           <button
             type="button"
             onClick={onBuscar}
             style={{ ...linkStyle, border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '3px 0' }}
           >
-            Buscá tu estudio
+            Busca tu estudio
           </button>
         </div>
         <div>
