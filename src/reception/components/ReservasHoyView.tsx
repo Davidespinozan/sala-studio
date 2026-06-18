@@ -295,6 +295,8 @@ function ReservaCard({
     capitalizarNombre(reserva.usuario?.nombre) || reserva.usuario?.email || '—';
 
   const tier = reserva.usuario?.membresia_tier;
+  // lugar_id viene del `*` pero aún no está en los tipos generados → cast.
+  const lugar = (reserva as { lugar_id?: string | null }).lugar_id;
   const disabled = reserva.status === 'cancelada' || reserva.status === 'no_show';
 
   const statusConfig: Record<
@@ -378,6 +380,9 @@ function ReservaCard({
         <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', margin: 0 }}>
           {reserva.recurso?.nombre ?? '—'}
           {tier && ` · ${tier}`}
+          {lugar && (
+            <strong style={{ color: 'var(--sala-primary)' }}> · Lugar {lugar.replace(/^L/i, '')}</strong>
+          )}
         </p>
       </div>
 

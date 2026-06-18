@@ -23,6 +23,8 @@ interface ReservaData {
   slot_fin: string;
   duracion_min: number;
   invitados_count: number;
+  /** Lugar elegido en el Mapa de Salón (ej. 'L7'); null si la sala no usa mapa. */
+  lugar_id?: string | null;
 }
 
 interface StatsData {
@@ -106,6 +108,9 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, errorMes
         <Cell label="DURACIÓN" value={`${reserva.duracion_min} min`} />
         <Cell label="FOLIO" value={reserva.folio} mono />
         <Cell label="PERSONAS" value={`${1 + reserva.invitados_count}`} />
+        {reserva.lugar_id && (
+          <Cell label="LUGAR" value={reserva.lugar_id.replace(/^L/i, '')} color="var(--sala-primary)" />
+        )}
       </div>
 
       <div className="rec-detail-divider" />
