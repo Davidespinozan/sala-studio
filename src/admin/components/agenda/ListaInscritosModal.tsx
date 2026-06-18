@@ -17,6 +17,8 @@ import {
 import { useEditarCancelarClase } from '@admin/hooks/useEditarCancelarClase';
 import CardMenuDropdown from '../CardMenuDropdown';
 import ConfirmDialog from '../ConfirmDialog';
+import { useLugaresSala } from '@member/hooks/useLugaresSala';
+import { MapaOcupacion, type OcupanteLugar } from '../recurso/MapaOcupacion';
 import { AgregarMiembroManualSelector } from './AgregarMiembroManualSelector';
 import { EditarClaseModal } from './EditarClaseModal';
 
@@ -34,6 +36,8 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
   const [claseActual, setClaseActual] = useState<Clase>(clase);
   // Una clase virtual (sin claseId) aún no tiene inscritos ni lista de espera.
   const { inscritos, isLoading, refetch } = useInscritosDeClase(claseActual.claseId);
+  const { layout } = useLugaresSala(claseActual.recursoId, claseActual.claseId);
+  const [vista, setVista] = useState<'lista' | 'mapa'>('lista');
   const { enEspera, refetch: refetchEspera } = useListaEsperaDeClase(claseActual.claseId);
   const { cancelarClase, cancelling } = useEditarCancelarClase(claseActual);
   const [showAgregar, setShowAgregar] = useState(false);
@@ -67,6 +71,13 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
   const cuposReservados = inscritosActivos.length;
   const cuposLibres = Math.max(0, claseActual.cupoMax - cuposReservados);
   const estado = estadoCupos({ ...claseActual, cuposReservados } as Clase);
+
+  // Mapa de Salón: ocupación (lugar → quién está, ✓ si hizo check-in).
+  const ocupacion = new Map<string, OcupanteLugar>(
+    inscritosActivos
+      .filter((i) => i.lugarId)
+      .map((i) => [i.lugarId as string, { nombre: i.nombre, asistio: i.status === 'completada' }])
+  );
   const llena = estado === 'llena';
   const pocos = estado === 'pocos';
 
@@ -302,6 +313,27 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
         </div>
 
         {/* Lista de inscritos */}
+        {layout && inscritos.length > 0 && (
+          <div style={{ display: 'inline-flex', gap: '4px', marginBottom: '12px', background: 'var(--sala-bg)', borderRadius: '999px', padding: '3px' }}>
+            {(['lista', 'mapa'] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setVista(v)}
+                style={{
+                  padding: '5px 14px', borderRadius: '999px', fontSize: '12.5px', fontWeight: 600,
+                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  background: vista === v ? 'var(--sala-surface)' : 'transparent',
+                  color: vista === v ? 'var(--sala-text-primary)' : 'var(--sala-text-tertiary)',
+                  boxShadow: vista === v ? '0 1px 3px rgba(26,31,28,0.12)' : 'none'
+                }}
+              >
+                {v === 'lista' ? 'Lista' : 'Mapa'}
+              </button>
+            ))}
+          </div>
+        )}
+
         {isLoading ? (
           <p style={{ fontSize: '13px', color: 'var(--sala-text-tertiary)', margin: 0 }}>
             Cargando inscritos…
@@ -333,6 +365,10 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
             <p style={{ fontSize: '14px', color: 'var(--sala-text-primary)', margin: 0 }}>
               Nadie reservó esta clase todavía.
             </p>
+          </div>
+        ) : vista === 'mapa' && layout ? (
+          <div style={{ marginBottom: '16px' }}>
+            <MapaOcupacion layout={layout} ocupacion={ocupacion} />
           </div>
         ) : (
           <div

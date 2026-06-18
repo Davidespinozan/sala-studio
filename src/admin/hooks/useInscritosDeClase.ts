@@ -10,6 +10,7 @@ export interface InscritoAdmin {
   planSlug: string | null;
   status: 'confirmada' | 'cancelada' | 'completada' | 'no_show';
   folio: string;
+  lugarId: string | null;
 }
 
 export interface MiembroBuscable {
@@ -34,7 +35,7 @@ export function useInscritosDeClase(claseId: string | null) {
     const { data, error } = await supabase
       .from('reservas')
       .select(
-        'id, status, folio, usuario:usuarios!reservas_usuario_id_fkey(id, nombre, email, membresia_tier)'
+        'id, status, folio, lugar_id, usuario:usuarios!reservas_usuario_id_fkey(id, nombre, email, membresia_tier)'
       )
       .eq('clase_id', claseId)
       .order('id', { ascending: true });
@@ -49,6 +50,7 @@ export function useInscritosDeClase(claseId: string | null) {
       id: string;
       status: string;
       folio: string;
+      lugar_id: string | null;
       usuario: {
         id: string;
         nombre: string | null;
@@ -65,7 +67,8 @@ export function useInscritosDeClase(claseId: string | null) {
         email: r.usuario?.email ?? '',
         planSlug: r.usuario?.membresia_tier ?? null,
         status: r.status as InscritoAdmin['status'],
-        folio: r.folio
+        folio: r.folio,
+        lugarId: r.lugar_id ?? null
       }))
     );
     setIsLoading(false);
