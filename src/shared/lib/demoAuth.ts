@@ -52,8 +52,11 @@ export function esSesionDemo(authUser: User | null | undefined): boolean {
 export async function entrarAlDemo(vista: DemoVista): Promise<{ error: string | null }> {
   if (!demoDisponible()) return { error: 'El demo no está disponible.' };
 
-  // Landing: es público, solo abrimos el subdominio de healthyspace.
+  // Landing: es público. Si quedó una sesión demo previa (ej. entraste antes a
+  // "Vista admin"), el landing del tenant te rebotaría a /admin por el role-
+  // redirect. Cerramos la sesión primero para verlo realmente logged-out.
   if (vista === 'landing') {
+    await supabase.auth.signOut().catch(() => {});
     window.location.href = `https://healthyspace.${MARKETING_DOMAIN}`;
     return { error: null };
   }

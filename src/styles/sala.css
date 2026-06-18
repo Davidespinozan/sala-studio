@@ -1779,7 +1779,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
       display: flex;
       align-items: center;
       position: absolute;
-      top: 14px;
+      top: 8px;
       right: 16px;
       padding: 0;
       z-index: 30;
@@ -2236,7 +2236,9 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   --sala-primary:      #3D6B52;
   --sala-primary-text: #FFFFFF;
   --sala-primary-tint: #000000;
-  --sala-accent:       #3D6B52;
+  /* ACENTO = acción (CTAs). Coral terracota: cálido, premium, contrasta con el
+     verde bosque sin caer en el "amarillo barato". Verde = marca/estructura. */
+  --sala-accent:       #C44A35;
   --sala-accent-text:  #FFFFFF;
   --sala-accent-tint:  #000000;
   --sala-warning:      #C8941F;
@@ -2249,6 +2251,103 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   --ek-mustard:      #3D6B52;
   --ek-mustard-dim:  color-mix(in srgb, #3D6B52 24%, transparent);
   --ek-mustard-soft: color-mix(in srgb, #3D6B52 10%, var(--sala-bg));
+}
+
+/* ============================================================================
+   HERO de la landing de SALA — producto protagonista
+   ============================================================================ */
+.sala-hero-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: clamp(32px, 5vw, 64px);
+  align-items: center;
+}
+/* Desktop: el producto pesa más que el copy → la captura se ve más grande. */
+@media (min-width: 900px) {
+  .sala-hero-grid {
+    grid-template-columns: 0.88fr 1.12fr;
+    gap: clamp(40px, 4vw, 72px);
+  }
+}
+
+/* La captura del hero "iluminada": halo cálido detrás + un pelín más grande en
+   desktop para que resalte sobre el verde inmersivo. */
+.sala-hero-media {
+  position: relative;
+}
+.sala-hero-media::before {
+  content: '';
+  position: absolute;
+  inset: -14% -10%;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 255, 255, 0.26) 0%,
+    var(--sala-accent-glow) 45%,
+    transparent 76%
+  );
+  filter: blur(10px);
+  z-index: 0;
+  pointer-events: none;
+}
+.sala-hero-media > * {
+  position: relative;
+  z-index: 1;
+}
+@media (min-width: 900px) {
+  .sala-hero-media {
+    transform: scale(1.06);
+    transform-origin: center left;
+  }
+}
+
+/* Móvil: "Creá tu gym" del hero es redundante (vive fijo en el menú de arriba).
+   Lo ocultamos para limpiar y dejar el demo como acción principal. */
+@media (max-width: 640px) {
+  .sala-hero-cta-primary {
+    display: none;
+  }
+}
+
+/* ============================================================================
+   SECCIÓN FEATURES — banda propia (no plana) + tarjetas con vida
+   ============================================================================ */
+.sala-section-features {
+  /* Banda diferenciada: matiz de marca arriba que se funde al fondo + filos
+     finos → se siente una sección distinta, no un lienzo plano. */
+  padding: clamp(44px, 7vw, 84px) 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--sala-primary) 5%, var(--sala-surface)) 0%,
+    var(--sala-bg) 100%
+  );
+  border-top: 1px solid var(--sala-border);
+  border-bottom: 1px solid var(--sala-border);
+}
+
+.sala-feature-card .ek-card {
+  transition:
+    transform 0.22s var(--ease-premium),
+    box-shadow 0.26s var(--ease-premium),
+    border-color 0.2s ease;
+}
+.sala-feature-card .sala-feature-icon {
+  transition: background 0.2s ease;
+}
+.sala-feature-card .sala-feature-icon svg {
+  transition: color 0.2s ease;
+}
+/* Hover: se levanta y el ícono salta a coral (acento) → toque de color + vida.
+   El transform va en .ek-card (no en .reveal), así no pelea con el scroll-reveal. */
+.sala-feature-card:hover .ek-card {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(10, 15, 12, 0.10);
+  border-color: var(--sala-accent-soft);
+}
+.sala-feature-card:hover .sala-feature-icon {
+  background: var(--sala-accent-soft);
+}
+.sala-feature-card:hover .sala-feature-icon svg {
+  color: var(--sala-accent) !important;
 }
 
 /* ============================================================================

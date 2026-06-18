@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { SalaLogo } from '@shared/components/SalaLogo';
 import { BrowserFrame, PhoneFrame } from '../components/DeviceFrame';
+import { Reveal } from '../components/Reveal';
 import BuscarEstudio from '../components/BuscarEstudio';
 import ProbarDemoModal from '../components/ProbarDemoModal';
 import { demoDisponible } from '@shared/lib/demoAuth';
@@ -274,15 +275,7 @@ function Hero() {
         {/* glow ambiental que sigue el cursor (desktop) */}
         <div className="sala-spotlight" aria-hidden="true" />
         <div className="sala-fade-up" style={{ position: 'relative', zIndex: 4, maxWidth: '1180px', margin: '0 auto' }}>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
-              gap: 'clamp(32px, 5vw, 64px)',
-              alignItems: 'center',
-              textAlign: 'left'
-            }}
-          >
+          <div className="sala-hero-grid" style={{ textAlign: 'left' }}>
             {/* Columna izquierda — copy */}
             <div>
               <p
@@ -322,7 +315,7 @@ function Hero() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '32px' }}>
                 <Link
                   to={REGISTRO}
-                  className="ek-cta ek-lift"
+                  className="ek-cta ek-lift sala-hero-cta-primary"
                   style={{ padding: '15px 28px', minHeight: '52px', fontSize: '16px' }}
                 >
                   Creá tu gym
@@ -356,7 +349,7 @@ function Hero() {
             </div>
 
             {/* Columna derecha — el producto */}
-            <div style={{ minWidth: 0 }}>
+            <div className="sala-hero-media" style={{ minWidth: 0 }}>
               <BrowserFrame src={shot('agenda')} alt="Agenda y reservas en SALA" />
             </div>
           </div>
@@ -403,58 +396,73 @@ function TrustStrip() {
 
 function Features() {
   return (
-    <section style={{ padding: 'clamp(32px, 6vw, 64px) clamp(16px, 5vw, 48px)', maxWidth: '1100px', margin: '0 auto' }}>
-      <SectionEyebrow label="Todo lo que necesitás" />
-      <h2 style={sectionTitle}>Una plataforma, no diez herramientas sueltas.</h2>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-          gap: '16px',
-          marginTop: '32px'
-        }}
-      >
-        {FEATURES.map((f) => {
-          const Icon = f.icon;
-          return (
-            <div
-              key={f.titulo}
-              className="ek-card"
-              style={{ background: 'var(--sala-surface)', border: '1px solid var(--sala-border)' }}
-            >
-              <div
-                aria-hidden="true"
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '12px',
-                  background: 'var(--sala-primary-light)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '14px'
-                }}
+    <section className="sala-section-features">
+      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 clamp(16px, 5vw, 48px)' }}>
+        <SectionEyebrow label="Todo lo que necesitás" />
+        <h2 style={sectionTitle}>Una plataforma, no diez herramientas sueltas.</h2>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+            gap: '16px',
+            marginTop: '32px'
+          }}
+        >
+          {FEATURES.map((f, i) => {
+            const Icon = f.icon;
+            return (
+              <Reveal
+                key={f.titulo}
+                delay={((i % 3) + 1) as 1 | 2 | 3}
+                className="sala-feature-card"
               >
-                <Icon size={22} strokeWidth={2} style={{ color: 'var(--sala-primary)' }} />
-              </div>
-              <h3
-                style={{
-                  fontFamily: 'var(--ek-font-display)',
-                  fontSize: '18px',
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                  margin: '0 0 6px',
-                  color: 'var(--sala-text-primary)'
-                }}
-              >
-                {f.titulo}
-              </h3>
-              <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--sala-text-secondary)', margin: 0 }}>
-                {f.texto}
-              </p>
-            </div>
-          );
-        })}
+                <div
+                  className="ek-card"
+                  style={{
+                    background: 'var(--sala-surface)',
+                    border: '1px solid var(--sala-border)',
+                    height: '100%'
+                  }}
+                >
+                  {/* Ícono EN LÍNEA con el título → menos aire, más fácil de leer. */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+                    <div
+                      aria-hidden="true"
+                      className="sala-feature-icon"
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '11px',
+                        background: 'var(--sala-primary-light)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      <Icon size={20} strokeWidth={2} style={{ color: 'var(--sala-primary)' }} />
+                    </div>
+                    <h3
+                      style={{
+                        fontFamily: 'var(--ek-font-display)',
+                        fontSize: '18px',
+                        fontWeight: 700,
+                        letterSpacing: '-0.02em',
+                        margin: 0,
+                        color: 'var(--sala-text-primary)'
+                      }}
+                    >
+                      {f.titulo}
+                    </h3>
+                  </div>
+                  <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--sala-text-secondary)', margin: 0 }}>
+                    {f.texto}
+                  </p>
+                </div>
+              </Reveal>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
