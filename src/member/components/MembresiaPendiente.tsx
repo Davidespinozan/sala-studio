@@ -48,6 +48,9 @@ export function MembresiaPendiente({
         recepción para activar tu membresía y empezar a reservar.
       </p>
 
+      {/* TODO STRIPE: cuando haya pagos en línea, ofrecer acá un CTA "Elegí tu
+          plan / Pagar" → flujo de checkout (iniciarCheckout), para que el socio
+          se active solo sin pasar por recepción. Ver STRIPE.md → touchpoints. */}
       <button onClick={onCerrarSesion} className="ek-cta ek-cta--secondary">
         Cerrar sesión
       </button>

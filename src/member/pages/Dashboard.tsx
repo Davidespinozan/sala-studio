@@ -114,6 +114,7 @@ function useClasesDeHoy(tenantId: string, tz: string) {
   const [reservasMiembro, setReservasMiembro] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const { usuario } = useAuth();
+  const usuarioId = usuario?.id;
 
   useEffect(() => {
     let mounted = true;
@@ -141,11 +142,11 @@ function useClasesDeHoy(tenantId: string, tz: string) {
       // Mis reservas de hoy (solo materializadas).
       const claseIds = rows.map((r) => r.clase_id).filter((x): x is string => !!x);
       const setMisReservas = new Set<string>();
-      if (usuario && claseIds.length > 0) {
+      if (usuarioId && claseIds.length > 0) {
         const { data: misRes } = await supabase
           .from('reservas')
           .select('clase_id')
-          .eq('usuario_id', usuario.id)
+          .eq('usuario_id', usuarioId)
           .in('clase_id', claseIds)
           .in('status', ['confirmada', 'completada']);
         if (!mounted) return;
@@ -161,9 +162,9 @@ function useClasesDeHoy(tenantId: string, tz: string) {
     }
     void load();
     return () => { mounted = false; };
-    // usuario?.id (no el objeto): el objeto cambia de referencia en cada
+    // usuarioId (no el objeto usuario): el objeto cambia de referencia en cada
     // re-hidratación del auth y disparaba re-fetches innecesarios.
-  }, [tenantId, usuario?.id, tz]);
+  }, [tenantId, usuarioId, tz]);
 
   return { clases, reservasMiembro, isLoading };
 }

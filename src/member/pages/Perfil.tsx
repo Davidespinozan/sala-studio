@@ -616,6 +616,8 @@ function MetodoPago() {
         <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', margin: 0 }}>
           No tenés una tarjeta guardada.
         </p>
+        {/* TODO STRIPE: abrir el Customer Portal / SetupIntent de Stripe para
+            guardar una tarjeta (ver STRIPE.md → touchpoints). Hoy: placeholder. */}
         <button
           type="button"
           onClick={() => toast.info('Disponible pronto, cuando habilitemos los pagos en línea.')}
@@ -634,6 +636,8 @@ function MetodoPago() {
 // ============================================================================
 
 function HistorialPagos() {
+  // TODO STRIPE: listar los pagos reales (tabla payment_events / invoices de
+  // Stripe) cuando se conecte. Hoy: placeholder. Ver STRIPE.md → touchpoints.
   return (
     <section style={{ marginTop: '32px' }}>
       <p className="ek-eyebrow" style={{ marginBottom: '10px' }}>HISTORIAL DE PAGOS</p>

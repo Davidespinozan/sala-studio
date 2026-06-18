@@ -46,6 +46,22 @@ Completar los 2 `[TODO STRIPE]`:
 - Apuntar el endpoint del webhook en el dashboard de Stripe a
   `/.netlify/functions/stripe-webhook`.
 
+## Touchpoints en la UI (greppables: `TODO STRIPE`)
+
+Al conectar Stripe, además de los 3 pasos de arriba, estos lugares de la UI se
+"encienden". Hoy son placeholders honestos; cada uno tiene un comentario
+`TODO STRIPE` en el código (`grep -rn "TODO STRIPE" src netlify`):
+
+| Lugar | Hoy | Al conectar Stripe |
+|---|---|---|
+| `Perfil` → Plan actual y opciones | Compra/cambio ya cableado (`iniciarCheckout`) | Redirige al Checkout |
+| `Perfil` → **Método de pago** | Botón con toast "disponible pronto" | Abrir Customer Portal / SetupIntent para guardar tarjeta |
+| `Perfil` → **Historial de pagos** | Texto estático | Listar pagos reales (tabla `payment_events` / invoices de Stripe) |
+| `MembresiaPendiente` (socio `pendiente_pago`) | "Acercate a recepción" | CTA "Elegí tu plan / Pagar" → checkout (autoactivación sin recepción) |
+| `EstadoMembresiaBanner` (sin/vencida) | "Elegí tu plan" → Perfil | igual (ya enchufado) |
+| `netlify/functions/suscribir-membresia` | demo activa / real `stripe_pendiente` | crear Checkout Session |
+| `netlify/functions/stripe-webhook` | inerte (sin secret) | verificar firma + activar/cancelar vía RPC |
+
 ## Quitar el pago simulado del demo (opcional)
 En `suscribir-membresia`, el gate `esDemo` activa sin cobro. Una vez que Stripe
 esté en producción, podés dejar que el demo también pase por Checkout (test mode)
