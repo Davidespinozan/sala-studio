@@ -36,6 +36,7 @@ export function BrowserFrame({ src, alt }: { src?: string; alt: string }) {
     <div
       style={{
         position: 'relative',
+        width: '100%',
         aspectRatio: '16 / 10',
         borderRadius: '14px',
         overflow: 'hidden',
