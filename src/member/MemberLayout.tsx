@@ -17,7 +17,7 @@ import { PwaInstallBanner } from '@shared/components/PwaInstallBanner';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Reservar = lazy(() => import('./pages/Reservar'));
-const Historial = lazy(() => import('./pages/Historial'));
+const MisReservas = lazy(() => import('./pages/MisReservas'));
 const Perfil = lazy(() => import('./pages/Perfil'));
 const MiQR = lazy(() => import('./pages/MiQR'));
 const Estudios = lazy(() => import('./pages/Estudios'));
@@ -98,7 +98,8 @@ export default function MemberLayout() {
             <Route path="/estudios" element={<Estudios />} />
             <Route path="/estudios/:slug" element={<EstudioDetalle />} />
             <Route path="/clase/:id" element={<ClaseDetalle />} />
-            <Route path="/historial" element={<Historial />} />
+            <Route path="/historial" element={<MisReservas />} />
+            <Route path="/reservas" element={<MisReservas />} />
             <Route path="/perfil" element={<Perfil />} />
             <Route path="/qr/:reservaId" element={<MiQR />} />
           </Routes>
