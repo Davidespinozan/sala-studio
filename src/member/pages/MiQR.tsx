@@ -157,7 +157,7 @@ export default function MiQR() {
         <div className="ek-card">
           <p className="ek-eyebrow" style={{ marginBottom: '8px' }}>INSTRUCCIONES</p>
           <p className="ek-body-muted">
-            Mostrá este código al llegar a SALA. La recepción lo escanea
+            Muestra este código al llegar a SALA. La recepción lo escanea
             para confirmar tu entrada.
             {expiresAt && (
               <>

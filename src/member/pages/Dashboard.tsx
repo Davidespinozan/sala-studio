@@ -286,7 +286,7 @@ export default function Dashboard() {
                 weekday: 'long', day: 'numeric', month: 'long'
               })}
             </strong>
-            . Si tenés dudas, contactá a SALA.
+            . Si tienes dudas, contacta a SALA.
           </p>
         </div>
       )}
@@ -359,7 +359,7 @@ export default function Dashboard() {
               margin: 0
             }}
           >
-            No hay más clases hoy. Mirá la{' '}
+            No hay más clases hoy. Mira la{' '}
             <Link
               to="/app/reservar"
               style={{ color: 'var(--sala-primary)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
@@ -590,9 +590,9 @@ function EmptyProximaClaseInline() {
           color: 'var(--sala-text-primary)'
         }}
       >
-        No tenés clases reservadas.
+        No tienes clases reservadas.
       </span>{' '}
-      Mirá las opciones de hoy
+      Mira las opciones de hoy
       <ArrowDown size={14} strokeWidth={2.25} style={{ display: 'inline', verticalAlign: 'text-bottom', marginLeft: '3px' }} />
     </p>
   );

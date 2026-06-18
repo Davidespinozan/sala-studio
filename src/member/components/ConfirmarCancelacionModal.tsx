@@ -54,7 +54,7 @@ export function ConfirmarCancelacionModal({ clase, submitting, onConfirm, onClos
           }}
         >
           {fecha.charAt(0).toUpperCase() + fecha.slice(1)} · {hora}<br />
-          Si cancelás con anticipación, no hay penalidad.
+          Si cancelas con anticipación, no hay penalidad.
         </p>
 
         <div style={{ display: 'flex', gap: '10px' }}>

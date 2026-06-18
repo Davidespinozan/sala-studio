@@ -83,7 +83,7 @@ export default function EstadoMembresiaBanner() {
                 gap: '5px'
               }}
             >
-              {estado === 'vencida' ? 'Renová tu plan' : 'Elegí tu plan'}
+              {estado === 'vencida' ? 'Renueva tu plan' : 'Elige tu plan'}
               <ArrowRight size={15} strokeWidth={2.25} />
             </Link>
           ) : (
@@ -113,7 +113,7 @@ function bannerContenido(estado: Exclude<EstadoMembresia, 'sana'>): {
       return {
         variant: 'error',
         eyebrow: 'Sin membresía activa',
-        mensaje: 'No tenés una membresía activa. Contactá al gimnasio.',
+        mensaje: 'No tienes una membresía activa. Contacta al gimnasio.',
         waMensaje: 'Hola, quiero activar una membresía.'
       };
     case 'congelada':

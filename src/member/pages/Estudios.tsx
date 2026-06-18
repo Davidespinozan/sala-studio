@@ -45,7 +45,7 @@ export default function Estudios() {
         <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>EXPLORAR</p>
         <h1 className="ek-display-xl">Nuestras salas</h1>
         <p className="ek-body-muted" style={{ marginTop: '8px' }}>
-          Espacios diseñados para cada disciplina. Elegí la que va con vos.
+          Espacios diseñados para cada disciplina. Elige la que va contigo.
         </p>
       </div>
 

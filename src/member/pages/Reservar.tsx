@@ -288,7 +288,7 @@ export default function Reservar() {
             marginBottom: '8px'
           }}
         >
-          Elegí tu clase
+          Elige tu clase
         </p>
         <h1
           style={{
@@ -491,7 +491,7 @@ function EmptyDia() {
         No hay clases programadas para este día.
       </p>
       <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0 }}>
-        Probá con otro día de la semana.
+        Prueba con otro día de la semana.
       </p>
     </div>
   );

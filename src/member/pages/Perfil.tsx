@@ -245,7 +245,7 @@ export default function Perfil() {
           <h2 className="ek-display-md" style={{ marginBottom: '16px' }}>Reservas pasadas</h2>
 
           {reservas.length === 0 ? (
-            <p className="ek-body-muted">Aún no tenés sesiones completadas.</p>
+            <p className="ek-body-muted">Aún no tienes sesiones completadas.</p>
           ) : (
             <div className="ek-stack-sm">
               {reservas.map((r) => (
@@ -388,7 +388,7 @@ function PlanHero({
         ) : (
           <>
             <p style={{ fontSize: '20px', fontWeight: 600, color: 'rgba(255, 255, 255, 0.92)', margin: 0 }}>
-              No tenés un plan activo
+              No tienes un plan activo
             </p>
             <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.55)', margin: '8px 0 0', lineHeight: 1.5 }}>
               Hablá con {tenantNombre} para activar tu plan y empezar a reservar.
@@ -614,7 +614,7 @@ function MetodoPago() {
           <CreditCard size={22} strokeWidth={2} style={{ color: 'var(--sala-primary)' }} />
         </div>
         <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', margin: 0 }}>
-          No tenés una tarjeta guardada.
+          No tienes una tarjeta guardada.
         </p>
         {/* TODO STRIPE: abrir el Customer Portal / SetupIntent de Stripe para
             guardar una tarjeta (ver STRIPE.md → touchpoints). Hoy: placeholder. */}

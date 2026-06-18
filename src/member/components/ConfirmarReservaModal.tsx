@@ -97,7 +97,7 @@ export function ConfirmarReservaModal({
             <label
               style={{ display: 'block', fontSize: '13px', color: 'var(--sala-text-secondary)', marginBottom: '8px', fontWeight: 500 }}
             >
-              Elegí tu lugar
+              Elige tu lugar
             </label>
             <SeleccionarLugar layout={layout} tomados={tomados} seleccionado={lugarId} onSelect={onLugarChange} />
           </div>
@@ -231,7 +231,7 @@ export function ConfirmarReservaModal({
             className="ek-cta"
             style={{ flex: 1 }}
           >
-            {submitting ? 'Reservando…' : faltaLugar ? 'Elegí un lugar' : 'Confirmar'}
+            {submitting ? 'Reservando…' : faltaLugar ? 'Elige un lugar' : 'Confirmar'}
           </button>
         </div>
       </div>

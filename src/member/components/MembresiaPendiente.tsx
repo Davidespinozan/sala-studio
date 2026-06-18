@@ -44,7 +44,7 @@ export function MembresiaPendiente({
         {nombre ? `Hola, ${nombre}` : 'Tu membresía está pendiente'}
       </h1>
       <p style={{ maxWidth: '380px', fontSize: '14px', color: 'var(--sala-text-secondary)', lineHeight: 1.55, margin: '0 0 22px' }}>
-        Tu cuenta está creada, pero todavía no tenés un plan activo. Acercate a
+        Tu cuenta está creada, pero todavía no tienes un plan activo. Acércate a
         recepción para activar tu membresía y empezar a reservar.
       </p>
 
