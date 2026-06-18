@@ -1,4 +1,6 @@
 import type { Clase } from '@member/logic/claseAdapter';
+import { useLugaresSala } from '@member/hooks/useLugaresSala';
+import { SeleccionarLugar } from './SeleccionarLugar';
 
 interface Props {
   clase: Clase;
@@ -10,6 +12,9 @@ interface Props {
   costoCreditos?: number | null;
   /** Saldo de créditos del socio (solo planes por créditos). null = ilimitado. */
   creditosRestantes?: number | null;
+  /** Mapa de Salón: lugar elegido. null = ninguno todavía. */
+  lugarId: string | null;
+  onLugarChange: (id: string) => void;
   submitting: boolean;
   error: string | null;
   onConfirm: () => void;
@@ -25,6 +30,8 @@ export function ConfirmarReservaModal({
   onInvitadosChange,
   costoCreditos,
   creditosRestantes,
+  lugarId,
+  onLugarChange,
   submitting,
   error,
   onConfirm,
@@ -37,6 +44,10 @@ export function ConfirmarReservaModal({
   // Plan por créditos: ¿alcanza el saldo para esta reserva (socio + invitados)?
   const muestraSaldo = costoCreditos != null && creditosRestantes != null;
   const saldoInsuficiente = muestraSaldo && costoCreditos! > creditosRestantes!;
+
+  // Mapa de Salón: si la sala tiene layout, el socio elige su lugar (sin invitados).
+  const { layout, tomados } = useLugaresSala(clase.recursoId, clase.claseId);
+  const faltaLugar = !!layout && !lugarId;
 
   return (
     <div className="ek-modal-backdrop" onClick={onClose}>
@@ -81,7 +92,18 @@ export function ConfirmarReservaModal({
           {clase.instructorNombre ? `con ${clase.instructorNombre}` : 'Instructor por confirmar'}
         </p>
 
-        {maxInvitados > 0 && (
+        {layout && (
+          <div style={{ marginBottom: '18px' }}>
+            <label
+              style={{ display: 'block', fontSize: '13px', color: 'var(--sala-text-secondary)', marginBottom: '8px', fontWeight: 500 }}
+            >
+              Elegí tu lugar
+            </label>
+            <SeleccionarLugar layout={layout} tomados={tomados} seleccionado={lugarId} onSelect={onLugarChange} />
+          </div>
+        )}
+
+        {!layout && maxInvitados > 0 && (
           <div style={{ marginBottom: '18px' }}>
             <label
               style={{
@@ -205,11 +227,11 @@ export function ConfirmarReservaModal({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={submitting || saldoInsuficiente}
+            disabled={submitting || saldoInsuficiente || faltaLugar}
             className="ek-cta"
             style={{ flex: 1 }}
           >
-            {submitting ? 'Reservando…' : 'Confirmar'}
+            {submitting ? 'Reservando…' : faltaLugar ? 'Elegí un lugar' : 'Confirmar'}
           </button>
         </div>
       </div>

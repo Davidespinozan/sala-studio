@@ -91,6 +91,7 @@ export default function ClaseDetalle() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showEsperaModal, setShowEsperaModal] = useState(false);
   const [invitados, setInvitados] = useState(0);
+  const [lugarId, setLugarId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorReserva, setErrorReserva] = useState<string | null>(null);
 
@@ -207,6 +208,7 @@ export default function ClaseDetalle() {
     }
     setErrorReserva(null);
     setInvitados(0);
+    setLugarId(null);
     setShowReservaModal(true);
   }
 
@@ -229,7 +231,8 @@ export default function ClaseDetalle() {
         horarioId: clase.horarioId,
         fecha: clase.fechaISO,
         invitados,
-        notas: undefined
+        notas: undefined,
+        lugarId
       });
       setShowReservaModal(false);
       setSubmitting(false);
@@ -723,6 +726,8 @@ export default function ClaseDetalle() {
           onInvitadosChange={setInvitados}
           costoCreditos={esPlanCreditos ? 1 + invitados : null}
           creditosRestantes={esPlanCreditos ? membresia?.creditos_restantes ?? null : null}
+          lugarId={lugarId}
+          onLugarChange={setLugarId}
           submitting={submitting}
           error={errorReserva}
           onConfirm={confirmarReserva}

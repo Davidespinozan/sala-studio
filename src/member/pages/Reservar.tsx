@@ -76,6 +76,7 @@ export default function Reservar() {
   // Modal de reserva
   const [claseAReservar, setClaseAReservar] = useState<Clase | null>(null);
   const [invitados, setInvitados] = useState(0);
+  const [lugarId, setLugarId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorReserva, setErrorReserva] = useState<string | null>(null);
 
@@ -171,6 +172,7 @@ export default function Reservar() {
     }
     setErrorReserva(null);
     setInvitados(0);
+    setLugarId(null);
     setClaseAReservar(clase);
   }
 
@@ -207,7 +209,8 @@ export default function Reservar() {
         horarioId: claseAReservar.horarioId,
         fecha: claseAReservar.fechaISO,
         invitados,
-        notas: undefined
+        notas: undefined,
+        lugarId
       });
       setClaseAReservar(null);
       setSubmitting(false);
@@ -373,6 +376,8 @@ export default function Reservar() {
           onInvitadosChange={setInvitados}
           costoCreditos={esPlanCreditos ? 1 + invitados : null}
           creditosRestantes={esPlanCreditos ? membresia?.creditos_restantes ?? null : null}
+          lugarId={lugarId}
+          onLugarChange={setLugarId}
           submitting={submitting}
           error={errorReserva}
           onConfirm={confirmarReserva}

@@ -66,6 +66,8 @@ export async function crearReserva(params: {
   fecha?: string;
   invitados?: number;
   notas?: string;
+  /** Lugar elegido en el Mapa de Salón (si la sala tiene layout). */
+  lugarId?: string | null;
 }) {
   // reservar_clase_virtual no está en los tipos generados todavía → cast.
   const rpc = supabase.rpc as unknown as (
@@ -77,13 +79,15 @@ export async function crearReserva(params: {
     ? await rpc('reservar_clase_atomic', {
         p_clase_id: params.claseId,
         p_invitados: params.invitados ?? 0,
-        p_notas: params.notas
+        p_notas: params.notas,
+        p_lugar_id: params.lugarId ?? null
       })
     : await rpc('reservar_clase_virtual', {
         p_horario_id: params.horarioId,
         p_fecha: params.fecha,
         p_invitados: params.invitados ?? 0,
-        p_notas: params.notas
+        p_notas: params.notas,
+        p_lugar_id: params.lugarId ?? null
       });
 
   if (error) {
