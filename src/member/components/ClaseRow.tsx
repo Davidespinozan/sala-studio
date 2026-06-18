@@ -120,57 +120,64 @@ export function ClaseRow({
           minWidth: 0
         }}
       >
-        {/* Encabezado: disciplina (eyebrow) + nombre + instructor */}
-        <div style={{ minWidth: 0 }}>
-          {clase.disciplina && clase.disciplina !== clase.nombre && (
+        {/* Encabezado: coach (avatar a la izquierda) + disciplina/nombre/instructor */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0 }}>
+          <CoachAvatar
+            url={clase.instructorFotoUrl}
+            nombre={clase.instructorNombre}
+            dim={esCancelada}
+          />
+          <div style={{ minWidth: 0 }}>
+            {clase.disciplina && clase.disciplina !== clase.nombre && (
+              <p
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: 'var(--sala-primary)',
+                  margin: 0,
+                  marginBottom: '4px'
+                }}
+              >
+                {clase.disciplina}
+              </p>
+            )}
             <p
               style={{
-                fontSize: '10px',
-                fontWeight: 700,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                color: 'var(--sala-primary)',
+                fontFamily: 'var(--ek-font-display)',
+                fontSize: '16px',
+                fontWeight: 600,
+                letterSpacing: '-0.02em',
+                color: 'var(--sala-text-primary)',
                 margin: 0,
-                marginBottom: '4px'
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                textDecoration: esCancelada ? 'line-through' : 'none',
+                opacity: esCancelada ? 0.6 : 1
               }}
             >
-              {clase.disciplina}
+              {clase.nombre}
             </p>
-          )}
-          <p
-            style={{
-              fontFamily: 'var(--ek-font-display)',
-              fontSize: '16px',
-              fontWeight: 600,
-              letterSpacing: '-0.02em',
-              color: 'var(--sala-text-primary)',
-              margin: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              textDecoration: esCancelada ? 'line-through' : 'none',
-              opacity: esCancelada ? 0.6 : 1
-            }}
-          >
-            {clase.nombre}
-          </p>
-          <p
-            style={{
-              fontSize: '13px',
-              color: 'var(--sala-text-secondary)',
-              margin: 0,
-              marginTop: '2px'
-            }}
-          >
-            {clase.instructorNombre ? `con ${clase.instructorNombre}` : 'Instructor por confirmar'}
-          </p>
+            <p
+              style={{
+                fontSize: '13px',
+                color: 'var(--sala-text-secondary)',
+                margin: 0,
+                marginTop: '2px'
+              }}
+            >
+              {clase.instructorNombre ? `con ${clase.instructorNombre}` : 'Instructor por confirmar'}
+            </p>
+          </div>
         </div>
 
-        {/* Cupos + acción */}
+        {/* Cupos + acción. A la derecha: miniatura de la sala ARRIBA del botón. */}
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-end',
             justifyContent: 'space-between',
             gap: '12px',
             flexWrap: 'wrap'
@@ -179,16 +186,32 @@ export function ClaseRow({
           <div style={{ flex: '1 1 120px', minWidth: '100px' }}>
             <CupoBar clase={clase} size="md" />
           </div>
-          <ActionButton
-            cancelada={esCancelada}
-            yaReservada={yaReservada}
-            puedeReservar={puedeReservar}
-            llena={llena}
-            pocos={pocos}
-            reservando={!!reservando}
-            onReservar={onReservar}
-            onCancelar={onCancelar}
-          />
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              gap: '8px',
+              flexShrink: 0
+            }}
+          >
+            <SalaThumb
+              url={clase.imagenUrl}
+              nombre={clase.salaNombre}
+              disciplina={clase.disciplina}
+              dim={esCancelada}
+            />
+            <ActionButton
+              cancelada={esCancelada}
+              yaReservada={yaReservada}
+              puedeReservar={puedeReservar}
+              llena={llena}
+              pocos={pocos}
+              reservando={!!reservando}
+              onReservar={onReservar}
+              onCancelar={onCancelar}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -330,5 +353,98 @@ function ActionButton({
     >
       {reservando ? 'Reservando…' : 'Reservar'}
     </button>
+  );
+}
+
+/** Iniciales (máx 2) de un nombre, para el avatar sin foto. */
+function iniciales(nombre?: string): string {
+  const partes = (nombre ?? '').trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return '?';
+  return partes
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? '')
+    .join('');
+}
+
+/** Avatar circular del coach. Foto si hay; si no, iniciales sobre tinte de marca. */
+function CoachAvatar({ url, nombre, dim }: { url?: string; nombre?: string; dim?: boolean }) {
+  const size = 36;
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '999px',
+        flexShrink: 0,
+        overflow: 'hidden',
+        background: 'var(--sala-primary-light)',
+        border: '1px solid var(--sala-border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: dim ? 0.55 : 1
+      }}
+    >
+      {url ? (
+        <img
+          src={url}
+          alt={nombre ?? ''}
+          loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+      ) : (
+        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--sala-primary)', letterSpacing: '0.01em' }}>
+          {iniciales(nombre)}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Miniatura de la sala. Foto si hay; si no, tile de marca con la inicial. */
+function SalaThumb({
+  url,
+  nombre,
+  disciplina,
+  dim
+}: {
+  url?: string;
+  nombre?: string;
+  disciplina?: string;
+  dim?: boolean;
+}) {
+  const label = (disciplina || nombre || '').trim();
+  const inicial = label ? label[0].toUpperCase() : '';
+  return (
+    <div
+      aria-hidden="true"
+      title={nombre}
+      style={{
+        width: '48px',
+        height: '44px',
+        borderRadius: '11px',
+        flexShrink: 0,
+        overflow: 'hidden',
+        border: '1px solid var(--sala-border)',
+        background:
+          'linear-gradient(135deg, var(--sala-primary-light), color-mix(in srgb, var(--sala-accent) 16%, var(--sala-surface)))',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: dim ? 0.55 : 1
+      }}
+    >
+      {url ? (
+        <img
+          src={url}
+          alt={nombre ?? ''}
+          loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+      ) : (
+        <span style={{ fontSize: '17px', fontWeight: 700, color: 'var(--sala-primary)' }}>{inicial}</span>
+      )}
+    </div>
   );
 }
