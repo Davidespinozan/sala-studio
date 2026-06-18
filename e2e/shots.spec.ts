@@ -30,7 +30,7 @@ async function entrarDemo(page: import('@playwright/test').Page, label: string) 
 test.describe.configure({ mode: 'serial', timeout: 90_000 });
 
 test('admin — dashboard + agenda', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 800 }); // 16:10 para el BrowserFrame
+  await page.setViewportSize({ width: 1040, height: 650 }); // 16:10 para el BrowserFrame
   await entrarDemo(page, 'Vista admin');
   await page.waitForURL(/\/admin/, { timeout: 40_000 });
   await page.waitForTimeout(3500);
@@ -44,7 +44,7 @@ test('admin — dashboard + agenda', async ({ page }) => {
 });
 
 test('recepción — check-in', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 800 }); // 16:10 para el BrowserFrame
+  await page.setViewportSize({ width: 1040, height: 650 }); // 16:10 para el BrowserFrame
   await entrarDemo(page, 'Vista recepción');
   await page.waitForURL(/\/recepcion/, { timeout: 40_000 });
   await page.waitForTimeout(3500);

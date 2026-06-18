@@ -511,7 +511,7 @@ function Showcase() {
     <section
       style={{
         padding: 'clamp(40px, 7vw, 80px) clamp(16px, 5vw, 48px)',
-        maxWidth: '1100px',
+        maxWidth: '1280px',
         margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',

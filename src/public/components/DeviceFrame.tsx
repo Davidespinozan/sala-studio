@@ -29,12 +29,14 @@ function Placeholder({ label }: { label: string }) {
   );
 }
 
-/** Marco de ventana (macOS) para capturas de escritorio (16:10). Sin barra de
- *  URL — solo el titlebar con los 3 puntos, para que la captura mande. */
+/** Marco para capturas de escritorio (16:10). Sin barra de ventana — solo la
+ *  captura en un marco redondeado, para que la imagen mande. */
 export function BrowserFrame({ src, alt }: { src?: string; alt: string }) {
   return (
     <div
       style={{
+        position: 'relative',
+        aspectRatio: '16 / 10',
         borderRadius: '14px',
         overflow: 'hidden',
         border: '1px solid var(--sala-border)',
@@ -42,28 +44,11 @@ export function BrowserFrame({ src, alt }: { src?: string; alt: string }) {
         boxShadow: '0 30px 70px rgba(10, 15, 12, 0.28)'
       }}
     >
-      <div
-        aria-hidden="true"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '9px 14px',
-          borderBottom: '1px solid var(--sala-border)',
-          background: 'var(--sala-bg)'
-        }}
-      >
-        {['#f0625a', '#f6be4f', '#5bcf66'].map((c) => (
-          <span key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c, opacity: 0.85 }} />
-        ))}
-      </div>
-      <div style={{ position: 'relative', aspectRatio: '16 / 10', background: 'var(--sala-surface)' }}>
-        {src ? (
-          <img src={src} alt={alt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-        ) : (
-          <Placeholder label="Vista del producto" />
-        )}
-      </div>
+      {src ? (
+        <img src={src} alt={alt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      ) : (
+        <Placeholder label="Vista del producto" />
+      )}
     </div>
   );
 }
