@@ -6,8 +6,9 @@ import { EmptyState } from '@shared/components/EmptyState';
 import { CancelarReservaModal } from './acciones/CancelarReservaModal';
 import { MarcarNoShowModal } from './acciones/MarcarNoShowModal';
 import { CorregirCheckinModal } from './acciones/CorregirCheckinModal';
+import { MapaClaseModal } from './acciones/MapaClaseModal';
 
-type AccionReserva = 'cancelar' | 'no_show' | 'corregir';
+type AccionReserva = 'cancelar' | 'no_show' | 'corregir' | 'mapa';
 
 interface Props {
   onManualCheckInSuccess?: (data: any) => void;
@@ -267,6 +268,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
           setSelected(null);
           setAccionReserva(null);
         };
+        if (accionReserva === 'mapa') return <MapaClaseModal reserva={selected} onClose={hecho} />;
         const props = { reservaId: selected.id, reservaLabel: label, isOpen: true, onClose: volver, onDone: hecho };
         if (accionReserva === 'cancelar') return <CancelarReservaModal {...props} />;
         if (accionReserva === 'no_show') return <MarcarNoShowModal {...props} />;
@@ -441,6 +443,8 @@ function ManualCheckInModal({
 
   const nombreFormat =
     capitalizarNombre(reserva.usuario?.nombre) || reserva.usuario?.email || '—';
+  // Si la reserva tiene lugar, la sala usa Mapa de Salón → ofrecemos verlo/editarlo.
+  const tieneMapa = !!(reserva as { lugar_id?: string | null }).lugar_id;
 
   return (
     <div className="rec-modal-backdrop" onClick={() => !submitting && onClose()}>
@@ -463,6 +467,17 @@ function ManualCheckInModal({
         <p style={{ color: 'var(--ek-ink-muted)', marginTop: '0.25rem' }}>
           {reserva.recurso?.nombre} · {hora}
         </p>
+
+        {tieneMapa && (
+          <button
+            type="button"
+            onClick={() => onAccion('mapa')}
+            className="ek-cta ek-cta--secondary"
+            style={{ width: '100%', marginTop: '0.85rem', fontSize: '13px' }}
+          >
+            🗺️ Mapa de la clase · cambiar lugar
+          </button>
+        )}
 
         {yaCheckIn ? (
           <>
