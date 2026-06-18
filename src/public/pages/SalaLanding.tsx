@@ -532,17 +532,17 @@ function Showcase() {
         media={<BrowserFrame src={shot('checkin')} alt="Check-in con QR en recepción" url="recepcion.salastudio.app" />}
       />
       <ShowcaseRow
-        eyebrow="Mapa de salón"
-        titulo="Cada socio elige su lugar."
-        texto="Diseñás tu salón —bicis, mats o reformers— y cada socio reserva su lugar exacto desde la app. Recepción ve quién va dónde y reacomoda en segundos. El detalle premium que un estudio boutique merece."
-        media={<PhoneFrame src={shot('mapa')} alt="Socio eligiendo su lugar en el Mapa de Salón" />}
-      />
-      <ShowcaseRow
-        reverse
         eyebrow="Para vos, el dueño"
         titulo="Sabé qué clases llenan y a quién estás perdiendo."
         texto="Ocupación, asistencia, retención y churn en un panel claro. Dejás de adivinar y empezás a decidir con datos."
         media={<BrowserFrame src={shot('dashboard')} alt="Dashboard con métricas de retención" url="admin.salastudio.app" />}
+      />
+      <ShowcaseRow
+        reverse
+        eyebrow="Mapa de salón"
+        titulo="Cada socio elige su lugar."
+        texto="Diseñás tu salón —bicis, mats o reformers— y cada socio reserva su lugar exacto desde la app. Recepción ve quién va dónde y reacomoda en segundos. El detalle premium que un estudio boutique merece."
+        media={<PhoneFrame src={shot('mapa')} alt="Socio eligiendo su lugar en el Mapa de Salón" />}
       />
     </section>
   );
