@@ -1,20 +1,16 @@
-import { useEffect, useState } from 'react';
-import { ArrowRight, Check, CreditCard, Plus } from 'lucide-react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { ArrowRight, CalendarCheck, Check, ChevronRight, CreditCard, LifeBuoy, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
+import { useLandingConfig } from '@shared/hooks/useLandingConfig';
 import { supabase } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
 import { useMembresiaActual, membresiaEstado } from '@member/hooks/useMembresiaActual';
 import { iniciarCheckout } from '@shared/lib/checkout';
 
-type Reserva = Database['public']['Tables']['reservas']['Row'];
-type Recurso = Database['public']['Tables']['recursos']['Row'];
 type Tier = Database['public']['Tables']['tiers']['Row'];
-
-interface ReservaConRecurso extends Reserva {
-  recurso: Pick<Recurso, 'nombre'> | null;
-}
 
 function useStatsDelMes(usuarioId: string | undefined) {
   const [sesionesEsteMes, setSesionesEsteMes] = useState(0);
@@ -43,36 +39,11 @@ function useStatsDelMes(usuarioId: string | undefined) {
   return { sesionesEsteMes };
 }
 
-function useReservasPasadas(usuarioId: string | undefined) {
-  const [reservas, setReservas] = useState<ReservaConRecurso[]>([]);
-
-  useEffect(() => {
-    if (!usuarioId) return;
-    let mounted = true;
-    async function load() {
-      const { data } = await supabase
-        .from('reservas')
-        .select('*, recurso:recursos(nombre)')
-        .eq('usuario_id', usuarioId!)
-        .in('status', ['completada', 'cancelada', 'no_show'])
-        // Solo pasadas: una reserva FUTURA cancelada no va en "Reservas pasadas".
-        .lt('slot_inicio', new Date().toISOString())
-        .order('slot_inicio', { ascending: false })
-        .limit(20);
-      if (mounted) setReservas((data ?? []) as unknown as ReservaConRecurso[]);
-    }
-    load();
-    return () => { mounted = false; };
-  }, [usuarioId]);
-
-  return { reservas };
-}
-
-function formatearFecha(iso: string): string {
-  const d = new Date(iso);
-  const fecha = d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
-  const hora = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
-  return `${fecha} · ${hora}`;
+/** "Miembro desde junio 2026" a partir de usuarios.created_at. */
+function formatearMiembroDesde(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const fecha = new Date(iso).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+  return `Miembro desde ${fecha}`;
 }
 
 function formatearFechaCorta(iso: string): string {
@@ -117,10 +88,13 @@ function useTiersDelTenant() {
 export default function Perfil() {
   const { authUser, usuario, signOut } = useAuth();
   const tenant = useTenant();
-  const { reservas } = useReservasPasadas(usuario?.id);
   const { sesionesEsteMes } = useStatsDelMes(usuario?.id);
   const { membresia, isLoading: loadingMembresia } = useMembresiaActual(usuario?.id);
   const { tiers } = useTiersDelTenant();
+  const { whatsappUrl } = useLandingConfig();
+
+  const miembroDesde = formatearMiembroDesde(usuario?.created_at);
+  const ayudaUrl = whatsappUrl('Hola, necesito ayuda con mi cuenta.');
 
   const nombreFormat = usuario?.nombre
     ?.toLowerCase()
@@ -143,8 +117,8 @@ export default function Perfil() {
           <h1 className="ek-display-md">{nombreFormat || 'Tu cuenta'}</h1>
         </div>
 
-        {/* Avatar */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
+        {/* Avatar + antigüedad */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
           {usuario?.avatar_url ? (
             <img
               src={usuario.avatar_url}
@@ -175,8 +149,22 @@ export default function Perfil() {
               {initials}
             </div>
           )}
+
+          {miembroDesde && (
+            <span
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                letterSpacing: '0.03em',
+                color: 'var(--sala-text-tertiary)'
+              }}
+            >
+              {miembroDesde}
+            </span>
+          )}
         </div>
 
+        {/* Mis datos */}
         <div className="adm-info-grid">
           <div className="adm-info-cell">
             <p className="adm-info-label">Email</p>
@@ -188,18 +176,6 @@ export default function Perfil() {
               <p className="adm-info-value">{usuario.telefono}</p>
             </div>
           )}
-          <div className="adm-info-cell">
-            <p className="adm-info-label">Tenant</p>
-            <p className="adm-info-value">{tenant.nombre}</p>
-          </div>
-          <div className="adm-info-cell">
-            <p className="adm-info-label">Rol</p>
-            <p className="adm-info-value adm-info-value--mono">{usuario?.rol}</p>
-          </div>
-          <div className="adm-info-cell">
-            <p className="adm-info-label">Status</p>
-            <p className="adm-info-value adm-info-value--mono">{usuario?.status}</p>
-          </div>
         </div>
 
         {/* Plan: hero + método de pago + opciones + historial + cancelar + FAQ */}
@@ -239,48 +215,23 @@ export default function Perfil() {
           </div>
         </section>
 
-        {/* Reservas pasadas */}
+        {/* Ajustes */}
         <section>
-          <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>HISTORIAL</p>
-          <h2 className="ek-display-md" style={{ marginBottom: '16px' }}>Reservas pasadas</h2>
-
-          {reservas.length === 0 ? (
-            <p className="ek-body-muted">Aún no tienes sesiones completadas.</p>
-          ) : (
-            <div className="ek-stack-sm">
-              {reservas.map((r) => (
-                <div key={r.id} className="ek-card ek-card--md" style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <p style={{
-                      fontFamily: 'var(--ek-font-display)',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      letterSpacing: '-0.02em',
-                      margin: 0
-                    }}>
-                      {r.recurso?.nombre ?? 'Sala'}
-                    </p>
-                    <p className="ek-body-faint" style={{ marginTop: '2px' }}>
-                      {formatearFecha(r.slot_inicio)}
-                    </p>
-                  </div>
-                  <span className={
-                    r.status === 'completada' ? 'ek-badge ek-badge--success' :
-                    r.status === 'cancelada' ? 'ek-badge ek-badge--neutral' :
-                    'ek-badge ek-badge--danger'
-                  }>
-                    {r.status === 'completada' ? 'OK' :
-                     r.status === 'cancelada' ? 'CANCELADA' :
-                     'NO SHOW'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>AJUSTES</p>
+          <div className="ek-stack-sm">
+            <AjusteRow
+              icon={<CalendarCheck size={18} strokeWidth={2} />}
+              label="Mis reservas"
+              to="/app/historial"
+            />
+            {ayudaUrl && (
+              <AjusteRow
+                icon={<LifeBuoy size={18} strokeWidth={2} />}
+                label="Ayuda y soporte"
+                href={ayudaUrl}
+              />
+            )}
+          </div>
         </section>
 
         {/* Cerrar sesión — al fondo */}
@@ -293,6 +244,61 @@ export default function Perfil() {
         </button>
       </div>
     </div>
+  );
+}
+
+/** Fila de la lista de ajustes: ícono + label + chevron. Link interno o link externo (href). */
+function AjusteRow({
+  icon,
+  label,
+  to,
+  href
+}: {
+  icon: ReactNode;
+  label: string;
+  to?: string;
+  href?: string;
+}) {
+  const style: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    textDecoration: 'none'
+  };
+  const inner = (
+    <>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '36px',
+          height: '36px',
+          borderRadius: '10px',
+          background: 'var(--sala-primary-light)',
+          color: 'var(--sala-primary)',
+          flexShrink: 0
+        }}
+      >
+        {icon}
+      </span>
+      <span style={{ flex: 1, fontSize: '15px', fontWeight: 600, color: 'var(--sala-text-primary)' }}>
+        {label}
+      </span>
+      <ChevronRight size={18} strokeWidth={2} style={{ color: 'var(--sala-text-tertiary)' }} />
+    </>
+  );
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className="ek-card ek-card--md ek-lift" style={style}>
+        {inner}
+      </a>
+    );
+  }
+  return (
+    <Link to={to!} className="ek-card ek-card--md ek-lift" style={style}>
+      {inner}
+    </Link>
   );
 }
 
