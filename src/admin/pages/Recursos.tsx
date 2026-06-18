@@ -604,6 +604,7 @@ function EditarRecursoModal({
   const [tipoContenido, setTipoContenido] = useState<string[]>(recurso?.tipo_contenido ?? []);
   const [equipoIncluido, setEquipoIncluido] = useState<string[]>(recurso?.equipo_incluido ?? []);
   const [estiloVisual, setEstiloVisual] = useState<string>(recurso?.estilo_visual ?? '');
+  const [intensidad, setIntensidad] = useState<string>(recurso?.intensidad ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -656,7 +657,8 @@ function EditarRecursoModal({
         foto_url: fotoUrl || null,
         tipo_contenido: tipoContenido,
         equipo_incluido: equipoIncluido,
-        estilo_visual: estiloVisual || null
+        estilo_visual: estiloVisual || null,
+        intensidad: intensidad || null
       });
 
       if (err) {
@@ -678,7 +680,8 @@ function EditarRecursoModal({
       foto_url: fotoUrl || null,
       tipo_contenido: tipoContenido,
       equipo_incluido: equipoIncluido,
-      estilo_visual: estiloVisual || null
+      estilo_visual: estiloVisual || null,
+      intensidad: intensidad || null
     });
 
     if (err) {
@@ -788,6 +791,23 @@ function EditarRecursoModal({
           <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
             Cuántas personas caben en cada clase de esta sala. Aplica a clases futuras.
             Para cambiar una clase específica, editala desde la Agenda.
+          </p>
+        </div>
+
+        <div className="ek-form-field" style={{ marginTop: '16px' }}>
+          <label className="ek-label">Intensidad</label>
+          <select
+            value={intensidad}
+            onChange={(e) => setIntensidad(e.target.value)}
+            className="ek-input"
+          >
+            <option value="">Sin especificar</option>
+            <option value="baja">Baja</option>
+            <option value="media">Media</option>
+            <option value="alta">Alta</option>
+          </select>
+          <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
+            Nivel de la disciplina de esta sala. Se muestra en el detalle de la clase del socio.
           </p>
         </div>
 

@@ -162,6 +162,7 @@ export async function updateRecurso(
     | 'tipo_contenido'
     | 'equipo_incluido'
     | 'estilo_visual'
+    | 'intensidad'
   >>
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.from('recursos').update(patch).eq('id', recursoId);

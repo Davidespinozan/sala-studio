@@ -40,7 +40,11 @@ export interface Clase {
   instructorFotoUrl?: string;
   /** Bio del instructor asignado. */
   instructorBio?: string;
+  /** Rol/título del instructor (ej. "Coach de cycling"). Del recurso/instructor en admin. */
+  instructorRol?: string;
   disciplina: string;
+  /** Intensidad de la disciplina (baja|media|alta), del recurso. Editable en admin. */
+  intensidad?: string;
   descripcion?: string;
   imagenUrl?: string;
   /** Nombre de la sala física donde se da la clase. */
@@ -76,6 +80,7 @@ export interface RecursoContext {
   nombre: string;
   foto_url?: string | null;
   tiers_permitidos?: string[];
+  intensidad?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -88,6 +93,7 @@ export interface InstructorContext {
   nombre: string;
   foto_url: string | null;
   bio?: string | null;
+  rol?: string | null;
 }
 
 interface ClaseFromRowInput {
@@ -123,7 +129,9 @@ export function claseFromRow({
     instructorNombre: instructor?.nombre,
     instructorFotoUrl: instructor?.foto_url ?? undefined,
     instructorBio: instructor?.bio ?? undefined,
+    instructorRol: instructor?.rol ?? undefined,
     disciplina: row.disciplina ?? '',
+    intensidad: recurso.intensidad ?? undefined,
     descripcion: row.descripcion ?? undefined,
     imagenUrl: recurso.foto_url ?? undefined,
     salaNombre: recurso.nombre,
@@ -169,6 +177,8 @@ export interface ClaseExpansionRow {
   instructor_foto_url: string | null;
   instructor_bio: string | null;
   sucursal_timezone: string | null;
+  intensidad: string | null;
+  instructor_rol: string | null;
 }
 
 /** Construye la Clase UI desde una fila de expandir_clases. Una virtual no tiene
@@ -190,7 +200,9 @@ export function claseFromExpansion(row: ClaseExpansionRow, fallbackTz: string): 
     instructorNombre: row.instructor_nombre ?? undefined,
     instructorFotoUrl: row.instructor_foto_url ?? undefined,
     instructorBio: row.instructor_bio ?? undefined,
+    instructorRol: row.instructor_rol ?? undefined,
     disciplina: row.disciplina ?? '',
+    intensidad: row.intensidad ?? undefined,
     descripcion: row.descripcion ?? undefined,
     imagenUrl: row.recurso_foto_url ?? undefined,
     salaNombre: row.recurso_nombre ?? undefined,

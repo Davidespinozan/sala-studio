@@ -12,6 +12,7 @@ export interface InstructorFormData {
   foto_url: string | null;
   especialidades: string[];
   activo: boolean;
+  rol: string | null;
 }
 
 /** Lista de instructores de la sucursal activa (admin ve activos + inactivos). */

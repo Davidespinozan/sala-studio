@@ -6,7 +6,9 @@ import {
   Dumbbell,
   Flower2,
   Footprints,
+  Gauge,
   Music,
+  Share2,
   Swords,
   type LucideIcon
 } from 'lucide-react';
@@ -189,6 +191,22 @@ export default function ClaseDetalle() {
   function handleBack() {
     if (window.history.length > 1) navigate(-1);
     else navigate('/app/reservar');
+  }
+
+  async function handleCompartir() {
+    if (!clase) return;
+    const url = window.location.href;
+    const texto = `${clase.nombre} · ${clase.horaHumanaLabel}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: clase.nombre, text: texto, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success('Link copiado');
+      }
+    } catch {
+      // El usuario canceló el diálogo de compartir: no es un error.
+    }
   }
 
   function handleReservar() {
@@ -528,6 +546,63 @@ export default function ClaseDetalle() {
           >
             {clase.horaHumanaLabel} · {clase.duracionMinutos} min
           </p>
+
+          {/* Chips (intensidad) + compartir */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginTop: '14px',
+              flexWrap: 'wrap'
+            }}
+          >
+            {clase.intensidad && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  borderRadius: '999px',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  background: 'var(--sala-primary-light)',
+                  border: '1px solid var(--sala-border)',
+                  color:
+                    clase.intensidad === 'alta'
+                      ? 'var(--sala-accent)'
+                      : clase.intensidad === 'baja'
+                        ? 'var(--sala-text-secondary)'
+                        : 'var(--sala-primary)'
+                }}
+              >
+                <Gauge size={14} strokeWidth={2.25} />
+                Intensidad {clase.intensidad}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleCompartir}
+              style={{
+                marginLeft: 'auto',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: '999px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: 'transparent',
+                border: '1px solid var(--sala-border)',
+                color: 'var(--sala-text-secondary)'
+              }}
+            >
+              <Share2 size={15} strokeWidth={2.25} />
+              Compartir
+            </button>
+          </div>
         </div>
 
         {/* Instructor */}
@@ -570,6 +645,18 @@ export default function ClaseDetalle() {
             >
               {clase.instructorNombre ?? 'Por confirmar'}
             </p>
+            {clase.instructorRol && (
+              <p
+                style={{
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  color: 'var(--sala-text-secondary)',
+                  margin: '2px 0 0'
+                }}
+              >
+                {clase.instructorRol}
+              </p>
+            )}
             {clase.instructorBio && (
               <p
                 style={{

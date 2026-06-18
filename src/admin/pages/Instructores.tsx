@@ -292,6 +292,7 @@ function InstructorModal({
   const esCreacion = instructor === null;
 
   const [nombre, setNombre] = useState(instructor?.nombre ?? '');
+  const [rol, setRol] = useState(instructor?.rol ?? '');
   const [bio, setBio] = useState(instructor?.bio ?? '');
   const [fotoUrl, setFotoUrl] = useState(instructor?.foto_url ?? '');
   const [especialidades, setEspecialidades] = useState<string[]>(
@@ -320,6 +321,7 @@ function InstructorModal({
 
     const data: InstructorFormData = {
       nombre: nombre.trim(),
+      rol: rol.trim() || null,
       bio: bio.trim() || null,
       foto_url: fotoUrl || null,
       especialidades,
@@ -371,6 +373,20 @@ function InstructorModal({
             className="ek-input"
             placeholder="Ej: María Fernanda Ríos"
           />
+        </label>
+
+        <label className="ek-label" style={{ marginTop: '14px' }}>
+          Rol
+          <input
+            type="text"
+            value={rol}
+            onChange={(e) => setRol(e.target.value)}
+            className="ek-input"
+            placeholder="Ej: Coach de cycling"
+          />
+          <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)' }}>
+            Aparece bajo el nombre en el detalle de la clase del socio.
+          </span>
         </label>
 
         <label className="ek-label" style={{ marginTop: '14px' }}>

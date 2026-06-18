@@ -231,6 +231,7 @@ export type Database = {
           id: string
           nombre: string
           orden: number
+          rol: string | null
           sucursal_id: string
           tenant_id: string
           updated_at: string
@@ -244,6 +245,7 @@ export type Database = {
           id?: string
           nombre: string
           orden?: number
+          rol?: string | null
           sucursal_id: string
           tenant_id: string
           updated_at?: string
@@ -257,6 +259,7 @@ export type Database = {
           id?: string
           nombre?: string
           orden?: number
+          rol?: string | null
           sucursal_id?: string
           tenant_id?: string
           updated_at?: string
@@ -622,6 +625,7 @@ export type Database = {
           foto_url: string | null
           fotos_urls: string[]
           id: string
+          intensidad: string | null
           nombre: string
           orden: number
           slug: string
@@ -645,6 +649,7 @@ export type Database = {
           foto_url?: string | null
           fotos_urls?: string[]
           id?: string
+          intensidad?: string | null
           nombre: string
           orden?: number
           slug: string
@@ -668,6 +673,7 @@ export type Database = {
           foto_url?: string | null
           fotos_urls?: string[]
           id?: string
+          intensidad?: string | null
           nombre?: string
           orden?: number
           slug?: string
