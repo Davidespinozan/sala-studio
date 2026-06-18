@@ -2236,9 +2236,10 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   --sala-primary:      #3D6B52;
   --sala-primary-text: #FFFFFF;
   --sala-primary-tint: #000000;
-  /* ACENTO = acción (CTAs). Coral terracota: cálido, premium, contrasta con el
-     verde bosque sin caer en el "amarillo barato". Verde = marca/estructura. */
-  --sala-accent:       #C44A35;
+  /* Monocromo verde (decisión de David): acento = primario. El contraste de los
+     CTAs lo da la LUMINOSIDAD, no el tono — en superficies oscuras el CTA va
+     claro (crema), en claras va verde sólido. */
+  --sala-accent:       #3D6B52;
   --sala-accent-text:  #FFFFFF;
   --sala-accent-tint:  #000000;
   --sala-warning:      #C8941F;
@@ -2307,7 +2308,10 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
    Lo ocultamos; y los 2 CTAs que quedan (Probar demo / Ver precios) van lado a
    lado en una sola fila para no dejar aire vacío. */
 @media (max-width: 640px) {
-  .sala-hero-cta-primary {
+  /* Selector compuesto: gana al display:inline-flex de .sala-hero-cta (que se
+     define después en el archivo). Si no, "Creá tu gym" reaparece en móvil. */
+  .sala-hero-cta-primary,
+  .sala-hero-cta.sala-hero-cta-primary {
     display: none;
   }
   .sala-hero-ctas {
@@ -2323,22 +2327,58 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   }
 }
 
-/* Showcase del producto sobre una banda verde SALA (primario): da identidad y
-   profundidad a toda la sección (de "Tu web, tu marca" hasta "Mapa de salón"). */
+/* Showcase del producto sobre el VERDE OSCURO inmersivo de SALA (como el hero):
+   texto blanco y marcos con contorno claro que hacen resaltar las capturas.
+   Sección de "Tu web, tu marca" hasta "Mapa de salón". */
 .sala-showcase-band {
-  background:
-    radial-gradient(
-      110% 60% at 50% 0%,
-      color-mix(in srgb, var(--sala-primary) 22%, transparent) 0%,
-      transparent 60%
-    ),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--sala-primary) 12%, var(--sala-bg)) 0%,
-      color-mix(in srgb, var(--sala-primary) 7%, var(--sala-bg)) 100%
-    );
-  border-top: 1px solid var(--sala-border);
-  border-bottom: 1px solid var(--sala-border);
+  background: var(--grad-immersive);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* CTAs del hero/secciones oscuras: el contraste lo da la luminosidad. */
+.sala-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 15px 28px;
+  min-height: 52px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 999px;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+}
+/* Relleno crema: máxima resalta sobre el verde oscuro (texto verde). */
+.sala-hero-cta--fill {
+  background: #fff;
+  color: var(--sala-primary);
+  border-color: #fff;
+  font-weight: 700;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+/* Contorno blanco: acción secundaria, clara sobre oscuro. */
+.sala-hero-cta--outline {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.55);
+}
+.sala-hero-cta--outline:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: #fff;
+}
+/* Glass: terciaria. */
+.sala-hero-cta--ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.sala-hero-cta--ghost:hover {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 /* ============================================================================

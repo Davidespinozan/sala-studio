@@ -62,9 +62,10 @@ export function BrowserFrame({
         aspectRatio: '16 / 10',
         borderRadius: '14px',
         overflow: 'hidden',
-        // Sin borde: leía como un margen blanco milimétrico. La sombra ya separa.
         background: 'var(--sala-surface)',
-        boxShadow: '0 30px 70px rgba(10, 15, 12, 0.28)'
+        // Contorno claro (ring) + sombra: hace resaltar la captura sobre el
+        // verde oscuro del showcase, sin el "margen blanco" de un borde sólido.
+        boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.18), 0 30px 70px rgba(10, 15, 12, 0.45)'
       }}
     >
       {video ? (
@@ -99,7 +100,8 @@ export function PhoneFrame({ src, alt }: { src?: string; alt: string }) {
         borderRadius: '34px',
         padding: '10px',
         background: 'var(--sala-neutral-dark, #1a1f1c)',
-        boxShadow: '0 30px 70px rgba(10, 15, 12, 0.34)'
+        // Ring claro: separa el teléfono oscuro del fondo verde oscuro.
+        boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.14), 0 30px 70px rgba(10, 15, 12, 0.5)'
       }}
     >
       <div style={{ position: 'relative', borderRadius: '26px', overflow: 'hidden', aspectRatio: '9 / 19.5', background: 'var(--sala-surface)' }}>

@@ -211,22 +211,7 @@ function ProbarDemoButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="ek-lift"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '15px 28px',
-          minHeight: '52px',
-          fontSize: '16px',
-          fontWeight: 600,
-          borderRadius: '999px',
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          color: 'rgba(255, 255, 255, 0.92)',
-          background: 'rgba(255, 255, 255, 0.08)',
-          border: '1px solid rgba(255, 255, 255, 0.16)'
-        }}
+        className="sala-hero-cta sala-hero-cta--fill ek-lift"
       >
         Probar demo
       </button>
@@ -314,33 +299,15 @@ function Hero() {
                 con tu marca y tu dominio.
               </p>
               <div className="sala-hero-ctas" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '32px' }}>
+                <ProbarDemoButton />
                 <Link
                   to={REGISTRO}
-                  className="ek-cta ek-lift sala-hero-cta-primary"
-                  style={{ padding: '15px 28px', minHeight: '52px', fontSize: '16px' }}
+                  className="sala-hero-cta sala-hero-cta--outline ek-lift sala-hero-cta-primary"
                 >
                   Creá tu gym
                   <ArrowRight size={18} strokeWidth={2.25} />
                 </Link>
-                <ProbarDemoButton />
-                <a
-                  href="#precios"
-                  className="ek-lift"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '15px 28px',
-                    minHeight: '52px',
-                    fontSize: '16px',
-                    fontWeight: 600,
-                    borderRadius: '999px',
-                    color: 'rgba(255, 255, 255, 0.92)',
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.16)',
-                    textDecoration: 'none'
-                  }}
-                >
+                <a href="#precios" className="sala-hero-cta sala-hero-cta--ghost ek-lift">
                   Ver precios
                 </a>
               </div>
@@ -489,7 +456,19 @@ function ShowcaseRow({
   return (
     <div className={`sala-showcase-row${reverse ? ' reverse' : ''}`}>
       <div>
-        <SectionEyebrow label={eyebrow} />
+        {/* Sobre el verde oscuro: eyebrow sage claro + título blanco. */}
+        <p
+          style={{
+            fontSize: '12px',
+            fontWeight: 700,
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase',
+            color: ACCENT_DARK,
+            margin: 0
+          }}
+        >
+          {eyebrow}
+        </p>
         <h3
           style={{
             fontFamily: 'var(--ek-font-display)',
@@ -498,13 +477,13 @@ function ShowcaseRow({
             letterSpacing: '-0.03em',
             lineHeight: 1.12,
             margin: '10px 0 0',
-            color: 'var(--sala-text-primary)',
+            color: 'rgba(255, 255, 255, 0.97)',
             maxWidth: '460px'
           }}
         >
           {titulo}
         </h3>
-        <p style={{ fontSize: '16px', lineHeight: 1.55, color: 'var(--sala-text-secondary)', margin: '14px 0 0', maxWidth: '440px' }}>
+        <p style={{ fontSize: '16px', lineHeight: 1.55, color: 'rgba(255, 255, 255, 0.66)', margin: '14px 0 0', maxWidth: '440px' }}>
           {texto}
         </p>
       </div>
@@ -917,8 +896,8 @@ function CtaFinal() {
         </h2>
         <Link
           to={REGISTRO}
-          className="ek-cta ek-lift"
-          style={{ marginTop: '28px', padding: '15px 30px', minHeight: '52px', fontSize: '16px' }}
+          className="sala-hero-cta sala-hero-cta--fill ek-lift"
+          style={{ marginTop: '28px' }}
         >
           Creá tu gym
           <ArrowRight size={18} strokeWidth={2.25} />
