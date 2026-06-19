@@ -836,11 +836,16 @@ export default function Landing() {
   }, [estudiosLoading, tiersLoading, instructores.length, mostrarInstructores]);
 
   return (
-    <div ref={rootRef} style={{
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: '0 24px'
-    }}>
+    <>
+      {/* Ambient de marca (glows tenues fijos) → profundidad en las secciones claras. */}
+      <div className="landing-ambient" aria-hidden="true" />
+      <div ref={rootRef} style={{
+        position: 'relative',
+        zIndex: 1,
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: '0 24px'
+      }}>
       {/* ============================================================
           HERO
           ============================================================ */}
@@ -989,6 +994,8 @@ export default function Landing() {
             padding: 'clamp(56px, 8vw, 100px) 0'
           }}
         >
+          <div className="sala-orb" aria-hidden="true" style={{ width: 380, height: 380, top: '-16%', left: '4%', opacity: 0.18, mixBlendMode: 'screen', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
+          <div className="sala-orb" aria-hidden="true" style={{ width: 260, height: 260, bottom: '-14%', right: '8%', opacity: 0.16, mixBlendMode: 'screen', animationDelay: '4s', '--orb-color': 'var(--sala-accent)' } as CSSProperties} />
           <div className="sala-grain" aria-hidden="true" />
           <div style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
             <SeccionHeading heading={secciones.instructores} editorial light />
@@ -1226,6 +1233,8 @@ export default function Landing() {
               boxShadow: '0 24px 60px rgba(10, 15, 12, 0.28)'
             }}
           >
+            <div className="sala-orb" aria-hidden="true" style={{ width: 280, height: 280, top: '-40%', right: '12%', opacity: 0.18, mixBlendMode: 'screen', '--orb-color': 'var(--sala-accent)' } as CSSProperties} />
+            <div className="sala-orb" aria-hidden="true" style={{ width: 220, height: 220, bottom: '-50%', left: '2%', opacity: 0.14, mixBlendMode: 'screen', animationDelay: '3s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
             <div className="sala-grain" aria-hidden="true" />
             <div style={{ position: 'relative', flex: '1 1 360px', minWidth: 0 }}>
               {cta_final.eyebrow && (
@@ -1273,6 +1282,7 @@ export default function Landing() {
         estudio={estudioAbierto}
         onClose={() => setEstudioAbierto(null)}
       />
-    </div>
+      </div>
+    </>
   );
 }
