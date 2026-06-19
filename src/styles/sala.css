@@ -2362,33 +2362,6 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Ambient del landing: glows de marca MUY tenues, fijos al viewport, detrás de
-   todo el contenido. Le dan profundidad a las secciones claras (crema) para que
-   no se sientan planas — el truco de SALA. */
-.landing-ambient {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(40% 34% at 8% 4%, color-mix(in srgb, var(--sala-primary) 14%, transparent), transparent 60%),
-    radial-gradient(36% 32% at 92% 16%, color-mix(in srgb, var(--sala-accent) 13%, transparent), transparent 60%),
-    radial-gradient(44% 40% at 86% 74%, color-mix(in srgb, var(--sala-primary) 11%, transparent), transparent 60%),
-    radial-gradient(42% 36% at 4% 90%, color-mix(in srgb, var(--sala-accent) 10%, transparent), transparent 60%);
-}
-
-/* Grain reutilizable (mismo ruido del hero de SALA) → textura film/premium
-   sobre cualquier superficie oscura (foto, banda). El contenedor debe ser
-   position:relative/absolute. */
-.sala-grain {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.14;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
 /* MÓVIL: el layout es vertical (copy arriba, dashboard abajo), así que el
    spotlight va de ARRIBA→ABAJO (no derecha→izquierda), y bajamos el halo blanco
    del dispositivo (la "sombra blanca" se notaba de más). */

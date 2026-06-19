@@ -455,32 +455,6 @@ export function HeroView({
         <div className="sala-orb" aria-hidden="true" style={{ width: 320, height: 320, top: '-12%', left: '-6%', zIndex: 2, opacity: 0.18, mixBlendMode: 'screen', animationDelay: '0s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
         <div className="sala-orb" aria-hidden="true" style={{ width: 200, height: 200, bottom: '6%', right: '4%', zIndex: 2, opacity: 0.16, mixBlendMode: 'screen', animationDelay: '4s', '--orb-color': 'var(--sala-accent)' } as CSSProperties} />
         <div className="sala-orb" aria-hidden="true" style={{ width: 130, height: 130, top: '22%', right: '26%', zIndex: 2, opacity: 0.14, mixBlendMode: 'screen', animationDelay: '6s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
-        {/* Viñeta cinematográfica: oscurece los bordes → profundidad/foco. */}
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 3,
-            pointerEvents: 'none',
-            background: 'radial-gradient(125% 125% at 50% 42%, transparent 52%, rgba(8, 12, 10, 0.55) 100%)'
-          }}
-        />
-        {/* Bloom dorado de profundidad detrás del título (warmth, como el hero de SALA). */}
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 3,
-            pointerEvents: 'none',
-            mixBlendMode: 'screen',
-            opacity: 0.78,
-            background: 'radial-gradient(52% 62% at 15% 84%, color-mix(in srgb, var(--sala-accent) 42%, transparent), transparent 62%)'
-          }}
-        />
-        {/* Grain premium → textura film sobre la foto. */}
-        <div className="sala-grain" aria-hidden="true" style={{ zIndex: 3 }} />
         {/* Glow ambiental que sigue el cursor (desktop). */}
         <div className="sala-spotlight" aria-hidden="true" />
         {/* En full-bleed la imagen ocupa todo el ancho, pero el texto se alinea
@@ -836,16 +810,11 @@ export default function Landing() {
   }, [estudiosLoading, tiersLoading, instructores.length, mostrarInstructores]);
 
   return (
-    <>
-      {/* Ambient de marca (glows tenues fijos) → profundidad en las secciones claras. */}
-      <div className="landing-ambient" aria-hidden="true" />
-      <div ref={rootRef} style={{
-        position: 'relative',
-        zIndex: 1,
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '0 24px'
-      }}>
+    <div ref={rootRef} style={{
+      maxWidth: '1200px',
+      margin: '0 auto',
+      padding: '0 24px'
+    }}>
       {/* ============================================================
           HERO
           ============================================================ */}
@@ -986,18 +955,13 @@ export default function Landing() {
           id="instructores"
           className="reveal"
           style={{
-            position: 'relative',
-            overflow: 'hidden',
             width: '100vw',
             marginLeft: 'calc(50% - 50vw)',
             background: 'var(--grad-immersive)',
             padding: 'clamp(56px, 8vw, 100px) 0'
           }}
         >
-          <div className="sala-orb" aria-hidden="true" style={{ width: 380, height: 380, top: '-16%', left: '4%', opacity: 0.18, mixBlendMode: 'screen', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
-          <div className="sala-orb" aria-hidden="true" style={{ width: 260, height: 260, bottom: '-14%', right: '8%', opacity: 0.16, mixBlendMode: 'screen', animationDelay: '4s', '--orb-color': 'var(--sala-accent)' } as CSSProperties} />
-          <div className="sala-grain" aria-hidden="true" />
-          <div style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
             <SeccionHeading heading={secciones.instructores} editorial light />
 
             <div className="landing-hscroll" style={{
@@ -1220,8 +1184,6 @@ export default function Landing() {
         <section className="reveal" style={{ padding: 'clamp(40px, 6vw, 80px) 0' }}>
           <div
             style={{
-              position: 'relative',
-              overflow: 'hidden',
               background: 'var(--grad-immersive)',
               borderRadius: 'var(--ek-r-sm)',
               padding: 'clamp(28px, 4vw, 48px)',
@@ -1233,10 +1195,7 @@ export default function Landing() {
               boxShadow: '0 24px 60px rgba(10, 15, 12, 0.28)'
             }}
           >
-            <div className="sala-orb" aria-hidden="true" style={{ width: 280, height: 280, top: '-40%', right: '12%', opacity: 0.18, mixBlendMode: 'screen', '--orb-color': 'var(--sala-accent)' } as CSSProperties} />
-            <div className="sala-orb" aria-hidden="true" style={{ width: 220, height: 220, bottom: '-50%', left: '2%', opacity: 0.14, mixBlendMode: 'screen', animationDelay: '3s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
-            <div className="sala-grain" aria-hidden="true" />
-            <div style={{ position: 'relative', flex: '1 1 360px', minWidth: 0 }}>
+            <div style={{ flex: '1 1 360px', minWidth: 0 }}>
               {cta_final.eyebrow && (
                 <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.55)', margin: '0 0 12px' }}>
                   {cta_final.eyebrow}
@@ -1263,7 +1222,7 @@ export default function Landing() {
               href={ctaWhatsappUrl || '#membresias'}
               {...(ctaWhatsappUrl ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
               className="ek-cta ek-lift"
-              style={{ position: 'relative', padding: '16px 30px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+              style={{ padding: '16px 30px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
             >
               {cta_final.cta_texto || 'Ver membresías'}
             </a>
@@ -1282,7 +1241,6 @@ export default function Landing() {
         estudio={estudioAbierto}
         onClose={() => setEstudioAbierto(null)}
       />
-      </div>
-    </>
+    </div>
   );
 }
