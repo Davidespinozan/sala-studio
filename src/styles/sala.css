@@ -349,13 +349,13 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 }
 .landing-nav-link:hover { color: var(--sala-accent); }
 
-/* Card de instructor en el carrusel: 160px en móvil, +15% (~184px) en desktop. */
+/* Card de instructor en el carrusel: 192px en móvil, ~220px en desktop. */
 .landing-instructor-item {
-  flex: 0 0 160px;
+  flex: 0 0 192px;
   scroll-snap-align: start;
 }
 @media (min-width: 768px) {
-  .landing-instructor-item { flex-basis: 184px; }
+  .landing-instructor-item { flex-basis: 220px; }
 }
 
 /* Card de plan: padding compacto en móvil (2 columnas), amplio en desktop.
