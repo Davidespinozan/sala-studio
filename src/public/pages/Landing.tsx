@@ -14,7 +14,6 @@ import EstudioModal, { type EstudioInfo } from '../components/EstudioModal';
 import Footer from '../components/Footer';
 import { MagneticButton } from '@shared/components/MagneticButton';
 import { HeroCarousel } from '@shared/components/HeroCarousel';
-import { useSpotlight } from '@shared/hooks/useSpotlight';
 
 interface EstudioPublico {
   id: string;
@@ -273,7 +272,6 @@ export function HeroView({
   /** En el preview móvil del admin, fuerza la imagen 3:4 del hero. */
   forceMobile?: boolean;
 }) {
-  const onSpotlight = useSpotlight();
   // Slides del carrusel: los configurados o, si no hay, la imagen única (compat).
   // Una sola → el carrusel hace solo Ken Burns.
   const slides = hero.imagenes.length > 0
@@ -385,8 +383,6 @@ export function HeroView({
   if (!hasImg) {
     return (
       <section
-        className="sala-spotlight-host"
-        onMouseMove={onSpotlight}
         style={{
           minHeight: preview ? '420px' : '90vh',
           display: 'flex',
@@ -403,8 +399,6 @@ export function HeroView({
         <div className="sala-orb" aria-hidden="true" style={{ width: 320, height: 320, top: '-8%', right: '-6%', animationDelay: '0s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
         <div className="sala-orb" aria-hidden="true" style={{ width: 200, height: 200, bottom: '2%', left: '-4%', animationDelay: '3s', '--orb-color': 'var(--sala-accent)' } as CSSProperties} />
         <div className="sala-orb" aria-hidden="true" style={{ width: 120, height: 120, top: '24%', left: '30%', animationDelay: '6s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
-        {/* Glow ambiental que sigue el cursor (desktop). */}
-        <div className="sala-spotlight" aria-hidden="true" />
         <div className="sala-fade-up" style={{ position: 'relative', zIndex: 4 }}>
           {inner}
         </div>
@@ -423,8 +417,7 @@ export function HeroView({
       }
     >
       <div
-        className="landing-hero-card sala-spotlight-host"
-        onMouseMove={onSpotlight}
+        className="landing-hero-card"
         style={{
           position: 'relative',
           overflow: 'hidden',
@@ -455,8 +448,6 @@ export function HeroView({
         <div className="sala-orb" aria-hidden="true" style={{ width: 320, height: 320, top: '-12%', left: '-6%', zIndex: 2, opacity: 0.18, mixBlendMode: 'screen', animationDelay: '0s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
         <div className="sala-orb" aria-hidden="true" style={{ width: 200, height: 200, bottom: '6%', right: '4%', zIndex: 2, opacity: 0.16, mixBlendMode: 'screen', animationDelay: '4s', '--orb-color': 'var(--sala-accent)' } as CSSProperties} />
         <div className="sala-orb" aria-hidden="true" style={{ width: 130, height: 130, top: '22%', right: '26%', zIndex: 2, opacity: 0.14, mixBlendMode: 'screen', animationDelay: '6s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
-        {/* Glow ambiental que sigue el cursor (desktop). */}
-        <div className="sala-spotlight" aria-hidden="true" />
         {/* En full-bleed la imagen ocupa todo el ancho, pero el texto se alinea
             con el contenido del resto de la página (maxWidth 1200, centrado). */}
         <div
