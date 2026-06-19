@@ -24,6 +24,13 @@ export interface FontOption {
 
 export const FONT_OPTIONS: FontOption[] = [
   {
+    key: 'montserrat',
+    label: 'Montserrat',
+    stack: "'Montserrat', system-ui, sans-serif",
+    google: 'Montserrat:wght@400;500;600;700',
+    kind: 'sans'
+  },
+  {
     key: 'space-grotesk',
     label: 'Space Grotesk',
     stack: "'Space Grotesk', system-ui, sans-serif",

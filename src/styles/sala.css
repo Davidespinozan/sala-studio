@@ -166,8 +166,8 @@
   --ek-shadow-strong:  var(--ek-shadow-hero);
 
   /* Typography */
-  --ek-font-display: 'Space Grotesk', system-ui, sans-serif;
-  --ek-font-body:    'Inter', system-ui, sans-serif;
+  --ek-font-display: 'Montserrat', system-ui, sans-serif;
+  --ek-font-body:    'Montserrat', system-ui, sans-serif;
   --ek-font-sans:    var(--ek-font-body); /* alias compat */
   --ek-font-mono:    'JetBrains Mono', 'Courier New', monospace;
   /* Escala global de tamaño de letra (la setea applyTypography por tenant).

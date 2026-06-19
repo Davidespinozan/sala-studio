@@ -743,7 +743,7 @@ function TipografiaEditor({
         <label className="ek-form-field">
           <span className="ek-label">Fuente de títulos</span>
           <select className="ek-input" value={fontDisplay} onChange={(e) => onDisplayChange(e.target.value)}>
-            <option value="">Por defecto (Space Grotesk)</option>
+            <option value="">Por defecto (Montserrat)</option>
             {FONT_OPTIONS.map((f) => (
               <option key={f.key} value={f.key}>{f.label}</option>
             ))}
@@ -752,7 +752,7 @@ function TipografiaEditor({
         <label className="ek-form-field">
           <span className="ek-label">Fuente de texto</span>
           <select className="ek-input" value={fontBody} onChange={(e) => onBodyChange(e.target.value)}>
-            <option value="">Por defecto (Inter)</option>
+            <option value="">Por defecto (Montserrat)</option>
             {FONT_OPTIONS.map((f) => (
               <option key={f.key} value={f.key}>{f.label}</option>
             ))}
