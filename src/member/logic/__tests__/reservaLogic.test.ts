@@ -45,6 +45,7 @@ function makeRecurso(overrides: Partial<Recurso> = {}): Recurso {
     foto_url: null,
     tipo_contenido: null,
     intensidad: null,
+    destacado: false,
     ...overrides
   };
 }

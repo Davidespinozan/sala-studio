@@ -26,6 +26,8 @@ interface EstudioPublico {
   estilo_visual: string | null;
   capacidad_personas: number | null;
   foto_url: string | null;
+  destacado: boolean;
+  sucursal_id: string;
 }
 
 interface TierPublico {
@@ -55,7 +57,7 @@ function useEstudiosPublicos() {
       const { data, error } = await supabase
         .from('recursos')
         .select(
-          'id, slug, nombre, descripcion, tiers_permitidos, tipo_contenido, equipo_incluido, estilo_visual, capacidad_personas, foto_url'
+          'id, slug, nombre, descripcion, tiers_permitidos, tipo_contenido, equipo_incluido, estilo_visual, capacidad_personas, foto_url, destacado, sucursal_id'
         )
         .eq('tenant_id', tenant.id)
         .eq('activo', true)
@@ -110,6 +112,8 @@ interface InstructorPublico {
   bio: string | null;
   foto_url: string | null;
   especialidades: string[];
+  destacado: boolean;
+  sucursal_id: string;
 }
 
 /** S6-5: instructores activos del tenant para la sección de la landing. */
@@ -123,7 +127,7 @@ function useInstructoresPublicos() {
     async function load() {
       const { data, error } = await supabase
         .from('instructores')
-        .select('id, nombre, bio, foto_url, especialidades')
+        .select('id, nombre, bio, foto_url, especialidades, destacado, sucursal_id')
         .eq('tenant_id', tenant.id)
         .eq('activo', true)
         .order('orden', { ascending: true })
@@ -139,6 +143,41 @@ function useInstructoresPublicos() {
   }, [tenant.id]);
 
   return { instructores, isLoading };
+}
+
+interface SucursalPublica {
+  id: string;
+  nombre: string;
+  direccion: string | null;
+  descripcion: string | null;
+  foto_url: string | null;
+}
+
+/** Sucursales activas del tenant para la sección "Sucursales" de la landing.
+ *  (anon las lee vía sucursales_read_public.) */
+function useSucursalesPublicas() {
+  const tenant = useTenant();
+  const [sucursales, setSucursales] = useState<SucursalPublica[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      const { data, error } = await supabase
+        .from('sucursales')
+        .select('id, nombre, direccion, descripcion, foto_url')
+        .eq('tenant_id', tenant.id)
+        .eq('activa', true)
+        .order('orden', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (!mounted) return;
+      if (error) console.error('[useSucursalesPublicas]', error);
+      else setSucursales((data ?? []) as SucursalPublica[]);
+    }
+    void load();
+    return () => { mounted = false; };
+  }, [tenant.id]);
+
+  return { sucursales };
 }
 
 /** Tile retrato compacto de instructor: la foto domina, nombre + especialidad
@@ -733,9 +772,11 @@ function formatearPrecioTier(centavos: number, moneda: string): string {
 
 export default function Landing() {
   const [estudioAbierto, setEstudioAbierto] = useState<EstudioInfo | null>(null);
+  const [sucursalAbierta, setSucursalAbierta] = useState<SucursalPublica | null>(null);
   const { estudios, isLoading: estudiosLoading } = useEstudiosPublicos();
   const { tiers, isLoading: tiersLoading } = useTiersPublicos();
   const { instructores } = useInstructoresPublicos();
+  const { sucursales } = useSucursalesPublicas();
   const { hero, secciones, post_hero, cta_final, faq, whatsappUrl, mostrarInstructores } = useLandingConfig();
   const ctaWhatsappUrl = whatsappUrl();
 
@@ -769,7 +810,15 @@ export default function Landing() {
     };
   };
 
-  const estudiosInfo = estudios.map(aEstudioInfo);
+  // Landing: muestra los destacados (cap). Si el gym no marcó ninguno, cae a
+  // "todos" (cap) → un gym que no cura igual ve su landing completo.
+  const CURADO_CAP = 5;
+  const estudiosDestacados = estudios.filter((e) => e.destacado);
+  const estudiosLanding = (estudiosDestacados.length ? estudiosDestacados : estudios).slice(0, CURADO_CAP);
+  const estudiosInfo = estudiosLanding.map(aEstudioInfo);
+
+  const instructoresDestacados = instructores.filter((i) => i.destacado);
+  const instructoresLanding = (instructoresDestacados.length ? instructoresDestacados : instructores).slice(0, CURADO_CAP);
 
   // Scroll reveal: cada sección .reveal aparece al entrar al viewport. Un solo
   // observer; respeta prefers-reduced-motion y cae a "todo visible" si no hay
@@ -965,12 +1014,68 @@ export default function Landing() {
               marginInline: '-24px',
               paddingInline: '24px'
             }}>
-              {instructores.map((i) => (
+              {instructoresLanding.map((i) => (
                 <div key={i.id} className="landing-instructor-item">
                   <InstructorLandingCard instructor={i} />
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* ============================================================
+          SUCURSALES (solo con 2+ sedes) → popout con salas/instructores
+          ============================================================ */}
+      {sucursales.length > 1 && (
+        <section className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
+          <SeccionHeading
+            heading={{
+              eyebrow: 'DÓNDE ESTAMOS',
+              titulo: 'Nuestras',
+              titulo_accent: 'sedes.',
+              subtitulo: 'Cada sede con sus salas y su equipo. Toca una para ver el detalle.'
+            }}
+            editorial
+          />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))', gap: 'clamp(16px, 2vw, 24px)' }}>
+            {sucursales.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSucursalAbierta(s)}
+                className="ek-lift"
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-end',
+                  minHeight: 'clamp(220px, 28vw, 280px)',
+                  padding: 'clamp(20px, 3vw, 28px)',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  font: 'inherit',
+                  borderRadius: 'var(--ek-r-sm)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: s.foto_url ? '#0c100e' : 'var(--grad-immersive)',
+                  color: '#fff',
+                  boxShadow: '0 14px 36px rgba(10, 15, 12, 0.28)'
+                }}
+              >
+                {s.foto_url && (
+                  <img src={s.foto_url} alt={s.nombre} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                )}
+                <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10, 15, 12, 0.92) 0%, rgba(10, 15, 12, 0.45) 45%, rgba(10, 15, 12, 0.12) 100%)' }} />
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <h3 style={{ fontFamily: 'var(--ek-font-display)', fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 6px', color: '#fff' }}>{s.nombre}</h3>
+                  {s.direccion && <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.78)', margin: '0 0 14px' }}>{s.direccion}</p>}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '9px 16px', borderRadius: '999px', background: 'rgba(255, 255, 255, 0.12)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', border: '1px solid rgba(255, 255, 255, 0.22)', color: '#fff', fontSize: '13px', fontWeight: 600 }}>
+                    Ver sede
+                    <ArrowRight size={15} strokeWidth={2.25} />
+                  </span>
+                </div>
+              </button>
+            ))}
           </div>
         </section>
       )}
@@ -1232,6 +1337,127 @@ export default function Landing() {
         estudio={estudioAbierto}
         onClose={() => setEstudioAbierto(null)}
       />
+
+      {sucursalAbierta && (
+        <SucursalModal
+          sucursal={sucursalAbierta}
+          salas={estudios.filter((e) => e.sucursal_id === sucursalAbierta.id)}
+          instructores={instructores.filter((i) => i.sucursal_id === sucursalAbierta.id)}
+          onClose={() => setSucursalAbierta(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Popout de una sede: sus salas + instructores. */
+function SucursalModal({
+  sucursal,
+  salas,
+  instructores,
+  onClose
+}: {
+  sucursal: SucursalPublica;
+  salas: EstudioPublico[];
+  instructores: InstructorPublico[];
+  onClose: () => void;
+}) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1000,
+        background: 'rgba(10, 15, 12, 0.6)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        padding: '0'
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: '720px',
+          maxHeight: '88vh',
+          overflowY: 'auto',
+          background: 'var(--sala-bg)',
+          borderRadius: '24px 24px 0 0',
+          padding: 'clamp(24px, 4vw, 36px)',
+          boxShadow: '0 -20px 60px rgba(10, 15, 12, 0.4)'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '20px' }}>
+          <div>
+            <p className="ek-eyebrow" style={{ marginBottom: '8px' }}>SEDE</p>
+            <h2 style={{ fontFamily: 'var(--ek-font-display)', fontSize: 'clamp(24px, 5vw, 34px)', fontWeight: 700, letterSpacing: '-0.03em', margin: 0, color: 'var(--sala-text-primary)' }}>
+              {sucursal.nombre}
+            </h2>
+            {sucursal.direccion && (
+              <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', margin: '6px 0 0' }}>{sucursal.direccion}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            style={{ flexShrink: 0, width: '38px', height: '38px', borderRadius: '999px', border: '1px solid var(--sala-border)', background: 'var(--sala-surface)', color: 'var(--sala-text-primary)', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {sucursal.descripcion && (
+          <p style={{ fontSize: '15px', color: 'var(--sala-text-secondary)', lineHeight: 1.55, margin: '0 0 24px' }}>
+            {sucursal.descripcion}
+          </p>
+        )}
+
+        {salas.length > 0 && (
+          <div style={{ marginBottom: '24px' }}>
+            <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>SALAS</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px' }}>
+              {salas.map((s) => (
+                <div key={s.id} style={{ position: 'relative', aspectRatio: '4 / 3', borderRadius: 'var(--ek-r-xs)', overflow: 'hidden', background: 'var(--grad-immersive)' }}>
+                  {s.foto_url && <img src={s.foto_url} alt={s.nombre} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                  <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,15,12,0.85) 0%, transparent 60%)' }} />
+                  <span style={{ position: 'absolute', left: '10px', bottom: '8px', right: '10px', color: '#fff', fontSize: '13px', fontWeight: 700, fontFamily: 'var(--ek-font-display)', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {s.nombre}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {instructores.length > 0 && (
+          <div>
+            <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>EQUIPO</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px' }}>
+              {instructores.map((i) => (
+                <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {i.foto_url ? (
+                    <img src={i.foto_url} alt={i.nombre} loading="lazy" style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover' }} />
+                  ) : (
+                    <span style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'var(--sala-primary)', color: 'var(--sala-text-on-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--ek-font-display)', fontWeight: 700, fontSize: '15px' }}>
+                      {(i.nombre.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('')) || '?'}
+                    </span>
+                  )}
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--sala-text-primary)' }}>{i.nombre}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {salas.length === 0 && instructores.length === 0 && (
+          <p style={{ fontSize: '14px', color: 'var(--sala-text-tertiary)' }}>Esta sede todavía no tiene salas ni instructores cargados.</p>
+        )}
+      </div>
     </div>
   );
 }

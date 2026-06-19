@@ -250,6 +250,7 @@ export type Database = {
           activo: boolean
           bio: string | null
           created_at: string
+          destacado: boolean
           especialidades: string[]
           foto_url: string | null
           id: string
@@ -264,6 +265,7 @@ export type Database = {
           activo?: boolean
           bio?: string | null
           created_at?: string
+          destacado?: boolean
           especialidades?: string[]
           foto_url?: string | null
           id?: string
@@ -278,6 +280,7 @@ export type Database = {
           activo?: boolean
           bio?: string | null
           created_at?: string
+          destacado?: boolean
           especialidades?: string[]
           foto_url?: string | null
           id?: string
@@ -644,6 +647,7 @@ export type Database = {
           cupo_max_default: number
           cupos: number
           descripcion: string | null
+          destacado: boolean
           equipo_incluido: string[] | null
           estilo_visual: string | null
           foto_url: string | null
@@ -668,6 +672,7 @@ export type Database = {
           cupo_max_default?: number
           cupos?: number
           descripcion?: string | null
+          destacado?: boolean
           equipo_incluido?: string[] | null
           estilo_visual?: string | null
           foto_url?: string | null
@@ -692,6 +697,7 @@ export type Database = {
           cupo_max_default?: number
           cupos?: number
           descripcion?: string | null
+          destacado?: boolean
           equipo_incluido?: string[] | null
           estilo_visual?: string | null
           foto_url?: string | null
@@ -848,7 +854,9 @@ export type Database = {
         Row: {
           activa: boolean
           created_at: string
+          descripcion: string | null
           direccion: string | null
+          foto_url: string | null
           id: string
           nombre: string
           orden: number
@@ -859,7 +867,9 @@ export type Database = {
         Insert: {
           activa?: boolean
           created_at?: string
+          descripcion?: string | null
           direccion?: string | null
+          foto_url?: string | null
           id?: string
           nombre: string
           orden?: number
@@ -870,7 +880,9 @@ export type Database = {
         Update: {
           activa?: boolean
           created_at?: string
+          descripcion?: string | null
           direccion?: string | null
+          foto_url?: string | null
           id?: string
           nombre?: string
           orden?: number
