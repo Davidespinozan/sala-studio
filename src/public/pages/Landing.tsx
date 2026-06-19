@@ -747,8 +747,6 @@ export default function Landing() {
   const { instructores } = useInstructoresPublicos();
   const { hero, secciones, post_hero, cta_final, faq, whatsappUrl, mostrarInstructores } = useLandingConfig();
   const ctaWhatsappUrl = whatsappUrl();
-  // Foto de fondo del CTA final: reusa la del hero (editable desde admin).
-  const ctaBg = hero.imagenes[0]?.desktop || hero.image_url || '';
 
   // Nada hardcodeado: el rango de precios sale de los tiers reales (más caro /
   // más barato), no de los slugs 'pro'/'basica'. El plan "destacado" = el más caro.
@@ -1179,86 +1177,65 @@ export default function Landing() {
       )}
 
       {/* ============================================================
-          CTA + CONTACTO
+          CTA FINAL — slim y CONTENIDO. Ocultable: solo aparece si el
+          tenant le puso un título (vacío = no se muestra).
           ============================================================ */}
-      <section
-        id="contacto"
-        className="reveal"
-        style={{
-          width: '100vw',
-          marginLeft: 'calc(50% - 50vw)',
-          position: 'relative',
-          overflow: 'hidden',
-          padding: 'clamp(80px, 13vw, 150px) 0',
-          background: '#0a0f0c'
-        }}
-      >
-        {ctaBg && (
-          <img
-            src={ctaBg}
-            alt=""
-            aria-hidden="true"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55 }}
-          />
-        )}
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background:
-              'linear-gradient(to top, rgba(10, 15, 12, 0.95) 0%, rgba(10, 15, 12, 0.72) 55%, rgba(10, 15, 12, 0.55) 100%)'
-          }}
-        />
-        <div style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
-          {cta_final.eyebrow && (
-            <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '16px' }}>
-              {cta_final.eyebrow}
-            </p>
-          )}
-          <h2 style={{
-            fontFamily: 'var(--ek-font-display)',
-            fontSize: 'clamp(36px, 6vw, 60px)',
-            fontWeight: 700,
-            letterSpacing: '-0.04em',
-            lineHeight: 1.05,
-            margin: '0 auto 18px',
-            maxWidth: '760px',
-            color: 'rgba(255, 255, 255, 0.98)'
-          }}>
-            {cta_final.titulo}
-          </h2>
-          {cta_final.subtitulo && (
-            <p style={{ color: 'rgba(255, 255, 255, 0.72)', marginBottom: '36px', maxWidth: '520px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
-              {cta_final.subtitulo}
-            </p>
-          )}
-          {ctaWhatsappUrl ? (
+      {cta_final.titulo && (
+        <section className="reveal" style={{ padding: 'clamp(40px, 6vw, 80px) 0' }}>
+          <div
+            style={{
+              background: 'var(--grad-immersive)',
+              borderRadius: 'var(--ek-r-sm)',
+              padding: 'clamp(28px, 4vw, 48px)',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 'clamp(20px, 4vw, 40px)',
+              boxShadow: '0 24px 60px rgba(10, 15, 12, 0.28)'
+            }}
+          >
+            <div style={{ flex: '1 1 360px', minWidth: 0 }}>
+              {cta_final.eyebrow && (
+                <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.55)', margin: '0 0 12px' }}>
+                  {cta_final.eyebrow}
+                </p>
+              )}
+              <h2 style={{
+                fontFamily: 'var(--ek-font-display)',
+                fontSize: 'clamp(26px, 4vw, 40px)',
+                fontWeight: 700,
+                letterSpacing: '-0.03em',
+                lineHeight: 1.05,
+                margin: 0,
+                color: 'rgba(255, 255, 255, 0.98)'
+              }}>
+                {cta_final.titulo}
+              </h2>
+              {cta_final.subtitulo && (
+                <p style={{ color: 'rgba(255, 255, 255, 0.7)', margin: '10px 0 0', maxWidth: '460px', lineHeight: 1.55 }}>
+                  {cta_final.subtitulo}
+                </p>
+              )}
+            </div>
             <a
-              href={ctaWhatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={ctaWhatsappUrl || '#membresias'}
+              {...(ctaWhatsappUrl ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
               className="ek-cta ek-lift"
-              style={{ padding: '18px 34px', fontSize: '15px', display: 'inline-flex', alignItems: 'center' }}
-            >
-              {cta_final.cta_texto}
-            </a>
-          ) : (
-            <a
-              href="#membresias"
-              className="ek-cta ek-lift"
-              style={{ padding: '18px 34px', fontSize: '15px', display: 'inline-flex', alignItems: 'center' }}
+              style={{ padding: '16px 30px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
             >
               {cta_final.cta_texto || 'Ver membresías'}
             </a>
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
       {/* ============================================================
-          FOOTER (extraído a src/public/components/Footer.tsx)
+          FOOTER (extraído a src/public/components/Footer.tsx).
+          Lleva id="contacto": el ancla del nav siempre cae acá (donde
+          están email/dirección/redes), aunque el CTA final esté oculto.
           ============================================================ */}
-      <Footer />
+      <div id="contacto"><Footer /></div>
 
       <EstudioModal
         estudio={estudioAbierto}
