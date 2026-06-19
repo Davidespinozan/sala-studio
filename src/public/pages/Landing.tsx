@@ -383,42 +383,6 @@ export function HeroView({
           </a>
         )}
       </div>
-
-      {hero.stats.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 'clamp(22px, 4vw, 52px)',
-            marginTop: 'clamp(36px, 5vw, 52px)',
-            paddingTop: 'clamp(24px, 3vw, 32px)',
-            borderTop: `1px solid ${hasImg ? 'rgba(255, 255, 255, 0.18)' : 'var(--sala-border)'}`
-          }}
-        >
-          {hero.stats.map((s, i) => (
-            <div key={i}>
-              <p
-                style={{
-                  fontFamily: 'var(--ek-font-display)',
-                  fontSize: 'clamp(22px, 3vw, 30px)',
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                  lineHeight: 1,
-                  margin: 0,
-                  color: tituloColor
-                }}
-              >
-                {s.valor}
-              </p>
-              {s.label && (
-                <p style={{ fontSize: '13px', color: subColor, margin: '4px 0 0', lineHeight: 1.3 }}>
-                  {s.label}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
     </>
   );
 

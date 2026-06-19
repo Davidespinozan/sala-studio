@@ -7,9 +7,6 @@ export type LandingHeroLayout = 'contenido' | 'completo';
 /** Un slide del carrusel del hero: imagen desktop (16:9) + móvil (3:4). */
 export type LandingHeroSlide = { desktop: string; mobile: string };
 
-/** Un stat del hero (barra de credibilidad): valor grande + etiqueta. */
-export type LandingStat = { valor: string; label: string };
-
 export type LandingHero = {
   eyebrow: string;
   titulo: string;
@@ -22,8 +19,6 @@ export type LandingHero = {
   /** 2º CTA (estilo outline). Vacío → no se muestra. */
   cta2_texto?: string;
   cta2_link?: string;
-  /** Barra de stats del hero (hasta 4). Vacío → no se muestra. Editable en admin. */
-  stats: LandingStat[];
   /** Imagen de fondo del hero para DESKTOP (16:9). Vacío = hero de texto. */
   image_url: string;
   /** Imagen de fondo del hero para MÓVIL (3:4 vertical). Cae a la desktop si falta. */
@@ -75,7 +70,6 @@ const HERO_DEFAULT: LandingHero = {
   cta_link: '#membresias',
   cta2_texto: '',
   cta2_link: '#membresias',
-  stats: [],
   image_url: '',
   image_url_mobile: '',
   imagenes: [],
@@ -269,21 +263,6 @@ function parseHeroSlides(value: unknown): LandingHeroSlide[] {
     .slice(0, 10);
 }
 
-/** Stats del hero. Filtra los que no tengan al menos un valor; máx 4. */
-function parseStats(value: unknown): LandingStat[] {
-  if (!Array.isArray(value)) return [];
-  return (value as unknown[])
-    .map((it): LandingStat => {
-      if (it && typeof it === 'object') {
-        const o = it as Record<string, unknown>;
-        return { valor: String(o.valor ?? '').trim(), label: String(o.label ?? '').trim() };
-      }
-      return { valor: '', label: '' };
-    })
-    .filter((s) => s.valor.length > 0 || s.label.length > 0)
-    .slice(0, 4);
-}
-
 export function useLandingConfig() {
   const tenant = useTenant();
   const config = (tenant.config ?? {}) as Record<string, unknown>;
@@ -292,7 +271,6 @@ export function useLandingConfig() {
 
   const hero = parseObject(landing.hero, HERO_DEFAULT);
   hero.imagenes = parseHeroSlides(hero.imagenes);
-  hero.stats = parseStats(hero.stats);
   const secciones = parseSecciones(landing.secciones);
   const post_hero = parsePostHero(landing.post_hero);
   const cta_final = parseObject(landing.cta_final, CTA_FINAL_DEFAULT);

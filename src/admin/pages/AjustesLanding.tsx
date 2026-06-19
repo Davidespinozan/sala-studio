@@ -63,7 +63,6 @@ type HeroDraft = {
   cta_texto: string;
   cta2_texto: string;
   cta2_link: string;
-  stats: { valor: string; label: string }[];
   image_url: string;
   image_url_mobile: string;
   imagenes: { desktop: string; mobile: string }[];
@@ -161,7 +160,7 @@ const FAQ_STARTER: FaqDraftItem[] = [
 ];
 
 const EMPTY: LandingDraft = {
-  hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta2_texto: '', cta2_link: '#membresias', stats: [], image_url: '', image_url_mobile: '', imagenes: [], layout: 'contenido' },
+  hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta2_texto: '', cta2_link: '#membresias', image_url: '', image_url_mobile: '', imagenes: [], layout: 'contenido' },
   secciones: SECCIONES_DEFAULT,
   post_hero: POST_HERO_DEFAULT,
   cta_final: { eyebrow: '', titulo: '', subtitulo: '', cta_texto: '' },
@@ -208,12 +207,6 @@ function readLanding(config: Record<string, unknown> | null): LandingDraft {
       cta_texto: String(hero.cta_texto ?? ''),
       cta2_texto: String(hero.cta2_texto ?? ''),
       cta2_link: String(hero.cta2_link ?? '#membresias'),
-      stats: Array.isArray(hero.stats)
-        ? (hero.stats as unknown[]).map((s) => {
-            const o = (s ?? {}) as Record<string, unknown>;
-            return { valor: String(o.valor ?? ''), label: String(o.label ?? '') };
-          })
-        : [],
       image_url: String(hero.image_url ?? ''),
       image_url_mobile: String(hero.image_url_mobile ?? ''),
       imagenes: readHeroSlides(hero),
@@ -739,71 +732,6 @@ export default function AjustesLanding() {
             placeholder="Ver horarios"
           />
         </FormField>
-
-        <SubBloque
-          label="Barra de stats"
-          hint="Hasta 4 datos de credibilidad bajo el hero (ej: 4.9★ · 1.200+ socios · 30+ clases · 2 sedes). Vacío = no se muestra."
-        >
-          {draft.hero.stats.map((s, i) => (
-            <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
-              <input
-                className="ek-input"
-                style={{ flex: '0 0 120px' }}
-                value={s.valor}
-                placeholder="4.9★"
-                onChange={(e) =>
-                  setDraft((d) => ({
-                    ...d,
-                    hero: { ...d.hero, stats: d.hero.stats.map((x, j) => (j === i ? { ...x, valor: e.target.value } : x)) }
-                  }))
-                }
-              />
-              <input
-                className="ek-input"
-                style={{ flex: 1 }}
-                value={s.label}
-                placeholder="+350 reseñas"
-                onChange={(e) =>
-                  setDraft((d) => ({
-                    ...d,
-                    hero: { ...d.hero, stats: d.hero.stats.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) }
-                  }))
-                }
-              />
-              <button
-                type="button"
-                aria-label="Quitar stat"
-                onClick={() =>
-                  setDraft((d) => ({ ...d, hero: { ...d.hero, stats: d.hero.stats.filter((_, j) => j !== i) } }))
-                }
-                style={{
-                  flexShrink: 0,
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--sala-border)',
-                  background: 'var(--sala-surface)',
-                  cursor: 'pointer',
-                  color: 'var(--sala-text-secondary)'
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-          {draft.hero.stats.length < 4 && (
-            <button
-              type="button"
-              className="ek-cta ek-cta--secondary"
-              style={{ marginTop: '4px' }}
-              onClick={() =>
-                setDraft((d) => ({ ...d, hero: { ...d.hero, stats: [...d.hero.stats, { valor: '', label: '' }] } }))
-              }
-            >
-              + Agregar stat
-            </button>
-          )}
-        </SubBloque>
       </Section>
 
       <Section
