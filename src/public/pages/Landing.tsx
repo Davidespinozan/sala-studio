@@ -287,7 +287,11 @@ export function HeroView({
   const subColor = hasImg ? 'rgba(255, 255, 255, 0.88)' : 'var(--ek-ink-muted)';
   // Sobre imagen, el acento va en un tono CLARO de la marca (el primary
   // oscuro era casi ilegible sobre la foto).
-  const accentColor = hasImg ? 'color-mix(in srgb, var(--sala-primary), white 62%)' : 'var(--ek-mustard)';
+  // Acento del hero en DORADO (acento del tenant). Sobre foto, un toque más
+  // claro para que resalte; antes era primary+blanco (verde lavado/gris).
+  const accentColor = hasImg
+    ? 'color-mix(in srgb, var(--sala-accent), white 14%)'
+    : 'var(--sala-accent)';
   // Shimmer solo sobre imagen (fondo oscuro, donde la luz lee bien) y si el
   // usuario no pidió menos movimiento.
   const shimmerOn = hasImg && !reduced;
@@ -321,7 +325,7 @@ export function HeroView({
               className={shimmerOn ? 'sala-shimmer' : undefined}
               style={
                 shimmerOn
-                  ? ({ '--shim-1': accentColor, '--shim-2': '#ffffff' } as CSSProperties)
+                  ? ({ '--shim-1': accentColor, '--shim-2': 'color-mix(in srgb, var(--sala-accent), white 55%)' } as CSSProperties)
                   : { color: accentColor }
               }
             >
