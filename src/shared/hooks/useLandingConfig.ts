@@ -125,9 +125,9 @@ const POST_HERO_DEFAULT: LandingPostHero = {
   titulo: 'De cero a tu primera clase.',
   titulo_accent: 'En tres pasos.',
   items: [
-    { titulo: 'Elegí tu plan', texto: 'Pickeá la membresía que va con tu ritmo. Sin permanencia rara, sin letra chica.' },
-    { titulo: 'Reservá desde la app', texto: 'Elegí sala, día y horario en segundos. Sin llamadas, sin esperar.' },
-    { titulo: 'Llegá y entrená', texto: 'Mostrá tu QR en recepción y listo. Las salas ya están montadas con todo el equipo.' }
+    { titulo: 'Elige tu plan', texto: 'Elige la membresía que va con tu ritmo. Sin permanencia rara, sin letra chica.' },
+    { titulo: 'Reserva desde la app', texto: 'Elige sala, día y horario en segundos. Sin llamadas, sin esperar.' },
+    { titulo: 'Llega y entrena', texto: 'Muestra tu QR en recepción y listo. Las salas ya están montadas con todo el equipo.' }
   ]
 };
 
@@ -159,10 +159,10 @@ function parsePostHero(value: unknown): LandingPostHero {
 export type LandingFaqItem = { pregunta: string; respuesta: string };
 
 const FAQ_DEFAULT: LandingFaqItem[] = [
-  { pregunta: '¿Qué incluye la membresía?', respuesta: 'Acceso a las salas y clases según tu plan, con reservas desde la app. Mirá el detalle de cada plan más arriba.' },
-  { pregunta: '¿Cómo reservo una clase?', respuesta: 'Desde la app: elegís sala, día y horario en segundos, y mostrás tu QR al llegar.' },
-  { pregunta: '¿Puedo cancelar una reserva?', respuesta: 'Sí. Cancelá con anticipación para liberar tu lugar; las reglas de cancelación las define tu plan.' },
-  { pregunta: '¿Puedo invitar gente?', respuesta: 'Según tu plan, podés llevar invitados. Mirá los planes para el detalle.' }
+  { pregunta: '¿Qué incluye la membresía?', respuesta: 'Acceso a las salas y clases según tu plan, con reservas desde la app. Mira el detalle de cada plan más arriba.' },
+  { pregunta: '¿Cómo reservo una clase?', respuesta: 'Desde la app: eliges sala, día y horario en segundos, y muestras tu QR al llegar.' },
+  { pregunta: '¿Puedo cancelar una reserva?', respuesta: 'Sí. Cancela con anticipación para liberar tu lugar; las reglas de cancelación las define tu plan.' },
+  { pregunta: '¿Puedo invitar gente?', respuesta: 'Según tu plan, puedes llevar invitados. Mira los planes para el detalle.' }
 ];
 
 /** missing/null → default genérico. Array explícito (aunque vacío) → lo del admin
@@ -201,7 +201,7 @@ export const SECCIONES_DEFAULT: LandingSecciones = {
     eyebrow: 'NUESTRAS SALAS',
     titulo: 'Varias disciplinas.',
     titulo_accent: 'Un solo lugar.',
-    subtitulo: 'Cada sala diseñada para una disciplina distinta. Elegí la que va con vos.'
+    subtitulo: 'Cada sala diseñada para una disciplina distinta. Elige la que va contigo.'
   },
   membresias: {
     eyebrow: 'MEMBRESÍAS',
@@ -211,13 +211,13 @@ export const SECCIONES_DEFAULT: LandingSecciones = {
   },
   instructores: {
     eyebrow: 'NUESTRO EQUIPO',
-    titulo: 'Conocé a nuestros',
+    titulo: 'Conoce a nuestros',
     titulo_accent: 'instructores.',
     subtitulo: 'El equipo que te va a acompañar en cada clase.'
   },
   faq: {
     eyebrow: 'PREGUNTAS FRECUENTES',
-    titulo: 'Lo que probablemente querés saber.',
+    titulo: 'Lo que probablemente quieres saber.',
     titulo_accent: '',
     subtitulo: ''
   }
