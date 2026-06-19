@@ -1027,24 +1027,27 @@ export default function Landing() {
                     <span
                       style={{
                         position: 'absolute',
-                        top: '-12px',
-                        left: '32px',
-                        background: 'rgba(10, 15, 12, 0.92)',
-                        border: '1px solid rgba(255, 255, 255, 0.16)',
-                        color: 'rgba(255, 255, 255, 0.9)',
+                        top: '-13px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: 'var(--grad-accent)',
+                        border: '1px solid var(--sala-accent)',
+                        color: 'var(--sala-text-on-accent)',
                         fontSize: '10px',
                         fontWeight: 800,
                         letterSpacing: '0.12em',
                         textTransform: 'uppercase',
-                        padding: '6px 14px',
+                        padding: '7px 16px',
                         borderRadius: '999px',
+                        boxShadow: '0 6px 16px var(--sala-accent-dim)',
+                        whiteSpace: 'nowrap',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '5px'
                       }}
                     >
                       <Star size={12} strokeWidth={2.5} fill="currentColor" />
-                      Recomendada
+                      Más elegido
                     </span>
                   )}
                   <p
