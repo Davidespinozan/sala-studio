@@ -117,6 +117,11 @@ describe('traducirErrorRPC — gate de membresía (Fase 2A.2)', () => {
       'Ya tienes una reserva activa en esta clase.'
     );
   });
+  it('SUCURSAL_NO_INCLUIDA → mensaje de alcance por sede (Fase 6)', () => {
+    expect(traducirErrorRPC('SUCURSAL_NO_INCLUIDA: Tu plan solo cubre tu sede')).toBe(
+      'Tu plan solo cubre tu sede.'
+    );
+  });
 });
 
 describe('mensajeToastCancelacion', () => {

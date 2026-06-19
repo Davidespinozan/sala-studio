@@ -10,6 +10,7 @@ import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useMembresiaActual } from '@member/hooks/useMembresiaActual';
+import { sucursalesVisibles, resolverSucursalActiva } from '@member/logic/sucursalScope';
 import type { Database } from '@shared/types/database';
 
 export type Sucursal = Database['public']['Tables']['sucursales']['Row'];
@@ -96,16 +97,10 @@ export function MemberSucursalProvider({ children }: { children: ReactNode }) {
 
   // Alcance del plan: si la membresía no da acceso a todas las sedes, el socio
   // solo ve (y reserva en) la sede a la que se suscribió. Mientras carga la
-  // membresía, se asume acceso total (no parpadea ocultando de más).
-  const todasSedes = membresia?.tier_acceso_todas_sucursales ?? true;
-  const memSucursal = membresia?.sucursal_id ?? null;
-  const visibles =
-    todasSedes || !memSucursal ? sucursales : sucursales.filter((s) => s.id === memSucursal);
-
-  // Si la sede elegida cae fuera del plan, forzamos la primera permitida.
-  const sucursalIdSafe = visibles.some((s) => s.id === sucursalId)
-    ? sucursalId
-    : visibles[0]?.id ?? null;
+  // membresía, se asume acceso total (no parpadea ocultando de más). Lógica pura
+  // y testeada en logic/sucursalScope.ts.
+  const visibles = sucursalesVisibles(sucursales, membresia);
+  const sucursalIdSafe = resolverSucursalActiva(visibles, sucursalId);
   const sucursalActiva = visibles.find((s) => s.id === sucursalIdSafe) ?? null;
 
   const value: MemberSucursalContextValue = {
