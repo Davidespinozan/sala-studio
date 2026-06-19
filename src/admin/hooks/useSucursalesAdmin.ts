@@ -10,6 +10,8 @@ export interface SucursalFormData {
   activa: boolean;
   descripcion: string | null;
   foto_url: string | null;
+  lat: number | null;
+  lng: number | null;
 }
 
 /**

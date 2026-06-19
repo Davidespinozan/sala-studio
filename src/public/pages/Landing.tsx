@@ -14,6 +14,7 @@ import EstudioModal, { type EstudioInfo } from '../components/EstudioModal';
 import Footer from '../components/Footer';
 import { MagneticButton } from '@shared/components/MagneticButton';
 import { HeroCarousel } from '@shared/components/HeroCarousel';
+import MapaSucursal from '@shared/components/MapaSucursal';
 
 interface EstudioPublico {
   id: string;
@@ -151,6 +152,8 @@ interface SucursalPublica {
   direccion: string | null;
   descripcion: string | null;
   foto_url: string | null;
+  lat: number | null;
+  lng: number | null;
 }
 
 /** Sucursales activas del tenant para la sección "Sucursales" de la landing.
@@ -164,7 +167,7 @@ function useSucursalesPublicas() {
     async function load() {
       const { data, error } = await supabase
         .from('sucursales')
-        .select('id, nombre, direccion, descripcion, foto_url')
+        .select('id, nombre, direccion, descripcion, foto_url, lat, lng')
         .eq('tenant_id', tenant.id)
         .eq('activa', true)
         .order('orden', { ascending: true })
@@ -1081,6 +1084,32 @@ export default function Landing() {
       )}
 
       {/* ============================================================
+          DÓNDE ESTAMOS (1 sola sede con ubicación) → mapa directo
+          ============================================================ */}
+      {sucursales.length === 1 && sucursales[0].lat != null && sucursales[0].lng != null && (
+        <section className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
+          <SeccionHeading
+            heading={{
+              eyebrow: 'DÓNDE ESTAMOS',
+              titulo: 'Visítanos',
+              titulo_accent: 'aquí.',
+              subtitulo: sucursales[0].direccion ?? 'Te esperamos en el estudio.'
+            }}
+            editorial
+          />
+          <div style={{ maxWidth: '760px' }}>
+            <MapaSucursal
+              lat={sucursales[0].lat}
+              lng={sucursales[0].lng}
+              nombre={sucursales[0].nombre}
+              direccion={sucursales[0].direccion}
+              height={320}
+            />
+          </div>
+        </section>
+      )}
+
+      {/* ============================================================
           MEMBRESÍAS
           ============================================================ */}
       <section id="membresias" className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
@@ -1415,6 +1444,13 @@ function SucursalModal({
           <p style={{ fontSize: '15px', color: 'var(--sala-text-secondary)', lineHeight: 1.55, margin: '0 0 24px' }}>
             {sucursal.descripcion}
           </p>
+        )}
+
+        {sucursal.lat != null && sucursal.lng != null && (
+          <div style={{ marginBottom: '24px' }}>
+            <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>UBICACIÓN</p>
+            <MapaSucursal lat={sucursal.lat} lng={sucursal.lng} nombre={sucursal.nombre} direccion={sucursal.direccion} height={200} />
+          </div>
         )}
 
         {salas.length > 0 && (

@@ -858,6 +858,8 @@ export type Database = {
           direccion: string | null
           foto_url: string | null
           id: string
+          lat: number | null
+          lng: number | null
           nombre: string
           orden: number
           tenant_id: string
@@ -871,6 +873,8 @@ export type Database = {
           direccion?: string | null
           foto_url?: string | null
           id?: string
+          lat?: number | null
+          lng?: number | null
           nombre: string
           orden?: number
           tenant_id: string
@@ -884,6 +888,8 @@ export type Database = {
           direccion?: string | null
           foto_url?: string | null
           id?: string
+          lat?: number | null
+          lng?: number | null
           nombre?: string
           orden?: number
           tenant_id?: string

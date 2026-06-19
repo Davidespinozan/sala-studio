@@ -13,6 +13,7 @@ import {
 } from '../hooks/useSucursalesAdmin';
 import Toggle from '../components/Toggle';
 import ImageUploader from '../components/ImageUploader';
+import MapaPicker from '../components/MapaPicker';
 
 type ModalState = { mode: 'edit'; sucursal: Sucursal } | { mode: 'create' } | null;
 
@@ -276,6 +277,8 @@ function SucursalModal({
   const [activa, setActiva] = useState(sucursal?.activa ?? true);
   const [descripcion, setDescripcion] = useState(sucursal?.descripcion ?? '');
   const [fotoUrl, setFotoUrl] = useState(sucursal?.foto_url ?? '');
+  const [lat, setLat] = useState<number | null>(sucursal?.lat ?? null);
+  const [lng, setLng] = useState<number | null>(sucursal?.lng ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -299,7 +302,9 @@ function SucursalModal({
       timezone,
       activa,
       descripcion: descripcion.trim() || null,
-      foto_url: fotoUrl || null
+      foto_url: fotoUrl || null,
+      lat,
+      lng
     };
 
     setSaving(true);
@@ -351,6 +356,19 @@ function SucursalModal({
             placeholder="Ej: Av. Reforma 123, CDMX"
           />
         </label>
+
+        <div className="ek-form-field" style={{ marginTop: '14px' }}>
+          <span className="ek-label" style={{ display: 'block', marginBottom: '6px' }}>Ubicación en el mapa (opcional)</span>
+          <MapaPicker
+            lat={lat}
+            lng={lng}
+            direccion={direccion}
+            onChange={(la, ln) => {
+              setLat(la);
+              setLng(ln);
+            }}
+          />
+        </div>
 
         <label className="ek-label" style={{ marginTop: '14px' }}>
           Descripción (opcional)
