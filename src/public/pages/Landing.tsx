@@ -14,7 +14,6 @@ import Footer from '../components/Footer';
 import { MagneticButton } from '@shared/components/MagneticButton';
 import { HeroCarousel } from '@shared/components/HeroCarousel';
 import { useSpotlight } from '@shared/hooks/useSpotlight';
-import { usePrefersReducedMotion } from '@shared/hooks/usePrefersReducedMotion';
 
 interface EstudioPublico {
   id: string;
@@ -274,7 +273,6 @@ export function HeroView({
   forceMobile?: boolean;
 }) {
   const onSpotlight = useSpotlight();
-  const reduced = usePrefersReducedMotion();
   // Slides del carrusel: los configurados o, si no hay, la imagen única (compat).
   // Una sola → el carrusel hace solo Ken Burns.
   const slides = hero.imagenes.length > 0
@@ -292,9 +290,6 @@ export function HeroView({
   const accentColor = hasImg
     ? 'color-mix(in srgb, var(--sala-accent), white 14%)'
     : 'var(--sala-accent)';
-  // Shimmer solo sobre imagen (fondo oscuro, donde la luz lee bien) y si el
-  // usuario no pidió menos movimiento.
-  const shimmerOn = hasImg && !reduced;
 
   const inner = (
     <>
@@ -321,16 +316,7 @@ export function HeroView({
         {hero.titulo_accent && (
           <>
             {hero.titulo && <br />}
-            <span
-              className={shimmerOn ? 'sala-shimmer' : undefined}
-              style={
-                shimmerOn
-                  ? ({ '--shim-1': accentColor, '--shim-2': 'color-mix(in srgb, var(--sala-accent), white 55%)' } as CSSProperties)
-                  : { color: accentColor }
-              }
-            >
-              {hero.titulo_accent}
-            </span>
+            <span style={{ color: accentColor }}>{hero.titulo_accent}</span>
           </>
         )}
       </h1>
