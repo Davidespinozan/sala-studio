@@ -4,6 +4,7 @@ import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
+import { useSucursal } from '../providers/SucursalProvider';
 import { canModifyTeamMember, revokeTeamMember } from '../lib/crudHelpers';
 import { adminDeleteUser } from '../hooks/useAdminData';
 import CardMenuDropdown from '../components/CardMenuDropdown';
@@ -37,7 +38,21 @@ type RevokeState = null | { usuario: Usuario; status: 'loading' | 'blocked'; rea
 export default function Equipo() {
   const tenant = useTenant();
   const { usuario: currentUser } = useAuth();
+  const { sucursales, multisede } = useSucursal();
   const toast = useToast();
+
+  async function asignarSucursal(u: Usuario, sucursalId: string) {
+    const { error } = await supabase
+      .from('usuarios')
+      .update({ sucursal_id: sucursalId })
+      .eq('id', u.id);
+    if (error) {
+      toast.error('No pudimos cambiar la sede. Prueba de nuevo.');
+      return;
+    }
+    toast.success('Sede actualizada.');
+    await refetch();
+  }
 
   const [staff, setStaff] = useState<Usuario[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -177,6 +192,8 @@ export default function Equipo() {
                   key={u.id}
                   usuario={u}
                   currentUserId={currentUser?.id}
+                  sucursales={multisede ? sucursales.map((s) => ({ id: s.id, nombre: s.nombre })) : undefined}
+                  onChangeSucursal={(id) => asignarSucursal(u, id)}
                   onCambiarRol={() => setCambioRol({ usuario: u, rol: 'recepcionista' })}
                   onRevoke={() => startRevoke(u)}
                   onEliminar={() => setEliminar(u)}
@@ -315,12 +332,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function PersonaCard({
   usuario: u,
   currentUserId,
+  sucursales,
+  onChangeSucursal,
   onCambiarRol,
   onRevoke,
   onEliminar
 }: {
   usuario: Usuario;
   currentUserId: string | undefined;
+  sucursales?: { id: string; nombre: string }[];
+  onChangeSucursal?: (sucursalId: string) => void;
   onCambiarRol: () => void;
   onRevoke: () => void;
   onEliminar: () => void;
@@ -377,6 +398,25 @@ function PersonaCard({
           {rolLabel(u.rol)}
           {u.status !== 'activo' && ` · status: ${u.status}`}
         </p>
+        {sucursales && onChangeSucursal && (
+          <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)' }}>Sede:</span>
+            <select
+              value={u.sucursal_id ?? ''}
+              onChange={(e) => e.target.value && onChangeSucursal(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className="ek-input"
+              style={{ fontSize: '12px', padding: '4px 8px', height: 'auto', width: 'auto', maxWidth: '200px' }}
+            >
+              <option value="">Sin asignar</option>
+              {sucursales.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
       <CardMenuDropdown
         items={[

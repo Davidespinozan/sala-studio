@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useVisibilityAwarePolling } from '@shared/hooks/useVisibilityAwarePolling';
+import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
 import type { Database } from '@shared/types/database';
 
 type Reserva = Database['public']['Tables']['reservas']['Row'];
@@ -19,6 +20,7 @@ export interface ReservaConJoin extends Reserva {
  */
 export function useReservasHoy(fecha?: Date) {
   const tenant = useTenant();
+  const { sucursalId } = useReceptionSucursal();
   const [reservas, setReservas] = useState<ReservaConJoin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -30,13 +32,20 @@ export function useReservasHoy(fecha?: Date) {
     const fin = new Date(fechaMs);
     fin.setDate(fin.getDate() + 1);
 
-    const { data, error } = await supabase
+    // !inner + filtro por recurso.sucursal_id scopea la recepción a su sede
+    // (las reservas no tienen sucursal_id directo; va por la sala). Mismo patrón
+    // que useReservasRango del admin.
+    let query = supabase
       .from('reservas')
-      .select('*, recurso:recursos(id, slug, nombre), usuario:usuarios!reservas_usuario_id_fkey(id, nombre, email, membresia_tier)')
+      .select('*, recurso:recursos!inner(id, slug, nombre, sucursal_id), usuario:usuarios!reservas_usuario_id_fkey(id, nombre, email, membresia_tier)')
       .eq('tenant_id', tenant.id)
       .gte('slot_inicio', inicio.toISOString())
       .lt('slot_inicio', fin.toISOString())
       .order('slot_inicio', { ascending: true });
+
+    if (sucursalId) query = query.eq('recurso.sucursal_id', sucursalId);
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('[useReservasHoy]', error);
@@ -45,7 +54,7 @@ export function useReservasHoy(fecha?: Date) {
     }
     setReservas((data ?? []) as unknown as ReservaConJoin[]);
     setIsLoading(false);
-  }, [tenant.id, fechaMs]);
+  }, [tenant.id, fechaMs, sucursalId]);
 
   // Carga inicial + recarga al cambiar de día (cambia la identidad de refetch).
   useEffect(() => {
@@ -79,6 +88,7 @@ function translateError(code: string, fallback: string): string {
     RESERVA_NO_SHOW: 'Esta reserva quedó marcada como inasistencia',
     DEMASIADO_TEMPRANO: 'Todavía es muy temprano para el check-in',
     DEMASIADO_TARDE: 'El check-in ya cerró',
+    SUCURSAL_DIFERENTE: 'Esta reserva es de otra sede',
     NO_AUTORIZADO: 'No tienes permiso para hacer esta acción'
   };
   return map[code] ?? fallback.replace(code + ':', '').trim();

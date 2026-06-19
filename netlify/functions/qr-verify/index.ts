@@ -147,6 +147,7 @@ function translateError(code: string, fallback: string): string {
     RESERVA_NO_SHOW: 'Reserva marcada como inasistencia',
     DEMASIADO_TEMPRANO: 'Es muy temprano para el check-in',
     DEMASIADO_TARDE: 'El check-in ya cerró',
+    SUCURSAL_DIFERENTE: 'Esta reserva es de otra sede',
     NO_AUTORIZADO: 'No autorizado',
     QR_INVALIDO: 'QR inválido',
     QR_EXPIRADO: 'QR expirado'

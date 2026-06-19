@@ -10,6 +10,8 @@ import { AppShell } from '@shared/components/AppShell';
 import { TenantGuard } from '@shared/components/TenantGuard';
 import { ModoDemoBanner } from '@shared/components/ModoDemoBanner';
 import { AppSidebar, type AppNavSection } from '@shared/components/AppSidebar';
+import { MapPin } from 'lucide-react';
+import { ReceptionSucursalProvider, useReceptionSucursal } from './providers/ReceptionSucursalProvider';
 
 const Scanner = lazy(() => import('./pages/Scanner'));
 const Socios = lazy(() => import('./pages/Socios'));
@@ -54,30 +56,59 @@ export default function ReceptionLayout() {
   }
 
   return (
-    <TenantGuard>
-      <ModoDemoBanner />
-      <DemoBanner vista="Recepción" />
-      <AppShell
-        roleLabel="RECEPCIÓN"
-        sidebar={({ onNavigate }) => (
-          <AppSidebar
-            sections={RECEPCION_SECTIONS}
-            roleLabel="RECEPCIÓN"
-            homePath="/recepcion"
-            onNavigate={onNavigate}
-          />
-        )}
-      >
-        <main className="adm-main">
-          <Suspense fallback={<LoadingScreen />}>
-            <Routes>
-              <Route path="/" element={<Scanner />} />
-              <Route path="/socios" element={<Socios />} />
-              <Route path="/socios/:id" element={<SocioFicha />} />
-            </Routes>
-          </Suspense>
-        </main>
-      </AppShell>
-    </TenantGuard>
+    <ReceptionSucursalProvider>
+      <TenantGuard>
+        <ModoDemoBanner />
+        <DemoBanner vista="Recepción" />
+        <AppShell
+          roleLabel="RECEPCIÓN"
+          sidebar={({ onNavigate }) => (
+            <AppSidebar
+              sections={RECEPCION_SECTIONS}
+              roleLabel="RECEPCIÓN"
+              homePath="/recepcion"
+              onNavigate={onNavigate}
+            />
+          )}
+        >
+          <main className="adm-main">
+            <SedeBar />
+            <Suspense fallback={<LoadingScreen />}>
+              <Routes>
+                <Route path="/" element={<Scanner />} />
+                <Route path="/socios" element={<Socios />} />
+                <Route path="/socios/:id" element={<SocioFicha />} />
+              </Routes>
+            </Suspense>
+          </main>
+        </AppShell>
+      </TenantGuard>
+    </ReceptionSucursalProvider>
+  );
+}
+
+/** Barra fija que recuerda en qué sede opera esta recepción (solo multisede). */
+function SedeBar() {
+  const { sucursalNombre, multisede } = useReceptionSucursal();
+  if (!multisede || !sucursalNombre) return null;
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '7px',
+        marginBottom: '16px',
+        padding: '7px 14px',
+        borderRadius: '999px',
+        background: 'var(--sala-primary-light)',
+        border: '1px solid var(--sala-border)',
+        color: 'var(--sala-text-primary)',
+        fontSize: '13px',
+        fontWeight: 600
+      }}
+    >
+      <MapPin size={14} style={{ color: 'var(--sala-primary)' }} />
+      Operando en {sucursalNombre}
+    </div>
   );
 }

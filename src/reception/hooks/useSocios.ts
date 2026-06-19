@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
+import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
 import { translateReadError } from '../lib/traducirErrorLectura';
 
 /** Item de la lista de socios (buscador de recepción). Solo lectura. */
@@ -34,22 +35,27 @@ const normalize = (s: string) =>
  * paginar. Aceptable por ahora.
  */
 export function useSocios(query: string) {
+  const { sucursalId } = useReceptionSucursal();
   const [padron, setPadron] = useState<SocioListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Carga del padrón completo UNA sola vez al montar (no en cada keystroke).
+  // Carga del padrón de la sede de la recepción (recarga si cambia la sede).
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
 
     (async () => {
-      const { data, error: queryError } = await supabase
+      let q = supabase
         .from('usuarios')
         .select('id, nombre, email, telefono, avatar_url, membresia_tier, status')
         .eq('rol', 'miembro')
         .order('nombre', { ascending: true })
         .limit(1000);
+
+      if (sucursalId) q = q.eq('sucursal_id', sucursalId);
+
+      const { data, error: queryError } = await q;
 
       if (cancelled) return;
       if (queryError) {
@@ -65,7 +71,7 @@ export function useSocios(query: string) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [sucursalId]);
 
   // Filtrado local instantáneo (solo CPU, sin debounce ni race conditions).
   const socios = useMemo(() => {

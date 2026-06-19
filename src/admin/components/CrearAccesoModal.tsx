@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@shared/hooks/useToast';
 import { adminCreateUser } from '../hooks/useAdminData';
+import { useSucursal } from '../providers/SucursalProvider';
 
 type Rol = 'admin' | 'recepcionista';
 
@@ -20,15 +21,20 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function CrearAccesoModal({ onClose, onSuccess }: Props) {
   const toast = useToast();
+  const { sucursales, multisede } = useSucursal();
 
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [rol, setRol] = useState<Rol>('recepcionista');
+  const [sucursalId, setSucursalId] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // La sede solo aplica a recepción en gym multisede.
+  const pideSucursal = rol === 'recepcionista' && multisede;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -50,7 +56,9 @@ export default function CrearAccesoModal({ onClose, onSuccess }: Props) {
   const passwordError =
     confirmPassword.length > 0 && !passwordsMatch ? 'Las contraseñas no coinciden.' : null;
 
-  const canSubmit = nombreValido && emailValido && passwordValida && passwordsMatch && !submitting;
+  const sucursalValida = !pideSucursal || sucursalId.length > 0;
+  const canSubmit =
+    nombreValido && emailValido && passwordValida && passwordsMatch && sucursalValida && !submitting;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -70,7 +78,8 @@ export default function CrearAccesoModal({ onClose, onSuccess }: Props) {
         email: emailNorm,
         password,
         nombre: nombreNorm,
-        rol
+        rol,
+        sucursal_id: pideSucursal ? sucursalId : null
       });
 
       onSuccess({ nombre: nombreNorm, email: emailNorm, password });
@@ -278,6 +287,28 @@ export default function CrearAccesoModal({ onClose, onSuccess }: Props) {
             ))}
           </div>
         </div>
+
+        {pideSucursal && (
+          <div className="ek-form-field" style={{ marginBottom: '20px' }}>
+            <label className="ek-label">Sede asignada</label>
+            <select
+              value={sucursalId}
+              onChange={(e) => setSucursalId(e.target.value)}
+              className="ek-input"
+              disabled={submitting}
+            >
+              <option value="">Elige una sede…</option>
+              {sucursales.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nombre}
+                </option>
+              ))}
+            </select>
+            <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
+              La recepción opera solo en esta sede: ve sus clases del día y sus socios.
+            </p>
+          </div>
+        )}
 
         {error && (
           <p className="ek-error-text" style={{ marginBottom: '12px' }}>

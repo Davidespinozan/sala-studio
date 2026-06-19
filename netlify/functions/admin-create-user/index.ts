@@ -28,6 +28,7 @@ interface CreateRequest {
   telefono?: string;
   rol: 'miembro' | 'recepcionista' | 'staff' | 'admin';
   membresia_tier?: 'basica' | 'pro' | null;
+  sucursal_id?: string | null;
 }
 
 // 'staff' desactivado (rol a medias sin UI propia) — se rechaza al crear.
@@ -131,16 +132,37 @@ export const handler: Handler = async (event) => {
     //    Actualizar a los valores reales (rol + tier + status).
     const status = body.rol === 'miembro' ? 'pendiente_pago' : 'activo';
 
+    // Sede asignada (recepcionista en gym multisede). Validar que sea del tenant
+    // del admin para evitar asignar a una sede ajena vía body manipulado.
+    let sucursalId: string | null = null;
+    if (body.sucursal_id) {
+      const { data: suc } = await supabaseAdmin
+        .from('sucursales')
+        .select('id')
+        .eq('id', body.sucursal_id)
+        .eq('tenant_id', tenantId)
+        .maybeSingle();
+      if (!suc) {
+        await supabaseAdmin.auth.admin.deleteUser(newAuthUser.user.id);
+        return badRequest('La sucursal indicada no pertenece a tu negocio.');
+      }
+      sucursalId = suc.id;
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      rol: body.rol,
+      membresia_tier: body.rol === 'miembro' ? (body.membresia_tier ?? null) : null,
+      status,
+      nombre: body.nombre.trim(),
+      telefono: body.telefono?.trim() || null,
+      tenant_id: tenantId
+    };
+    // Solo seteamos sede si vino una (recepcionista multisede); no pisamos con null.
+    if (sucursalId) updatePayload.sucursal_id = sucursalId;
+
     const { data: updatedRow, error: updateErr } = await supabaseAdmin
       .from('usuarios')
-      .update({
-        rol: body.rol,
-        membresia_tier: body.rol === 'miembro' ? (body.membresia_tier ?? null) : null,
-        status,
-        nombre: body.nombre.trim(),
-        telefono: body.telefono?.trim() || null,
-        tenant_id: tenantId
-      })
+      .update(updatePayload)
       .eq('auth_id', newAuthUser.user.id)
       .select('id')
       .single();

@@ -587,6 +587,8 @@ export interface CreateUserParams {
   telefono?: string;
   rol: 'miembro' | 'recepcionista' | 'staff' | 'admin';
   membresia_tier?: 'basica' | 'pro' | null;
+  /** Sede asignada (recepcionista en gym multisede). */
+  sucursal_id?: string | null;
 }
 
 export interface CreateUserResponse {
