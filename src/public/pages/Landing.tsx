@@ -506,7 +506,7 @@ export function SeccionHeading({
         <h2
           style={{
             fontFamily: 'var(--ek-font-display)',
-            fontSize: 'clamp(36px, 6vw, 60px)',
+            fontSize: 'clamp(28px, 5vw, 60px)',
             fontWeight: 700,
             letterSpacing: '-0.04em',
             lineHeight: 1.02,
