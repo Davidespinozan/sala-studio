@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { useFavoritos } from '@member/hooks/useFavoritos';
 import type { Database } from '@shared/types/database';
 
@@ -10,6 +11,7 @@ type Recurso = Database['public']['Tables']['recursos']['Row'];
 
 export default function Estudios() {
   const tenant = useTenant();
+  const { sucursalId } = useMemberSucursal();
   const { toggle, isFavorito, count } = useFavoritos();
   const [recursos, setRecursos] = useState<Recurso[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -18,12 +20,14 @@ export default function Estudios() {
   useEffect(() => {
     let mounted = true;
     async function load() {
-      const { data, error } = await supabase
+      // Multi-sede: sólo las salas de la sede activa (null = todas).
+      let q = supabase
         .from('recursos')
         .select('*')
         .eq('tenant_id', tenant.id)
-        .eq('activo', true)
-        .order('nombre');
+        .eq('activo', true);
+      if (sucursalId) q = q.eq('sucursal_id', sucursalId);
+      const { data, error } = await q.order('nombre');
 
       if (!mounted) return;
       if (error) console.error('[Estudios]', error);
@@ -32,7 +36,7 @@ export default function Estudios() {
     }
     load();
     return () => { mounted = false; };
-  }, [tenant.id]);
+  }, [tenant.id, sucursalId]);
 
   if (isLoading) {
     return (

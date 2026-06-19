@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
 import { supabase } from '@shared/lib/supabase';
@@ -40,6 +41,7 @@ function tierTieneAcceso(tiers: string[] | null | undefined, tier: string | null
 export default function Reservar() {
   const tenant = useTenant();
   const { usuario } = useAuth();
+  const { sucursalId } = useMemberSucursal();
   const toast = useToast();
   const { recursos, isLoading: loadingRecursos } = useRecursosDelTenant();
 
@@ -106,7 +108,7 @@ export default function Reservar() {
       ) => Promise<{ data: ClaseExpansionRow[] | null; error: { message: string } | null }>;
 
       const { data, error } = await rpc('expandir_clases', {
-        p_sucursal_id: null, // todas las sucursales del tenant
+        p_sucursal_id: sucursalId, // sede activa del socio (null = todas)
         p_desde: fechaSel,
         p_hasta: fechaSel
       });
@@ -142,7 +144,7 @@ export default function Reservar() {
     }
     void load();
     return () => { mounted = false; };
-  }, [fechaSel, tenant.id, usuario, tz, refreshTick]);
+  }, [fechaSel, tenant.id, usuario, tz, refreshTick, sucursalId]);
 
   // Filtro de sala + "ya pasó" si es hoy. (El mapeo ya se hizo en la carga.)
   const clases = useMemo<Clase[]>(() => {

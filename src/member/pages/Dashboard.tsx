@@ -3,6 +3,7 @@ import { Activity, ArrowDown, ArrowRight, CalendarCheck, Clock, Heart, Sparkles,
 import { Link } from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { supabase } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
 import {
@@ -108,8 +109,9 @@ function mapClase(row: ClaseConRecurso, cuposReservados: number, tz: string): Cl
   return claseFromRow({ row, cuposReservados, recurso, instructor: row.instructor, tz });
 }
 
-/** Clases de hoy desde la tabla `clases` real (S4.2). "Hoy" = tz del gym (S4.4). */
-function useClasesDeHoy(tenantId: string, tz: string) {
+/** Clases de hoy desde la tabla `clases` real (S4.2). "Hoy" = tz del gym (S4.4).
+ *  Multi-sede: filtra por la sucursal activa del socio (null = todas). */
+function useClasesDeHoy(tenantId: string, tz: string, sucursalId: string | null) {
   const [clases, setClases] = useState<Clase[]>([]);
   const [reservasMiembro, setReservasMiembro] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
@@ -127,7 +129,7 @@ function useClasesDeHoy(tenantId: string, tz: string) {
         name: string, args: Record<string, unknown>
       ) => Promise<{ data: ClaseExpansionRow[] | null; error: { message: string } | null }>;
       const { data, error } = await rpc('expandir_clases', {
-        p_sucursal_id: null, p_desde: fechaISO, p_hasta: fechaISO
+        p_sucursal_id: sucursalId, p_desde: fechaISO, p_hasta: fechaISO
       });
       if (!mounted) return;
       if (error) console.error('[Dashboard:expandir_clases]', error, { fechaISO });
@@ -164,7 +166,7 @@ function useClasesDeHoy(tenantId: string, tz: string) {
     return () => { mounted = false; };
     // usuarioId (no el objeto usuario): el objeto cambia de referencia en cada
     // re-hidratación del auth y disparaba re-fetches innecesarios.
-  }, [tenantId, usuarioId, tz]);
+  }, [tenantId, usuarioId, tz, sucursalId]);
 
   return { clases, reservasMiembro, isLoading };
 }
@@ -242,6 +244,7 @@ export default function Dashboard() {
   const { usuario } = useAuth();
   const tenant = useTenant();
   const tz = getTenantTimezone(tenant);
+  const { sucursalId } = useMemberSucursal();
 
   const {
     reserva: proximaReserva,
@@ -250,7 +253,8 @@ export default function Dashboard() {
   } = useProximaReserva(usuario?.id);
   const { clases: clasesHoy, reservasMiembro, isLoading: loadingClases } = useClasesDeHoy(
     tenant.id,
-    tz
+    tz,
+    sucursalId
   );
   const { items: listasEspera } = useMisListasEspera();
   const { proximas, sesionesMes, favoritas } = useResumenRapido(usuario?.id);

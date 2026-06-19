@@ -14,6 +14,8 @@ import { ModoDemoBanner } from '@shared/components/ModoDemoBanner';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
 import { PwaInstallBanner } from '@shared/components/PwaInstallBanner';
+import { MemberSucursalProvider } from './providers/MemberSucursalProvider';
+import { SucursalSwitcher } from './components/SucursalSwitcher';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Reservar = lazy(() => import('./pages/Reservar'));
@@ -75,12 +77,16 @@ export default function MemberLayout() {
 
   return (
     <TenantGuard>
+    <MemberSucursalProvider>
     <ModoDemoBanner />
     <div className="ek-page" style={{ paddingBottom: '88px' /* espacio para bottom nav */ }}>
       <DemoBanner vista="Miembro" />
       <EstadoMembresiaBanner />
       <header className="ek-header-glass">
         <div className="ek-header-inner" style={{ justifyContent: 'center', position: 'relative' }}>
+          <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)' }}>
+            <SucursalSwitcher />
+          </div>
           <Link to="/app" style={{ textDecoration: 'none', display: 'inline-block' }}>
             <TenantLogo variant="completo" height={48} fallbackFontSize={34} showSuffix={true} />
           </Link>
@@ -111,6 +117,7 @@ export default function MemberLayout() {
       <BottomNav />
       <PwaInstallBanner />
     </div>
+    </MemberSucursalProvider>
     </TenantGuard>
   );
 }

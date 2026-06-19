@@ -1134,6 +1134,7 @@ export type Database = {
           rol: string
           status: string
           stripe_customer_id: string | null
+          sucursal_id: string | null
           telefono: string | null
           tenant_id: string
           trial_ends_at: string | null
@@ -1157,6 +1158,7 @@ export type Database = {
           rol?: string
           status?: string
           stripe_customer_id?: string | null
+          sucursal_id?: string | null
           telefono?: string | null
           tenant_id: string
           trial_ends_at?: string | null
@@ -1180,6 +1182,7 @@ export type Database = {
           rol?: string
           status?: string
           stripe_customer_id?: string | null
+          sucursal_id?: string | null
           telefono?: string | null
           tenant_id?: string
           trial_ends_at?: string | null
