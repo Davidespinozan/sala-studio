@@ -526,18 +526,24 @@ export function HeroView({
  */
 export function SeccionHeading({
   heading,
-  center = true
+  center = true,
+  editorial = false,
+  light = false
 }: {
   heading: LandingSeccionHeading;
   center?: boolean;
+  /** Layout editorial: título a la izquierda + bajada a la derecha (apila en móvil). */
+  editorial?: boolean;
+  /** Sobre fondo oscuro: ajusta el color de la bajada. */
+  light?: boolean;
 }) {
   const { eyebrow, titulo, titulo_accent, subtitulo } = heading;
   if (!eyebrow && !titulo && !titulo_accent && !subtitulo) return null;
-  const ta = center ? 'center' : 'left';
-  return (
+
+  const tituloBlock = (taLocal: 'left' | 'center') => (
     <>
       {eyebrow && (
-        <p className="ek-eyebrow" style={{ marginBottom: '12px', textAlign: ta }}>
+        <p className="ek-eyebrow" style={{ marginBottom: '14px', textAlign: taLocal }}>
           {eyebrow}
         </p>
       )}
@@ -545,13 +551,13 @@ export function SeccionHeading({
         <h2
           style={{
             fontFamily: 'var(--ek-font-display)',
-            fontSize: 'clamp(36px, 6vw, 56px)',
+            fontSize: 'clamp(36px, 6vw, 60px)',
             fontWeight: 700,
             letterSpacing: '-0.04em',
-            lineHeight: 1.05,
+            lineHeight: 1.02,
             margin: 0,
-            marginBottom: subtitulo ? '16px' : '48px',
-            textAlign: ta
+            textAlign: taLocal,
+            color: light ? 'rgba(255, 255, 255, 0.98)' : 'var(--sala-text-primary)'
           }}
         >
           {titulo}
@@ -563,15 +569,60 @@ export function SeccionHeading({
           )}
         </h2>
       )}
+    </>
+  );
+
+  // Editorial: dos columnas (título izq + bajada der). flexWrap → apila en móvil.
+  if (editorial) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 'clamp(16px, 4vw, 56px)',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          marginBottom: 'clamp(32px, 5vw, 56px)'
+        }}
+      >
+        <div style={{ flex: '1 1 440px', minWidth: 0 }}>{tituloBlock('left')}</div>
+        {subtitulo && (
+          <p
+            className={light ? undefined : 'ek-body-muted'}
+            style={{
+              flex: '1 1 280px',
+              maxWidth: '460px',
+              margin: 0,
+              lineHeight: 1.6,
+              ...(light ? { color: 'rgba(255, 255, 255, 0.7)' } : {})
+            }}
+          >
+            {subtitulo}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // Legacy: centrado o izquierda, bajada debajo.
+  const ta = center ? 'center' : 'left';
+  return (
+    <div style={{ marginBottom: subtitulo ? 0 : 'clamp(32px, 5vw, 48px)' }}>
+      {tituloBlock(ta)}
       {subtitulo && (
         <p
-          className="ek-body-muted"
-          style={{ margin: center ? '0 auto 40px' : '0 0 40px', maxWidth: '600px', textAlign: ta }}
+          className={light ? undefined : 'ek-body-muted'}
+          style={{
+            margin: center ? ' 16px auto clamp(32px, 5vw, 48px)' : '16px 0 clamp(32px, 5vw, 48px)',
+            maxWidth: '600px',
+            textAlign: ta,
+            ...(light ? { color: 'rgba(255, 255, 255, 0.7)' } : {})
+          }}
         >
           {subtitulo}
         </p>
       )}
-    </>
+    </div>
   );
 }
 
@@ -608,7 +659,7 @@ export function SeccionPostHero({ data }: { data: LandingPostHero }) {
   // VARIANTE C — banda inmersiva de marca (destacados)
   if (data.variante === 'destacados') {
     return (
-      <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
+      <section style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
         <div style={{
           background: 'var(--grad-immersive)',
           borderRadius: 'var(--ek-r-card)',
@@ -641,7 +692,7 @@ export function SeccionPostHero({ data }: { data: LandingPostHero }) {
   // VARIANTE B — beneficios (icono en círculo tintado)
   if (data.variante === 'beneficios') {
     return (
-      <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
+      <section style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
         {data.eyebrow && <p className="ek-eyebrow" style={{ marginBottom: '12px', textAlign: 'center' }}>{data.eyebrow}</p>}
         {tituloH2(false)}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
@@ -665,7 +716,7 @@ export function SeccionPostHero({ data }: { data: LandingPostHero }) {
 
   // VARIANTE A — pasos (numerados)
   return (
-    <section style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
+    <section style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
       {data.eyebrow && <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>{data.eyebrow}</p>}
       {tituloH2(false)}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
@@ -791,8 +842,8 @@ export default function Landing() {
       {/* ============================================================
           ESTUDIOS
           ============================================================ */}
-      <section className="reveal" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
-        <SeccionHeading heading={secciones.salas} />
+      <section className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
+        <SeccionHeading heading={secciones.salas} editorial />
 
         {estudiosLoading ? (
           <div style={{
@@ -956,8 +1007,8 @@ export default function Landing() {
           INSTRUCTORES (S6-5 · toggle desde admin)
           ============================================================ */}
       {mostrarInstructores && instructores.length > 0 && (
-        <section className="reveal" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
-          <SeccionHeading heading={secciones.instructores} />
+        <section className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
+          <SeccionHeading heading={secciones.instructores} editorial />
 
           <div style={{
             display: 'flex',
@@ -982,8 +1033,8 @@ export default function Landing() {
       {/* ============================================================
           MEMBRESÍAS
           ============================================================ */}
-      <section id="membresias" className="reveal" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
-        <SeccionHeading heading={secciones.membresias} />
+      <section id="membresias" className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
+        <SeccionHeading heading={secciones.membresias} editorial />
 
         {tiersLoading ? (
           <div className="landing-planes-grid">
@@ -1122,7 +1173,7 @@ export default function Landing() {
           FAQ (editable desde el admin; oculta si el gym la dejó vacía)
           ============================================================ */}
       {faq.length > 0 && (
-      <section className="reveal" style={{ padding: 'clamp(36px, 6vw, 64px) 0' }}>
+      <section className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
         <SeccionHeading heading={secciones.faq} center={false} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
