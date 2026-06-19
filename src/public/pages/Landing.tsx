@@ -455,6 +455,17 @@ export function HeroView({
         <div className="sala-orb" aria-hidden="true" style={{ width: 320, height: 320, top: '-12%', left: '-6%', zIndex: 2, opacity: 0.18, mixBlendMode: 'screen', animationDelay: '0s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
         <div className="sala-orb" aria-hidden="true" style={{ width: 200, height: 200, bottom: '6%', right: '4%', zIndex: 2, opacity: 0.16, mixBlendMode: 'screen', animationDelay: '4s', '--orb-color': 'var(--sala-accent)' } as CSSProperties} />
         <div className="sala-orb" aria-hidden="true" style={{ width: 130, height: 130, top: '22%', right: '26%', zIndex: 2, opacity: 0.14, mixBlendMode: 'screen', animationDelay: '6s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
+        {/* Viñeta cinematográfica: oscurece los bordes → profundidad/foco. */}
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 3,
+            pointerEvents: 'none',
+            background: 'radial-gradient(125% 125% at 50% 42%, transparent 52%, rgba(8, 12, 10, 0.55) 100%)'
+          }}
+        />
         {/* Bloom dorado de profundidad detrás del título (warmth, como el hero de SALA). */}
         <div
           aria-hidden="true"
@@ -464,8 +475,8 @@ export function HeroView({
             zIndex: 3,
             pointerEvents: 'none',
             mixBlendMode: 'screen',
-            opacity: 0.5,
-            background: 'radial-gradient(48% 56% at 16% 86%, color-mix(in srgb, var(--sala-accent) 30%, transparent), transparent 62%)'
+            opacity: 0.78,
+            background: 'radial-gradient(52% 62% at 15% 84%, color-mix(in srgb, var(--sala-accent) 42%, transparent), transparent 62%)'
           }}
         />
         {/* Grain premium → textura film sobre la foto. */}
