@@ -8,6 +8,8 @@ export interface SucursalFormData {
   direccion: string | null;
   timezone: string;
   activa: boolean;
+  descripcion: string | null;
+  foto_url: string | null;
 }
 
 /**

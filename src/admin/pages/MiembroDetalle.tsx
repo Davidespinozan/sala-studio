@@ -8,6 +8,7 @@ import {
   adminDeleteUser
 } from '../hooks/useAdminData';
 import { useMiembroKPIs } from '../hooks/useMiembroKPIs';
+import { useSucursal } from '../providers/SucursalProvider';
 import { supabase } from '@shared/lib/supabase';
 import { useToast } from '@shared/hooks/useToast';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -698,14 +699,18 @@ function EditarDatosForm({
   miembro: Database['public']['Tables']['usuarios']['Row'];
   onSaved: () => Promise<void>;
 }) {
+  const { sucursales, multisede } = useSucursal();
   const [nombre, setNombre] = useState(miembro.nombre ?? '');
   const [telefono, setTelefono] = useState(miembro.telefono ?? '');
+  const [sucursalId, setSucursalId] = useState(miembro.sucursal_id ?? '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isDirty =
-    nombre !== (miembro.nombre ?? '') || telefono !== (miembro.telefono ?? '');
+    nombre !== (miembro.nombre ?? '') ||
+    telefono !== (miembro.telefono ?? '') ||
+    sucursalId !== (miembro.sucursal_id ?? '');
 
   async function handleSave() {
     setSaving(true);
@@ -716,7 +721,8 @@ function EditarDatosForm({
         .from('usuarios')
         .update({
           nombre: nombre.trim() || null,
-          telefono: telefono.trim() || null
+          telefono: telefono.trim() || null,
+          sucursal_id: sucursalId || null
         })
         .eq('id', miembro.id);
       if (error) throw error;
@@ -751,6 +757,24 @@ function EditarDatosForm({
           placeholder="+52 667 123 4567"
         />
       </label>
+      {multisede && (
+        <label className="ek-label">
+          Sede
+          <select
+            value={sucursalId}
+            onChange={(e) => setSucursalId(e.target.value)}
+            className="ek-input"
+          >
+            <option value="">Sin asignar</option>
+            {sucursales.map((s) => (
+              <option key={s.id} value={s.id}>{s.nombre}</option>
+            ))}
+          </select>
+          <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)' }}>
+            Sede "home" del socio. La app del socio abre por defecto en esta sede (puede cambiarla).
+          </span>
+        </label>
+      )}
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.75rem', gridColumn: '1 / -1' }}>
         <button onClick={handleSave} disabled={saving || !isDirty} className="ek-cta">
           {saving ? 'Guardando…' : 'Guardar cambios'}

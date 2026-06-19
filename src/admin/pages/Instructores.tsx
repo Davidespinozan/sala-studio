@@ -299,6 +299,7 @@ function InstructorModal({
     instructor?.especialidades ?? []
   );
   const [activo, setActivo] = useState(instructor?.activo ?? true);
+  const [destacado, setDestacado] = useState(instructor?.destacado ?? false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -325,7 +326,8 @@ function InstructorModal({
       bio: bio.trim() || null,
       foto_url: fotoUrl || null,
       especialidades,
-      activo
+      activo,
+      destacado
     };
 
     setSaving(true);
@@ -419,6 +421,15 @@ function InstructorModal({
             onChange={setActivo}
             label="Instructor activo"
             description="Si está inactivo, no aparece para asignar a clases nuevas."
+          />
+        </div>
+
+        <div className="ek-form-field" style={{ marginTop: '14px' }}>
+          <Toggle
+            checked={destacado}
+            onChange={setDestacado}
+            label="Destacado en la landing"
+            description="Los destacados son los que se muestran en la sección Instructores de tu página pública. Si no marcas ninguno, se muestran todos."
           />
         </div>
 

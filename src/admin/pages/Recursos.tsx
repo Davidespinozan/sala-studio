@@ -594,6 +594,7 @@ function EditarRecursoModal({
   const [slugTocado, setSlugTocado] = useState(!esCreacion);
   const [descripcion, setDescripcion] = useState(recurso?.descripcion ?? '');
   const [activo, setActivo] = useState(recurso?.activo ?? true);
+  const [destacado, setDestacado] = useState(recurso?.destacado ?? false);
   const [tiersPermitidos, setTiersPermitidos] = useState<string[]>(
     recurso?.tiers_permitidos ?? []
   );
@@ -653,6 +654,7 @@ function EditarRecursoModal({
         cupos: 1,
         cupo_max_default: cupoMaxDefault,
         activo,
+        destacado,
         tiers_permitidos: tiersPermitidos,
         foto_url: fotoUrl || null,
         tipo_contenido: tipoContenido,
@@ -675,6 +677,7 @@ function EditarRecursoModal({
       nombre,
       descripcion: descripcion || null,
       activo,
+      destacado,
       tiers_permitidos: tiersPermitidos,
       cupo_max_default: cupoMaxDefault,
       foto_url: fotoUrl || null,
@@ -762,6 +765,15 @@ function EditarRecursoModal({
             onChange={setActivo}
             label="Sala activa"
             description="Si está inactiva, no aparece en la lista de reservables del miembro."
+          />
+        </div>
+
+        <div className="ek-form-field" style={{ marginTop: '12px' }}>
+          <Toggle
+            checked={destacado}
+            onChange={setDestacado}
+            label="Destacada en la landing"
+            description="Las destacadas son las que se muestran en la sección Salas de tu página pública. Si no marcas ninguna, se muestran todas."
           />
         </div>
 

@@ -12,6 +12,7 @@ import {
   type SucursalFormData
 } from '../hooks/useSucursalesAdmin';
 import Toggle from '../components/Toggle';
+import ImageUploader from '../components/ImageUploader';
 
 type ModalState = { mode: 'edit'; sucursal: Sucursal } | { mode: 'create' } | null;
 
@@ -273,6 +274,8 @@ function SucursalModal({
   const [direccion, setDireccion] = useState(sucursal?.direccion ?? '');
   const [timezone, setTimezone] = useState(sucursal?.timezone ?? getTenantTimezone(tenant));
   const [activa, setActiva] = useState(sucursal?.activa ?? true);
+  const [descripcion, setDescripcion] = useState(sucursal?.descripcion ?? '');
+  const [fotoUrl, setFotoUrl] = useState(sucursal?.foto_url ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -294,7 +297,9 @@ function SucursalModal({
       nombre: nombre.trim(),
       direccion: direccion.trim() || null,
       timezone,
-      activa
+      activa,
+      descripcion: descripcion.trim() || null,
+      foto_url: fotoUrl || null
     };
 
     setSaving(true);
@@ -346,6 +351,31 @@ function SucursalModal({
             placeholder="Ej: Av. Reforma 123, CDMX"
           />
         </label>
+
+        <label className="ek-label" style={{ marginTop: '14px' }}>
+          Descripción (opcional)
+          <textarea
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            className="ek-input"
+            rows={2}
+            placeholder="Ej: Clases boutique, salas equipadas y un equipo que te acompaña."
+          />
+          <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)' }}>
+            Aparece en la sección "Sucursales" de tu página pública (solo con 2+ sedes).
+          </span>
+        </label>
+
+        <div className="ek-form-field" style={{ marginTop: '14px' }}>
+          <span className="ek-label" style={{ display: 'block', marginBottom: '6px' }}>Foto de la sede (opcional)</span>
+          <ImageUploader
+            bucket="estudios"
+            pathPrefix={`${tenant.slug}/sucursales/${sucursal?.id ?? 'nueva'}`}
+            currentUrl={fotoUrl || null}
+            onUploaded={(url) => setFotoUrl(url)}
+            helperText="Se muestra en la card de la sede en tu página pública."
+          />
+        </div>
 
         <label className="ek-label" style={{ marginTop: '14px' }}>
           Zona horaria
