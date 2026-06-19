@@ -300,11 +300,11 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 }
 
 /* Hero de la landing: en móvil el texto sube al centro (en desktop queda
-   abajo) y la altura se acota (la imagen no necesita ser tan larga). */
+   abajo) y la altura da aire arriba/abajo del texto para que la foto respire. */
 @media (max-width: 640px) {
   .landing-hero-card {
     justify-content: center !important;
-    min-height: 440px !important;
+    min-height: min(82vh, 600px) !important;
   }
 }
 

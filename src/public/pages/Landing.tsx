@@ -344,12 +344,12 @@ export function HeroView({
       )}
       <h1 style={{
         fontFamily: 'var(--ek-font-display)',
-        fontSize: 'clamp(42px, 8.5vw, 80px)',
+        fontSize: 'clamp(33px, 8.5vw, 80px)',
         fontWeight: 700,
         letterSpacing: '-0.04em',
-        lineHeight: 0.98,
+        lineHeight: 1.02,
         margin: 0,
-        marginBottom: '24px',
+        marginBottom: 'clamp(14px, 3.5vw, 24px)',
         color: tituloColor,
         textShadow: hasImg ? '0 2px 24px rgba(10, 15, 12, 0.45)' : 'none'
       }}>
@@ -363,11 +363,11 @@ export function HeroView({
       </h1>
       {hero.subtitulo && (
         <p style={{
-          fontSize: 'clamp(16px, 2vw, 20px)',
+          fontSize: 'clamp(15px, 2vw, 20px)',
           color: subColor,
           maxWidth: '600px',
           lineHeight: 1.5,
-          marginBottom: '40px'
+          marginBottom: 'clamp(24px, 5vw, 40px)'
         }}>
           {hero.subtitulo}
         </p>
@@ -482,7 +482,7 @@ export function HeroView({
             position: 'absolute',
             inset: 0,
             zIndex: 1,
-            background: 'linear-gradient(to top, rgba(10, 15, 12, 0.92) 0%, rgba(10, 15, 12, 0.6) 45%, rgba(10, 15, 12, 0.42) 100%)'
+            background: 'linear-gradient(to top, rgba(10, 15, 12, 0.92) 0%, rgba(10, 15, 12, 0.55) 42%, rgba(10, 15, 12, 0.22) 100%)'
           }}
         />
         {/* Orbs ambientales SOBRE la foto (blend screen, muy tenues): hacen
