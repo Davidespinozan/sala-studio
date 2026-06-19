@@ -791,8 +791,6 @@ export default function Landing() {
   };
 
   const estudiosInfo = estudios.map(aEstudioInfo);
-  // Con 3+ salas, carrusel horizontal (en vez de apilar filas en desktop).
-  const salasScroll = estudiosInfo.length >= 3;
 
   // Scroll reveal: cada sección .reveal aparece al entrar al viewport. Un solo
   // observer; respeta prefers-reduced-motion y cae a "todo visible" si no hay
@@ -846,156 +844,114 @@ export default function Landing() {
         <SeccionHeading heading={secciones.salas} editorial />
 
         {estudiosLoading ? (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '20px'
-          }}>
-            {[1, 2, 3].map((n) => (
-              <div key={n} className="ek-skeleton" style={{ height: '380px', borderRadius: 'var(--ek-r-card)' }} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 440px), 1fr))', gap: 'clamp(16px, 2vw, 24px)' }}>
+            {[1, 2, 3, 4].map((n) => (
+              <div key={n} className="ek-skeleton" style={{ height: 'clamp(300px, 34vw, 380px)', borderRadius: 'var(--ek-r-card)' }} />
             ))}
           </div>
         ) : (
-          <div
-            style={
-              salasScroll
-                ? {
-                    display: 'flex',
-                    gap: '20px',
-                    overflowX: 'auto',
-                    justifyContent: 'safe center',
-                    scrollSnapType: 'x mandatory',
-                    paddingBottom: '12px',
-                    marginInline: '-24px',
-                    paddingInline: '24px',
-                    scrollbarWidth: 'thin'
-                  }
-                : {
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                    gap: '20px',
-                    justifyContent: 'center'
-                  }
-            }
-          >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 440px), 1fr))', gap: 'clamp(16px, 2vw, 24px)' }}>
             {estudiosInfo.map((s) => (
               <button
                 key={s.slug}
                 onClick={() => setEstudioAbierto(s)}
-                className="ek-card"
+                className="ek-lift"
                 style={{
-                  padding: 0,
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-end',
+                  minHeight: 'clamp(300px, 34vw, 380px)',
+                  padding: 'clamp(22px, 3vw, 32px)',
                   overflow: 'hidden',
                   cursor: 'pointer',
                   textAlign: 'left',
+                  font: 'inherit',
                   borderRadius: 'var(--ek-r-card)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  background: 'var(--grad-immersive)',
-                  color: 'rgba(255, 255, 255, 0.96)',
-                  boxShadow: '0 10px 28px rgba(10, 15, 12, 0.22)',
-                  transition: 'transform 0.2s ease, filter 0.2s ease',
-                  font: 'inherit',
-                  ...(salasScroll
-                    ? { flex: '0 0 clamp(280px, 80vw, 340px)', scrollSnapAlign: 'start' }
-                    : {})
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.filter = 'brightness(1.08)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.filter = 'brightness(1)';
+                  background: s.fotoUrl ? '#0c100e' : 'var(--grad-immersive)',
+                  color: '#fff',
+                  boxShadow: '0 14px 36px rgba(10, 15, 12, 0.28)'
                 }}
               >
-                <div style={{
-                  aspectRatio: '16 / 10',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: s.fotoUrl ? 'transparent' : 'rgba(255, 255, 255, 0.04)'
-                }}>
-                  {s.fotoUrl ? (
-                    <img
-                      src={s.fotoUrl}
-                      alt={s.nombre}
-                      loading="lazy"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    />
-                  ) : (
-                    <Dumbbell size={48} strokeWidth={1.25} style={{ color: 'rgba(255, 255, 255, 0.9)', opacity: 0.6 }} />
-                  )}
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'linear-gradient(to top, rgba(10, 15, 12, 0.55) 0%, transparent 55%)',
-                      pointerEvents: 'none'
-                    }}
+                {s.fotoUrl ? (
+                  <img
+                    src={s.fotoUrl}
+                    alt={s.nombre}
+                    loading="lazy"
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                   />
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: '14px',
-                      left: '14px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '5px 11px',
-                      borderRadius: '999px',
-                      background: 'rgba(10, 15, 12, 0.55)',
-                      backdropFilter: 'blur(6px)',
-                      WebkitBackdropFilter: 'blur(6px)',
-                      border: '1px solid rgba(255, 255, 255, 0.14)',
-                      color: s.tier === 'pro' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                      fontSize: '10px',
-                      fontWeight: 800,
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase'
-                    }}
-                  >
-                    {s.tier === 'pro' ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> EXCLUSIVA</> : 'ABIERTA'}
-                  </span>
-                </div>
-                <div style={{ padding: '20px' }}>
-                  <h3 style={{
-                    fontFamily: 'var(--ek-font-display)',
-                    fontSize: '24px',
-                    fontWeight: 700,
-                    margin: 0,
-                    marginBottom: '6px',
-                    color: 'rgba(255, 255, 255, 0.96)'
-                  }}>{s.nombre}</h3>
-                  <p style={{
-                    fontSize: '13px',
-                    color: 'rgba(255, 255, 255, 0.6)',
-                    margin: 0,
-                    marginBottom: '6px'
-                  }}>{s.capacidad}</p>
-                  <p style={{
-                    fontSize: '12px',
-                    color: 'rgba(255, 255, 255, 0.9)',
-                    margin: 0,
-                    marginBottom: '12px',
-                    fontWeight: 600
-                  }}>{s.contenido.join(' · ')}</p>
-                  <p style={{
-                    fontSize: '11px',
-                    color: 'rgba(255, 255, 255, 0.9)',
-                    margin: 0,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    fontWeight: 700,
+                ) : (
+                  <Dumbbell size={64} strokeWidth={1} style={{ position: 'absolute', top: '24px', right: '24px', color: 'rgba(255, 255, 255, 0.18)' }} />
+                )}
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'linear-gradient(to top, rgba(10, 15, 12, 0.92) 0%, rgba(10, 15, 12, 0.5) 42%, rgba(10, 15, 12, 0.12) 100%)'
+                  }}
+                />
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '18px',
+                    left: '18px',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '4px',
+                    padding: '6px 12px',
+                    borderRadius: '999px',
+                    background: 'rgba(10, 15, 12, 0.5)',
+                    backdropFilter: 'blur(6px)',
+                    WebkitBackdropFilter: 'blur(6px)',
+                    border: '1px solid rgba(255, 255, 255, 0.16)',
+                    color: 'rgba(255, 255, 255, 0.92)',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  {s.tier === 'pro' ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> EXCLUSIVA</> : 'ABIERTA'}
+                </span>
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <h3 style={{
+                    fontFamily: 'var(--ek-font-display)',
+                    fontSize: 'clamp(30px, 4vw, 42px)',
+                    fontWeight: 700,
+                    letterSpacing: '-0.03em',
+                    lineHeight: 1,
+                    textTransform: 'uppercase',
+                    margin: '0 0 10px',
+                    color: '#fff'
+                  }}>{s.nombre}</h3>
+                  {s.descripcion && (
+                    <p style={{
+                      fontSize: '15px',
+                      color: 'rgba(255, 255, 255, 0.82)',
+                      margin: '0 0 20px',
+                      maxWidth: '360px',
+                      lineHeight: 1.45
+                    }}>{s.descripcion}</p>
+                  )}
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    padding: '10px 18px',
+                    borderRadius: '999px',
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    backdropFilter: 'blur(6px)',
+                    WebkitBackdropFilter: 'blur(6px)',
+                    border: '1px solid rgba(255, 255, 255, 0.22)',
+                    color: '#fff',
+                    fontSize: '13px',
+                    fontWeight: 600
                   }}>
-                    Ver detalle
-                    <ArrowRight size={12} strokeWidth={2.5} />
-                  </p>
+                    Ver más
+                    <ArrowRight size={15} strokeWidth={2.25} />
+                  </span>
                 </div>
               </button>
             ))}
