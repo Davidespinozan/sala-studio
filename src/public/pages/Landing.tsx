@@ -723,6 +723,8 @@ export default function Landing() {
   const { instructores } = useInstructoresPublicos();
   const { hero, secciones, post_hero, cta_final, faq, whatsappUrl, mostrarInstructores } = useLandingConfig();
   const ctaWhatsappUrl = whatsappUrl();
+  // Foto de fondo del CTA final: reusa la del hero (editable desde admin).
+  const ctaBg = hero.imagenes[0]?.desktop || hero.image_url || '';
 
   // Nada hardcodeado: el rango de precios sale de los tiers reales (más caro /
   // más barato), no de los slugs 'pro'/'basica'. El plan "destacado" = el más caro.
@@ -927,25 +929,35 @@ export default function Landing() {
           INSTRUCTORES (S6-5 · toggle desde admin)
           ============================================================ */}
       {mostrarInstructores && instructores.length > 0 && (
-        <section className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
-          <SeccionHeading heading={secciones.instructores} editorial />
+        <section
+          className="reveal"
+          style={{
+            width: '100vw',
+            marginLeft: 'calc(50% - 50vw)',
+            background: 'var(--grad-immersive)',
+            padding: 'clamp(56px, 8vw, 100px) 0'
+          }}
+        >
+          <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+            <SeccionHeading heading={secciones.instructores} editorial light />
 
-          <div style={{
-            display: 'flex',
-            gap: '14px',
-            overflowX: 'auto',
-            justifyContent: 'safe center',
-            scrollSnapType: 'x mandatory',
-            paddingBottom: '12px',
-            marginInline: '-24px',
-            paddingInline: '24px',
-            scrollbarWidth: 'thin'
-          }}>
-            {instructores.map((i) => (
-              <div key={i.id} className="landing-instructor-item">
-                <InstructorLandingCard instructor={i} />
-              </div>
-            ))}
+            <div style={{
+              display: 'flex',
+              gap: '14px',
+              overflowX: 'auto',
+              justifyContent: 'safe center',
+              scrollSnapType: 'x mandatory',
+              paddingBottom: '12px',
+              marginInline: '-24px',
+              paddingInline: '24px',
+              scrollbarWidth: 'thin'
+            }}>
+              {instructores.map((i) => (
+                <div key={i.id} className="landing-instructor-item">
+                  <InstructorLandingCard instructor={i} />
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}
@@ -1131,27 +1143,36 @@ export default function Landing() {
       {/* ============================================================
           CTA + CONTACTO
           ============================================================ */}
-      <section id="contacto" className="reveal" style={{ padding: '100px 0' }}>
-        <div style={{
-          background: 'linear-gradient(135deg, var(--ek-bg-elevated) 0%, var(--ek-bg) 100%)',
-          border: '0.5px solid var(--ek-mustard-dim)',
-          borderRadius: 'var(--ek-r-card)',
-          padding: 'clamp(32px, 6vw, 64px)',
-          textAlign: 'center',
+      <section
+        id="contacto"
+        className="reveal"
+        style={{
+          width: '100vw',
+          marginLeft: 'calc(50% - 50vw)',
           position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{
+          overflow: 'hidden',
+          padding: 'clamp(80px, 13vw, 150px) 0',
+          background: '#0a0f0c'
+        }}
+      >
+        {ctaBg && (
+          <img
+            src={ctaBg}
+            alt=""
+            aria-hidden="true"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55 }}
+          />
+        )}
+        <div
+          aria-hidden="true"
+          style={{
             position: 'absolute',
-            top: '-100px',
-            right: '-100px',
-            width: '300px',
-            height: '300px',
-            background: 'radial-gradient(circle, var(--sala-primary-soft), transparent 70%)',
-            borderRadius: '50%',
-            pointerEvents: 'none'
-          }} />
-
+            inset: 0,
+            background:
+              'linear-gradient(to top, rgba(10, 15, 12, 0.95) 0%, rgba(10, 15, 12, 0.72) 55%, rgba(10, 15, 12, 0.55) 100%)'
+          }}
+        />
+        <div style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
           {cta_final.eyebrow && (
             <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '16px' }}>
               {cta_final.eyebrow}
@@ -1159,17 +1180,18 @@ export default function Landing() {
           )}
           <h2 style={{
             fontFamily: 'var(--ek-font-display)',
-            fontSize: 'clamp(32px, 5vw, 48px)',
+            fontSize: 'clamp(36px, 6vw, 60px)',
             fontWeight: 700,
             letterSpacing: '-0.04em',
-            margin: 0,
-            marginBottom: '16px',
-            lineHeight: 1.1
+            lineHeight: 1.05,
+            margin: '0 auto 18px',
+            maxWidth: '760px',
+            color: 'rgba(255, 255, 255, 0.98)'
           }}>
             {cta_final.titulo}
           </h2>
           {cta_final.subtitulo && (
-            <p className="ek-body-muted" style={{ marginBottom: '32px', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>
+            <p style={{ color: 'rgba(255, 255, 255, 0.72)', marginBottom: '36px', maxWidth: '520px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
               {cta_final.subtitulo}
             </p>
           )}
@@ -1178,22 +1200,19 @@ export default function Landing() {
               href={ctaWhatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="ek-cta"
-              style={{ padding: '18px 32px', fontSize: '15px' }}
+              className="ek-cta ek-lift"
+              style={{ padding: '18px 34px', fontSize: '15px', display: 'inline-flex', alignItems: 'center' }}
             >
               {cta_final.cta_texto}
             </a>
           ) : (
-            <span
-              style={{
-                fontSize: '12px',
-                color: 'var(--ek-ink-faint)',
-                fontStyle: 'italic'
-              }}
-              title="Configura el WhatsApp en /admin/configuracion"
+            <a
+              href="#membresias"
+              className="ek-cta ek-lift"
+              style={{ padding: '18px 34px', fontSize: '15px', display: 'inline-flex', alignItems: 'center' }}
             >
-              (Contacto sin configurar)
-            </span>
+              {cta_final.cta_texto || 'Ver membresías'}
+            </a>
           )}
         </div>
       </section>
