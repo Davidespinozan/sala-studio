@@ -84,9 +84,6 @@ export default function MemberLayout() {
       <EstadoMembresiaBanner />
       <header className="ek-header-glass">
         <div className="ek-header-inner" style={{ justifyContent: 'center', position: 'relative' }}>
-          <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)' }}>
-            <SucursalSwitcher />
-          </div>
           <Link to="/app" style={{ textDecoration: 'none', display: 'inline-block' }}>
             <TenantLogo variant="completo" height={48} fallbackFontSize={34} showSuffix={true} />
           </Link>
@@ -95,6 +92,7 @@ export default function MemberLayout() {
           </div>
         </div>
       </header>
+      <SucursalSwitcher />
 
       <ErrorBoundary variant="inline" resetKeys={[location.pathname]}>
         <Suspense fallback={<LoadingScreen />}>

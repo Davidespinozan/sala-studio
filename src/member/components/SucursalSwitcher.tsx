@@ -14,6 +14,7 @@ export function SucursalSwitcher() {
   if (!multisede || !sucursalActiva) return null;
 
   return (
+    <div style={{ padding: '10px 16px 0', display: 'flex' }}>
     <div style={{ position: 'relative' }}>
       <button
         type="button"
@@ -22,7 +23,7 @@ export function SucursalSwitcher() {
           display: 'inline-flex',
           alignItems: 'center',
           gap: '6px',
-          padding: '7px 12px',
+          padding: '8px 14px',
           borderRadius: '999px',
           border: '1px solid var(--sala-border)',
           background: 'var(--sala-surface)',
@@ -30,11 +31,11 @@ export function SucursalSwitcher() {
           fontSize: '13px',
           fontWeight: 600,
           cursor: 'pointer',
-          maxWidth: '160px'
+          maxWidth: '70vw'
         }}
       >
         <MapPin size={14} strokeWidth={2.25} style={{ color: 'var(--sala-primary)', flexShrink: 0 }} />
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {sucursalActiva.nombre}
         </span>
         <ChevronDown size={14} strokeWidth={2.25} style={{ flexShrink: 0, opacity: 0.6 }} />
@@ -110,6 +111,7 @@ export function SucursalSwitcher() {
           </div>
         </>
       )}
+    </div>
     </div>
   );
 }
