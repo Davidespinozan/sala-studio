@@ -970,13 +970,16 @@ export default function Landing() {
           id="instructores"
           className="reveal"
           style={{
+            position: 'relative',
+            overflow: 'hidden',
             width: '100vw',
             marginLeft: 'calc(50% - 50vw)',
             background: 'var(--grad-immersive)',
             padding: 'clamp(56px, 8vw, 100px) 0'
           }}
         >
-          <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+          <div className="sala-grain" aria-hidden="true" />
+          <div style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
             <SeccionHeading heading={secciones.instructores} editorial light />
 
             <div className="landing-hscroll" style={{
@@ -1199,6 +1202,8 @@ export default function Landing() {
         <section className="reveal" style={{ padding: 'clamp(40px, 6vw, 80px) 0' }}>
           <div
             style={{
+              position: 'relative',
+              overflow: 'hidden',
               background: 'var(--grad-immersive)',
               borderRadius: 'var(--ek-r-sm)',
               padding: 'clamp(28px, 4vw, 48px)',
@@ -1210,7 +1215,8 @@ export default function Landing() {
               boxShadow: '0 24px 60px rgba(10, 15, 12, 0.28)'
             }}
           >
-            <div style={{ flex: '1 1 360px', minWidth: 0 }}>
+            <div className="sala-grain" aria-hidden="true" />
+            <div style={{ position: 'relative', flex: '1 1 360px', minWidth: 0 }}>
               {cta_final.eyebrow && (
                 <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.55)', margin: '0 0 12px' }}>
                   {cta_final.eyebrow}
@@ -1237,7 +1243,7 @@ export default function Landing() {
               href={ctaWhatsappUrl || '#membresias'}
               {...(ctaWhatsappUrl ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
               className="ek-cta ek-lift"
-              style={{ padding: '16px 30px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+              style={{ position: 'relative', padding: '16px 30px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
             >
               {cta_final.cta_texto || 'Ver membresías'}
             </a>
