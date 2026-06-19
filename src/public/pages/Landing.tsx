@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ArrowRight, Check, Dumbbell, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import {
   useLandingConfig,
   type LandingPostHero,
+  type PostHeroItem,
   type LandingHero,
   type LandingSeccionHeading
 } from '@shared/hooks/useLandingConfig';
@@ -596,109 +597,131 @@ export function SeccionPostHero({ data }: { data: LandingPostHero }) {
   const items = data.items.filter((it) => it.titulo.trim() || it.texto.trim());
   if (!items.length) return null;
 
-  const tituloH2 = (light: boolean) =>
-    (data.titulo || data.titulo_accent) && (
-      <h2 style={{
+  // Encabezado compacto editorial (eyebrow + título con acento dorado), chico
+  // y a la izquierda para no robar espacio.
+  const header = (light: boolean) => (
+    <div style={{ marginBottom: 'clamp(22px, 3vw, 34px)' }}>
+      {data.eyebrow && (
+        <p
+          className={light ? undefined : 'ek-eyebrow'}
+          style={
+            light
+              ? { fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.55)', margin: '0 0 12px' }
+              : { marginBottom: '12px' }
+          }
+        >
+          {data.eyebrow}
+        </p>
+      )}
+      {(data.titulo || data.titulo_accent) && (
+        <h2 style={{
+          fontFamily: 'var(--ek-font-display)',
+          fontSize: 'clamp(26px, 4vw, 40px)',
+          fontWeight: 700,
+          letterSpacing: '-0.03em',
+          lineHeight: 1.05,
+          margin: 0,
+          maxWidth: '720px',
+          color: light ? 'rgba(255, 255, 255, 0.97)' : 'var(--sala-text-primary)'
+        }}>
+          {data.titulo}
+          {data.titulo_accent && (
+            <>
+              {data.titulo && ' '}
+              <span style={{ color: light ? 'color-mix(in srgb, var(--sala-accent), white 20%)' : 'var(--sala-accent)' }}>
+                {data.titulo_accent}
+              </span>
+            </>
+          )}
+        </h2>
+      )}
+    </div>
+  );
+
+  // Item compacto "tech": línea fina arriba + marca (número o ✓) + título + texto.
+  const item = (marca: ReactNode, it: PostHeroItem, i: number, light: boolean) => (
+    <div
+      key={i}
+      style={{
+        borderTop: `1px solid ${light ? 'rgba(255, 255, 255, 0.16)' : 'var(--sala-border-strong)'}`,
+        paddingTop: '16px'
+      }}
+    >
+      <div style={{ marginBottom: '12px' }}>{marca}</div>
+      <h3 style={{
         fontFamily: 'var(--ek-font-display)',
-        fontSize: 'clamp(32px, 6vw, 52px)',
-        fontWeight: 700,
-        letterSpacing: '-0.04em',
-        lineHeight: 1.05,
-        margin: 0,
-        marginBottom: '40px',
-        textAlign: 'center',
+        fontSize: '17px',
+        fontWeight: 600,
+        letterSpacing: '-0.02em',
+        margin: '0 0 5px',
         color: light ? 'rgba(255, 255, 255, 0.97)' : 'var(--sala-text-primary)'
       }}>
-        {data.titulo}
-        {data.titulo_accent && (
-          <>
-            {data.titulo && <br />}
-            <span style={{ color: light ? 'rgba(255, 255, 255, 0.7)' : 'var(--ek-mustard)' }}>
-              {data.titulo_accent}
-            </span>
-          </>
-        )}
-      </h2>
-    );
+        {it.titulo}
+      </h3>
+      <p style={{
+        fontSize: '14px',
+        lineHeight: 1.5,
+        margin: 0,
+        color: light ? 'rgba(255, 255, 255, 0.6)' : 'var(--sala-text-secondary)'
+      }}>
+        {it.texto}
+      </p>
+    </div>
+  );
+
+  const grid = (children: ReactNode) => (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 'clamp(20px, 3vw, 40px)' }}>
+      {children}
+    </div>
+  );
+
+  const numero = (i: number, light: boolean) => (
+    <span style={{
+      fontFamily: 'var(--ek-font-mono)',
+      fontSize: '14px',
+      fontWeight: 700,
+      letterSpacing: '0.1em',
+      color: light ? 'color-mix(in srgb, var(--sala-accent), white 20%)' : 'var(--sala-accent)'
+    }}>
+      {String(i + 1).padStart(2, '0')}
+    </span>
+  );
 
   // VARIANTE C — banda inmersiva de marca (destacados)
   if (data.variante === 'destacados') {
     return (
-      <section style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
+      <section style={{ padding: 'clamp(40px, 5vw, 72px) 0' }}>
         <div style={{
           background: 'var(--grad-immersive)',
           borderRadius: 'var(--ek-r-card)',
-          padding: 'clamp(36px, 5vw, 64px)',
+          padding: 'clamp(28px, 4vw, 52px)',
           boxShadow: '0 24px 60px rgba(10, 15, 12, 0.28)'
         }}>
-          {data.eyebrow && (
-            <p style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.55)', margin: '0 0 12px', textAlign: 'center' }}>
-              {data.eyebrow}
-            </p>
-          )}
-          {tituloH2(true)}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '28px' }}>
-            {items.map((it, i) => (
-              <div key={i}>
-                <p style={{ fontFamily: 'var(--ek-font-display)', fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: 'rgba(255, 255, 255, 0.97)' }}>
-                  {it.titulo}
-                </p>
-                <p style={{ fontSize: '14px', lineHeight: 1.5, margin: '8px 0 0', color: 'rgba(255, 255, 255, 0.6)' }}>
-                  {it.texto}
-                </p>
-              </div>
-            ))}
-          </div>
+          {header(true)}
+          {grid(items.map((it, i) => item(numero(i, true), it, i, true)))}
         </div>
       </section>
     );
   }
 
-  // VARIANTE B — beneficios (icono en círculo tintado)
+  // VARIANTE B — beneficios (check dorado)
   if (data.variante === 'beneficios') {
     return (
-      <section style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
-        {data.eyebrow && <p className="ek-eyebrow" style={{ marginBottom: '12px', textAlign: 'center' }}>{data.eyebrow}</p>}
-        {tituloH2(false)}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
-          {items.map((it, i) => (
-            <div key={i} className="ek-card">
-              <div aria-hidden="true" style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--sala-primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-                <Check size={22} strokeWidth={2.5} style={{ color: 'var(--sala-primary)' }} />
-              </div>
-              <h3 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', margin: '0 0 6px', color: 'var(--sala-text-primary)' }}>
-                {it.titulo}
-              </h3>
-              <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', lineHeight: 1.5, margin: 0 }}>
-                {it.texto}
-              </p>
-            </div>
-          ))}
-        </div>
+      <section style={{ padding: 'clamp(40px, 5vw, 72px) 0' }}>
+        {header(false)}
+        {grid(items.map((it, i) => item(
+          <Check size={18} strokeWidth={2.5} style={{ color: 'var(--sala-accent)' }} />,
+          it, i, false
+        )))}
       </section>
     );
   }
 
   // VARIANTE A — pasos (numerados)
   return (
-    <section style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
-      {data.eyebrow && <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>{data.eyebrow}</p>}
-      {tituloH2(false)}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
-        {items.map((it, i) => (
-          <div key={i} className="ek-card">
-            <p style={{ fontFamily: 'var(--ek-font-display)', fontSize: '34px', fontWeight: 700, color: 'var(--sala-accent)', margin: '0 0 12px', letterSpacing: '-0.04em' }}>
-              {String(i + 1).padStart(2, '0')}
-            </p>
-            <h3 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', margin: '0 0 8px', color: 'var(--sala-text-primary)' }}>
-              {it.titulo}
-            </h3>
-            <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', lineHeight: 1.5, margin: 0 }}>
-              {it.texto}
-            </p>
-          </div>
-        ))}
-      </div>
+    <section style={{ padding: 'clamp(40px, 5vw, 72px) 0' }}>
+      {header(false)}
+      {grid(items.map((it, i) => item(numero(i, false), it, i, false)))}
     </section>
   );
 }
