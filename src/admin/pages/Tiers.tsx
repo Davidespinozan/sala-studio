@@ -11,6 +11,7 @@ import {
 } from '../lib/crudHelpers';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
+import { useSucursal } from '../providers/SucursalProvider';
 import Toggle from '../components/Toggle';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CardMenuDropdown from '../components/CardMenuDropdown';
@@ -79,6 +80,7 @@ export default function Tiers() {
       periodo: original.periodo,
       beneficios: original.beneficios,
       reglas: original.reglas,
+      acceso_todas_sucursales: original.acceso_todas_sucursales,
       // stripe_price_id: NULL — NUNCA duplicar referencias externas únicas
       stripe_price_id: null,
       activo: true,
@@ -572,6 +574,7 @@ function EditarTierModal({
   onSaved: () => Promise<void>;
 }) {
   const tenant = useTenant();
+  const { multisede } = useSucursal();
   const esCreacion = tier === null;
 
   const [slug, setSlug] = useState(tier?.slug ?? '');
@@ -583,6 +586,9 @@ function EditarTierModal({
   const [periodo, setPeriodo] = useState(tier?.periodo ?? 'mensual');
   const [descripcion, setDescripcion] = useState(tier?.descripcion ?? '');
   const [activo, setActivo] = useState(tier?.activo ?? true);
+  const [accesoTodasSucursales, setAccesoTodasSucursales] = useState(
+    tier?.acceso_todas_sucursales ?? true
+  );
   const [beneficios, setBeneficios] = useState<string[]>(() =>
     tier ? parseBeneficios(tier.beneficios) : []
   );
@@ -645,6 +651,7 @@ function EditarTierModal({
         beneficios: beneficios as never,
         reglas: reglas as never,
         activo,
+        acceso_todas_sucursales: accesoTodasSucursales,
         orden: existingSlugs.length + 1
       });
 
@@ -669,7 +676,8 @@ function EditarTierModal({
       periodo,
       beneficios,
       reglas: reglasNuevas as never,
-      activo
+      activo,
+      acceso_todas_sucursales: accesoTodasSucursales
     });
 
     if (err) {
@@ -773,6 +781,17 @@ function EditarTierModal({
             description="Si está inactivo, no se puede asignar a nuevos miembros."
           />
         </div>
+
+        {multisede && (
+          <div className="ek-form-field" style={{ marginTop: '12px' }}>
+            <Toggle
+              checked={accesoTodasSucursales}
+              onChange={setAccesoTodasSucursales}
+              label="Acceso a todas las sedes"
+              description="Si está activo, el plan sirve en cualquier sucursal. Si lo apagas, el miembro solo puede reservar en la sede a la que se suscribió."
+            />
+          </div>
+        )}
 
         <div className="ek-form-field" style={{ marginTop: '16px' }}>
           <label className="ek-label">Máximo de invitados por clase</label>

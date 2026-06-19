@@ -25,6 +25,10 @@ export interface MembresiaActual {
   tier_tipo: TipoTier;
   duracion_dias: number | null;
   clases_incluidas: number | null;
+  /** Sede a la que se suscribió (null = sin sede / acceso global). */
+  sucursal_id: string | null;
+  /** El plan da acceso a todas las sedes (true) o solo a la suscrita (false). */
+  tier_acceso_todas_sucursales: boolean;
 }
 
 /**
@@ -93,7 +97,7 @@ export function useMembresiaActual(usuarioId?: string) {
     const { data, error: qerr } = await supabase
       .from('membresias')
       .select(
-        'id, status, periodo_actual_inicio, periodo_actual_fin, creditos_restantes, tier_id, tier:tiers(slug, nombre, tipo, duracion_dias, clases_incluidas)'
+        'id, status, periodo_actual_inicio, periodo_actual_fin, creditos_restantes, tier_id, sucursal_id, tier:tiers(slug, nombre, tipo, duracion_dias, clases_incluidas, acceso_todas_sucursales)'
       )
       .eq('usuario_id', targetId)
       .in('status', ['trialing', 'activa', 'past_due', 'congelada'])
@@ -120,6 +124,7 @@ export function useMembresiaActual(usuarioId?: string) {
       tipo: string;
       duracion_dias: number | null;
       clases_incluidas: number | null;
+      acceso_todas_sucursales: boolean | null;
     };
 
     setMembresia({
@@ -133,7 +138,9 @@ export function useMembresiaActual(usuarioId?: string) {
       tier_nombre: tier.nombre,
       tier_tipo: tier.tipo as TipoTier,
       duracion_dias: tier.duracion_dias,
-      clases_incluidas: tier.clases_incluidas
+      clases_incluidas: tier.clases_incluidas,
+      sucursal_id: (data as { sucursal_id: string | null }).sucursal_id,
+      tier_acceso_todas_sucursales: tier.acceso_todas_sucursales ?? true
     });
     setIsLoading(false);
   }, [targetId]);

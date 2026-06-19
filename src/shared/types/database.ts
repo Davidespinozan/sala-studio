@@ -434,6 +434,7 @@ export type Database = {
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          sucursal_id: string | null
           tenant_id: string
           tier_id: string
           trial_ends_at: string | null
@@ -453,6 +454,7 @@ export type Database = {
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          sucursal_id?: string | null
           tenant_id: string
           tier_id: string
           trial_ends_at?: string | null
@@ -472,6 +474,7 @@ export type Database = {
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          sucursal_id?: string | null
           tenant_id?: string
           tier_id?: string
           trial_ends_at?: string | null
@@ -1012,6 +1015,7 @@ export type Database = {
       }
       tiers: {
         Row: {
+          acceso_todas_sucursales: boolean
           activo: boolean
           beneficios: Json
           clases_incluidas: number | null
@@ -1032,6 +1036,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acceso_todas_sucursales?: boolean
           activo?: boolean
           beneficios?: Json
           clases_incluidas?: number | null
@@ -1052,6 +1057,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acceso_todas_sucursales?: boolean
           activo?: boolean
           beneficios?: Json
           clases_incluidas?: number | null

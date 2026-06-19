@@ -19,7 +19,9 @@ function mem(overrides: Partial<MembresiaActual> = {}): MembresiaActual {
     tier_nombre: 'Pro',
     tier_tipo: 'tiempo',
     duracion_dias: 30,
-    clases_incluidas: null
+    clases_incluidas: null,
+    sucursal_id: null,
+    tier_acceso_todas_sucursales: true
   };
   return { ...base, ...overrides };
 }

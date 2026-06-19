@@ -9,6 +9,7 @@ import {
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
+import { useMembresiaActual } from '@member/hooks/useMembresiaActual';
 import type { Database } from '@shared/types/database';
 
 export type Sucursal = Database['public']['Tables']['sucursales']['Row'];
@@ -40,6 +41,7 @@ function storageKey(tenantId: string): string {
 export function MemberSucursalProvider({ children }: { children: ReactNode }) {
   const tenant = useTenant();
   const { usuario } = useAuth();
+  const { membresia } = useMembresiaActual();
   const home = usuario?.sucursal_id ?? null;
 
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
@@ -92,14 +94,26 @@ export function MemberSucursalProvider({ children }: { children: ReactNode }) {
     [tenant.id]
   );
 
-  const sucursalActiva = sucursales.find((s) => s.id === sucursalId) ?? null;
+  // Alcance del plan: si la membresía no da acceso a todas las sedes, el socio
+  // solo ve (y reserva en) la sede a la que se suscribió. Mientras carga la
+  // membresía, se asume acceso total (no parpadea ocultando de más).
+  const todasSedes = membresia?.tier_acceso_todas_sucursales ?? true;
+  const memSucursal = membresia?.sucursal_id ?? null;
+  const visibles =
+    todasSedes || !memSucursal ? sucursales : sucursales.filter((s) => s.id === memSucursal);
+
+  // Si la sede elegida cae fuera del plan, forzamos la primera permitida.
+  const sucursalIdSafe = visibles.some((s) => s.id === sucursalId)
+    ? sucursalId
+    : visibles[0]?.id ?? null;
+  const sucursalActiva = visibles.find((s) => s.id === sucursalIdSafe) ?? null;
 
   const value: MemberSucursalContextValue = {
-    sucursales,
+    sucursales: visibles,
     sucursalActiva,
-    sucursalId,
+    sucursalId: sucursalIdSafe,
     setSucursalActivaId,
-    multisede: sucursales.length > 1
+    multisede: visibles.length > 1
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -145,6 +145,7 @@ export function traducirErrorRPC(message: string): string {
   if (message.includes('SIN_MEMBRESIA'))
     return 'No tienes una membresía activa. Contacta al gimnasio.';
   if (message.includes('TIER_NO_PERMITIDO')) return 'Tu plan no tiene acceso a esta sala.';
+  if (message.includes('SUCURSAL_NO_INCLUIDA')) return 'Tu plan solo cubre tu sede.';
   if (message.includes('TIER_NO_PERMITE')) return 'Tu plan no incluye acceso a esta sala.';
   if (message.includes('INVITADOS_EXCEDEN')) return 'Tu plan no permite tantos invitados.';
   if (message.includes('INVITADOS_INVALIDOS')) return 'Número de invitados inválido.';
