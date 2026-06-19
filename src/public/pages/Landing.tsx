@@ -530,11 +530,12 @@ export function SeccionHeading({
               {titulo && <br />}
               <span
                 style={{
-                  // Sobre banda oscura el acento va en DORADO (acento del tenant)
-                  // para que contraste; --ek-mustard = primary (oscuro) se perdía.
+                  // Acento del título en DORADO (acento del tenant), como la
+                  // referencia. Sobre banda oscura, un toque más claro para
+                  // contrastar; --ek-mustard (= primary) se perdía en lo oscuro.
                   color: light
                     ? 'color-mix(in srgb, var(--sala-accent), white 20%)'
-                    : 'var(--ek-mustard)'
+                    : 'var(--sala-accent)'
                 }}
               >
                 {titulo_accent}
