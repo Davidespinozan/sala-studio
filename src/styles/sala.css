@@ -325,6 +325,10 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   }
 }
 
+/* Scroll horizontal sin barra visible (fea sobre banda oscura). */
+.landing-hscroll { scrollbar-width: none; }
+.landing-hscroll::-webkit-scrollbar { display: none; }
+
 /* Card de instructor en el carrusel: 160px en móvil, +15% (~184px) en desktop. */
 .landing-instructor-item {
   flex: 0 0 160px;

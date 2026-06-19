@@ -528,7 +528,17 @@ export function SeccionHeading({
           {titulo_accent && (
             <>
               {titulo && <br />}
-              <span style={{ color: 'var(--ek-mustard)' }}>{titulo_accent}</span>
+              <span
+                style={{
+                  // Sobre banda oscura el acento va en DORADO (acento del tenant)
+                  // para que contraste; --ek-mustard = primary (oscuro) se perdía.
+                  color: light
+                    ? 'color-mix(in srgb, var(--sala-accent), white 20%)'
+                    : 'var(--ek-mustard)'
+                }}
+              >
+                {titulo_accent}
+              </span>
             </>
           )}
         </h2>
@@ -941,16 +951,15 @@ export default function Landing() {
           <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
             <SeccionHeading heading={secciones.instructores} editorial light />
 
-            <div style={{
+            <div className="landing-hscroll" style={{
               display: 'flex',
               gap: '14px',
               overflowX: 'auto',
               justifyContent: 'safe center',
               scrollSnapType: 'x mandatory',
-              paddingBottom: '12px',
+              paddingBottom: '4px',
               marginInline: '-24px',
-              paddingInline: '24px',
-              scrollbarWidth: 'thin'
+              paddingInline: '24px'
             }}>
               {instructores.map((i) => (
                 <div key={i.id} className="landing-instructor-item">
