@@ -1,9 +1,10 @@
-import { ArrowLeft, ArrowRight, Check, Star } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Heart, Star } from 'lucide-react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
+import { useFavoritos } from '@member/hooks/useFavoritos';
 import type { Database } from '@shared/types/database';
 
 type RecursoDetalle = Database['public']['Tables']['recursos']['Row'];
@@ -13,6 +14,7 @@ export default function EstudioDetalle() {
   const tenant = useTenant();
   const { usuario } = useAuth();
   const navigate = useNavigate();
+  const { isFavorito, toggle: toggleFavorito } = useFavoritos();
   const [recurso, setRecurso] = useState<RecursoDetalle | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -116,14 +118,41 @@ export default function EstudioDetalle() {
       {/* Header */}
       <div style={{ marginBottom: '24px' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '8px' }}>SALA</p>
-        <h1 style={{
-          fontFamily: 'var(--ek-font-display)',
-          fontSize: 'clamp(32px, 8vw, 48px)',
-          fontWeight: 700,
-          letterSpacing: '-0.04em',
-          lineHeight: 1.05,
-          margin: 0
-        }}>{recurso.nombre}</h1>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+          <h1 style={{
+            fontFamily: 'var(--ek-font-display)',
+            fontSize: 'clamp(32px, 8vw, 48px)',
+            fontWeight: 700,
+            letterSpacing: '-0.04em',
+            lineHeight: 1.05,
+            margin: 0
+          }}>{recurso.nombre}</h1>
+          <button
+            type="button"
+            aria-label={isFavorito(recurso.id) ? 'Quitar de favoritas' : 'Agregar a favoritas'}
+            onClick={() => void toggleFavorito(recurso.id)}
+            style={{
+              flexShrink: 0,
+              marginTop: '4px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '44px',
+              height: '44px',
+              borderRadius: '999px',
+              cursor: 'pointer',
+              background: 'var(--sala-surface)',
+              border: '1px solid var(--sala-border)',
+              color: isFavorito(recurso.id) ? 'var(--sala-accent)' : 'var(--sala-text-secondary)'
+            }}
+          >
+            <Heart
+              size={20}
+              strokeWidth={2.25}
+              fill={isFavorito(recurso.id) ? 'var(--sala-accent)' : 'none'}
+            />
+          </button>
+        </div>
         {recurso.descripcion && (
           <p className="ek-body" style={{ marginTop: '12px', color: 'var(--ek-ink-muted)' }}>
             {recurso.descripcion}

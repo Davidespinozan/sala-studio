@@ -1,16 +1,19 @@
-import { ArrowRight, Dumbbell, Star } from 'lucide-react';
+import { ArrowRight, Dumbbell, Heart, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useFavoritos } from '@member/hooks/useFavoritos';
 import type { Database } from '@shared/types/database';
 
 type Recurso = Database['public']['Tables']['recursos']['Row'];
 
 export default function Estudios() {
   const tenant = useTenant();
+  const { toggle, isFavorito, count } = useFavoritos();
   const [recursos, setRecursos] = useState<Recurso[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [soloFavoritas, setSoloFavoritas] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -49,12 +52,23 @@ export default function Estudios() {
         </p>
       </div>
 
+      {count > 0 && (
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+          <FiltroChip label="Todas" active={!soloFavoritas} onClick={() => setSoloFavoritas(false)} />
+          <FiltroChip
+            label={`Favoritas · ${count}`}
+            active={soloFavoritas}
+            onClick={() => setSoloFavoritas(true)}
+          />
+        </div>
+      )}
+
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
         gap: '16px'
       }}>
-        {recursos.map((r) => {
+        {(soloFavoritas ? recursos.filter((r) => isFavorito(r.id)) : recursos).map((r) => {
           // Nada hardcodeado: "restringida" = limita a algún plan (cualquier
           // slug), no por comparar contra 'pro'/'basica'.
           const esRestringido = (r.tiers_permitidos?.length ?? 0) > 0;
@@ -130,6 +144,39 @@ export default function Estudios() {
                 >
                   {esRestringido ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> EXCLUSIVO</> : 'ABIERTA'}
                 </span>
+
+                <button
+                  type="button"
+                  aria-label={isFavorito(r.id) ? 'Quitar de favoritas' : 'Agregar a favoritas'}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    void toggle(r.id);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '10px',
+                    right: '10px',
+                    width: '34px',
+                    height: '34px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '999px',
+                    background: 'rgba(10, 15, 12, 0.55)',
+                    backdropFilter: 'blur(6px)',
+                    WebkitBackdropFilter: 'blur(6px)',
+                    border: '1px solid rgba(255, 255, 255, 0.14)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Heart
+                    size={17}
+                    strokeWidth={2.25}
+                    fill={isFavorito(r.id) ? 'var(--sala-accent)' : 'none'}
+                    style={{ color: isFavorito(r.id) ? 'var(--sala-accent)' : 'rgba(255, 255, 255, 0.9)' }}
+                  />
+                </button>
               </div>
 
               <div style={{ padding: '18px' }}>
@@ -197,5 +244,37 @@ export default function Estudios() {
         })}
       </div>
     </div>
+  );
+}
+
+function FiltroChip({
+  label,
+  active,
+  onClick
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="ek-lift"
+      style={{
+        padding: '8px 16px',
+        minHeight: '36px',
+        borderRadius: '999px',
+        fontSize: '13px',
+        fontWeight: 600,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        background: active ? 'var(--sala-primary)' : 'var(--sala-surface)',
+        color: active ? 'var(--sala-text-on-primary)' : 'var(--sala-text-secondary)',
+        border: `1px solid ${active ? 'var(--sala-primary)' : 'var(--sala-border)'}`
+      }}
+    >
+      {label}
+    </button>
   );
 }

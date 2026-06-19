@@ -7,6 +7,7 @@ import {
   Flower2,
   Footprints,
   Gauge,
+  Heart,
   Music,
   Share2,
   Swords,
@@ -19,6 +20,7 @@ import { useToast } from '@shared/hooks/useToast';
 import { supabase } from '@shared/lib/supabase';
 import { crearReserva, cancelarReserva as cancelarReservaRPC } from '@member/hooks/useReservas';
 import { useMaxInvitados } from '@member/hooks/useMaxInvitados';
+import { useFavoritos } from '@member/hooks/useFavoritos';
 import { mensajeToastCancelacion, traducirErrorRPC } from '@member/logic/reservaLogic';
 import {
   anotarseEnListaEspera,
@@ -64,6 +66,7 @@ export default function ClaseDetalle() {
   const tenant = useTenant();
   const tz = getTenantTimezone(tenant);
   const toast = useToast();
+  const { isFavorito, toggle: toggleFavorito } = useFavoritos();
 
   // El id de la URL es el UUID de una clase materializada, o el ref sintético de
   // una virtual: "horario_recurrente_id|fecha".
@@ -583,9 +586,36 @@ export default function ClaseDetalle() {
             )}
             <button
               type="button"
-              onClick={handleCompartir}
+              aria-label={
+                isFavorito(clase.recursoId) ? 'Quitar de favoritas' : 'Agregar a favoritas'
+              }
+              onClick={() => void toggleFavorito(clase.recursoId)}
               style={{
                 marginLeft: 'auto',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '38px',
+                height: '38px',
+                borderRadius: '999px',
+                cursor: 'pointer',
+                background: 'transparent',
+                border: '1px solid var(--sala-border)',
+                color: isFavorito(clase.recursoId)
+                  ? 'var(--sala-accent)'
+                  : 'var(--sala-text-secondary)'
+              }}
+            >
+              <Heart
+                size={16}
+                strokeWidth={2.25}
+                fill={isFavorito(clase.recursoId) ? 'var(--sala-accent)' : 'none'}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={handleCompartir}
+              style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',

@@ -221,6 +221,30 @@ export type Database = {
           },
         ]
       }
+      favoritos: {
+        Row: {
+          created_at: string
+          id: string
+          recurso_id: string
+          tenant_id: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recurso_id: string
+          tenant_id: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recurso_id?: string
+          tenant_id?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       instructores: {
         Row: {
           activo: boolean

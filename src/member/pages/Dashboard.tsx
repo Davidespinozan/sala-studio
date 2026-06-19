@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Activity, ArrowDown, ArrowRight, CalendarCheck, Clock, Sparkles, type LucideIcon } from 'lucide-react';
+import { Activity, ArrowDown, ArrowRight, CalendarCheck, Clock, Heart, Sparkles, type LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
@@ -177,6 +177,7 @@ function useClasesDeHoy(tenantId: string, tz: string) {
 function useResumenRapido(usuarioId: string | undefined) {
   const [proximas, setProximas] = useState(0);
   const [sesionesMes, setSesionesMes] = useState(0);
+  const [favoritas, setFavoritas] = useState(0);
 
   useEffect(() => {
     if (!usuarioId) return;
@@ -186,7 +187,7 @@ function useResumenRapido(usuarioId: string | undefined) {
       inicioMes.setDate(1);
       inicioMes.setHours(0, 0, 0, 0);
 
-      const [px, ses] = await Promise.all([
+      const [px, ses, fav] = await Promise.all([
         supabase
           .from('reservas')
           .select('id', { count: 'exact', head: true })
@@ -198,12 +199,17 @@ function useResumenRapido(usuarioId: string | undefined) {
           .select('id', { count: 'exact', head: true })
           .eq('usuario_id', usuarioId!)
           .eq('status', 'completada')
-          .gte('check_in_at', inicioMes.toISOString())
+          .gte('check_in_at', inicioMes.toISOString()),
+        supabase
+          .from('favoritos')
+          .select('id', { count: 'exact', head: true })
+          .eq('usuario_id', usuarioId!)
       ]);
 
       if (!mounted) return;
       setProximas(px.count ?? 0);
       setSesionesMes(ses.count ?? 0);
+      setFavoritas(fav.count ?? 0);
     }
     void load();
     return () => {
@@ -211,7 +217,7 @@ function useResumenRapido(usuarioId: string | undefined) {
     };
   }, [usuarioId]);
 
-  return { proximas, sesionesMes };
+  return { proximas, sesionesMes, favoritas };
 }
 
 // ============================================================================
@@ -247,7 +253,7 @@ export default function Dashboard() {
     tz
   );
   const { items: listasEspera } = useMisListasEspera();
-  const { proximas, sesionesMes } = useResumenRapido(usuario?.id);
+  const { proximas, sesionesMes, favoritas } = useResumenRapido(usuario?.id);
 
   const ahora = new Date();
   const bloqueado = !!usuario?.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > ahora;
@@ -330,7 +336,7 @@ export default function Dashboard() {
 
       {/* Resumen rápido (chips de progreso) */}
       <section style={{ marginBottom: '40px' }}>
-        <ResumenRapido proximas={proximas} sesionesMes={sesionesMes} />
+        <ResumenRapido proximas={proximas} sesionesMes={sesionesMes} favoritas={favoritas} />
       </section>
 
       {/* En lista de espera */}
@@ -677,7 +683,15 @@ function SkeletonScrollRow() {
  * Membresía). Convierte el Home de "herramienta de reserva" a "tu progreso":
  * lo primero que ves al abrir. Usa tokens → se adapta a la marca del tenant.
  */
-function ResumenRapido({ proximas, sesionesMes }: { proximas: number; sesionesMes: number }) {
+function ResumenRapido({
+  proximas,
+  sesionesMes,
+  favoritas
+}: {
+  proximas: number;
+  sesionesMes: number;
+  favoritas: number;
+}) {
   const { membresia } = useMembresiaActual();
   const estado = membresiaEstado(membresia);
   const memTexto =
@@ -692,13 +706,10 @@ function ResumenRapido({ proximas, sesionesMes }: { proximas: number; sesionesMe
             : 'Sin plan';
 
   const chips: { icon: LucideIcon; label: string; value: string }[] = [
-    {
-      icon: CalendarCheck,
-      label: 'Reservas',
-      value: `${proximas} ${proximas === 1 ? 'próxima' : 'próximas'}`
-    },
-    { icon: Activity, label: 'Sesiones', value: `${sesionesMes} este mes` },
-    { icon: Sparkles, label: 'Membresía', value: memTexto }
+    { icon: CalendarCheck, label: 'Próximas', value: `${proximas}` },
+    { icon: Activity, label: 'Sesiones', value: `${sesionesMes}` },
+    { icon: Sparkles, label: 'Membresía', value: memTexto },
+    { icon: Heart, label: 'Favoritas', value: `${favoritas}` }
   ];
 
   return (
