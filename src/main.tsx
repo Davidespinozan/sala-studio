@@ -14,6 +14,23 @@ import './styles/sala.css';
 
 initSentry();
 
+// PWA auto-update: cuando un service worker NUEVO toma control (tras un deploy),
+// recargamos la pestaña para servir la versión nueva sin que el usuario tenga
+// que matar el cache a mano. La config ya usa registerType:'autoUpdate'
+// (skipWaiting + clientsClaim), así que el SW nuevo se activa solo; esto cierra
+// el último eslabón: recargar la pestaña abierta.
+//   - hadController distingue UPDATE (ya había SW) de la 1ra instalación (no
+//     recargamos en la 1ra, donde controller pasa de null → SW por clients.claim).
+if ('serviceWorker' in navigator) {
+  const hadController = navigator.serviceWorker.controller != null;
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing || !hadController) return;
+    refreshing = true;
+    window.location.reload();
+  });
+}
+
 const rootEl = document.getElementById('root');
 if (!rootEl) {
   throw new Error('Root element #root not found in index.html');

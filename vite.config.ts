@@ -50,6 +50,7 @@ export default defineConfig(({ mode }) => {
           ]
         },
         workbox: {
+          cleanupOutdatedCaches: true,
           navigateFallbackDenylist: [/^\/api/, /^\/.netlify/],
           runtimeCaching: [
             {
