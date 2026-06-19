@@ -341,22 +341,83 @@ export function HeroView({
           {hero.subtitulo}
         </p>
       )}
-      {preview ? (
-        <a
-          href={hero.cta_link || '#membresias'}
-          className="ek-cta ek-lift"
-          style={{ padding: hasImg ? '17px 34px' : '16px 28px', fontSize: '16px', display: 'inline-flex', alignItems: 'center' }}
+      <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+        {preview ? (
+          <a
+            href={hero.cta_link || '#membresias'}
+            className="ek-cta ek-lift"
+            style={{ padding: hasImg ? '17px 34px' : '16px 28px', fontSize: '16px', display: 'inline-flex', alignItems: 'center' }}
+          >
+            {hero.cta_texto}
+          </a>
+        ) : (
+          <MagneticButton
+            href={hero.cta_link || '#membresias'}
+            className="ek-cta"
+            style={{ padding: hasImg ? '17px 34px' : '16px 28px', fontSize: '16px' }}
+          >
+            {hero.cta_texto}
+          </MagneticButton>
+        )}
+        {hero.cta2_texto && (
+          <a
+            href={hero.cta2_link || '#membresias'}
+            className="ek-lift"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: hasImg ? '17px 30px' : '16px 26px',
+              fontSize: '16px',
+              fontWeight: 600,
+              borderRadius: '999px',
+              textDecoration: 'none',
+              background: hasImg ? 'rgba(255, 255, 255, 0.10)' : 'transparent',
+              border: `1px solid ${hasImg ? 'rgba(255, 255, 255, 0.5)' : 'var(--sala-border-strong)'}`,
+              color: hasImg ? 'rgba(255, 255, 255, 0.96)' : 'var(--sala-text-primary)',
+              backdropFilter: hasImg ? 'blur(6px)' : undefined,
+              WebkitBackdropFilter: hasImg ? 'blur(6px)' : undefined
+            }}
+          >
+            {hero.cta2_texto}
+          </a>
+        )}
+      </div>
+
+      {hero.stats.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 'clamp(22px, 4vw, 52px)',
+            marginTop: 'clamp(36px, 5vw, 52px)',
+            paddingTop: 'clamp(24px, 3vw, 32px)',
+            borderTop: `1px solid ${hasImg ? 'rgba(255, 255, 255, 0.18)' : 'var(--sala-border)'}`
+          }}
         >
-          {hero.cta_texto}
-        </a>
-      ) : (
-        <MagneticButton
-          href={hero.cta_link || '#membresias'}
-          className="ek-cta"
-          style={{ padding: hasImg ? '17px 34px' : '16px 28px', fontSize: '16px' }}
-        >
-          {hero.cta_texto}
-        </MagneticButton>
+          {hero.stats.map((s, i) => (
+            <div key={i}>
+              <p
+                style={{
+                  fontFamily: 'var(--ek-font-display)',
+                  fontSize: 'clamp(22px, 3vw, 30px)',
+                  fontWeight: 700,
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1,
+                  margin: 0,
+                  color: tituloColor
+                }}
+              >
+                {s.valor}
+              </p>
+              {s.label && (
+                <p style={{ fontSize: '13px', color: subColor, margin: '4px 0 0', lineHeight: 1.3 }}>
+                  {s.label}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </>
   );
