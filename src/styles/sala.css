@@ -329,6 +329,11 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 .landing-hscroll { scrollbar-width: none; }
 .landing-hscroll::-webkit-scrollbar { display: none; }
 
+/* FAQ del landing: lista plana con hairlines (sin cards redondeadas). */
+.landing-faq-item:last-child { border-bottom: 1px solid var(--sala-border-strong); }
+.landing-faq-plus { transition: transform 0.2s ease; }
+.landing-faq-item[open] .landing-faq-plus { transform: rotate(45deg); }
+
 /* Links de sección del nav del landing: ocultos en móvil, en fila en desktop. */
 .landing-nav-links { display: none; }
 @media (min-width: 900px) {
@@ -353,8 +358,9 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   .landing-instructor-item { flex-basis: 184px; }
 }
 
-/* Card de plan: padding compacto en móvil (2 columnas), amplio en desktop. */
-.landing-plan-card { padding: 18px; }
+/* Card de plan: padding compacto en móvil (2 columnas), amplio en desktop.
+   Radio chico (16px) para el look sharp/tech del landing. */
+.landing-plan-card { padding: 18px; border-radius: var(--ek-r-sm); }
 @media (min-width: 640px) {
   .landing-plan-card { padding: 32px; }
 }

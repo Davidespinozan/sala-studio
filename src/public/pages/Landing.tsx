@@ -159,7 +159,7 @@ function InstructorLandingCard({ instructor }: { instructor: InstructorPublico }
       style={{
         position: 'relative',
         aspectRatio: '3 / 4',
-        borderRadius: 'var(--ek-r-md)',
+        borderRadius: 'var(--ek-r-sm)',
         overflow: 'hidden',
         border: '1px solid rgba(255, 255, 255, 0.08)',
         background: 'var(--grad-immersive)',
@@ -693,7 +693,7 @@ export function SeccionPostHero({ data }: { data: LandingPostHero }) {
       <section style={{ padding: 'clamp(40px, 5vw, 72px) 0' }}>
         <div style={{
           background: 'var(--grad-immersive)',
-          borderRadius: 'var(--ek-r-card)',
+          borderRadius: 'var(--ek-r-sm)',
           padding: 'clamp(28px, 4vw, 52px)',
           boxShadow: '0 24px 60px rgba(10, 15, 12, 0.28)'
         }}>
@@ -836,7 +836,7 @@ export default function Landing() {
         {estudiosLoading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 440px), 1fr))', gap: 'clamp(16px, 2vw, 24px)' }}>
             {[1, 2, 3, 4].map((n) => (
-              <div key={n} className="ek-skeleton" style={{ height: 'clamp(300px, 34vw, 380px)', borderRadius: 'var(--ek-r-card)' }} />
+              <div key={n} className="ek-skeleton" style={{ height: 'clamp(300px, 34vw, 380px)', borderRadius: 'var(--ek-r-sm)' }} />
             ))}
           </div>
         ) : (
@@ -857,7 +857,7 @@ export default function Landing() {
                   cursor: 'pointer',
                   textAlign: 'left',
                   font: 'inherit',
-                  borderRadius: 'var(--ek-r-card)',
+                  borderRadius: 'var(--ek-r-sm)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
                   background: s.fotoUrl ? '#0c100e' : 'var(--grad-immersive)',
                   color: '#fff',
@@ -995,7 +995,7 @@ export default function Landing() {
         {tiersLoading ? (
           <div className="landing-planes-grid">
             {[1, 2].map((n) => (
-              <div key={n} className="ek-skeleton" style={{ height: '480px', borderRadius: 'var(--ek-r-card)' }} />
+              <div key={n} className="ek-skeleton" style={{ height: '480px', borderRadius: 'var(--ek-r-sm)' }} />
             ))}
           </div>
         ) : (
@@ -1012,6 +1012,7 @@ export default function Landing() {
                     position: 'relative',
                     display: 'flex',
                     flexDirection: 'column',
+                    borderRadius: 'var(--ek-r-sm)',
                     ...(esDestacado
                       ? {
                           border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -1135,9 +1136,13 @@ export default function Landing() {
       <section className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
         <SeccionHeading heading={secciones.faq} center={false} />
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           {faq.map((item, i) => (
-            <details key={`${item.pregunta}-${i}`} className="ek-card" style={{ padding: '20px 24px', cursor: 'pointer' }}>
+            <details
+              key={`${item.pregunta}-${i}`}
+              className="landing-faq-item"
+              style={{ borderTop: '1px solid var(--sala-border-strong)', cursor: 'pointer' }}
+            >
               <summary style={{
                 fontFamily: 'var(--ek-font-display)',
                 fontSize: '17px',
@@ -1146,17 +1151,26 @@ export default function Landing() {
                 listStyle: 'none',
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center'
+                alignItems: 'center',
+                gap: '16px',
+                padding: '20px 2px',
+                color: 'var(--sala-text-primary)'
               }}>
                 {item.pregunta}
-                <span style={{ color: 'var(--ek-mustard)', fontSize: '14px' }}>+</span>
+                <span
+                  className="landing-faq-plus"
+                  aria-hidden="true"
+                  style={{ color: 'var(--sala-accent)', fontSize: '22px', fontWeight: 400, lineHeight: 1, flexShrink: 0 }}
+                >
+                  +
+                </span>
               </summary>
               <p style={{
                 fontSize: '14px',
-                color: 'var(--ek-ink-muted)',
+                color: 'var(--sala-text-secondary)',
                 lineHeight: 1.6,
                 margin: 0,
-                marginTop: '12px'
+                padding: '0 2px 22px'
               }}>{item.respuesta}</p>
             </details>
           ))}
