@@ -69,17 +69,45 @@ function useTierPorSlug(slug: string) {
   return { tier, isLoading };
 }
 
+function useSucursalesSignup() {
+  const tenant = useTenant();
+  const [sucursales, setSucursales] = useState<{ id: string; nombre: string }[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      const { data, error } = await supabase
+        .from('sucursales')
+        .select('id, nombre')
+        .eq('tenant_id', tenant.id)
+        .eq('activa', true)
+        .order('orden', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (!mounted) return;
+      if (error) console.error('[useSucursalesSignup]', error);
+      else setSucursales((data ?? []) as { id: string; nombre: string }[]);
+    }
+    load();
+    return () => { mounted = false; };
+  }, [tenant.id]);
+
+  return sucursales;
+}
+
 export default function Signup() {
   const navigate = useNavigate();
   const tenant = useTenant();
   const [searchParams] = useSearchParams();
   const tierParam = (searchParams.get('tier') as Tier) || 'basica';
   const { tier: tierRow, isLoading: tierLoading } = useTierPorSlug(tierParam);
+  const sucursales = useSucursalesSignup();
+  const multisede = sucursales.length > 1;
 
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [sucursalId, setSucursalId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,6 +135,10 @@ export default function Signup() {
       setError(passCheck.error ?? 'La contraseña no es válida.');
       return;
     }
+    if (multisede && !sucursalId) {
+      setError('Elige la sede a la que te quieres inscribir.');
+      return;
+    }
     setIsProcessing(true);
 
     try {
@@ -118,7 +150,8 @@ export default function Signup() {
           email,
           password,
           tier: plan!.tier,
-          slug: tenant.slug // el socio se da de alta en ESTE gimnasio (subdominio)
+          slug: tenant.slug, // el socio se da de alta en ESTE gimnasio (subdominio)
+          sucursal_id: multisede ? sucursalId : null
         })
       });
 
@@ -268,6 +301,28 @@ export default function Signup() {
             autoComplete="new-password"
           />
         </div>
+
+        {multisede && (
+          <div className="ek-form-field">
+            <label className="ek-label" htmlFor="signup-sucursal">Sede</label>
+            <select
+              id="signup-sucursal"
+              className="ek-input"
+              value={sucursalId}
+              onChange={(e) => setSucursalId(e.target.value)}
+              required
+              disabled={isProcessing}
+            >
+              <option value="">Elige tu sede…</option>
+              {sucursales.map((s) => (
+                <option key={s.id} value={s.id}>{s.nombre}</option>
+              ))}
+            </select>
+            <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
+              Es la sede donde entrenarás. Tu plan define si te da acceso solo a ella o a todas.
+            </p>
+          </div>
+        )}
 
         <div
           style={{

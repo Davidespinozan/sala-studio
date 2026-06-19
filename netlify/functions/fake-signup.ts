@@ -41,7 +41,7 @@ export const handler: Handler = async (event) => {
   });
 
   try {
-    const { nombre, email, password, tier, slug } = JSON.parse(event.body || '{}');
+    const { nombre, email, password, tier, slug, sucursal_id } = JSON.parse(event.body || '{}');
 
     if (!nombre || !email || !password || !tier || !slug) {
       return {
@@ -84,6 +84,33 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    // 1c. Resolver la sede del socio. Si el gym es multisede, el signup manda la
+    //     elegida; validamos que sea de este tenant. Si no manda ninguna (gym de
+    //     1 sede o cliente viejo), caemos a la sede por defecto (menor orden).
+    let sucursalId: string | null = null;
+    if (sucursal_id) {
+      const { data: suc } = await supabaseAdmin
+        .from('sucursales')
+        .select('id')
+        .eq('id', sucursal_id)
+        .eq('tenant_id', tenant.id)
+        .eq('activa', true)
+        .maybeSingle();
+      sucursalId = suc?.id ?? null;
+    }
+    if (!sucursalId) {
+      const { data: defSuc } = await supabaseAdmin
+        .from('sucursales')
+        .select('id')
+        .eq('tenant_id', tenant.id)
+        .eq('activa', true)
+        .order('orden', { ascending: true })
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      sucursalId = defSuc?.id ?? null;
+    }
+
     // 2. Crear usuario en auth.users — esto dispara el trigger
     //    on_auth_user_created que inserta fila en `usuarios` con
     //    rol='miembro', status='pendiente_onboarding'.
@@ -122,6 +149,7 @@ export const handler: Handler = async (event) => {
         status: 'activo',
         rol: 'miembro',
         tenant_id: tenant.id,
+        sucursal_id: sucursalId,
         notas_admin: `CUENTA DE PRUEBA — PAGO FAKE — ${fechaHoy}`
       })
       .eq('auth_id', authUserId)
