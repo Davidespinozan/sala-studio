@@ -15,6 +15,7 @@ export default function PublicLayout() {
   const { authUser, signOut } = useAuth();
   const location = useLocation();
   const enLogin = location.pathname === '/login';
+  const enLanding = location.pathname === '/';
   useRoleRedirect(['/', '/login', '/signup']);
 
   return (
@@ -32,9 +33,17 @@ export default function PublicLayout() {
         }}
       >
         <Link to="/" style={{ textDecoration: 'none', display: 'inline-block' }}>
-          <TenantLogo variant="completo" height={48} fallbackFontSize={30} showSuffix={true} />
+          <TenantLogo variant="completo" height={58} fallbackFontSize={36} showSuffix={true} />
         </Link>
         <nav style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          {enLanding && (
+            <div className="landing-nav-links">
+              <a href="#disciplinas" className="landing-nav-link">Clases</a>
+              <a href="#instructores" className="landing-nav-link">Instructores</a>
+              <a href="#membresias" className="landing-nav-link">Membresías</a>
+              <a href="#contacto" className="landing-nav-link">Contacto</a>
+            </div>
+          )}
           {authUser ? (
             <>
               <Link to="/app" className="ek-cta" style={{ padding: '0.625rem 1.25rem', minHeight: '40px' }}>
@@ -48,13 +57,18 @@ export default function PublicLayout() {
               </button>
             </>
           ) : !enLogin ? (
-            <Link
-              to="/login"
-              className="ek-cta"
-              style={{ padding: '0.625rem 1.25rem', minHeight: '40px' }}
-            >
-              Iniciar sesión
-            </Link>
+            <>
+              <Link to="/login" className="landing-nav-link" style={{ marginRight: '4px' }}>
+                Iniciar sesión
+              </Link>
+              <a
+                href={enLanding ? '#membresias' : '/login'}
+                className="ek-cta"
+                style={{ padding: '0.625rem 1.25rem', minHeight: '40px' }}
+              >
+                Reservar clase
+              </a>
+            </>
           ) : null}
         </nav>
       </header>

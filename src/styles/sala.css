@@ -329,6 +329,21 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 .landing-hscroll { scrollbar-width: none; }
 .landing-hscroll::-webkit-scrollbar { display: none; }
 
+/* Links de sección del nav del landing: ocultos en móvil, en fila en desktop. */
+.landing-nav-links { display: none; }
+@media (min-width: 900px) {
+  .landing-nav-links { display: flex; gap: 30px; align-items: center; margin-right: 18px; }
+}
+.landing-nav-link {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: color 0.15s ease;
+  white-space: nowrap;
+}
+.landing-nav-link:hover { color: var(--sala-accent); }
+
 /* Card de instructor en el carrusel: 160px en móvil, +15% (~184px) en desktop. */
 .landing-instructor-item {
   flex: 0 0 160px;

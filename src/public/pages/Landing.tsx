@@ -817,7 +817,7 @@ export default function Landing() {
       {/* ============================================================
           ESTUDIOS
           ============================================================ */}
-      <section className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
+      <section id="disciplinas" className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
         <SeccionHeading heading={secciones.salas} editorial />
 
         {estudiosLoading ? (
@@ -941,6 +941,7 @@ export default function Landing() {
           ============================================================ */}
       {mostrarInstructores && instructores.length > 0 && (
         <section
+          id="instructores"
           className="reveal"
           style={{
             width: '100vw',
