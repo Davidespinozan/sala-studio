@@ -13,7 +13,8 @@ const RUIDO = [
   /favicon/i,
   /manifest/i,
   /Download the React DevTools/i,
-  /\[vite\]/i
+  /\[vite\]/i,
+  /interactive-widget/i // WebKit: warning del meta viewport, no es un error de la app
 ];
 
 function capturarErrores(page: Page): string[] {

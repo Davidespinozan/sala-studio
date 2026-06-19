@@ -12,11 +12,12 @@ import { supabase } from '@shared/lib/supabase';
 export function useFavoritos() {
   const { usuario } = useAuth();
   const tenant = useTenant();
+  const usuarioId = usuario?.id;
   const [favoritos, setFavoritos] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!usuario?.id) {
+    if (!usuarioId) {
       setLoading(false);
       return;
     }
@@ -25,7 +26,7 @@ export function useFavoritos() {
       const { data } = await supabase
         .from('favoritos')
         .select('recurso_id')
-        .eq('usuario_id', usuario!.id);
+        .eq('usuario_id', usuarioId!);
       if (!mounted) return;
       setFavoritos(new Set((data ?? []).map((r) => r.recurso_id)));
       setLoading(false);
@@ -34,7 +35,7 @@ export function useFavoritos() {
     return () => {
       mounted = false;
     };
-  }, [usuario?.id]);
+  }, [usuarioId]);
 
   const toggle = useCallback(
     async (recursoId: string) => {

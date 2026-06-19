@@ -1,0 +1,66 @@
+name: CI
+
+# Corre en cada push a main y en cada PR a main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Si llega un push nuevo al mismo ref, cancela la corrida vieja.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Chequeos rápidos: no dependen de secrets, siempre deben quedar verdes. ──
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Lint (eslint, max-warnings 0)
+        run: npm run lint
+      - name: Typecheck (tsc)
+        run: npx tsc --noEmit
+      - name: Unit tests (vitest)
+        run: npm test
+      # vite build compila aunque falten las VITE_SUPABASE_* (las bakea vacías);
+      # acá solo validamos que el bundle compila. El runtime real se prueba en e2e.
+      - name: Build
+        run: npm run build
+
+  # ── Smokes e2e (read-only) contra el BUILD del push, servido con vite preview.
+  #    Necesita los secrets de Supabase para que la app cargue el tenant real. ──
+  e2e:
+    runs-on: ubuntu-latest
+    needs: checks
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Instalar navegadores (chromium + webkit)
+        run: npx playwright install --with-deps chromium webkit
+      - name: Build (con Supabase real → los smokes leen datos públicos)
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      - name: Smokes e2e (playwright sirve el build con vite preview)
+        run: npx playwright test e2e/tests
+      - name: Subir reporte de Playwright
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
