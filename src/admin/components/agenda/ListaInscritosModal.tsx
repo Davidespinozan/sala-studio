@@ -87,7 +87,7 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
     const { error } = await marcarAsistenciaAdmin(r.reservaId, currentUser.id);
     setActioningId(null);
     if (error) {
-      toast.error('No pudimos marcar la asistencia. Probá de nuevo.');
+      toast.error('No pudimos marcar la asistencia. Prueba de nuevo.');
       return;
     }
     toast.success(`${r.nombre}: asistencia confirmada.`);
@@ -115,8 +115,8 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
     if (error) {
       toast.error(
         kind === 'noShow'
-          ? 'No pudimos marcar la inasistencia. Probá de nuevo.'
-          : 'No pudimos cancelar la reserva. Probá de nuevo.'
+          ? 'No pudimos marcar la inasistencia. Prueba de nuevo.'
+          : 'No pudimos cancelar la reserva. Prueba de nuevo.'
       );
       return;
     }
@@ -145,7 +145,7 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
   async function handleCancelarClase() {
     const { error } = await cancelarClase();
     if (error) {
-      toast.error('No pudimos cancelar la clase. Probá de nuevo.');
+      toast.error('No pudimos cancelar la clase. Prueba de nuevo.');
       return;
     }
     toast.success('Clase cancelada');
@@ -778,7 +778,7 @@ function EsperaRow({
         title={
           puedePromover
             ? 'Promover a reserva confirmada'
-            : 'No hay lugar libre — cancelá una reserva primero'
+            : 'No hay lugar libre — cancela una reserva primero'
         }
         style={{
           flexShrink: 0,

@@ -29,7 +29,7 @@ const normalize = (s: string) =>
  *
  * LIMITACIÓN DE ESCALA: la carga tiene `limit(1000)`. Para gyms boutique
  * (100-500 socios típico) sobra. Si algún tenant supera los 1000 socios, el
- * filtrado client-side no encontrará a los del lugar 1001+; en ese caso habría
+ * filtrado client-side no encontrará a los del lugar 1001+; en ese caso habrea
  * que volver a un buscador server-side (con unaccent/trigram en Postgres) o
  * paginar. Aceptable por ahora.
  */

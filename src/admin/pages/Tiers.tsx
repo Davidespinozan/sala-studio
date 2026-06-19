@@ -87,7 +87,7 @@ export default function Tiers() {
 
     setDuplicandoId(null);
     if (error) {
-      toast.error('No pudimos duplicar el plan. Probá de nuevo.');
+      toast.error('No pudimos duplicar el plan. Prueba de nuevo.');
       return;
     }
     toast.success('Plan duplicado.');
@@ -108,11 +108,11 @@ export default function Tiers() {
     if (!archivar || archivar.status !== 'ready' || archivar.activeMembers > 0) return;
     const { error } = await archiveRecord('tiers', archivar.tier.id);
     if (error) {
-      toast.error('No pudimos eliminar el plan. Probá de nuevo.');
+      toast.error('No pudimos eliminar el plan. Prueba de nuevo.');
       return;
     }
     setArchivar(null);
-    toast.success('Plan eliminado. Lo encontrás en "Ver eliminados".');
+    toast.success('Plan eliminado. Lo encuentras en "Ver eliminados".');
     await refetch();
   }
 
@@ -121,7 +121,7 @@ export default function Tiers() {
     const { error } = await restoreRecord('tiers', t.id);
     setRestaurandoId(null);
     if (error) {
-      toast.error('No pudimos recuperar el plan. Probá de nuevo.');
+      toast.error('No pudimos recuperar el plan. Prueba de nuevo.');
       return;
     }
     toast.success('Plan recuperado.');
@@ -142,7 +142,7 @@ export default function Tiers() {
     if (!borrarPerm || borrarPerm.status !== 'ready') return;
     const { error } = await hardDeleteRecord('tiers', borrarPerm.tier.id);
     if (error) {
-      toast.error('No pudimos eliminarlo permanentemente. Probá de nuevo.');
+      toast.error('No pudimos eliminarlo permanentemente. Prueba de nuevo.');
       return;
     }
     setBorrarPerm(null);
@@ -158,7 +158,7 @@ export default function Tiers() {
     if (archivar.activeMembers > 0) {
       return `${archivar.activeMembers} miembro(s) activo(s) tienen este plan. Migralos a otro plan antes de eliminar este.`;
     }
-    return 'Este plan se moverá a Eliminados: deja de aparecer en signup y landing. Los miembros existentes con este plan no se afectan. Lo podés recuperar después.';
+    return 'Este plan se moverá a Eliminados: deja de aparecer en signup y landing. Los miembros existentes con este plan no se afectan. Lo puedes recuperar después.';
   })();
 
   return (
@@ -222,10 +222,10 @@ export default function Tiers() {
                     marginBottom: '14px'
                   }}
                 >
-                  No tenés planes definidos.
+                  No tienes planes definidos.
                 </h3>
                 <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '20px' }}>
-                  Creá uno para empezar a cobrar membresías.
+                  Crea uno para empezar a cobrar membresías.
                 </p>
                 <button onClick={() => setModal({ mode: 'create' })} className="ek-cta">
                   + Nuevo plan
@@ -622,7 +622,7 @@ function EditarTierModal({
         return;
       }
       if (existingSlugs.includes(slug)) {
-        setError(`Ya existe un plan con slug "${slug}". Usá otro.`);
+        setError(`Ya existe un plan con slug "${slug}". Usa otro.`);
         setSaving(false);
         return;
       }
@@ -864,7 +864,7 @@ function BeneficiosEditor({
     >
       {value.length === 0 && (
         <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', fontStyle: 'italic' }}>
-          Sin beneficios. Agregá el primero abajo.
+          Sin beneficios. Agrega el primero abajo.
         </p>
       )}
 

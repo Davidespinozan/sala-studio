@@ -130,7 +130,7 @@ export default function ImageUploader({
       setPreviewUrl(urlData.publicUrl);
       onUploaded(urlData.publicUrl);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'No pudimos subir la imagen. Probá con otra.';
+      const msg = err instanceof Error ? err.message : 'No pudimos subir la imagen. Prueba con otra.';
       setError(msg);
       onError?.(msg);
     } finally {
@@ -382,7 +382,7 @@ export default function ImageUploader({
                   margin: '0 0 12px'
                 }}
               >
-                Ajustá el encuadre
+                Ajusta el encuadre
               </p>
 
               <div

@@ -296,7 +296,7 @@ export default function Agenda() {
             No hay clases programadas en esta semana.
           </p>
           <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0 }}>
-            Verificá los horarios de tus salas en <strong>Salas → Editar</strong>.
+            Verifica los horarios de tus salas en <strong>Salas → Editar</strong>.
           </p>
         </div>
       )}

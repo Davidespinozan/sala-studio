@@ -163,7 +163,7 @@ export default function NotificacionesBell({ tone = 'light' }: { tone?: 'light' 
             </p>
           ) : items.length === 0 ? (
             <p style={{ padding: '32px 16px', fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0, textAlign: 'center' }}>
-              No tenés notificaciones todavía.
+              No tienes notificaciones todavía.
             </p>
           ) : (
             <div>

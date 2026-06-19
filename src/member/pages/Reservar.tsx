@@ -166,7 +166,7 @@ export default function Reservar() {
   function handleReservar(clase: Clase) {
     const estadoLlena = clase.cuposReservados >= clase.cupoMax;
     if (estadoLlena) {
-      // Clase llena → lista de espera (la feature existe; antes decía "próximamente").
+      // Clase llena → lista de espera (la feature existe; antes dia "próximamente").
       setClaseAEspera(clase);
       return;
     }
@@ -227,7 +227,7 @@ export default function Reservar() {
     if (!claseACancelar) return;
     const reservaId = claseACancelar.claseId ? misReservasIds.get(claseACancelar.claseId) : undefined;
     if (!reservaId) {
-      toast.error('No encontramos tu reserva. Recargá la página.');
+      toast.error('No encontramos tu reserva. Recarga la página.');
       setClaseACancelar(null);
       return;
     }
@@ -268,7 +268,7 @@ export default function Reservar() {
           Sin salas disponibles
         </p>
         <p style={{ color: 'var(--sala-text-secondary)' }}>
-          No hay salas activas en este momento. Contactá al administrador.
+          No hay salas activas en este momento. Contacta al administrador.
         </p>
       </div>
     );

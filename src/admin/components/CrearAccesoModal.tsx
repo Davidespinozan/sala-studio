@@ -76,7 +76,7 @@ export default function CrearAccesoModal({ onClose, onSuccess }: Props) {
       onSuccess({ nombre: nombreNorm, email: emailNorm, password });
       onClose();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'No pudimos crear el acceso. Probá de nuevo.';
+      const msg = err instanceof Error ? err.message : 'No pudimos crear el acceso. Prueba de nuevo.';
       setError(msg);
       toast.error(msg);
     } finally {
@@ -200,7 +200,7 @@ export default function CrearAccesoModal({ onClose, onSuccess }: Props) {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="ek-input"
-            placeholder="Repetí la contraseña"
+            placeholder="Repite la contraseña"
             required
             disabled={submitting}
             autoComplete="new-password"

@@ -33,7 +33,7 @@ export default function RecuperarContrasena() {
 
     // Rate limit: sí lo mostramos (no revela si el email existe).
     if (err && /rate|too many/i.test(err.message)) {
-      setError('Demasiados intentos. Esperá unos minutos.');
+      setError('Demasiados intentos. Espera unos minutos.');
       return;
     }
     if (err) console.error('[recuperar-contrasena]', err);
@@ -53,7 +53,7 @@ export default function RecuperarContrasena() {
           <h2 className="ek-h3" style={{ margin: 0 }}>Enlace enviado</h2>
           <p className="ek-body-muted" style={{ margin: 0, lineHeight: 1.55 }}>
             Si existe una cuenta con ese email, te enviamos un enlace para
-            restablecer tu contraseña. Revisá tu correo (y la carpeta de spam).
+            restablecer tu contraseña. Revisa tu correo (y la carpeta de spam).
           </p>
           <Link
             to="/login"
@@ -70,7 +70,7 @@ export default function RecuperarContrasena() {
           </p>
           <h2 className="ek-h3" style={{ margin: 0 }}>¿Olvidaste tu contraseña?</h2>
           <p className="ek-body-muted" style={{ margin: 0, lineHeight: 1.55 }}>
-            Ingresá tu email y te enviamos un enlace para crear una nueva.
+            Ingresa tu email y te enviamos un enlace para crear una nueva.
           </p>
 
           <div className="ek-form-field">

@@ -60,7 +60,7 @@ export function MapaBuilderModal({
 
   const guardar = async () => {
     if (!layout || layout.lugares.length === 0) {
-      setError('Agregá al menos un lugar (o cancelá).');
+      setError('Agrega al menos un lugar (o cancela).');
       return;
     }
     setGuardando(true);
@@ -111,7 +111,7 @@ export function MapaBuilderModal({
               Mapa de {recursoNombre}
             </p>
             <p style={{ fontSize: '12.5px', color: 'var(--sala-text-tertiary)', margin: '2px 0 0' }}>
-              {layout ? `${layout.lugares.length} lugar(es) · tocá para agregar/quitar` : 'Elegí una plantilla para empezar'}
+              {layout ? `${layout.lugares.length} lugar(es) · toca para agregar/quitar` : 'Elige una plantilla para empezar'}
             </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Cerrar"

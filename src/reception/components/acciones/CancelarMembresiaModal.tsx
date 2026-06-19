@@ -19,7 +19,7 @@ export function CancelarMembresiaModal({ socioId, socioNombre, isOpen, onClose, 
     <AccionModal
       isOpen={isOpen}
       title="Cancelar membresía"
-      description={`Cancelás la membresía de ${socioNombre}. Queda registrada como cancelada y deja de poder reservar.`}
+      description={`Cancelas la membresía de ${socioNombre}. Queda registrada como cancelada y deja de poder reservar.`}
       variant="danger"
       confirmLabel="Cancelar membresía"
       cancelLabel="Volver"

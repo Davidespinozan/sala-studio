@@ -194,7 +194,7 @@ export function ConfirmarReservaModal({
               marginBottom: '16px'
             }}
           >
-            No te alcanzan los créditos para esta reserva. Quitá invitados o recargá tu paquete.
+            No te alcanzan los créditos para esta reserva. Quita invitados o recarga tu paquete.
           </p>
         )}
 

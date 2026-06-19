@@ -43,7 +43,7 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
     <AccionModal
       isOpen={isOpen}
       title="Asignar plan"
-      description={`Asignás el primer plan a ${socioNombre}. Se va a activar inmediatamente.`}
+      description={`Asignas el primer plan a ${socioNombre}. Se va a activar inmediatamente.`}
       variant="info"
       confirmLabel="Asignar plan"
       canConfirm={motivo.trim().length > 0 && tierId.length > 0}
@@ -61,7 +61,7 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
           value={tierId}
           onChange={(e) => setTierId(e.target.value)}
         >
-          <option value="" disabled>Elegí un plan…</option>
+          <option value="" disabled>Elige un plan…</option>
           {tiers.map((t) => (
             <option key={t.id} value={t.id}>{t.nombre}</option>
           ))}

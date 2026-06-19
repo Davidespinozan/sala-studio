@@ -19,7 +19,7 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
     <AccionModal
       isOpen={isOpen}
       title="Renovar membresía"
-      description={`Renovás el mismo plan a ${socioNombre}. Refresca el período y los créditos según el tier.`}
+      description={`Renuevas el mismo plan a ${socioNombre}. Refresca el período y los créditos según el tier.`}
       variant="info"
       confirmLabel="Renovar"
       canConfirm={motivo.trim().length > 0}

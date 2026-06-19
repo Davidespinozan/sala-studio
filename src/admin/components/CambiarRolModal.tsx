@@ -65,7 +65,7 @@ export default function CambiarRolModal({
     }
 
     if (usuarioId === currentUser.id) {
-      setError('No podés cambiar tu propio rol. Pedile a otro admin que lo haga.');
+      setError('No puedes cambiar tu propio rol. Pídele a otro admin que lo haga.');
       setSubmitting(false);
       return;
     }
@@ -76,7 +76,7 @@ export default function CambiarRolModal({
     try {
       await adminUpdateRole({ usuario_id: usuarioId, rol: nuevoRol });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos actualizar el rol. Probá de nuevo.');
+      setError(e instanceof Error ? e.message : 'No pudimos actualizar el rol. Prueba de nuevo.');
       setSubmitting(false);
       return;
     }

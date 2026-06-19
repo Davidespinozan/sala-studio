@@ -90,30 +90,30 @@ describe('utilidades de fecha', () => {
 describe('traducirErrorRPC — gate de membresía (Fase 2A.2)', () => {
   it('MEMBRESIA_VENCIDA → texto humano sin código crudo', () => {
     expect(traducirErrorRPC('MEMBRESIA_VENCIDA: Tu membresía venció el 12/06/2026')).toBe(
-      'Tu membresía venció. Contactá al gimnasio para renovar.'
+      'Tu membresía venció. Contacta al gimnasio para renovar.'
     );
   });
   it('SIN_CREDITOS → mensaje de recarga', () => {
     expect(traducirErrorRPC('SIN_CREDITOS: Te quedaste sin créditos')).toBe(
-      'Te quedaste sin clases. Contactá al gimnasio para recargar.'
+      'Te quedaste sin clases. Contacta al gimnasio para recargar.'
     );
   });
   it('MEMBRESIA_CONGELADA → mensaje de pausa', () => {
     expect(traducirErrorRPC('MEMBRESIA_CONGELADA: Tu membresía está pausada')).toBe(
-      'Tu membresía está pausada. Contactá al gimnasio.'
+      'Tu membresía está pausada. Contacta al gimnasio.'
     );
   });
   it('SIN_MEMBRESIA → mensaje de sin membresía', () => {
-    expect(traducirErrorRPC('SIN_MEMBRESIA: No tenés una membresía activa')).toBe(
-      'No tenés una membresía activa. Contactá al gimnasio.'
+    expect(traducirErrorRPC('SIN_MEMBRESIA: No tienes una membresía activa')).toBe(
+      'No tienes una membresía activa. Contacta al gimnasio.'
     );
   });
   it('códigos preexistentes siguen funcionando (regresión)', () => {
     expect(traducirErrorRPC('CUPO_LLENO: ...')).toBe(
-      'Esta clase está llena. Probá con otro horario.'
+      'Esta clase está llena. Prueba con otro horario.'
     );
     expect(traducirErrorRPC('YA_RESERVADO: ...')).toBe(
-      'Ya tenés una reserva activa en esta clase.'
+      'Ya tienes una reserva activa en esta clase.'
     );
   });
 });

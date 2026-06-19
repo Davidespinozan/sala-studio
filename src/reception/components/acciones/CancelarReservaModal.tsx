@@ -19,7 +19,7 @@ export function CancelarReservaModal({ reservaId, reservaLabel, isOpen, onClose,
     <AccionModal
       isOpen={isOpen}
       title="Cancelar reserva"
-      description={`Cancelás la reserva de ${reservaLabel}. Si corresponde, se le devuelve el crédito.`}
+      description={`Cancelas la reserva de ${reservaLabel}. Si corresponde, se le devuelve el crédito.`}
       variant="danger"
       confirmLabel="Cancelar reserva"
       cancelLabel="Volver"

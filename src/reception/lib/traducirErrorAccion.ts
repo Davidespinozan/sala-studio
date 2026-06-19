@@ -5,7 +5,7 @@
 
 export const ERROR_CODE_MAP: Record<string, string> = {
   // Generales
-  NO_AUTORIZADO: 'No tenés permiso para esta acción',
+  NO_AUTORIZADO: 'No tienes permiso para esta acción',
   TENANT_MISMATCH: 'Ese recurso no pertenece a tu negocio',
 
   // Membresía
@@ -33,7 +33,7 @@ export const ERROR_CODE_MAP: Record<string, string> = {
   MOTIVO_REQUERIDO: 'El motivo es obligatorio para esta acción',
 };
 
-const FALLBACK = 'No pudimos completar la acción. Reintentá en unos segundos';
+const FALLBACK = 'No pudimos completar la acción. Reintenta en unos segundos';
 
 function extractMessage(error: unknown): string {
   if (typeof error === 'string') return error;

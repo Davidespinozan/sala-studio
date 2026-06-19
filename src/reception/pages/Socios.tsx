@@ -55,7 +55,7 @@ export default function Socios() {
   return (
     <div className="ek-page">
       <div style={{ maxWidth: '640px', margin: '0 auto', padding: '20px' }}>
-        <PageHeader eyebrow="RECEPCIÓN" title="Socios" subtitle="Buscá por nombre o teléfono" />
+        <PageHeader eyebrow="RECEPCIÓN" title="Socios" subtitle="Busca por nombre o teléfono" />
 
         {/* Buscador */}
         <div style={{ position: 'relative', marginBottom: '18px' }}>
@@ -107,7 +107,7 @@ export default function Socios() {
           <EmptyState
             icon={Search}
             title={q.trim() ? 'Sin resultados' : 'Sin socios todavía'}
-            subtitle={q.trim() ? 'Probá con otro nombre o teléfono.' : 'Los socios aparecen acá al darlos de alta.'}
+            subtitle={q.trim() ? 'Prueba con otro nombre o teléfono.' : 'Los socios aparecen acá al darlos de alta.'}
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

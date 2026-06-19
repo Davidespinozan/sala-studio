@@ -221,8 +221,8 @@ function EmptyMiembros({
       </h2>
       <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '20px' }}>
         {tieneFiltros
-          ? 'Probá cambiar la búsqueda o el status.'
-          : 'Invitá al primero y empezá a llenar tu gimnasio.'}
+          ? 'Prueba cambiar la búsqueda o el status.'
+          : 'Invita al primero y empieza a llenar tu gimnasio.'}
       </p>
       {tieneFiltros ? (
         <button onClick={onClear} className="ek-cta ek-cta--secondary">Limpiar filtros</button>

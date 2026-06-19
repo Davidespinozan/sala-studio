@@ -234,7 +234,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
           <EmptyState
             icon={CalendarClock}
             title={esHoy ? 'No hay más reservas para este día.' : 'No hay reservas para este día.'}
-            subtitle={esHoy ? 'Volvé en un rato para ver nuevas llegadas.' : 'Probá con otro día desde el selector de arriba.'}
+            subtitle={esHoy ? 'Vuelve en un rato para ver nuevas llegadas.' : 'Prueba con otro día desde el selector de arriba.'}
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

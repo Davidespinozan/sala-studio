@@ -215,7 +215,7 @@ export default function AjustesMarca() {
 
     setIsSaving(false);
     if (error) {
-      toast.error('No pudimos guardar los cambios. Probá de nuevo.');
+      toast.error('No pudimos guardar los cambios. Prueba de nuevo.');
       return;
     }
     setOriginalJson(JSON.stringify(draft));
@@ -304,7 +304,7 @@ export default function AjustesMarca() {
 
       <Section
         title="COLORES"
-        description="Definí la paleta de tu marca. Cambian botones, links, acentos y atmósfera de toda la app. Los cambios se previsualizan en tiempo real — guardá para persistir, o descartá para volver."
+        description="Define la paleta de tu marca. Cambian botones, links, acentos y atmósfera de toda la app. Los cambios se previsualizan en tiempo real — guarda para persistir, o descarta para volver."
       >
         <ColoresEditor
           primary={draft.color_primary}
@@ -321,7 +321,7 @@ export default function AjustesMarca() {
 
       <Section
         title="TIPOGRAFÍA"
-        description="Elegí las fuentes de tu marca y el tamaño general del texto. Aplica a toda la app y se previsualiza en tiempo real."
+        description="Elige las fuentes de tu marca y el tamaño general del texto. Aplica a toda la app y se previsualiza en tiempo real."
       >
         <TipografiaEditor
           fontDisplay={draft.font_display}

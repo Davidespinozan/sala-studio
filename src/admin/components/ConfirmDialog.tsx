@@ -151,7 +151,7 @@ export default function ConfirmDialog({
         {requireTypedConfirmation && !hideConfirm && (
           <div style={{ marginBottom: '20px' }}>
             <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', marginBottom: '6px' }}>
-              Escribí <strong style={{ color: 'var(--ek-ink)' }}>{requireTypedConfirmation}</strong> para confirmar:
+              Escribe <strong style={{ color: 'var(--ek-ink)' }}>{requireTypedConfirmation}</strong> para confirmar:
             </p>
             <input
               type="text"

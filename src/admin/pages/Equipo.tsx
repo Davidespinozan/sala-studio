@@ -61,7 +61,7 @@ export default function Equipo() {
 
     if (error) {
       console.error('[Equipo]', error);
-      toast.error('No pudimos cargar el equipo. Probá recargar la página.');
+      toast.error('No pudimos cargar el equipo. Prueba recargar la página.');
       setIsLoading(false);
       return;
     }
@@ -108,7 +108,7 @@ export default function Equipo() {
     if (!revoke || revoke.status !== 'ready') return;
     const { error } = await revokeTeamMember(revoke.usuario.id);
     if (error) {
-      toast.error('No pudimos revocar el acceso. Probá de nuevo.');
+      toast.error('No pudimos revocar el acceso. Prueba de nuevo.');
       return;
     }
     toast.success(`Acceso revocado para ${capitalizar(revoke.usuario.nombre) || revoke.usuario.email}.`);
@@ -222,7 +222,7 @@ export default function Equipo() {
                 Sos el único con acceso al sistema.
               </h3>
               <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '20px' }}>
-                Invitá recepcionistas u otros admins para gestionar el día a día.
+                Invita recepcionistas u otros admins para gestionar el día a día.
               </p>
               <button onClick={() => setShowCrearAcceso(true)} className="ek-cta">
                 + Crear acceso
@@ -270,7 +270,7 @@ export default function Equipo() {
             ? 'Verificando permisos…'
             : revoke?.status === 'blocked'
             ? revoke.reason ?? 'No se puede revocar.'
-            : 'No podrá entrar al sistema. Sus datos quedan en BD para auditoría. Podés restaurar el acceso después.'
+            : 'No podrá entrar al sistema. Sus datos quedan en BD para auditoría. Puedes restaurar el acceso después.'
         }
         confirmLabel="Revocar acceso"
         variant={revoke?.status === 'blocked' ? 'danger' : 'warning'}
@@ -285,7 +285,7 @@ export default function Equipo() {
         title={eliminar ? `¿Eliminar definitivamente a ${capitalizar(eliminar.nombre) || eliminar.email}?` : ''}
         description={
           eliminar
-            ? `Acción permanente. El email "${eliminar.email}" queda liberado para re-uso inmediato. Si tiene reservas en historial, vas a tener que cancelarlas o usar "Revocar acceso" en lugar. Escribí ELIMINAR para confirmar.`
+            ? `Acción permanente. El email "${eliminar.email}" queda liberado para re-uso inmediato. Si tiene reservas en historial, vas a tener que cancelarlas o usar "Revocar acceso" en lugar. Escribe ELIMINAR para confirmar.`
             : ''
         }
         confirmLabel={eliminando ? 'Eliminando…' : 'Eliminar definitivamente'}

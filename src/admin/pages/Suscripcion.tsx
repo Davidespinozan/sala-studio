@@ -72,7 +72,7 @@ export default function Suscripcion() {
               margin: '0 0 12px'
             }}
           >
-            {tierActual ? 'Cambiar de plan' : 'Elegí tu plan'}
+            {tierActual ? 'Cambiar de plan' : 'Elige tu plan'}
           </h2>
 
           {/* Cards de planes — precios en la moneda del mercado del gym */}

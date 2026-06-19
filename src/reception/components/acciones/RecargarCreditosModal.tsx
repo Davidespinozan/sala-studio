@@ -20,7 +20,7 @@ export function RecargarCreditosModal({ socioId, socioNombre, isOpen, onClose, o
     <AccionModal
       isOpen={isOpen}
       title="Recargar créditos"
-      description={`Sumás créditos al paquete de ${socioNombre}.`}
+      description={`Sumas créditos al paquete de ${socioNombre}.`}
       variant="info"
       confirmLabel="Recargar"
       canConfirm={motivo.trim().length > 0 && cantidad >= 1}

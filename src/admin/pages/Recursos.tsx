@@ -128,7 +128,7 @@ export default function Recursos() {
     const { error } = await insertRecurso(payload);
     setDuplicandoId(null);
     if (error) {
-      toast.error('No pudimos duplicar la sala. Probá de nuevo.');
+      toast.error('No pudimos duplicar la sala. Prueba de nuevo.');
       return;
     }
     toast.success('Sala duplicada.');
@@ -139,11 +139,11 @@ export default function Recursos() {
     if (!archivando) return;
     const { error } = await archiveRecord('recursos', archivando.id);
     if (error) {
-      toast.error('No pudimos eliminarla. Probá de nuevo.');
+      toast.error('No pudimos eliminarla. Prueba de nuevo.');
       return;
     }
     setArchivando(null);
-    toast.success('Sala eliminada. La encontrás en "Ver eliminadas".');
+    toast.success('Sala eliminada. La encuentras en "Ver eliminadas".');
     await refetch();
   }
 
@@ -152,7 +152,7 @@ export default function Recursos() {
     const { error } = await restoreRecord('recursos', r.id);
     setRestaurandoId(null);
     if (error) {
-      toast.error('No pudimos recuperarla. Probá de nuevo.');
+      toast.error('No pudimos recuperarla. Prueba de nuevo.');
       return;
     }
     toast.success('Sala recuperada.');
@@ -173,7 +173,7 @@ export default function Recursos() {
     if (!borrarPerm || borrarPerm.status !== 'ready') return;
     const { error } = await hardDeleteRecord('recursos', borrarPerm.recurso.id);
     if (error) {
-      toast.error('No pudimos eliminarla permanentemente. Probá de nuevo.');
+      toast.error('No pudimos eliminarla permanentemente. Prueba de nuevo.');
       return;
     }
     setBorrarPerm(null);
@@ -245,7 +245,7 @@ export default function Recursos() {
                   Todavía no creaste salas.
                 </h3>
                 <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '20px' }}>
-                  Agregá la primera para empezar a programar clases.
+                  Agrega la primera para empezar a programar clases.
                 </p>
                 <button onClick={() => setModal({ mode: 'create' })} className="ek-cta">
                   + Nueva sala
@@ -342,7 +342,7 @@ export default function Recursos() {
       <ConfirmDialog
         isOpen={archivando !== null}
         title={archivando ? `¿Eliminar “${archivando.nombre}”?` : ''}
-        description="Esta sala se moverá a Eliminadas: deja de aparecer en la landing y no se podrá reservar, pero las reservas históricas se conservan. La podés recuperar después."
+        description="Esta sala se moverá a Eliminadas: deja de aparecer en la landing y no se podrá reservar, pero las reservas históricas se conservan. La puedes recuperar después."
         confirmLabel="Eliminar"
         variant="warning"
         onConfirm={handleArchivar}
@@ -638,7 +638,7 @@ function EditarRecursoModal({
         return;
       }
       if (!sucursalId) {
-        setError('No hay una sucursal activa. Recargá la página.');
+        setError('No hay una sucursal activa. Recarga la página.');
         setSaving(false);
         return;
       }
@@ -986,7 +986,7 @@ function MultiSelectTiers({
     >
       {options.length === 0 ? (
         <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)' }}>
-          Todavía no hay planes. Creá uno en "Planes" para asociarlo a esta sala.
+          Todavía no hay planes. Crea uno en "Planes" para asociarlo a esta sala.
         </p>
       ) : (
         options.map((opt) => {

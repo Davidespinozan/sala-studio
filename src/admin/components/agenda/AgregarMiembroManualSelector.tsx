@@ -55,7 +55,7 @@ export function AgregarMiembroManualSelector({
     // Clase virtual (aún sin materializar): se activa con su primera reserva.
     // Inscribir manualmente en una virtual lejana es un edge poco común.
     if (!clase.claseId) {
-      toast.warning('Esta clase todavía no está activa: se materializa cuando alguien reserva. Probá en una clase de esta semana.');
+      toast.warning('Esta clase todavía no está activa: se materializa cuando alguien reserva. Prueba en una clase de esta semana.');
       return;
     }
     // Validar acceso por tier (si la clase tiene tiers_permitidos restringidos)
@@ -79,7 +79,7 @@ export function AgregarMiembroManualSelector({
     if (error) {
       const msg = error.message?.includes('duplicate') || error.message?.includes('unique')
         ? `${m.nombre ?? m.email} ya está inscrito.`
-        : `No pudimos inscribir a ${m.nombre ?? m.email}. Probá de nuevo.`;
+        : `No pudimos inscribir a ${m.nombre ?? m.email}. Prueba de nuevo.`;
       toast.error(msg);
       return;
     }
@@ -164,7 +164,7 @@ export function AgregarMiembroManualSelector({
 
       {!buscando && query.length >= 2 && resultados.length === 0 && (
         <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: 0 }}>
-          Sin coincidencias. Probá con otro nombre o email.
+          Sin coincidencias. Prueba con otro nombre o email.
         </p>
       )}
 

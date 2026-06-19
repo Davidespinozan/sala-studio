@@ -24,7 +24,7 @@ function buildCredencialesText(c: CredencialesCreadas): string {
     `Email: ${c.email}`,
     `Contraseña: ${c.password}`,
     '',
-    `Iniciá sesión en: ${origin}/login`
+    `Inicia sesión en: ${origin}/login`
   ].join('\n');
 }
 
@@ -111,7 +111,7 @@ export default function CredencialesCreadasModal({ isOpen, credenciales, onClose
             marginBottom: '8px'
           }}
         >
-          Compartí estas credenciales con la persona
+          Comparte estas credenciales con la persona
         </h3>
         <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '20px' }}>
           Copialas ahora — por seguridad no vas a poder volver a ver la contraseña.

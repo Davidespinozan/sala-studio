@@ -80,7 +80,7 @@ const CTA_FINAL_DEFAULT: LandingCtaFinal = {
   eyebrow: '',
   titulo: '',
   subtitulo: '',
-  cta_texto: 'Contáctanos'
+  cta_texto: 'Cuentactanos'
 };
 
 const REDES_DEFAULT: LandingFooterRedes = {

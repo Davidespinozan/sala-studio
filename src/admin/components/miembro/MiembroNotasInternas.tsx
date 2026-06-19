@@ -30,7 +30,7 @@ export function MiembroNotasInternas({ usuarioId, notasIniciales, onSaved }: Pro
       .eq('id', usuarioId);
     setSaving(false);
     if (error) {
-      toast.error('No pudimos guardar las notas. Probá de nuevo.');
+      toast.error('No pudimos guardar las notas. Prueba de nuevo.');
       return;
     }
     setSaved(true);
@@ -46,7 +46,7 @@ export function MiembroNotasInternas({ usuarioId, notasIniciales, onSaved }: Pro
         onChange={(e) => setNotas(e.target.value)}
         rows={5}
         maxLength={500}
-        placeholder="Anotá información relevante sobre este miembro (preferencias, historial, lesiones, recordatorios). Solo visible para admins."
+        placeholder="Anota información relevante sobre este miembro (preferencias, historial, lesiones, recordatorios). Solo visible para admins."
         className="ek-input"
         style={{
           marginBottom: '12px',

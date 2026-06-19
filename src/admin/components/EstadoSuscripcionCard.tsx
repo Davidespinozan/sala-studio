@@ -72,8 +72,8 @@ export function EstadoSuscripcionCard({
         </p>
         <p style={{ fontSize: '14px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
           {suscripcion?.estado === 'cancelada'
-            ? 'Tu suscripción está cancelada. Elegí un plan abajo para reactivarla.'
-            : 'Todavía no elegiste un plan. Mirá las opciones abajo y empezá tu prueba gratis.'}
+            ? 'Tu suscripción está cancelada. Elige un plan abajo para reactivarla.'
+            : 'Todavía no elegiste un plan. Mira las opciones abajo y empieza tu prueba gratis.'}
         </p>
       </div>
     );
@@ -104,7 +104,7 @@ export function EstadoSuscripcionCard({
     setCancelando(false);
     setConfirmando(false);
     if (error) {
-      toast.error('No pudimos cancelar la suscripción. Probá de nuevo.');
+      toast.error('No pudimos cancelar la suscripción. Prueba de nuevo.');
       return;
     }
     toast.success('Suscripción cancelada. (modo demo)');
@@ -248,7 +248,7 @@ export function EstadoSuscripcionCard({
               fuerte
               texto={
                 tierSiguiente
-                  ? `Pasaste el límite de tu plan (${uso.miembrosActuales}/${uso.limite}). Subí a ${PLANES_SAAS[tierSiguiente].nombre} para sumar más miembros sin problemas.`
+                  ? `Pasaste el límite de tu plan (${uso.miembrosActuales}/${uso.limite}). Sube a ${PLANES_SAAS[tierSiguiente].nombre} para sumar más miembros sin problemas.`
                   : `Pasaste el límite de tu plan (${uso.miembrosActuales}/${uso.limite}).`
               }
             />
@@ -288,7 +288,7 @@ export function EstadoSuscripcionCard({
         isOpen={confirmando}
         variant="danger"
         title="¿Cancelar tu suscripción?"
-        description="Perdés el acceso a las funciones de tu plan al terminar el período actual. Podés volver a suscribirte cuando quieras. (Modo demo — no se procesa ningún reembolso real.)"
+        description="Perdés el acceso a las funciones de tu plan al terminar el período actual. Puedes volver a suscribirte cuando quieras. (Modo demo — no se procesa ningún reembolso real.)"
         confirmLabel={cancelando ? 'Cancelando…' : 'Sí, cancelar'}
         cancelLabel="Volver"
         onConfirm={handleCancelar}

@@ -155,7 +155,7 @@ export default function AjustesContacto() {
 
     const { error } = await saveTopLevel(patch);
     if (error) {
-      toast.error('No pudimos guardar la configuración de contacto. Probá de nuevo.');
+      toast.error('No pudimos guardar la configuración de contacto. Prueba de nuevo.');
       return;
     }
     setOriginalJson(currentJson);
@@ -243,7 +243,7 @@ export default function AjustesContacto() {
                 ? 'Debe empezar con http:// o https://'
                 : undefined
             }
-            helper={redes[red] === '' ? 'Opcional. Si la dejás vacía, no aparece.' : undefined}
+            helper={redes[red] === '' ? 'Opcional. Si la dejas vacía, no aparece.' : undefined}
           >
             <input
               type="url"

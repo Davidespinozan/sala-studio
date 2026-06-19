@@ -12,12 +12,12 @@ interface Props {
 
 /**
  * CTA a WhatsApp del gym (de config.contacto.whatsapp_e164). Convierte los
- * estados "contactá al gimnasio" en un camino real de salida. Si el tenant no
+ * estados "contacta al gimnasio" en un camino real de salida. Si el tenant no
  * configuró WhatsApp, no renderiza nada (el texto del estado igual informa).
  */
 export default function ContactoGymCTA({
   mensaje,
-  label = 'Escribinos por WhatsApp',
+  label = 'Escríbenos por WhatsApp',
   variant = 'primary'
 }: Props) {
   const { whatsappUrl } = useLandingConfig();

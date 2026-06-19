@@ -14,7 +14,7 @@ export default function ProbarDemoModal({ onClose }: { onClose: () => void }) {
     const { error: err } = await entrarAlDemo(rol);
     if (err) {
       console.error('[demo] entrarAlDemo:', err);
-      setError('No pudimos abrir el demo. Probá de nuevo en un momento.');
+      setError('No pudimos abrir el demo. Prueba de nuevo en un momento.');
       setCargando(null);
     }
     // En éxito hay hard-nav, no vuelve.
@@ -54,10 +54,10 @@ export default function ProbarDemoModal({ onClose }: { onClose: () => void }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 4px' }}>
           <div>
             <p style={{ fontFamily: 'var(--ek-font-display)', fontSize: '18px', fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: 'var(--sala-text-primary)' }}>
-              Probá el demo
+              Prueba el demo
             </p>
             <p style={{ fontSize: '13px', color: 'var(--sala-text-tertiary)', margin: '2px 0 0' }}>
-              Elegí una vista. Entrás al instante, sin registrarte.
+              Elige una vista. Entras al instante, sin registrarte.
             </p>
           </div>
           <button

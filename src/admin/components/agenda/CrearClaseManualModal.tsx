@@ -84,7 +84,7 @@ export function CrearClaseManualModal({ recursos, prefill, onClose, onCreated }:
     setError(null);
 
     if (!recursoId || !recursoSel) {
-      setError('Elegí una sala.');
+      setError('Elige una sala.');
       return;
     }
     if (!nombre.trim()) {
@@ -132,7 +132,7 @@ export function CrearClaseManualModal({ recursos, prefill, onClose, onCreated }:
 
     if (qErr) {
       setSaving(false);
-      setError('No pudimos verificar disponibilidad. Probá de nuevo.');
+      setError('No pudimos verificar disponibilidad. Prueba de nuevo.');
       return;
     }
 
@@ -170,8 +170,8 @@ export function CrearClaseManualModal({ recursos, prefill, onClose, onCreated }:
     if (insErr) {
       setError(
         insErr.code === '23505'
-          ? 'Ya hay una clase a esa hora. Recargá la agenda.'
-          : 'No pudimos crear la clase. Probá de nuevo.'
+          ? 'Ya hay una clase a esa hora. Recarga la agenda.'
+          : 'No pudimos crear la clase. Prueba de nuevo.'
       );
       return;
     }
@@ -214,7 +214,7 @@ export function CrearClaseManualModal({ recursos, prefill, onClose, onCreated }:
 
         {recursos.length === 0 ? (
           <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', margin: '0 0 18px' }}>
-            No hay salas activas. Creá una sala en <strong>Salas</strong> antes de programar clases.
+            No hay salas activas. Crea una sala en <strong>Salas</strong> antes de programar clases.
           </p>
         ) : (
           <>

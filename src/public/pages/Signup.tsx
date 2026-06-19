@@ -135,13 +135,13 @@ export default function Signup() {
       });
 
       if (loginError) {
-        throw new Error('Cuenta creada pero error al iniciar sesión. Iniciá sesión manualmente.');
+        throw new Error('Cuenta creada pero error al iniciar sesión. Inicia sesión manualmente.');
       }
 
       navigate('/app');
     } catch (err) {
       console.error('[Signup]', err);
-      setError(err instanceof Error ? err.message : 'Error inesperado. Intentá de nuevo.');
+      setError(err instanceof Error ? err.message : 'Error inesperado. Intenta de nuevo.');
       setIsProcessing(false);
     }
   }
@@ -279,8 +279,8 @@ export default function Signup() {
           }}
         >
           <p style={{ fontSize: '13px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
-            <strong>Sin cargo por ahora.</strong> Activás tu plan al instante; el gimnasio
-            coordina el pago con vos. No te pedimos tarjeta.
+            <strong>Sin cargo por ahora.</strong> Activas tu plan al instante; el gimnasio
+            coordina el pago contigo. No te pedimos tarjeta.
           </p>
         </div>
 
@@ -316,8 +316,8 @@ export default function Signup() {
           marginTop: '4px',
           lineHeight: 1.5
         }}>
-          Al continuar aceptás los términos.<br />
-          El gimnasio coordina el cobro de tu plan con vos.
+          Al continuar aceptas los términos.<br />
+          El gimnasio coordina el cobro de tu plan contigo.
         </p>
 
         <p style={{
@@ -326,7 +326,7 @@ export default function Signup() {
           textAlign: 'center',
           marginTop: '12px'
         }}>
-          ¿Ya tenés cuenta? <Link to="/login" style={{ color: 'var(--ek-mustard)' }}>Iniciar sesión</Link>
+          ¿Ya tienes cuenta? <Link to="/login" style={{ color: 'var(--ek-mustard)' }}>Iniciar sesión</Link>
         </p>
       </form>
     </div>

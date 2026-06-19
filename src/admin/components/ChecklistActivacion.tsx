@@ -12,11 +12,11 @@ interface Paso {
 }
 
 const PASOS: Paso[] = [
-  { key: 'sala', esencial: true, titulo: 'Creá tu primera sala', desc: 'El espacio donde ocurren las clases.', to: '/admin/recursos', cta: 'Ir a Salas' },
+  { key: 'sala', esencial: true, titulo: 'Crea tu primera sala', desc: 'El espacio donde ocurren las clases.', to: '/admin/recursos', cta: 'Ir a Salas' },
   { key: 'horarios', esencial: true, titulo: 'Armá tu horario semanal', desc: 'Sin horarios no hay clases que reservar.', to: '/admin/horarios', cta: 'Ir a Horarios' },
-  { key: 'plan', esencial: true, titulo: 'Poné precio a tus planes', desc: 'Tus planes nacen en $0 — fijá cuánto cobrás.', to: '/admin/tiers', cta: 'Ir a Planes' },
-  { key: 'instructor', esencial: false, titulo: 'Agregá tus instructores', desc: 'Le ponen cara a cada clase. (Opcional)', to: '/admin/instructores', cta: 'Ir a Instructores' },
-  { key: 'marca', esencial: false, titulo: 'Subí tu logo y marca', desc: 'Personalizá la experiencia de tus socios. (Opcional)', to: '/admin/marca', cta: 'Ir a Marca' }
+  { key: 'plan', esencial: true, titulo: 'Pon precio a tus planes', desc: 'Tus planes nacen en $0 — fija cuánto cobras.', to: '/admin/tiers', cta: 'Ir a Planes' },
+  { key: 'instructor', esencial: false, titulo: 'Agrega tus instructores', desc: 'Le ponen cara a cada clase. (Opcional)', to: '/admin/instructores', cta: 'Ir a Instructores' },
+  { key: 'marca', esencial: false, titulo: 'Sube tu logo y marca', desc: 'Personaliza la experiencia de tus socios. (Opcional)', to: '/admin/marca', cta: 'Ir a Marca' }
 ];
 
 /** Checklist de activación para gyms nuevos. Se renderiza solo mientras falte
@@ -46,7 +46,7 @@ export default function ChecklistActivacion({ setup }: { setup: GymSetup }) {
           marginBottom: '4px'
         }}
       >
-        Activá tu estudio
+        Activa tu estudio
       </h2>
       <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '20px' }}>
         {esencialesDone} de {esencialesTotal} pasos esenciales listos. Completalos para empezar a recibir reservas.

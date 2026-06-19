@@ -63,7 +63,7 @@ export function BloquearAccesoModal({
       .eq('id', usuarioId);
     setSaving(false);
     if (error) {
-      toast.error('No pudimos bloquear el acceso. Probá de nuevo.');
+      toast.error('No pudimos bloquear el acceso. Prueba de nuevo.');
       return;
     }
     toast.success(`Acceso de ${nombreMiembro} bloqueado hasta ${fechaHasta}.`);
@@ -79,7 +79,7 @@ export function BloquearAccesoModal({
       .eq('id', usuarioId);
     setSaving(false);
     if (error) {
-      toast.error('No pudimos desbloquear el acceso. Probá de nuevo.');
+      toast.error('No pudimos desbloquear el acceso. Prueba de nuevo.');
       return;
     }
     toast.success(`Acceso de ${nombreMiembro} desbloqueado.`);
@@ -233,7 +233,7 @@ export function BloquearAccesoModal({
                 maxLength={200}
               />
               <p style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', margin: '6px 0 0' }}>
-                Si lo escribís, queda guardado en las notas internas del miembro para auditoría.
+                Si lo escribes, queda guardado en las notas internas del miembro para auditoría.
               </p>
             </div>
 

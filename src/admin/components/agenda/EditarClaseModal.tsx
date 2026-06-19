@@ -50,7 +50,7 @@ export function EditarClaseModal({ clase, inscritosActivos, onClose, onSaved }: 
     }
     if (cupoMax < inscritosActivos) {
       setError(
-        `No podés bajar el cupo a ${cupoMax}: hay ${inscritosActivos} inscritos. Cancelá inscritos primero.`
+        `No puedes bajar el cupo a ${cupoMax}: hay ${inscritosActivos} inscritos. Cancela inscritos primero.`
       );
       return;
     }
@@ -68,7 +68,7 @@ export function EditarClaseModal({ clase, inscritosActivos, onClose, onSaved }: 
     };
     const { error: err } = await updateClase(patch);
     if (err) {
-      setError('No pudimos guardar los cambios. Probá de nuevo.');
+      setError('No pudimos guardar los cambios. Prueba de nuevo.');
       return;
     }
     toast.success('Clase actualizada');

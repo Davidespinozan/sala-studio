@@ -404,7 +404,7 @@ export function GestionarMembresiaModal({
               Dar de baja la membresía de {nombreMiembro}
             </p>
             <p style={{ fontSize: '12px', color: 'var(--sala-text-secondary)', margin: '0 0 10px', lineHeight: 1.45 }}>
-              Su acceso queda bloqueado al instante. No borra el historial. Indicá el motivo:
+              Su acceso queda bloqueado al instante. No borra el historial. Indica el motivo:
             </p>
             <input
               type="text"

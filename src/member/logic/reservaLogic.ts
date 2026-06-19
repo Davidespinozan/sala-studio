@@ -129,7 +129,7 @@ export function formatHora(d: Date): string {
  * Traduce los códigos de error de los RPC de reservas a mensajes user-friendly.
  */
 export function traducirErrorRPC(message: string): string {
-  if (message.includes('USUARIO_INACTIVO')) return 'Tu membresía no está activa. Contactá al administrador.';
+  if (message.includes('USUARIO_INACTIVO')) return 'Tu membresía no está activa. Contacta al administrador.';
   if (message.includes('USUARIO_BLOQUEADO')) return 'Tu cuenta tiene una restricción activa.';
   if (message.includes('RECURSO_NO_EXISTE')) return 'Esta sala no está disponible.';
   if (message.includes('RECURSO_INACTIVO')) return 'Esta sala no está disponible.';
@@ -137,33 +137,33 @@ export function traducirErrorRPC(message: string): string {
   // socio contacta al gimnasio. Cuando se integre Stripe, estos textos pasan
   // a CTA de renovación/recarga.
   if (message.includes('MEMBRESIA_VENCIDA'))
-    return 'Tu membresía venció. Contactá al gimnasio para renovar.';
+    return 'Tu membresía venció. Contacta al gimnasio para renovar.';
   if (message.includes('SIN_CREDITOS'))
-    return 'Te quedaste sin clases. Contactá al gimnasio para recargar.';
+    return 'Te quedaste sin clases. Contacta al gimnasio para recargar.';
   if (message.includes('MEMBRESIA_CONGELADA'))
-    return 'Tu membresía está pausada. Contactá al gimnasio.';
+    return 'Tu membresía está pausada. Contacta al gimnasio.';
   if (message.includes('SIN_MEMBRESIA'))
-    return 'No tenés una membresía activa. Contactá al gimnasio.';
+    return 'No tienes una membresía activa. Contacta al gimnasio.';
   if (message.includes('TIER_NO_PERMITIDO')) return 'Tu plan no tiene acceso a esta sala.';
   if (message.includes('TIER_NO_PERMITE')) return 'Tu plan no incluye acceso a esta sala.';
   if (message.includes('INVITADOS_EXCEDEN')) return 'Tu plan no permite tantos invitados.';
   if (message.includes('INVITADOS_INVALIDOS')) return 'Número de invitados inválido.';
-  if (message.includes('ANTICIPACION_INSUFICIENTE')) return 'Necesitás reservar con más anticipación.';
-  if (message.includes('ANTICIPACION_EXCESIVA')) return 'No podés reservar tan lejos en el futuro.';
-  if (message.includes('CONTINUAS_NO_PERMITIDAS')) return 'No podés reservar horas consecutivas.';
-  if (message.includes('CONTINUA')) return 'No podés reservar horas consecutivas.';
-  if (message.includes('SLOT_OCUPADO')) return 'Este horario acaba de ser tomado por otro miembro. Elegí otro.';
+  if (message.includes('ANTICIPACION_INSUFICIENTE')) return 'Necesitas reservar con más anticipación.';
+  if (message.includes('ANTICIPACION_EXCESIVA')) return 'No puedes reservar tan lejos en el futuro.';
+  if (message.includes('CONTINUAS_NO_PERMITIDAS')) return 'No puedes reservar horas consecutivas.';
+  if (message.includes('CONTINUA')) return 'No puedes reservar horas consecutivas.';
+  if (message.includes('SLOT_OCUPADO')) return 'Este horario acaba de ser tomado por otro miembro. Elige otro.';
   if (message.includes('CLASE_NO_EXISTE')) return 'Esta clase no existe en tu gimnasio.';
   if (message.includes('CLASE_NO_PROGRAMADA')) return 'Esta clase ya no está disponible.';
-  if (message.includes('YA_RESERVADO')) return 'Ya tenés una reserva activa en esta clase.';
-  if (message.includes('CUPO_LLENO')) return 'Esta clase está llena. Probá con otro horario.';
+  if (message.includes('YA_RESERVADO')) return 'Ya tienes una reserva activa en esta clase.';
+  if (message.includes('CUPO_LLENO')) return 'Esta clase está llena. Prueba con otro horario.';
   if (message.includes('RESERVA_NO_EXISTE')) return 'No encontramos esa reserva.';
-  if (message.includes('NO_AUTORIZADO')) return 'No podés hacer esta acción.';
+  if (message.includes('NO_AUTORIZADO')) return 'No puedes hacer esta acción.';
   if (message.includes('RESERVA_NO_CANCELABLE')) return 'Esta reserva no se puede cancelar.';
-  if (message.includes('RESERVA_PASADA')) return 'No podés cancelar una reserva que ya pasó.';
+  if (message.includes('RESERVA_PASADA')) return 'No puedes cancelar una reserva que ya pasó.';
   if (message.includes('YA_EN_LISTA')) return 'Ya estás en la lista de espera de esta clase.';
   if (message.includes('NO_EN_LISTA')) return 'No estás en la lista de espera de esta clase.';
-  if (message.includes('HAY_CUPO')) return 'Esta clase tiene lugares disponibles, reservá normalmente.';
+  if (message.includes('HAY_CUPO')) return 'Esta clase tiene lugares disponibles, reserva normalmente.';
   if (message.includes('CLASE_PASADA')) return 'Esta clase ya empezó.';
   if (message.includes('YA_PROCESADA')) return 'Esa persona ya no está en la lista de espera.';
   if (message.includes('ENTRADA_NO_EXISTE')) return 'No encontramos esa entrada de lista de espera.';

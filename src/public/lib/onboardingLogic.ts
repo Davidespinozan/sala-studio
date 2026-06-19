@@ -76,7 +76,7 @@ export interface OnboardingState {
  */
 export function validarSubdominio(slug: string): ResultadoValidacion {
   const s = slug.trim().toLowerCase();
-  if (!s) return { ok: false, error: 'Elegí un subdominio.' };
+  if (!s) return { ok: false, error: 'Elige un subdominio.' };
   if (s.length < SLUG_MIN) return { ok: false, error: `Mínimo ${SLUG_MIN} caracteres.` };
   if (s.length > SLUG_MAX) return { ok: false, error: `Máximo ${SLUG_MAX} caracteres.` };
   if (!/^[a-z0-9-]+$/.test(s)) {
@@ -87,7 +87,7 @@ export function validarSubdominio(slug: string): ResultadoValidacion {
   }
   if (s.includes('--')) return { ok: false, error: 'No uses guiones seguidos.' };
   if (SUBDOMINIOS_RESERVADOS.has(s)) {
-    return { ok: false, error: 'Ese subdominio está reservado. Elegí otro.' };
+    return { ok: false, error: 'Ese subdominio está reservado. Elige otro.' };
   }
   return OK;
 }
@@ -106,7 +106,7 @@ export function sugerirSubdominio(nombre: string): string {
 
 export function validarEmail(email: string): ResultadoValidacion {
   const e = email.trim();
-  if (!e) return { ok: false, error: 'Ingresá tu email.' };
+  if (!e) return { ok: false, error: 'Ingresa tu email.' };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
     return { ok: false, error: 'El email no es válido.' };
   }
@@ -131,7 +131,7 @@ export function validarPassword(password: string): ResultadoValidacion {
 
 /** Paso 1 — Cuenta. */
 export function validarPasoCuenta(d: DatosCuenta): ResultadoValidacion {
-  if (!d.nombre.trim()) return { ok: false, error: 'Ingresá tu nombre.' };
+  if (!d.nombre.trim()) return { ok: false, error: 'Ingresa tu nombre.' };
   const email = validarEmail(d.email);
   if (!email.ok) return email;
   return validarPassword(d.password);
@@ -139,23 +139,23 @@ export function validarPasoCuenta(d: DatosCuenta): ResultadoValidacion {
 
 /** Paso 2 — Datos del gym. */
 export function validarPasoGym(d: DatosGym): ResultadoValidacion {
-  if (!d.gymNombre.trim()) return { ok: false, error: 'Ingresá el nombre del gym.' };
+  if (!d.gymNombre.trim()) return { ok: false, error: 'Ingresa el nombre del gym.' };
   const slug = validarSubdominio(d.slug);
   if (!slug.ok) return slug;
-  if (!d.timezone.trim()) return { ok: false, error: 'Elegí tu país / zona horaria.' };
+  if (!d.timezone.trim()) return { ok: false, error: 'Elige tu país / zona horaria.' };
   return OK;
 }
 
 /** Paso 3 — Plan. */
 export function validarPasoPlan(tier: TierSaas | null): ResultadoValidacion {
-  if (!tier) return { ok: false, error: 'Elegí un plan para continuar.' };
+  if (!tier) return { ok: false, error: 'Elige un plan para continuar.' };
   return OK;
 }
 
 /** Paso 5 — Configuración inicial. */
 export function validarPasoSetup(d: DatosSetup): ResultadoValidacion {
   if (!d.salaNombre.trim()) {
-    return { ok: false, error: 'Ingresá el nombre de tu primera sala.' };
+    return { ok: false, error: 'Ingresa el nombre de tu primera sala.' };
   }
   if (!Number.isInteger(d.salaCupo) || d.salaCupo < 1) {
     return { ok: false, error: 'El cupo debe ser un número entero mayor a 0.' };

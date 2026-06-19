@@ -151,7 +151,7 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
     const { data, error } = await query;
     if (error) {
       console.error('[ReservasVistaLista]', error);
-      toast.error('No pudimos cargar las reservas. Probá de nuevo.');
+      toast.error('No pudimos cargar las reservas. Prueba de nuevo.');
       setIsLoading(false);
       return;
     }
@@ -209,7 +209,7 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
     const { error } = await marcarAsistenciaAdmin(r.id, currentUser.id);
     setActioning(false);
     if (error) {
-      toast.error('No pudimos marcar la asistencia. Probá de nuevo.');
+      toast.error('No pudimos marcar la asistencia. Prueba de nuevo.');
       return;
     }
     toast.success(`Asistencia confirmada para ${r.usuario_nombre}`);
@@ -222,7 +222,7 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
     const { error } = await marcarNoShowAdmin(noShowTarget.id);
     setActioning(false);
     if (error) {
-      toast.error('No pudimos marcar la inasistencia. Probá de nuevo.');
+      toast.error('No pudimos marcar la inasistencia. Prueba de nuevo.');
       return;
     }
     toast.success(`Marcado no-show: ${noShowTarget.usuario_nombre}`);

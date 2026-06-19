@@ -59,7 +59,7 @@ export default function NuevaContrasena() {
 
     const v = validarNuevaContrasena(password, confirmacion);
     if (!v.ok) {
-      setError(v.error ?? 'Revisá la contraseña.');
+      setError(v.error ?? 'Revisa la contraseña.');
       return;
     }
 
@@ -96,7 +96,7 @@ export default function NuevaContrasena() {
           </p>
           <h2 className="ek-h3" style={{ margin: 0 }}>El enlace expiró o no es válido</h2>
           <p className="ek-body-muted" style={{ margin: 0, lineHeight: 1.55 }}>
-            Los enlaces de recuperación caducan por seguridad. Pedí uno nuevo.
+            Los enlaces de recuperación caducan por seguridad. Pide uno nuevo.
           </p>
           <Link to="/recuperar" className="ek-cta ek-cta--full" style={{ textAlign: 'center', textDecoration: 'none' }}>
             Pedir un enlace nuevo
@@ -123,7 +123,7 @@ export default function NuevaContrasena() {
           </p>
           <h2 className="ek-h3" style={{ margin: 0 }}>Contraseña actualizada</h2>
           <p className="ek-body-muted" style={{ margin: 0, lineHeight: 1.55 }}>
-            Tu contraseña se cambió correctamente. Ya podés entrar con la nueva.
+            Tu contraseña se cambió correctamente. Ya puedes entrar con la nueva.
           </p>
           <button
             type="button"
@@ -144,7 +144,7 @@ export default function NuevaContrasena() {
         <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: 0 }}>
           NUEVA CONTRASEÑA
         </p>
-        <h2 className="ek-h3" style={{ margin: 0 }}>Elegí tu nueva contraseña</h2>
+        <h2 className="ek-h3" style={{ margin: 0 }}>Elige tu nueva contraseña</h2>
 
         <div className="ek-form-field">
           <label htmlFor="np-password" className="ek-label">Nueva contraseña</label>
@@ -164,7 +164,7 @@ export default function NuevaContrasena() {
         </div>
 
         <div className="ek-form-field">
-          <label htmlFor="np-confirm" className="ek-label">Repetí la contraseña</label>
+          <label htmlFor="np-confirm" className="ek-label">Repite la contraseña</label>
           <input
             id="np-confirm"
             type="password"

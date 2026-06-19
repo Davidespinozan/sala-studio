@@ -76,7 +76,7 @@ export default function Horarios() {
     if (!eliminando) return;
     const { error } = await eliminarHorarioRecurrente(eliminando.id);
     if (error) {
-      toast.error('No pudimos eliminar el horario. Probá de nuevo.');
+      toast.error('No pudimos eliminar el horario. Prueba de nuevo.');
       return;
     }
     setEliminando(null);
@@ -117,7 +117,7 @@ export default function Horarios() {
         }}
       >
         <p style={{ fontSize: '13px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
-          Definí acá la grilla semanal de cada sala. Las clases aparecen solas en la
+          Define acá la grilla semanal de cada sala. Las clases aparecen solas en la
           Agenda y en la app del socio — sin generar nada. Cualquier cambio que hagas
           se refleja al instante.
         </p>
@@ -159,7 +159,7 @@ export default function Horarios() {
             Todavía no definiste horarios recurrentes.
           </h3>
           <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 20px' }}>
-            Creá una sala primero y después definí su grilla semanal.
+            Crea una sala primero y después define su grilla semanal.
           </p>
           <button onClick={() => setModal({ mode: 'create' })} className="ek-cta">
             + Nuevo horario
@@ -202,7 +202,7 @@ export default function Horarios() {
                     }}
                   >
                     <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0 }}>
-                      Esta sala todavía no tiene clases. Agregá su primer horario para que aparezcan en la agenda.
+                      Esta sala todavía no tiene clases. Agrega su primer horario para que aparezcan en la agenda.
                     </p>
                     <button
                       onClick={() => setModal({ mode: 'create' })}
@@ -244,7 +244,7 @@ export default function Horarios() {
             setModal(null);
             toast.success(
               esCreacion
-                ? 'Horario creado. Tocá "Generar clases ahora" o esperá a la generación nocturna.'
+                ? 'Horario creado. Toca "Generar clases ahora" o espera a la generación nocturna.'
                 : 'Horario actualizado.'
             );
           }}
@@ -439,11 +439,11 @@ function HorarioModal({
   async function handleSave() {
     setError(null);
     if (!recursoId) {
-      setError('Elegí una sala.');
+      setError('Elige una sala.');
       return;
     }
     if (dias.length === 0) {
-      setError('Elegí al menos un día de la semana.');
+      setError('Elige al menos un día de la semana.');
       return;
     }
     if (!nombre.trim()) {
@@ -465,7 +465,7 @@ function HorarioModal({
       cupoVal = c;
     }
     if (esCreacion && !sucursalId) {
-      setError('No hay una sucursal activa. Recargá la página.');
+      setError('No hay una sucursal activa. Recarga la página.');
       return;
     }
 
@@ -487,7 +487,7 @@ function HorarioModal({
       if (solape) {
         setError(
           `Este horario se solapa con "${solape.nombre}" (${formatDias(solape.dias_semana)} ` +
-            `${formatHora(solape.hora_inicio)}) en la misma sala. Ajustá el día o la hora.`
+            `${formatHora(solape.hora_inicio)}) en la misma sala. Ajusta el día o la hora.`
         );
         return;
       }
@@ -513,8 +513,8 @@ function HorarioModal({
     if (err) {
       setError(
         err.includes('HORARIO_SOLAPADO')
-          ? 'Este horario se solapa con otro de la misma sala. Ajustá el día o la hora.'
-          : 'No pudimos guardar el horario. Probá de nuevo.'
+          ? 'Este horario se solapa con otro de la misma sala. Ajusta el día o la hora.'
+          : 'No pudimos guardar el horario. Prueba de nuevo.'
       );
       return;
     }
@@ -538,7 +538,7 @@ function HorarioModal({
             onChange={(e) => elegirRecurso(e.target.value)}
             className="ek-input"
           >
-            <option value="">Elegí una sala…</option>
+            <option value="">Elige una sala…</option>
             {recursosOpts.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.nombre}
@@ -652,7 +652,7 @@ function HorarioModal({
             checked={activo}
             onChange={setActivo}
             label="Horario activo"
-            description="Al desactivarlo se detiene la generación de nuevas clases. Las clases ya generadas siguen en la Agenda — cancelalas desde ahí si querés."
+            description="Al desactivarlo se detiene la generación de nuevas clases. Las clases ya generadas siguen en la Agenda — cancelalas desde ahí si quieres."
           />
         </div>
 

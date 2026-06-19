@@ -6,7 +6,7 @@ import ContactoGymCTA from './ContactoGymCTA';
 /**
  * Banner persistente en el layout del socio. SOLO informativo: si la
  * membresía está en estado problemático (vencida / saldo 0 / pausada /
- * sin membresía), muestra un mensaje "contactá al gimnasio". Si está
+ * sin membresía), muestra un mensaje "contacta al gimnasio". Si está
  * sana, retorna null (no molesta).
  *
  * NO toca el control de acceso del MemberLayout — el socio con membresía
@@ -106,7 +106,7 @@ function bannerContenido(estado: Exclude<EstadoMembresia, 'sana'>): {
       return {
         variant: 'error',
         eyebrow: 'Membresía vencida',
-        mensaje: 'Tu membresía venció. Contactá al gimnasio para renovar.',
+        mensaje: 'Tu membresía venció. Contacta al gimnasio para renovar.',
         waMensaje: 'Hola, mi membresía venció y quiero renovarla.'
       };
     case 'sin_membresia':
@@ -120,14 +120,14 @@ function bannerContenido(estado: Exclude<EstadoMembresia, 'sana'>): {
       return {
         variant: 'warning',
         eyebrow: 'Membresía pausada',
-        mensaje: 'Tu membresía está pausada. Contactá al gimnasio.',
+        mensaje: 'Tu membresía está pausada. Contacta al gimnasio.',
         waMensaje: 'Hola, mi membresía está pausada y quiero reactivarla.'
       };
     case 'sin_creditos':
       return {
         variant: 'warning',
         eyebrow: 'Sin clases disponibles',
-        mensaje: 'Te quedaste sin clases. Contactá al gimnasio para recargar.',
+        mensaje: 'Te quedaste sin clases. Contacta al gimnasio para recargar.',
         waMensaje: 'Hola, me quedé sin clases y quiero recargar mi paquete.'
       };
   }

@@ -96,7 +96,7 @@ export class ErrorBoundary extends Component<Props, State> {
             Algo salió mal en esta sección
           </h2>
           <p style={{ color: 'var(--ek-ink-muted, var(--sala-text-secondary))', margin: '0 0 20px', maxWidth: '28rem', fontSize: '14px' }}>
-            Probá de nuevo. Si sigue, recargá la página o cambiá de sección.
+            Prueba de nuevo. Si sigue, recarga la página o cambia de sección.
           </p>
           <button onClick={this.handleReset} className="ek-cta" style={{ minHeight: '44px' }}>
             Reintentar

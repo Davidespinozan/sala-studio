@@ -7,8 +7,8 @@ import type { ReservaConJoin } from '../../hooks/useReservasHoy';
 
 /**
  * Mapa de Salón interactivo para recepción: ve quién va en cada lugar y puede
- * MOVER a un socio. Flujo: tocás a la persona a mover (queda resaltada), después
- * tocás un lugar libre. Reasigna vía RPC cambiar_lugar_reserva (staff-gated).
+ * MOVER a un socio. Flujo: tocas a la persona a mover (queda resaltada), después
+ * tocas un lugar libre. Reasigna vía RPC cambiar_lugar_reserva (staff-gated).
  */
 export function MapaClaseModal({
   reserva,
@@ -65,8 +65,8 @@ export function MapaClaseModal({
         </h3>
         <p style={{ color: 'var(--ek-ink-muted)', margin: 0, fontSize: '13px' }}>
           {moviendo
-            ? `Moviendo a ${nombreMoviendo}: tocá un lugar libre.`
-            : 'Tocá a una persona para moverla.'}
+            ? `Moviendo a ${nombreMoviendo}: toca un lugar libre.`
+            : 'Toca a una persona para moverla.'}
         </p>
 
         {!layout ? (

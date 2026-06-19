@@ -110,9 +110,9 @@ const POST_HERO_DEFAULT: PostHeroDraft = {
   titulo: 'De cero a tu primera clase.',
   titulo_accent: 'En tres pasos.',
   items: [
-    { titulo: 'Elegí tu plan', texto: 'Pickeá la membresía que va con tu ritmo. Sin permanencia rara, sin letra chica.' },
-    { titulo: 'Reservá desde la app', texto: 'Elegí sala, día y horario en segundos. Sin llamadas, sin esperar.' },
-    { titulo: 'Llegá y entrená', texto: 'Mostrá tu QR en recepción y listo. Las salas ya están montadas con todo el equipo.' }
+    { titulo: 'Elige tu plan', texto: 'Elige la membresía que va con tu ritmo. Sin permanencia rara, sin letra chica.' },
+    { titulo: 'Reserva desde la app', texto: 'Elige sala, día y horario en segundos. Sin llamadas, sin esperar.' },
+    { titulo: 'Llega y entrena', texto: 'Muestra tu QR en recepción y listo. Las salas ya están montadas con todo el equipo.' }
   ]
 };
 
@@ -155,8 +155,8 @@ function readSecciones(landing: Record<string, unknown>): LandingSecciones {
 // FAQ genérico de arranque (sin reglas falsas). El admin lo edita a su realidad.
 const FAQ_STARTER: FaqDraftItem[] = [
   { pregunta: '¿Qué incluye la membresía?', respuesta: 'Acceso a las salas y clases según tu plan, con reservas desde la app.' },
-  { pregunta: '¿Cómo reservo una clase?', respuesta: 'Desde la app: elegís sala, día y horario, y mostrás tu QR al llegar.' },
-  { pregunta: '¿Puedo cancelar una reserva?', respuesta: 'Sí. Cancelá con anticipación para liberar tu lugar.' }
+  { pregunta: '¿Cómo reservo una clase?', respuesta: 'Desde la app: eliges sala, día y horario, y muestras tu QR al llegar.' },
+  { pregunta: '¿Puedo cancelar una reserva?', respuesta: 'Sí. Cancela con anticipación para liberar tu lugar.' }
 ];
 
 const EMPTY: LandingDraft = {
@@ -485,7 +485,7 @@ export default function AjustesLanding() {
     };
     const { error } = await saveTopLevel({ landing: payload });
     if (error) {
-      toast.error('No pudimos guardar los cambios. Probá de nuevo.');
+      toast.error('No pudimos guardar los cambios. Prueba de nuevo.');
       return;
     }
     setOriginal(draft);
@@ -552,7 +552,7 @@ export default function AjustesLanding() {
 
       <Section title="HERO" description="La primera impresión cuando alguien visita tu landing.">
         <p style={{ fontSize: '12px', color: 'var(--sala-text-secondary)', margin: '0 0 14px', lineHeight: 1.5 }}>
-          Subí una o varias imágenes. Con varias, <strong>rotan solas en un carrusel</strong> (crossfade +
+          Sube una o varias imágenes. Con varias, <strong>rotan solas en un carrusel</strong> (crossfade +
           movimiento sutil). Cada imagen tiene su versión <strong>desktop (16:9)</strong> y{' '}
           <strong>móvil (3:4)</strong>. Sin imágenes, el hero queda de texto sobre fondo claro.
         </p>
@@ -605,7 +605,7 @@ export default function AjustesLanding() {
                 label="Móvil (3:4) — opcional"
                 cropAspect={3 / 4}
                 previewMaxHeight={180}
-                helperText="Vertical para celulares. Si no subís, en móvil se usa la de desktop."
+                helperText="Vertical para celulares. Si no subes, en móvil se usa la de desktop."
               />
             </div>
           </div>
@@ -622,7 +622,7 @@ export default function AjustesLanding() {
 
         <FormField
           label="Estilo del hero"
-          helper="Cómo se muestra la imagen del hero. Solo aplica cuando subís una imagen de fondo."
+          helper="Cómo se muestra la imagen del hero. Solo aplica cuando subes una imagen de fondo."
         >
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {HERO_LAYOUT_OPTS.map((opt) => {
@@ -676,7 +676,7 @@ export default function AjustesLanding() {
 
         <FormField
           label="Palabra destacada (mostaza)"
-          helper="Aparece al final del título en color mostaza. Dejá vacío si no querés highlight."
+          helper="Aparece al final del título en color mostaza. Deja vacío si no quieres highlight."
           count={draft.hero.titulo_accent.length}
           max={40}
         >
@@ -736,7 +736,7 @@ export default function AjustesLanding() {
 
       <Section
         title="SECCIÓN DESPUÉS DEL HERO"
-        description="Elegí el formato de la sección que va abajo del hero (o ocultala). El contenido es el mismo para los tres formatos."
+        description="Elige el formato de la sección que va abajo del hero (o ocultala). El contenido es el mismo para los tres formatos."
       >
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
           {POST_HERO_VAR_OPTS.map((opt) => {
@@ -832,7 +832,7 @@ export default function AjustesLanding() {
 
       <Section
         title="TÍTULOS DE LAS SECCIONES"
-        description="Los encabezados de cada bloque de tu landing. El contenido (salas, planes, instructores) se edita en sus propias páginas; acá personalizás solo los títulos."
+        description="Los encabezados de cada bloque de tu landing. El contenido (salas, planes, instructores) se edita en sus propias páginas; acá personalizas solo los títulos."
       >
         <SubBloque label="Salas">
           <SeccionHeadingFields value={draft.secciones.salas} onChange={(v) => setSeccion('salas', v)} />
@@ -843,7 +843,7 @@ export default function AjustesLanding() {
             onChange={(v) => setSeccion('membresias', v)}
           />
         </SubBloque>
-        <SubBloque label="Instructores" hint="Se muestra solo si activás la sección de instructores abajo.">
+        <SubBloque label="Instructores" hint="Se muestra solo si activas la sección de instructores abajo.">
           <SeccionHeadingFields
             value={draft.secciones.instructores}
             onChange={(v) => setSeccion('instructores', v)}
@@ -853,13 +853,13 @@ export default function AjustesLanding() {
 
       <Section
         title="SECCIONES"
-        description="Encendé o apagá bloques opcionales de tu landing pública."
+        description="Enciende o apaga bloques opcionales de tu landing pública."
       >
         <Toggle
           checked={draft.mostrar_instructores}
           onChange={(v) => setDraft({ ...draft, mostrar_instructores: v })}
           label="Sección de instructores"
-          description="Mostrá a tu equipo de instructores en tu página pública. Se muestran todos los instructores activos."
+          description="Muestra a tu equipo de instructores en tu página pública. Se muestran todos los instructores activos."
         />
       </Section>
 
@@ -908,7 +908,7 @@ export default function AjustesLanding() {
               setDraft({ ...draft, cta_final: { ...draft.cta_final, cta_texto: e.target.value } })
             }
             className="ek-input"
-            placeholder="Contáctanos por WhatsApp →"
+            placeholder="Cuentactanos por WhatsApp →"
           />
         </FormField>
       </Section>
@@ -954,7 +954,7 @@ export default function AjustesLanding() {
           />
         </FormField>
 
-        <FormField label="Dirección" helper="Opcional. Si la dejás vacía, no aparece en el footer.">
+        <FormField label="Dirección" helper="Opcional. Si la dejas vacía, no aparece en el footer.">
           <input
             value={draft.footer.direccion}
             onChange={(e) =>
@@ -965,7 +965,7 @@ export default function AjustesLanding() {
           />
         </FormField>
 
-        <FormField label="Email" helper="Opcional. Si la dejás vacía, no aparece en el footer.">
+        <FormField label="Email" helper="Opcional. Si la dejas vacía, no aparece en el footer.">
           <input
             type="email"
             value={draft.footer.email}

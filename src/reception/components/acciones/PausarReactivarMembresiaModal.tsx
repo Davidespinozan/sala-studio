@@ -29,8 +29,8 @@ export function PausarReactivarMembresiaModal({ socioId, socioNombre, modo, isOp
       title={esPausar ? 'Pausar membresía' : 'Reactivar membresía'}
       description={
         esPausar
-          ? `Pausás la membresía de ${socioNombre}. No podrá reservar hasta reactivarla.`
-          : `Reactivás la membresía de ${socioNombre}.`
+          ? `Pausas la membresía de ${socioNombre}. No podrá reservar hasta reactivarla.`
+          : `Reactivas la membresía de ${socioNombre}.`
       }
       variant={esPausar ? 'warning' : 'info'}
       confirmLabel={esPausar ? 'Pausar' : 'Reactivar'}

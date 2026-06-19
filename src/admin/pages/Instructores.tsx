@@ -83,7 +83,7 @@ export default function Instructores() {
             Todavía no cargaste instructores.
           </h3>
           <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '20px' }}>
-            Agregá el primero para poder asignarlo a las clases.
+            Agrega el primero para poder asignarlo a las clases.
           </p>
           <button onClick={() => setModal({ mode: 'create' })} className="ek-cta">
             + Nuevo instructor
@@ -315,7 +315,7 @@ function InstructorModal({
       return;
     }
     if (esCreacion && !sucursalId) {
-      setError('No hay una sucursal activa. Recargá la página.');
+      setError('No hay una sucursal activa. Recarga la página.');
       return;
     }
 
@@ -335,7 +335,7 @@ function InstructorModal({
     setSaving(false);
 
     if (err) {
-      setError('No pudimos guardar el instructor. Probá de nuevo.');
+      setError('No pudimos guardar el instructor. Prueba de nuevo.');
       return;
     }
     toast.success(esCreacion ? 'Instructor creado' : 'Instructor actualizado');

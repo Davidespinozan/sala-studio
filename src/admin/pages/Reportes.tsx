@@ -356,7 +356,7 @@ function BloqueHeatmap({ hm }: { hm: ReportesHeatmapData }) {
               </div>
             </div>
             <p style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', margin: '14px 0 0' }}>
-              Más oscuro = más demanda. Abrí clases en las horas pico y recortá el valle.
+              Más oscuro = más demanda. Abre clases en las horas pico y recorta el valle.
             </p>
           </>
         )}
@@ -437,7 +437,7 @@ function BloqueOperacion({ op }: { op: ReportesOperacionData }) {
               valor={op.creditosPorVencer}
               alerta={op.creditosPorVencer > 0}
               nota={`${op.membresiasPorVencer} membresías`}
-              ayuda="Créditos que vencen en los próximos 14 días. Avisá a esos socios para que los usen antes de perderlos: oportunidad de retención y de que vuelvan al gym."
+              ayuda="Créditos que vencen en los próximos 14 días. Avisa a esos socios para que los usen antes de perderlos: oportunidad de retención y de que vuelvan al gym."
             />
           </>
         )}

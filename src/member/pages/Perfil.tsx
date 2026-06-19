@@ -397,7 +397,7 @@ function PlanHero({
               No tienes un plan activo
             </p>
             <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.55)', margin: '8px 0 0', lineHeight: 1.5 }}>
-              Hablá con {tenantNombre} para activar tu plan y empezar a reservar.
+              Habla con {tenantNombre} para activar tu plan y empezar a reservar.
             </p>
           </>
         )}
@@ -440,7 +440,7 @@ function PlanActualYOpciones({
         return;
       }
       // Tenant real sin Stripe todavía.
-      toast.info(`El pago online está en camino. Por ahora, hablá con ${tenantNombre} para activar tu plan.`);
+      toast.info(`El pago online está en camino. Por ahora, habla con ${tenantNombre} para activar tu plan.`);
       setEnProceso(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'No pudimos procesar la suscripción.');
@@ -664,7 +664,7 @@ function CancelarSuscripcion({ tenantNombre }: { tenantNombre: string }) {
     <button
       type="button"
       onClick={() =>
-        toast.info(`Para cancelar tu plan, hablá con ${tenantNombre}. Pronto vas a poder hacerlo desde acá.`)
+        toast.info(`Para cancelar tu plan, habla con ${tenantNombre}. Pronto vas a poder hacerlo desde acá.`)
       }
       className="ek-cta ek-cta--secondary ek-cta--full"
       style={{ marginTop: '24px', color: 'var(--sala-text-secondary)' }}
@@ -689,7 +689,7 @@ const FAQ_PLAN: Array<{ q: string; a: string }> = [
   },
   {
     q: '¿Puedo cambiar de plan cuando quiera?',
-    a: 'Sí. Por ahora coordinás el cambio con tu gimnasio; pronto vas a poder hacerlo desde acá.'
+    a: 'Sí. Por ahora coordinas el cambio con tu gimnasio; pronto vas a poder hacerlo desde acá.'
   },
   {
     q: '¿Cómo agrego o cambio mi tarjeta?',

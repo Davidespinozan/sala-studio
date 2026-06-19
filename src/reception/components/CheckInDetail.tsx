@@ -64,7 +64,7 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, errorMes
         <p className="rec-detail-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><AlertTriangle size={15} strokeWidth={2.5} />NO PUEDE ENTRAR</p>
         <p className="rec-detail-error-message">{errorMessage ?? 'QR no válido'}</p>
         <p style={{ color: 'var(--sala-text-secondary)', fontSize: '0.875rem', marginTop: '1rem' }}>
-          Si necesitás anular o aclarar, avisá a admin.
+          Si necesitas anular o aclarar, avisa a admin.
         </p>
         <div className="rec-detail-footer">
           <button onClick={onClose} className="ek-cta ek-cta--full">

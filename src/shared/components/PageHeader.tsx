@@ -12,7 +12,7 @@ interface Props {
   eyebrow?: string;
   /** Título principal (ej. "Hoy", "Socios", nombre del socio). */
   title: string;
-  /** Línea secundaria opcional (ej. "Buscá por nombre o teléfono"). */
+  /** Línea secundaria opcional (ej. "Busca por nombre o teléfono"). */
   subtitle?: string;
   /** Slot a la derecha: CTAs o controles. En mobile baja debajo del título. */
   right?: ReactNode;

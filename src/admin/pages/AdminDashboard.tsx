@@ -136,7 +136,7 @@ function SeccionHoy({
       </p>
       {total === 0 ? (
         <p style={{ marginBottom: '0', fontSize: '14px', color: 'var(--sala-text-secondary)' }}>
-          Día tranquilo. Mirá la <Link to="/admin/calendario" style={{ color: 'var(--sala-primary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'bottom' }}>agenda completa<ArrowRight size={14} strokeWidth={2.25} /></Link>
+          Día tranquilo. Mira la <Link to="/admin/calendario" style={{ color: 'var(--sala-primary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'bottom' }}>agenda completa<ArrowRight size={14} strokeWidth={2.25} /></Link>
         </p>
       ) : (
         <>
@@ -211,7 +211,7 @@ function SeccionHoy({
                       {
                         label: 'Ver detalle',
                         icon: <Eye size={15} />,
-                        onClick: () => toast.info('Para ver el detalle completo, andá a la pantalla de Reservas.')
+                        onClick: () => toast.info('Para ver el detalle completo, ve a la pantalla de Reservas.')
                       },
                       {
                         label: 'Cancelar reserva',
@@ -495,7 +495,7 @@ function SeccionDinero() {
           type="button"
           disabled
           onClick={() =>
-            toast.info('Conexión con Stripe próximamente. Quedate atento.')
+            toast.info('Conexión con Stripe próximamente. Quédate atento.')
           }
           className="ek-cta ek-cta--secondary"
           style={{ padding: '10px 18px', fontSize: '12px', opacity: 0.6, cursor: 'not-allowed' }}

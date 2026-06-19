@@ -7,7 +7,7 @@ import { esSesionDemo, esTenantDemo } from '@shared/lib/demoAuth';
  *  - Vistas de app del demo (admin/miembro/recepción): la sesión es anónima
  *    (esSesionDemo) → "Salir" cierra sesión y vuelve al apex.
  *  - Landing pública del tenant demo (healthyspace): no hay sesión, pero es el
- *    gimnasio de ejemplo → "Salir/Creá tu gym" apuntan al apex de SALA.
+ *    gimnasio de ejemplo → "Salir/Crea tu gym" apuntan al apex de SALA.
  */
 export function ModoDemoBanner() {
   const { authUser, signOut } = useAuth();

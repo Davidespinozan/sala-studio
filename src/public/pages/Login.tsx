@@ -48,7 +48,7 @@ export default function Login() {
       // El useRoleRedirect del PublicLayout mueve al área correcta según rol.
       navigate('/', { replace: true });
     } catch (err) {
-      setError('Error inesperado. Intentá de nuevo.');
+      setError('Error inesperado. Intenta de nuevo.');
       setIsSubmitting(false);
     }
   }
@@ -92,7 +92,7 @@ export default function Login() {
                 }}
               >
                 <strong style={{ color: 'var(--sala-text-primary)' }}>Vista previa:</strong> así ven
-                tus socios su login. Cargamos un socio de ejemplo por si querés entrar.
+                tus socios su login. Cargamos un socio de ejemplo por si quieres entrar.
               </div>
             )}
             <div className="ek-form-field">
@@ -160,11 +160,11 @@ function traducirError(message: string): string {
     return 'Email o contraseña incorrectos';
   }
   if (message.includes('Email not confirmed')) {
-    return 'Necesitás confirmar tu email primero';
+    return 'Necesitas confirmar tu email primero';
   }
   if (message.includes('Too many requests')) {
-    return 'Demasiados intentos. Esperá unos minutos.';
+    return 'Demasiados intentos. Espera unos minutos.';
   }
   // Genérico en español: no exponer el mensaje crudo de Supabase (inglés).
-  return 'No pudimos iniciar sesión. Intentá de nuevo.';
+  return 'No pudimos iniciar sesión. Intenta de nuevo.';
 }

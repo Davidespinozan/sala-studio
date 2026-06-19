@@ -35,7 +35,7 @@ export function CheckoutModalMock({ tier, moneda, onClose, onConfirmed }: Props)
     const { error } = await crearSuscripcion({ tenantId: tenant.id, tier, moneda });
     setProcesando(false);
     if (error) {
-      toast.error('No pudimos activar la suscripción. Probá de nuevo.');
+      toast.error('No pudimos activar la suscripción. Prueba de nuevo.');
       return;
     }
     toast.success('¡Suscripción activada! (modo demo)');
@@ -98,7 +98,7 @@ export function CheckoutModalMock({ tier, moneda, onClose, onConfirmed }: Props)
             {precioStr} <span style={{ fontSize: '13px', fontWeight: 500 }}>{moneda.toUpperCase()}</span>
           </p>
           <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, lineHeight: 1.5 }}>
-            {TRIAL_DIAS} días de prueba gratis. Después, {precioStr}. Cancelás cuando quieras.
+            {TRIAL_DIAS} días de prueba gratis. Después, {precioStr}. Cancelas cuando quieras.
           </p>
         </div>
 

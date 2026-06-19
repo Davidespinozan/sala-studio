@@ -222,7 +222,7 @@ export async function canModifyTeamMember(
   if (targetUserId === currentUserId) {
     return {
       canModify: false,
-      reason: 'No podés modificarte a vos mismo. Pedile a otro admin que lo haga.'
+      reason: 'No puedes modificarte a ti mismo. Pídele a otro admin que lo haga.'
     };
   }
 

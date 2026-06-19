@@ -19,7 +19,7 @@ export function MarcarNoShowModal({ reservaId, reservaLabel, isOpen, onClose, on
     <AccionModal
       isOpen={isOpen}
       title="Marcar no-show"
-      description={`Marcás como inasistencia la reserva de ${reservaLabel}. Queda registrada, baja su % de asistencia y no se devuelve el crédito.`}
+      description={`Marcas como inasistencia la reserva de ${reservaLabel}. Queda registrada, baja su % de asistencia y no se devuelve el crédito.`}
       variant="warning"
       confirmLabel="Marcar no-show"
       cancelLabel="Volver"

@@ -33,8 +33,8 @@ export function translateReadError(error: unknown): string {
     lower.includes('networkerror') ||
     lower.includes('network request failed')
   ) {
-    return 'Sin conexión. Reintentá en unos segundos';
+    return 'Sin conexión. Reintenta en unos segundos';
   }
 
-  return 'No pudimos cargar la información. Reintentá en unos segundos';
+  return 'No pudimos cargar la información. Reintenta en unos segundos';
 }

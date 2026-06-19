@@ -44,7 +44,7 @@ export function MotivoField({ value, onChange, opciones, label = 'Motivo del cam
         value={sel}
         onChange={(e) => handleSelect(e.target.value)}
       >
-        <option value="" disabled>Elegí un motivo…</option>
+        <option value="" disabled>Elige un motivo…</option>
         {opciones.map((o) => (
           <option key={o} value={o}>{o}</option>
         ))}
@@ -56,7 +56,7 @@ export function MotivoField({ value, onChange, opciones, label = 'Motivo del cam
           id={`${idPrefix}-libre`}
           className="ek-input"
           type="text"
-          placeholder="Escribí el motivo"
+          placeholder="Escribe el motivo"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           autoFocus

@@ -39,7 +39,7 @@ export function PoweredBySala({ align = 'center', tone = 'light' }: Props = {}) 
       href="https://salastudio.app/para-gimnasios"
       target="_blank"
       rel="noopener noreferrer"
-      title="Conocé SALA — creá tu propio gym"
+      title="Conoce SALA — crea tu propio gym"
       style={{
         display: 'flex',
         alignItems: 'center',

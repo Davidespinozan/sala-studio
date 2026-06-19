@@ -78,7 +78,7 @@ export default function Sucursales() {
       >
         <p style={{ fontSize: '13px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
           Cada sucursal tiene sus propias salas, instructores, horarios y zona horaria.
-          Elegí con cuál estás trabajando desde el selector de arriba.
+          Elige con cuál estás trabajando desde el selector de arriba.
         </p>
       </div>
 
@@ -161,7 +161,7 @@ function UpgradeGate({ cantidad }: { cantidad: number }) {
             lineHeight: 1.55
           }}
         >
-          Tu plan actual opera con una sola sucursal. Con Business creás sedes
+          Tu plan actual opera con una sola sucursal. Con Business creas sedes
           ilimitadas, cada una con sus propias salas, instructores, horarios y
           zona horaria.
         </p>
@@ -286,7 +286,7 @@ function SucursalModal({
       return;
     }
     if (!esCreacion && !activa && otrasActivas === 0) {
-      setError('Debe quedar al menos una sucursal activa. Activá otra antes de desactivar esta.');
+      setError('Debe quedar al menos una sucursal activa. Activa otra antes de desactivar esta.');
       return;
     }
 
@@ -308,7 +308,7 @@ function SucursalModal({
     setSaving(false);
 
     if (err) {
-      setError('No pudimos guardar la sucursal. Probá de nuevo.');
+      setError('No pudimos guardar la sucursal. Prueba de nuevo.');
       return;
     }
     toast.success(esCreacion ? 'Sucursal creada' : 'Sucursal actualizada');

@@ -80,7 +80,7 @@ export function CameraModal({ onClose, onScan }: Props) {
               <video ref={videoRef} className="rec-video" autoPlay playsInline muted />
               <div className="rec-camera-overlay">
                 <div className="rec-scan-frame" />
-                <p className="rec-scan-hint">Apuntá al QR</p>
+                <p className="rec-scan-hint">Apunta al QR</p>
               </div>
             </>
           )}

@@ -103,7 +103,7 @@ export function applyBranding(branding: BrandingColors | null | undefined): void
   // D-021 (dos capas de color): los tokens SEMÁNTICOS (--sala-warning/-error y
   // derivados) son FIJOS del sistema (ámbar/coral/verde) — NO se remapean a la
   // marca del tenant. Antes acá se forzaban a primario/acento (monocromo); eso
-  // contradecía D-021 y se quitó. Quedan en sus valores del :root para todos.
+  // contradia D-021 y se quitó. Quedan en sus valores del :root para todos.
 }
 
 /**

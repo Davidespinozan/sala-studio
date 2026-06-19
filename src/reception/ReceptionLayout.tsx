@@ -40,7 +40,7 @@ export default function ReceptionLayout() {
     if (!accesoRevocado(usuario.status)) return;
     if (yaCerrado.current) return;
     yaCerrado.current = true;
-    toast.error('Tu acceso fue revocado. Contactá al administrador.', 8000);
+    toast.error('Tu acceso fue revocado. Contacta al administrador.', 8000);
     void signOut();
   }, [authUser, usuario, isLoading, signOut, toast]);
 

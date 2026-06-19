@@ -41,7 +41,7 @@ export function traducirErrorRecuperacion(message: string): string {
     m.includes('not found') ||
     (m.includes('session') && m.includes('missing'))
   ) {
-    return 'El enlace expiró o no es válido. Pedí uno nuevo.';
+    return 'El enlace expiró o no es válido. Pide uno nuevo.';
   }
   if (m.includes('different from the old') || m.includes('should be different')) {
     return 'La nueva contraseña debe ser distinta de la anterior.';
@@ -50,8 +50,8 @@ export function traducirErrorRecuperacion(message: string): string {
     return 'La contraseña no es lo bastante fuerte.';
   }
   if (m.includes('too many') || m.includes('rate')) {
-    return 'Demasiados intentos. Esperá unos minutos.';
+    return 'Demasiados intentos. Espera unos minutos.';
   }
   // Genérico en español: no exponer el mensaje crudo de Supabase (inglés).
-  return 'No pudimos completar la acción. Intentá de nuevo.';
+  return 'No pudimos completar la acción. Intenta de nuevo.';
 }

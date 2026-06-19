@@ -124,7 +124,7 @@ export function TenantGuard({ children }: { children: ReactNode }) {
         </h1>
         <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', lineHeight: 1.5, margin: '0 0 20px' }}>
           Estás intentando entrar a <strong>{tenant.nombre}</strong> con una cuenta de otro
-          negocio. Cerrá sesión e ingresá desde el sitio de tu gimnasio.
+          negocio. Cierra sesión e ingresa desde el sitio de tu gimnasio.
         </p>
         <button onClick={cerrarSesion} className="ek-cta ek-cta--full">
           Cerrar sesión

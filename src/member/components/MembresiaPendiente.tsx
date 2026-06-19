@@ -3,7 +3,7 @@ import { TenantLogo } from '@shared/components/TenantLogo';
 /**
  * Pantalla para el miembro con status 'pendiente_pago': cuenta creada pero sin
  * plan activo. En vez de expulsarlo (lo hacía antes), queda logueado viendo este
- * estado read-only — recepción lo activa asignándole un plan.
+ * estado read-only — recepción lo activa asignandole un plan.
  */
 export function MembresiaPendiente({
   nombre,
@@ -48,7 +48,7 @@ export function MembresiaPendiente({
         recepción para activar tu membresía y empezar a reservar.
       </p>
 
-      {/* TODO STRIPE: cuando haya pagos en línea, ofrecer acá un CTA "Elegí tu
+      {/* TODO STRIPE: cuando haya pagos en línea, ofrecer acá un CTA "Elige tu
           plan / Pagar" → flujo de checkout (iniciarCheckout), para que el socio
           se active solo sin pasar por recepción. Ver STRIPE.md → touchpoints. */}
       <button onClick={onCerrarSesion} className="ek-cta ek-cta--secondary">

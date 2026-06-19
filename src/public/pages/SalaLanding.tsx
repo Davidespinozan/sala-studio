@@ -43,7 +43,7 @@ const SHOTS = {
   estudio: '/shots/estudio.png'
 };
 // Mientras no existan los archivos, mostramos placeholder (evita el ícono de
-// imagen rota). Cuando subas las capturas, poné USAR_SHOTS = true.
+// imagen rota). Cuando subas las capturas, pon USAR_SHOTS = true.
 const USAR_SHOTS = true;
 const shot = (key: keyof typeof SHOTS): string | undefined => (USAR_SHOTS ? SHOTS[key] : undefined);
 
@@ -345,7 +345,7 @@ function Features() {
   return (
     <section className="sala-band sala-section-features">
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 clamp(16px, 5vw, 48px)' }}>
-        <SectionEyebrow label="Todo lo que necesitás" />
+        <SectionEyebrow label="Todo lo que necesitas" />
         <h2 style={sectionTitle}>Una plataforma, no diez herramientas sueltas.</h2>
         <div className="sala-features-track">
           {FEATURES.map((f, i) => {
@@ -845,7 +845,7 @@ function Pricing({ moneda }: { moneda: MonedaSaas }) {
       </div>
 
       <p style={{ textAlign: 'center', fontSize: '13px', color: 'var(--sala-text-tertiary)', margin: '20px 0 0' }}>
-        {TRIAL_DIAS} días gratis. Cancelás cuando quieras.
+        {TRIAL_DIAS} días gratis. Cancelas cuando quieras.
       </p>
     </section>
   );

@@ -356,7 +356,7 @@ export default function MiembroDetalle() {
       <ConfirmDialog
         isOpen={showDelete}
         title={`¿Eliminar a ${miembro.nombre ?? miembro.email}?`}
-        description={`Esta acción es permanente. El email "${miembro.email}" queda liberado para re-uso. Escribí ELIMINAR para confirmar.`}
+        description={`Esta acción es permanente. El email "${miembro.email}" queda liberado para re-uso. Escribe ELIMINAR para confirmar.`}
         confirmLabel={deleting ? 'Eliminando…' : 'Eliminar definitivamente'}
         variant="danger"
         requireTypedConfirmation="ELIMINAR"
@@ -499,7 +499,7 @@ function CambiarEstadoControl({
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos cambiar el estado. Probá de nuevo.');
+      setError(e instanceof Error ? e.message : 'No pudimos cambiar el estado. Prueba de nuevo.');
     }
     setSaving(false);
   }
@@ -568,7 +568,7 @@ function CambiarRolControl({
       await onChanged();
       setNeedsConfirm(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos cambiar el rol. Probá de nuevo.');
+      setError(e instanceof Error ? e.message : 'No pudimos cambiar el rol. Prueba de nuevo.');
     }
     setSaving(false);
   }
@@ -639,7 +639,7 @@ function AvatarUploadControl({
       if (updateErr) throw updateErr;
       await onChanged();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos subir la foto. Probá con otra imagen.');
+      setError(e instanceof Error ? e.message : 'No pudimos subir la foto. Prueba con otra imagen.');
     }
     setUploading(false);
   }
@@ -724,7 +724,7 @@ function EditarDatosForm({
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos guardar los cambios. Probá de nuevo.');
+      setError(e instanceof Error ? e.message : 'No pudimos guardar los cambios. Prueba de nuevo.');
     }
     setSaving(false);
   }
@@ -778,7 +778,7 @@ function ResetPasswordControl({ email }: { email: string }) {
       if (error) throw error;
       setSent(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos enviar el email. Probá de nuevo.');
+      setError(e instanceof Error ? e.message : 'No pudimos enviar el email. Prueba de nuevo.');
     }
     setSending(false);
   }

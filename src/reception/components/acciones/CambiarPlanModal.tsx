@@ -46,7 +46,7 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
     <AccionModal
       isOpen={isOpen}
       title="Cambiar de plan"
-      description={`Asignás un plan distinto a ${socioNombre}.`}
+      description={`Asignas un plan distinto a ${socioNombre}.`}
       variant="info"
       confirmLabel="Cambiar plan"
       canConfirm={motivo.trim().length > 0 && nuevoTierId.length > 0}
@@ -64,7 +64,7 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
           value={nuevoTierId}
           onChange={(e) => setNuevoTierId(e.target.value)}
         >
-          <option value="" disabled>Elegí un plan…</option>
+          <option value="" disabled>Elige un plan…</option>
           {tiers.map((t) => (
             <option key={t.id} value={t.id}>{t.nombre}</option>
           ))}

@@ -118,7 +118,7 @@ export default function Bitacora() {
           subtitle={
             entries.length === 0
               ? 'Las acciones de recepción (renovar, cancelar, bloquear, check-in…) van a aparecer acá.'
-              : 'Probá con otra búsqueda o cambiá el filtro de acción.'
+              : 'Prueba con otra búsqueda o cambia el filtro de acción.'
           }
         />
       ) : (

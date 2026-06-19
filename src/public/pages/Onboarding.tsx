@@ -65,7 +65,7 @@ export default function Onboarding() {
 
   function avanzar(validacion: { ok: boolean; error?: string }) {
     if (!validacion.ok) {
-      setErrorPaso(validacion.error ?? 'Revisá los datos.');
+      setErrorPaso(validacion.error ?? 'Revisa los datos.');
       return;
     }
     setErrorPaso(null);
@@ -80,7 +80,7 @@ export default function Onboarding() {
   async function crearGym() {
     const v = validarPasoSetup(state.setup);
     if (!v.ok) {
-      setErrorPaso(v.error ?? 'Revisá los datos.');
+      setErrorPaso(v.error ?? 'Revisa los datos.');
       return;
     }
     setErrorPaso(null);
@@ -96,7 +96,7 @@ export default function Onboarding() {
       if (!res.ok) throw new Error(data.error || 'No se pudo crear el gym.');
       setResultado({ slug: data.slug as string });
     } catch (e) {
-      setErrorPaso(e instanceof Error ? e.message : 'Error inesperado. Probá de nuevo.');
+      setErrorPaso(e instanceof Error ? e.message : 'Error inesperado. Prueba de nuevo.');
     } finally {
       setSubmitting(false);
     }
@@ -265,7 +265,7 @@ function PasoCuenta({
   return (
     <div className="ek-stack-md">
       <p className="ek-body-muted" style={{ margin: 0 }}>
-        Creá tu cuenta de dueño. Vas a administrar el gym con este acceso.
+        Crea tu cuenta de dueño. Vas a administrar el gym con este acceso.
       </p>
       <Campo label="Tu nombre">
         <input
@@ -442,7 +442,7 @@ function PasoPlan({
   return (
     <div className="ek-stack-md">
       <p className="ek-body-muted" style={{ margin: 0 }}>
-        {TRIAL_DIAS} días de prueba gratis en cualquier plan. Cancelás cuando quieras.
+        {TRIAL_DIAS} días de prueba gratis en cualquier plan. Cancelas cuando quieras.
       </p>
       <div
         style={{
@@ -676,7 +676,7 @@ function PasoSetup({
   return (
     <div className="ek-stack-md">
       <p className="ek-body-muted" style={{ margin: 0 }}>
-        Últimos toques. Podés cambiar todo después desde el panel.
+        Últimos toques. Puedes cambiar todo después desde el panel.
       </p>
       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
         <Campo label="Color primario">
@@ -708,8 +708,8 @@ function PasoSetup({
       </div>
       <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', margin: 0 }}>
         El primario es tu color base; el acento es el toque que resalta detalles
-        (planes destacados, estados, etc.). Si querés, dejá el acento igual al
-        primario. El logo lo subís más tarde desde Ajustes › Marca.
+        (planes destacados, estados, etc.). Si quieres, deja el acento igual al
+        primario. El logo lo subes más tarde desde Ajustes › Marca.
       </p>
       <Campo label="Tu primera sala">
         <input
@@ -794,7 +794,7 @@ function PasoListo({ state, slug }: { state: OnboardingState; slug: string }) {
           lineHeight: 1.5
         }}
       >
-        Iniciá sesión con <strong style={{ color: 'var(--ek-ink)' }}>{email}</strong> y la
+        Inicia sesión con <strong style={{ color: 'var(--ek-ink)' }}>{email}</strong> y la
         contraseña que registraste.
       </p>
     </div>

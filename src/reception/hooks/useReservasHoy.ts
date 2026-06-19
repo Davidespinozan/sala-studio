@@ -79,7 +79,7 @@ function translateError(code: string, fallback: string): string {
     RESERVA_NO_SHOW: 'Esta reserva quedó marcada como inasistencia',
     DEMASIADO_TEMPRANO: 'Todavía es muy temprano para el check-in',
     DEMASIADO_TARDE: 'El check-in ya cerró',
-    NO_AUTORIZADO: 'No tenés permiso para hacer esta acción'
+    NO_AUTORIZADO: 'No tienes permiso para hacer esta acción'
   };
   return map[code] ?? fallback.replace(code + ':', '').trim();
 }

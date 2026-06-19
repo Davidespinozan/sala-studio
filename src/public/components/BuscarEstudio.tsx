@@ -68,7 +68,7 @@ export default function BuscarEstudio({ onClose }: { onClose: () => void }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Buscá tu estudio"
+      aria-label="Busca tu estudio"
       onClick={onClose}
       style={{
         position: 'fixed',
@@ -106,7 +106,7 @@ export default function BuscarEstudio({ onClose }: { onClose: () => void }) {
               color: 'var(--sala-text-primary)'
             }}
           >
-            Buscá tu estudio
+            Busca tu estudio
           </p>
           <button
             type="button"
@@ -149,7 +149,7 @@ export default function BuscarEstudio({ onClose }: { onClose: () => void }) {
             />
           </div>
           <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '8px 0 0' }}>
-            Escribí el nombre de tu gimnasio para entrar a tu cuenta.
+            Escribe el nombre de tu gimnasio para entrar a tu cuenta.
           </p>
         </div>
 
@@ -159,7 +159,7 @@ export default function BuscarEstudio({ onClose }: { onClose: () => void }) {
           )}
           {sinResultados && (
             <p style={{ fontSize: '13px', color: 'var(--sala-text-tertiary)', padding: '8px 8px' }}>
-              No encontramos ningún estudio con ese nombre. Probá con otra palabra.
+              No encontramos ningún estudio con ese nombre. Prueba con otra palabra.
             </p>
           )}
           {resultados.map((t) => (

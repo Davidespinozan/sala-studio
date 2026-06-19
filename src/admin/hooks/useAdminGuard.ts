@@ -42,7 +42,7 @@ export function useAdminGuard() {
     if (accesoRevocado(usuario.status)) {
       if (!yaCerrado.current) {
         yaCerrado.current = true;
-        toast.error('Tu acceso fue revocado. Contactá al administrador.', 8000);
+        toast.error('Tu acceso fue revocado. Contacta al administrador.', 8000);
         void signOut();
       }
       return;
