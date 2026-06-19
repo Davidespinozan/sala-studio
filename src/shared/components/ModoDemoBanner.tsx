@@ -25,8 +25,8 @@ export function ModoDemoBanner() {
   return (
     <div className="modo-demo-banner">
       <span className="modo-demo-banner__msg">
-        <span aria-hidden="true">🎬</span>
-        <span>Modo demo · estás explorando un gimnasio de ejemplo.</span>
+        <strong>Demo</strong>
+        <span className="modo-demo-banner__long">· estás explorando un gimnasio de ejemplo</span>
       </span>
       <span className="modo-demo-banner__actions">
         <a

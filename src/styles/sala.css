@@ -2997,10 +2997,13 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   flex-shrink: 0;
 }
 @media (max-width: 640px) {
+  /* Slim: una sola línea. Se oculta la descripción larga y queda "Demo" + acciones. */
   .modo-demo-banner {
-    flex-direction: column;
-    justify-content: center;
-    text-align: center;
-    gap: 10px;
+    padding: 6px 14px;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .modo-demo-banner__long {
+    display: none;
   }
 }

@@ -1,4 +1,4 @@
-import { type SalaLayout, ICONO_EMOJI } from '@shared/lib/salaLayout';
+import { type SalaLayout } from '@shared/lib/salaLayout';
 
 /**
  * Selector de lugar (Mapa de Salón) del socio. Pinta el layout de la sala con
@@ -17,7 +17,6 @@ export function SeleccionarLugar({
   onSelect: (id: string) => void;
 }) {
   const lugarEn = (x: number, y: number) => layout.lugares.find((l) => l.x === x && l.y === y);
-  const emoji = ICONO_EMOJI[layout.tipo_icono];
 
   return (
     <div>
@@ -47,32 +46,36 @@ export function SeleccionarLugar({
                 aria-label={ocupado ? `Lugar ${lugar.label} ocupado` : `Elegir lugar ${lugar.label}`}
                 aria-pressed={elegido}
                 style={{
-                  aspectRatio: '1', display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', borderRadius: '9px', fontFamily: 'inherit',
-                  fontSize: layout.cols > 8 ? '11px' : '13px', fontWeight: 700, lineHeight: 1,
+                  aspectRatio: '1', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', borderRadius: '10px', fontFamily: 'inherit',
+                  fontSize: layout.cols > 8 ? '12px' : '15px', fontWeight: 700, lineHeight: 1,
                   cursor: ocupado ? 'not-allowed' : 'pointer',
-                  // Contraste fuerte: ELEGIDO = primario sólido; OCUPADO = gris
-                  // sólido apagado; LIBRE = borde primario + fondo claro (tappable).
+                  transition: 'transform .12s ease, box-shadow .12s ease',
+                  // Convención clara: HUECO = libre · RELLENO GRIS (tachado) = ocupado
+                  // · RELLENO PRIMARIO = tu lugar.
                   border: elegido
                     ? '2px solid var(--sala-primary)'
                     : ocupado
                       ? '1px solid transparent'
-                      : '1.5px solid var(--sala-primary)',
+                      : '1.5px solid color-mix(in srgb, var(--sala-primary) 50%, transparent)',
                   background: elegido
                     ? 'var(--sala-primary)'
                     : ocupado
-                      ? 'color-mix(in srgb, var(--sala-text-tertiary) 32%, var(--sala-bg))'
-                      : 'color-mix(in srgb, var(--sala-primary) 8%, var(--sala-surface))',
+                      ? 'color-mix(in srgb, var(--sala-text-tertiary) 24%, var(--sala-bg))'
+                      : 'var(--sala-surface)',
                   color: elegido
                     ? 'var(--sala-primary-text)'
                     : ocupado
                       ? 'var(--sala-text-tertiary)'
                       : 'var(--sala-primary)',
-                  opacity: ocupado ? 0.6 : 1
+                  boxShadow: elegido
+                    ? '0 4px 14px color-mix(in srgb, var(--sala-primary) 38%, transparent)'
+                    : 'none',
+                  transform: elegido ? 'scale(1.05)' : 'none',
+                  textDecoration: ocupado ? 'line-through' : 'none'
                 }}
               >
-                <span style={{ fontSize: layout.cols > 8 ? '13px' : '16px' }}>{ocupado ? '×' : emoji}</span>
-                <span>{lugar.label}</span>
+                {lugar.label}
               </button>
             );
           })
@@ -80,9 +83,9 @@ export function SeleccionarLugar({
       </div>
 
       <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', marginTop: '10px', fontSize: '11px', color: 'var(--sala-text-tertiary)' }}>
-        <Leyenda color="color-mix(in srgb, var(--sala-primary) 8%, var(--sala-surface))" borde="var(--sala-primary)" label="Libre" />
+        <Leyenda color="var(--sala-surface)" borde="color-mix(in srgb, var(--sala-primary) 50%, transparent)" label="Libre" />
         <Leyenda color="var(--sala-primary)" borde="var(--sala-primary)" label="Tu lugar" />
-        <Leyenda color="color-mix(in srgb, var(--sala-text-tertiary) 32%, var(--sala-bg))" borde="transparent" label="Ocupado" />
+        <Leyenda color="color-mix(in srgb, var(--sala-text-tertiary) 24%, var(--sala-bg))" borde="transparent" label="Ocupado" />
       </div>
     </div>
   );
