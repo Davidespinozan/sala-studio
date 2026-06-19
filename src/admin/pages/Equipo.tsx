@@ -236,7 +236,7 @@ export default function Equipo() {
                   marginBottom: '14px'
                 }}
               >
-                Sos el único con acceso al sistema.
+                Eres el único con acceso al sistema.
               </h3>
               <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '20px' }}>
                 Invita recepcionistas u otros admins para gestionar el día a día.
@@ -302,7 +302,7 @@ export default function Equipo() {
         title={eliminar ? `¿Eliminar definitivamente a ${capitalizar(eliminar.nombre) || eliminar.email}?` : ''}
         description={
           eliminar
-            ? `Acción permanente. El email "${eliminar.email}" queda liberado para re-uso inmediato. Si tiene reservas en historial, vas a tener que cancelarlas o usar "Revocar acceso" en lugar. Escribe ELIMINAR para confirmar.`
+            ? `Acción permanente. El email "${eliminar.email}" queda liberado para re-uso inmediato. Si tiene reservas en historial, tendrás que cancelarlas o usar "Revocar acceso" en su lugar. Escribe ELIMINAR para confirmar.`
             : ''
         }
         confirmLabel={eliminando ? 'Eliminando…' : 'Eliminar definitivamente'}

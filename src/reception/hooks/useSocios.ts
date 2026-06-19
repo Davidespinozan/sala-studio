@@ -12,6 +12,7 @@ export interface SocioListItem {
   avatar_url: string | null;
   membresia_tier: string | null;
   status: string;
+  sucursal_id: string | null;
 }
 
 // Normaliza para búsqueda insensible a acentos: "José" ≈ "Jose". Postgres ilike
@@ -40,22 +41,21 @@ export function useSocios(query: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Carga del padrón de la sede de la recepción (recarga si cambia la sede).
+  // Carga el padrón COMPLETO del tenant (RLS ya scopea por tenant). El buscador
+  // debe encontrar a cualquier socio — incluido uno con plan global que entrena
+  // en otra sede —, así que no filtramos por sede acá; el filtro por sede se
+  // aplica solo a la lista por defecto (abajo).
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
 
     (async () => {
-      let q = supabase
+      const { data, error: queryError } = await supabase
         .from('usuarios')
-        .select('id, nombre, email, telefono, avatar_url, membresia_tier, status')
+        .select('id, nombre, email, telefono, avatar_url, membresia_tier, status, sucursal_id')
         .eq('rol', 'miembro')
         .order('nombre', { ascending: true })
         .limit(1000);
-
-      if (sucursalId) q = q.eq('sucursal_id', sucursalId);
-
-      const { data, error: queryError } = await q;
 
       if (cancelled) return;
       if (queryError) {
@@ -71,12 +71,17 @@ export function useSocios(query: string) {
     return () => {
       cancelled = true;
     };
-  }, [sucursalId]);
+  }, []);
 
   // Filtrado local instantáneo (solo CPU, sin debounce ni race conditions).
   const socios = useMemo(() => {
     const term = query.trim();
-    if (!term) return padron.slice(0, 30); // sin query → primeros 30
+    // Sin query → primeros 30 de ESTA sede (vista por defecto del mostrador).
+    if (!term) {
+      const deSede = sucursalId ? padron.filter((s) => s.sucursal_id === sucursalId) : padron;
+      return deSede.slice(0, 30);
+    }
+    // Con query → busca en TODO el tenant (encuentra socios visitantes).
     const q = normalize(term);
     return padron
       .filter((s) => {
@@ -87,7 +92,7 @@ export function useSocios(query: string) {
         return false;
       })
       .slice(0, 50); // tope 50 (más amplio que server-side porque es local)
-  }, [padron, query]);
+  }, [padron, query, sucursalId]);
 
   return { socios, isLoading, error };
 }

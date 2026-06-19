@@ -99,7 +99,7 @@ export default function MapaPicker({
       );
       const data = (await res.json()) as Array<{ lat: string; lon: string }>;
       if (!data.length) {
-        setAviso('No encontramos esa dirección. Movés el pin a mano sobre el mapa.');
+        setAviso('No encontramos esa dirección. Mueve el pin a mano sobre el mapa.');
         return;
       }
       const la = round(parseFloat(data[0].lat));
@@ -120,7 +120,7 @@ export default function MapaPicker({
       }
       onChange(la, ln);
     } catch {
-      setAviso('No pudimos buscar la dirección. Movés el pin a mano sobre el mapa.');
+      setAviso('No pudimos buscar la dirección. Mueve el pin a mano sobre el mapa.');
     } finally {
       setBusy(false);
     }

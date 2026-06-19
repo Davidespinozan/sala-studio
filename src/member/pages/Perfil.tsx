@@ -8,6 +8,7 @@ import { useLandingConfig } from '@shared/hooks/useLandingConfig';
 import { supabase } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
 import { useMembresiaActual, membresiaEstado } from '@member/hooks/useMembresiaActual';
+import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { iniciarCheckout } from '@shared/lib/checkout';
 
 type Tier = Database['public']['Tables']['tiers']['Row'];
@@ -321,6 +322,19 @@ function PlanHero({
   const tierActual = membresia ? tiers.find((t) => t.id === membresia.tier_id) ?? null : null;
   const esCreditos = membresia?.tier_tipo === 'creditos' || membresia?.tier_tipo === 'hibrido';
 
+  // Sede + alcance del plan (solo gyms con 2+ sedes).
+  const { sucursales, multisede } = useMemberSucursal();
+  const sedeNombre = membresia?.sucursal_id
+    ? sucursales.find((s) => s.id === membresia.sucursal_id)?.nombre ?? null
+    : null;
+  const accesoTexto = membresia
+    ? membresia.tier_acceso_todas_sucursales
+      ? 'todas las sedes'
+      : sedeNombre
+        ? `solo ${sedeNombre}`
+        : null
+    : null;
+
   return (
     <section style={{ marginTop: '8px' }}>
       <div
@@ -389,6 +403,21 @@ function PlanHero({
               <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.55)', margin: '10px 0 0' }}>
                 {formatearPrecio(tierActual.precio_centavos, tierActual.moneda)}
               </p>
+            )}
+
+            {multisede && (sedeNombre || accesoTexto) && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '16px' }}>
+                {sedeNombre && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '999px', background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.14)', color: 'rgba(255, 255, 255, 0.85)', fontSize: '12px', fontWeight: 600 }}>
+                    Sede: {sedeNombre}
+                  </span>
+                )}
+                {accesoTexto && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '999px', background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.14)', color: 'rgba(255, 255, 255, 0.85)', fontSize: '12px', fontWeight: 600 }}>
+                    Acceso: {accesoTexto}
+                  </span>
+                )}
+              </div>
             )}
           </>
         ) : (
@@ -685,7 +714,7 @@ const FAQ_PLAN: Array<{ q: string; a: string }> = [
   },
   {
     q: '¿Qué pasa si cancelo?',
-    a: 'Conservás el acceso hasta el final del período ya pagado. Después, tu plan no se renueva.'
+    a: 'Conservas el acceso hasta el final del período ya pagado. Después, tu plan no se renueva.'
   },
   {
     q: '¿Puedo cambiar de plan cuando quiera?',

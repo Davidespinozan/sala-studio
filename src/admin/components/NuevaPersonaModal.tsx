@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   adminCreateUser,
   gestionarMembresiaSocio,
   useTiersAdmin
 } from '../hooks/useAdminData';
+import { useSucursal } from '../providers/SucursalProvider';
 
 type Rol = 'miembro' | 'recepcionista' | 'staff' | 'admin';
 type FormaActivacion = 'efectivo' | 'transferencia' | 'cortesia';
@@ -24,11 +25,19 @@ interface Props {
 
 export function NuevaPersonaModal({ onClose, onCreated }: Props) {
   const { tiers, isLoading: loadingTiers } = useTiersAdmin();
+  const { sucursales, sucursalId: adminSucursalId, multisede } = useSucursal();
   const [email, setEmail] = useState('');
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
   const [password, setPassword] = useState('');
   const [rol, setRol] = useState<Rol>('miembro');
+  // Sede de la persona (miembro/recepción en multisede). Default = la sede
+  // activa del admin; el trigger de BD igual la rellena si quedara vacía.
+  const [sucursalId, setSucursalId] = useState('');
+  useEffect(() => {
+    if (!sucursalId && adminSucursalId) setSucursalId(adminSucursalId);
+  }, [adminSucursalId, sucursalId]);
+  const pideSucursal = multisede && rol !== 'admin';
   // tier_id (uuid) o '' para "sin plan". Antes era slug hardcoded — ahora se
   // resuelve desde useTiersAdmin, así soporta tiers custom del tenant.
   const [tierId, setTierId] = useState<string>('');
@@ -67,7 +76,8 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
         // Pasamos null: el "atajo viejo" de setear usuarios.membresia_tier sin
         // crear fila en membresias dejaba al socio bloqueado por SIN_MEMBRESIA.
         // Si se eligió tier, la membresía la crea el RPC en el paso siguiente.
-        membresia_tier: null
+        membresia_tier: null,
+        sucursal_id: pideSucursal ? sucursalId || null : null
       });
 
       // Si es miembro Y se eligió un tier, alta de membresía vía RPC. Eso
@@ -225,6 +235,27 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
               <option value="admin">Admin (acceso total al negocio)</option>
             </select>
           </div>
+
+          {pideSucursal && (
+            <div className="ek-form-field">
+              <label className="ek-label" htmlFor="np-sucursal">Sede</label>
+              <select
+                id="np-sucursal"
+                value={sucursalId}
+                onChange={(e) => setSucursalId(e.target.value)}
+                className="ek-input"
+              >
+                {sucursales.map((s) => (
+                  <option key={s.id} value={s.id}>{s.nombre}</option>
+                ))}
+              </select>
+              <p className="ek-helper-text">
+                {rol === 'recepcionista'
+                  ? 'La recepción opera solo en esta sede.'
+                  : 'Sede donde se inscribe. Su plan define si entrena solo aquí o en todas.'}
+              </p>
+            </div>
+          )}
 
           {rol === 'miembro' && (
             <div className="ek-form-field">

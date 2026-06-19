@@ -87,10 +87,55 @@ export default function ReceptionLayout() {
   );
 }
 
-/** Barra fija que recuerda en qué sede opera esta recepción (solo multisede). */
+/** Barra de sede de la recepción (solo multisede). Fija para recepción; el
+ *  admin puede cambiar de sede para cubrir cualquier mostrador. */
 function SedeBar() {
-  const { sucursalNombre, multisede } = useReceptionSucursal();
-  if (!multisede || !sucursalNombre) return null;
+  const { sucursalNombre, sucursalId, sucursales, multisede, puedeCambiar, setSucursalId } =
+    useReceptionSucursal();
+  if (!multisede) return null;
+
+  if (puedeCambiar) {
+    return (
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '16px',
+          padding: '6px 10px 6px 14px',
+          borderRadius: '999px',
+          background: 'var(--sala-primary-light)',
+          border: '1px solid var(--sala-border)',
+          color: 'var(--sala-text-primary)',
+          fontSize: '13px',
+          fontWeight: 600
+        }}
+      >
+        <MapPin size={14} style={{ color: 'var(--sala-primary)' }} />
+        Operando en
+        <select
+          value={sucursalId ?? ''}
+          onChange={(e) => setSucursalId(e.target.value)}
+          aria-label="Cambiar de sede"
+          style={{
+            border: 'none',
+            background: 'transparent',
+            font: 'inherit',
+            fontWeight: 700,
+            color: 'var(--sala-primary)',
+            cursor: 'pointer',
+            padding: '0 2px'
+          }}
+        >
+          {sucursales.map((s) => (
+            <option key={s.id} value={s.id}>{s.nombre}</option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  if (!sucursalNombre) return null;
   return (
     <div
       style={{

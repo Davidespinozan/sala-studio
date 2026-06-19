@@ -4,6 +4,7 @@ import { Search, ChevronRight } from 'lucide-react';
 import { PageHeader } from '@shared/components/PageHeader';
 import { EmptyState } from '@shared/components/EmptyState';
 import { useSocios, type SocioListItem } from '../hooks/useSocios';
+import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
 
 function iniciales(nombre: string | null): string {
   const t = (nombre ?? '').trim().split(/\s+/).filter(Boolean);
@@ -46,6 +47,12 @@ function guardarQuery(value: string): void {
 export default function Socios() {
   const [q, setQ] = useState<string>(() => leerQueryGuardada());
   const { socios, isLoading, error } = useSocios(q);
+  const { sucursalId, sucursales, multisede } = useReceptionSucursal();
+  // Etiqueta de sede para socios que NO son de este mostrador (solo multisede).
+  const sedeDe = (id: string | null): string | null =>
+    multisede && id && id !== sucursalId
+      ? sucursales.find((s) => s.id === id)?.nombre ?? null
+      : null;
 
   // Persistir la búsqueda cada vez que cambia.
   useEffect(() => {
@@ -112,7 +119,7 @@ export default function Socios() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {socios.map((s) => (
-              <SocioRow key={s.id} socio={s} />
+              <SocioRow key={s.id} socio={s} sedeBadge={sedeDe(s.sucursal_id)} />
             ))}
           </div>
         )}
@@ -121,7 +128,7 @@ export default function Socios() {
   );
 }
 
-function SocioRow({ socio }: { socio: SocioListItem }) {
+function SocioRow({ socio, sedeBadge }: { socio: SocioListItem; sedeBadge: string | null }) {
   return (
     <Link
       to={`/recepcion/socios/${socio.id}`}
@@ -171,6 +178,22 @@ function SocioRow({ socio }: { socio: SocioListItem }) {
           {socio.telefono ?? socio.email}
         </p>
       </div>
+      {sedeBadge && (
+        <span
+          style={{
+            flexShrink: 0,
+            padding: '3px 9px',
+            borderRadius: '999px',
+            background: 'var(--sala-primary-light)',
+            color: 'var(--sala-primary)',
+            fontSize: '11px',
+            fontWeight: 700,
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {sedeBadge}
+        </span>
+      )}
       <ChevronRight size={18} style={{ color: 'var(--sala-text-tertiary)', flexShrink: 0 }} />
     </Link>
   );

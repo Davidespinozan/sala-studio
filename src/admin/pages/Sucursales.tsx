@@ -153,7 +153,7 @@ function UpgradeGate({ cantidad }: { cantidad: number }) {
             margin: '0 0 10px'
           }}
         >
-          Manejá varias sucursales con Business
+          Maneja varias sucursales con Business
         </h1>
         <p
           style={{

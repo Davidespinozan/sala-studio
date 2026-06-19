@@ -158,7 +158,7 @@ export default function Tiers() {
     if (!archivar) return '';
     if (archivar.status === 'loading') return 'Verificando miembros activos…';
     if (archivar.activeMembers > 0) {
-      return `${archivar.activeMembers} miembro(s) activo(s) tienen este plan. Migralos a otro plan antes de eliminar este.`;
+      return `${archivar.activeMembers} miembro(s) activo(s) tienen este plan. Cámbialos de plan antes de eliminar este.`;
     }
     return 'Este plan se moverá a Eliminados: deja de aparecer en signup y landing. Los miembros existentes con este plan no se afectan. Lo puedes recuperar después.';
   })();
