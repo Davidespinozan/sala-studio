@@ -94,46 +94,43 @@ export function BrowserFrame({
   );
 }
 
-/** Barra de status iOS para el mockup (hora + señal/wifi/batería en blanco sobre
- *  el negro del safe-area). Se usa cuando la captura NO trae espacio propio
- *  arriba (ej. la landing, cuyo header quedaría bajo el notch). */
-function StatusBarMock() {
+/** Barra de status iOS para el mockup: hora + señal/wifi/batería en blanco sobre
+ *  el color del header de la captura (`bg`, ej. el verde exacto de Healthy Space).
+ *  Se usa cuando la captura NO trae safe-area propio (ej. la landing). */
+function StatusBarMock({ bg }: { bg: string }) {
   return (
     <div
       aria-hidden="true"
       style={{
         flexShrink: 0,
-        height: 34,
-        // MISMO verde que el header inmersivo de la captura (grad-immersive top):
-        // el color sube hasta arriba como en un iPhone real, y el notch queda
-        // como un Dynamic Island negro chico sobre el verde — no un bloque negro.
-        background: 'color-mix(in srgb, var(--sala-primary) 80%, var(--sala-neutral-dark))',
+        height: 32,
+        background: bg,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 22px 2px',
+        padding: '0 18px 1px',
         color: '#ffffff',
         position: 'relative',
         zIndex: 1
       }}
     >
-      <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.02em' }}>9:41</span>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.02em' }}>9:41</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
         {/* señal */}
-        <svg width="17" height="11" viewBox="0 0 17 11" fill="#fff" aria-hidden="true">
+        <svg width="15" height="10" viewBox="0 0 17 11" fill="#fff" aria-hidden="true">
           <rect x="0" y="7.5" width="3" height="3.5" rx="0.6" />
           <rect x="4.7" y="5" width="3" height="6" rx="0.6" />
           <rect x="9.3" y="2.5" width="3" height="8.5" rx="0.6" />
           <rect x="14" y="0" width="3" height="11" rx="0.6" />
         </svg>
         {/* wifi */}
-        <svg width="16" height="11" viewBox="0 0 16 11" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+        <svg width="14" height="10" viewBox="0 0 16 11" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
           <path d="M1.2 3.4a10 10 0 0 1 13.6 0" />
           <path d="M3.8 6a6.2 6.2 0 0 1 8.4 0" />
           <path d="M6.3 8.5a2.6 2.6 0 0 1 3.4 0" />
         </svg>
         {/* batería */}
-        <svg width="26" height="12" viewBox="0 0 26 12" fill="none" aria-hidden="true">
+        <svg width="23" height="11" viewBox="0 0 26 12" fill="none" aria-hidden="true">
           <rect x="0.6" y="0.6" width="22" height="10.8" rx="3" stroke="#fff" strokeOpacity="0.5" />
           <rect x="2.2" y="2.2" width="16" height="7.6" rx="1.6" fill="#fff" />
           <path d="M24.4 4v4a2 2 0 0 0 0-4Z" fill="#fff" fillOpacity="0.5" />
@@ -145,21 +142,24 @@ function StatusBarMock() {
 
 /** Marco de teléfono para capturas de la app del socio (9:19.5). Acepta `width`
  *  (para mostrar pares de teléfonos) y `video` (loop mudo con `src` de poster).
- *  `statusBar` agrega la barra de status del iPhone (hora/batería) — usar cuando
- *  la captura no trae safe-area propio y el contenido quedaría bajo el notch. */
+ *  `statusBar={{ bg }}` agrega la barra de status del iPhone (hora/batería) con el
+ *  color del header — usar cuando la captura no trae safe-area y el contenido
+ *  quedaría bajo el notch. Ahí la captura se ancla arriba (objectPosition top)
+ *  para que su header no se recorte. */
 export function PhoneFrame({
   src,
   alt,
   video,
   width = 'min(260px, 70vw)',
-  statusBar = false
+  statusBar
 }: {
   src?: string;
   alt: string;
   video?: { mp4?: string; webm?: string };
   width?: string;
-  statusBar?: boolean;
+  statusBar?: { bg: string };
 }) {
+  const mediaStyle: CSSProperties = statusBar ? { ...BLEED, objectPosition: 'top' } : BLEED;
   return (
     <div
       style={{
@@ -172,7 +172,7 @@ export function PhoneFrame({
       }}
     >
       <div style={{ position: 'relative', borderRadius: '26px', overflow: 'hidden', aspectRatio: '9 / 19.5', background: '#0d1812', display: 'flex', flexDirection: 'column' }}>
-        {statusBar && <StatusBarMock />}
+        {statusBar && <StatusBarMock bg={statusBar.bg} />}
         <span
           aria-hidden="true"
           style={{
@@ -180,21 +180,21 @@ export function PhoneFrame({
             top: 8,
             left: '50%',
             transform: 'translateX(-50%)',
-            width: '38%',
-            height: 18,
+            width: '28%',
+            height: 16,
             borderRadius: '999px',
-            background: 'var(--sala-neutral-dark, #1a1f1c)',
+            background: '#000',
             zIndex: 2
           }}
         />
         <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
           {video ? (
-            <video poster={src} autoPlay muted loop playsInline preload="metadata" aria-label={alt} style={BLEED}>
+            <video poster={src} autoPlay muted loop playsInline preload="metadata" aria-label={alt} style={mediaStyle}>
               {video.webm && <source src={video.webm} type="video/webm" />}
               {video.mp4 && <source src={video.mp4} type="video/mp4" />}
             </video>
           ) : src ? (
-            <img src={src} alt={alt} style={BLEED} />
+            <img src={src} alt={alt} style={mediaStyle} />
           ) : (
             <Placeholder label="App del socio" />
           )}

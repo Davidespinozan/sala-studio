@@ -559,7 +559,7 @@ function Showcase() {
                 video={{ webm: '/shots/estudio-hero-mobile.webm', mp4: '/shots/estudio-hero-mobile.mp4' }}
                 alt="Landing pública del gym en el celular"
                 width="min(230px, 56vw)"
-                statusBar
+                statusBar={{ bg: '#112825' }}
               />
               <AppIconMockup nombre="Healthy Space" src="/shots/healthyspace-app-icon.png" />
             </div>
