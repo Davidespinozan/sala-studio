@@ -79,7 +79,10 @@ export const handler: Handler = async (event) => {
     if (error) {
       // Traducir errores generic
       const msg = error.message || '';
-      const errorCode = msg.match(/_[A-Z_]+/)?.[0] ?? 'ERROR_DESCONOCIDO';
+      // El código es el token MAYÚSCULAS_CON_GUION al inicio ("RESERVA_NO_EXISTE: ...").
+      // El regex viejo (/_[A-Z_]+/) arrancaba en el 1er guión interno → extraía
+      // "_NO_EXISTE" y todo el mapa de mensajes quedaba muerto.
+      const errorCode = msg.match(/[A-Z][A-Z0-9]*_[A-Z0-9_]+/)?.[0] ?? 'ERROR_DESCONOCIDO';
       return ok({
         success: false,
         error: errorCode,

@@ -70,7 +70,7 @@ export const handler: Handler = async (event) => {
     // 1b. Obtener tier real de BD para usar su precio (no hardcode)
     const { data: tierData, error: tierError } = await supabaseAdmin
       .from('tiers')
-      .select('precio_centavos')
+      .select('id, precio_centavos')
       .eq('tenant_id', tenant.id)
       .eq('slug', tier)
       .eq('activo', true)
@@ -163,6 +163,26 @@ export const handler: Handler = async (event) => {
       return {
         statusCode: 500,
         body: JSON.stringify({ error: 'Error al activar cuenta' })
+      };
+    }
+
+    // 3b. Crear la MEMBRESÍA real. Setear `membresia_tier` en usuarios NO crea
+    //     fila en `membresias`, y el gate de reserva exige esa fila → sin esto el
+    //     socio quedaba en SIN_MEMBRESIA y no podía reservar nada. El RPC crea la
+    //     membresía, siembra los créditos del tier y sincroniza los caches.
+    //     (Cuando entre Stripe real, el webhook llama a este mismo RPC.)
+    const { error: memError } = await supabaseAdmin.rpc('activar_suscripcion_socio', {
+      p_usuario_id: usuarioUpdated.id,
+      p_tier_id: tierData.id
+    });
+
+    if (memError) {
+      console.error('[fake-signup] membresia error:', memError);
+      // Best-effort cleanup: la cuenta sin membresía es inútil → borrar el zombie.
+      await supabaseAdmin.auth.admin.deleteUser(authUserId);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'No pudimos activar la membresía. Intentá de nuevo.' })
       };
     }
 

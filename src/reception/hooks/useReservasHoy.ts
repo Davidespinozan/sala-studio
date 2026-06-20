@@ -74,7 +74,9 @@ export async function checkInManual(reservaId: string, motivo?: string) {
   });
 
   if (error) {
-    const code = error.message.match(/_[A-Z_]+/)?.[0] ?? 'ERROR';
+    // Código = token MAYÚSCULAS_CON_GUION ("DEMASIADO_TARDE: ..."). El regex
+    // viejo (/_[A-Z_]+/) lo extraía mal y el mapa de abajo nunca pegaba.
+    const code = error.message.match(/[A-Z][A-Z0-9]*_[A-Z0-9_]+/)?.[0] ?? 'ERROR';
     throw new Error(translateError(code, error.message));
   }
   return data;
