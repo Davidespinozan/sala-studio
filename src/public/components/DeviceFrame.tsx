@@ -94,18 +94,68 @@ export function BrowserFrame({
   );
 }
 
+/** Barra de status iOS para el mockup (hora + señal/wifi/batería en blanco sobre
+ *  el negro del safe-area). Se usa cuando la captura NO trae espacio propio
+ *  arriba (ej. la landing, cuyo header quedaría bajo el notch). */
+function StatusBarMock() {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        flexShrink: 0,
+        height: 34,
+        background: '#0d1812',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 22px 2px',
+        color: '#ffffff',
+        position: 'relative',
+        zIndex: 1
+      }}
+    >
+      <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.02em' }}>9:41</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        {/* señal */}
+        <svg width="17" height="11" viewBox="0 0 17 11" fill="#fff" aria-hidden="true">
+          <rect x="0" y="7.5" width="3" height="3.5" rx="0.6" />
+          <rect x="4.7" y="5" width="3" height="6" rx="0.6" />
+          <rect x="9.3" y="2.5" width="3" height="8.5" rx="0.6" />
+          <rect x="14" y="0" width="3" height="11" rx="0.6" />
+        </svg>
+        {/* wifi */}
+        <svg width="16" height="11" viewBox="0 0 16 11" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+          <path d="M1.2 3.4a10 10 0 0 1 13.6 0" />
+          <path d="M3.8 6a6.2 6.2 0 0 1 8.4 0" />
+          <path d="M6.3 8.5a2.6 2.6 0 0 1 3.4 0" />
+        </svg>
+        {/* batería */}
+        <svg width="26" height="12" viewBox="0 0 26 12" fill="none" aria-hidden="true">
+          <rect x="0.6" y="0.6" width="22" height="10.8" rx="3" stroke="#fff" strokeOpacity="0.5" />
+          <rect x="2.2" y="2.2" width="16" height="7.6" rx="1.6" fill="#fff" />
+          <path d="M24.4 4v4a2 2 0 0 0 0-4Z" fill="#fff" fillOpacity="0.5" />
+        </svg>
+      </span>
+    </div>
+  );
+}
+
 /** Marco de teléfono para capturas de la app del socio (9:19.5). Acepta `width`
- *  (para mostrar pares de teléfonos) y `video` (loop mudo con `src` de poster). */
+ *  (para mostrar pares de teléfonos) y `video` (loop mudo con `src` de poster).
+ *  `statusBar` agrega la barra de status del iPhone (hora/batería) — usar cuando
+ *  la captura no trae safe-area propio y el contenido quedaría bajo el notch. */
 export function PhoneFrame({
   src,
   alt,
   video,
-  width = 'min(260px, 70vw)'
+  width = 'min(260px, 70vw)',
+  statusBar = false
 }: {
   src?: string;
   alt: string;
   video?: { mp4?: string; webm?: string };
   width?: string;
+  statusBar?: boolean;
 }) {
   return (
     <div
@@ -118,7 +168,8 @@ export function PhoneFrame({
         boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.14), 0 30px 70px rgba(10, 15, 12, 0.5)'
       }}
     >
-      <div style={{ position: 'relative', borderRadius: '26px', overflow: 'hidden', aspectRatio: '9 / 19.5', background: '#0d1812' }}>
+      <div style={{ position: 'relative', borderRadius: '26px', overflow: 'hidden', aspectRatio: '9 / 19.5', background: '#0d1812', display: 'flex', flexDirection: 'column' }}>
+        {statusBar && <StatusBarMock />}
         <span
           aria-hidden="true"
           style={{
@@ -133,16 +184,18 @@ export function PhoneFrame({
             zIndex: 2
           }}
         />
-        {video ? (
-          <video poster={src} autoPlay muted loop playsInline preload="metadata" aria-label={alt} style={BLEED}>
-            {video.webm && <source src={video.webm} type="video/webm" />}
-            {video.mp4 && <source src={video.mp4} type="video/mp4" />}
-          </video>
-        ) : src ? (
-          <img src={src} alt={alt} style={BLEED} />
-        ) : (
-          <Placeholder label="App del socio" />
-        )}
+        <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
+          {video ? (
+            <video poster={src} autoPlay muted loop playsInline preload="metadata" aria-label={alt} style={BLEED}>
+              {video.webm && <source src={video.webm} type="video/webm" />}
+              {video.mp4 && <source src={video.mp4} type="video/mp4" />}
+            </video>
+          ) : src ? (
+            <img src={src} alt={alt} style={BLEED} />
+          ) : (
+            <Placeholder label="App del socio" />
+          )}
+        </div>
       </div>
     </div>
   );
