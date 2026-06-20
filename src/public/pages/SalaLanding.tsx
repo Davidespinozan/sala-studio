@@ -536,8 +536,23 @@ function ShowcaseRow({
 function Showcase() {
   return (
     <section className="sala-showcase-band">
+      {/* Profundidad tipo hero: mesh animado + orbs flotantes con glow (verde
+          claro/menta) sobre el verde oscuro. Mismo efecto que el hero pro. */}
+      <div
+        className="sala-hero-mesh"
+        aria-hidden="true"
+        style={{
+          '--mesh-1': 'color-mix(in srgb, var(--sala-primary), white 42%)',
+          '--mesh-2': '#8fc7a8'
+        } as CSSProperties}
+      />
+      <div className="sala-orb" aria-hidden="true" style={{ width: 340, height: 340, top: '-10%', left: '-8%', opacity: 0.16, animationDelay: '0s', '--orb-color': 'color-mix(in srgb, var(--sala-primary), white 32%)' } as CSSProperties} />
+      <div className="sala-orb" aria-hidden="true" style={{ width: 260, height: 260, bottom: '0%', right: '-6%', opacity: 0.14, animationDelay: '4s', '--orb-color': '#8fc7a8' } as CSSProperties} />
+      <div className="sala-orb" aria-hidden="true" style={{ width: 170, height: 170, top: '36%', right: '28%', opacity: 0.12, animationDelay: '7s', '--orb-color': 'color-mix(in srgb, var(--sala-primary), white 40%)' } as CSSProperties} />
       <div
         style={{
+          position: 'relative',
+          zIndex: 1,
           padding: 'clamp(40px, 7vw, 80px) clamp(16px, 5vw, 48px)',
           maxWidth: '1280px',
           margin: '0 auto',
