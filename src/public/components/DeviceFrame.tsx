@@ -104,7 +104,10 @@ function StatusBarMock() {
       style={{
         flexShrink: 0,
         height: 34,
-        background: '#0d1812',
+        // MISMO verde que el header inmersivo de la captura (grad-immersive top):
+        // el color sube hasta arriba como en un iPhone real, y el notch queda
+        // como un Dynamic Island negro chico sobre el verde — no un bloque negro.
+        background: 'color-mix(in srgb, var(--sala-primary) 80%, var(--sala-neutral-dark))',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
