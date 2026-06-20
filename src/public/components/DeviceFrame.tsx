@@ -153,11 +153,14 @@ export function PhoneFrame({
  *  inicio. Muestra a un dueño cómo se vería su gym como app de iPhone. */
 export function AppIconMockup({
   nombre,
+  src,
   monograma,
   icon
 }: {
   nombre: string;
-  monograma: string;
+  /** Ícono PWA real del tenant (imagen cuadrada). Si no, cae a monograma/icon. */
+  src?: string;
+  monograma?: string;
   icon?: ReactNode;
 }) {
   return (
@@ -167,20 +170,26 @@ export function AppIconMockup({
           width: 'clamp(86px, 20vw, 112px)',
           aspectRatio: '1',
           borderRadius: '23%',
-          background:
-            'linear-gradient(158deg, color-mix(in srgb, var(--sala-primary) 50%, white), color-mix(in srgb, var(--sala-primary), black 6%))',
+          overflow: 'hidden',
+          background: src
+            ? 'transparent'
+            : 'linear-gradient(158deg, color-mix(in srgb, var(--sala-primary) 50%, white), color-mix(in srgb, var(--sala-primary), black 6%))',
           boxShadow:
-            '0 0 0 1px rgba(255,255,255,0.28), inset 0 1.5px 0 rgba(255,255,255,0.45), 0 24px 54px rgba(10,15,12,0.62)',
+            '0 0 0 1px rgba(255,255,255,0.22), 0 24px 54px rgba(10,15,12,0.62)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: '#ffffff'
         }}
       >
-        {icon ?? (
-          <span style={{ fontFamily: 'var(--ek-font-display)', fontWeight: 800, fontSize: 'clamp(30px, 7vw, 40px)', letterSpacing: '-0.02em', color: '#fff' }}>
-            {monograma}
-          </span>
+        {src ? (
+          <img src={src} alt={`Ícono de la app de ${nombre}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        ) : (
+          icon ?? (
+            <span style={{ fontFamily: 'var(--ek-font-display)', fontWeight: 800, fontSize: 'clamp(30px, 7vw, 40px)', letterSpacing: '-0.02em', color: '#fff' }}>
+              {monograma}
+            </span>
+          )
         )}
       </div>
       <span style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.96)', letterSpacing: '-0.01em' }}>

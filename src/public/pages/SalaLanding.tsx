@@ -7,7 +7,6 @@ import {
   Building2,
   CalendarCheck,
   Check,
-  Dumbbell,
   Palette,
   QrCode,
   Search,
@@ -561,7 +560,7 @@ function Showcase() {
                 alt="Landing pública del gym en el celular"
                 width="min(230px, 56vw)"
               />
-              <AppIconMockup nombre="Healthy Space" monograma="H" icon={<Dumbbell size={40} strokeWidth={2.25} />} />
+              <AppIconMockup nombre="Healthy Space" src="/shots/healthyspace-app-icon.png" />
             </div>
           }
         />

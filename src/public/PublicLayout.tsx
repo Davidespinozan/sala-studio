@@ -57,18 +57,13 @@ export default function PublicLayout() {
               </button>
             </>
           ) : !enLogin ? (
-            <>
-              <Link to="/login" className="landing-nav-link" style={{ marginRight: '4px' }}>
-                Iniciar sesión
-              </Link>
-              <a
-                href={enLanding ? '#membresias' : '/login'}
-                className="ek-cta"
-                style={{ padding: '0.625rem 1.25rem', minHeight: '40px' }}
-              >
-                Reservar clase
-              </a>
-            </>
+            <Link
+              to="/login"
+              className="ek-cta ek-cta--secondary"
+              style={{ padding: '0.625rem 1.25rem', minHeight: '40px' }}
+            >
+              Iniciar sesión
+            </Link>
           ) : null}
         </nav>
       </header>
