@@ -542,13 +542,13 @@ function Showcase() {
         className="sala-hero-mesh"
         aria-hidden="true"
         style={{
-          '--mesh-1': 'color-mix(in srgb, var(--sala-primary), white 42%)',
-          '--mesh-2': '#8fc7a8'
+          '--mesh-1': 'rgba(168, 216, 190, 0.14)',
+          '--mesh-2': 'rgba(120, 178, 148, 0.12)'
         } as CSSProperties}
       />
-      <div className="sala-orb" aria-hidden="true" style={{ width: 340, height: 340, top: '-10%', left: '-8%', opacity: 0.16, animationDelay: '0s', '--orb-color': 'color-mix(in srgb, var(--sala-primary), white 32%)' } as CSSProperties} />
-      <div className="sala-orb" aria-hidden="true" style={{ width: 260, height: 260, bottom: '0%', right: '-6%', opacity: 0.14, animationDelay: '4s', '--orb-color': '#8fc7a8' } as CSSProperties} />
-      <div className="sala-orb" aria-hidden="true" style={{ width: 170, height: 170, top: '36%', right: '28%', opacity: 0.12, animationDelay: '7s', '--orb-color': 'color-mix(in srgb, var(--sala-primary), white 40%)' } as CSSProperties} />
+      <div className="sala-orb" aria-hidden="true" style={{ width: 340, height: 340, top: '-10%', left: '-8%', opacity: 0.10, animationDelay: '0s', '--orb-color': '#8fc7a8' } as CSSProperties} />
+      <div className="sala-orb" aria-hidden="true" style={{ width: 260, height: 260, bottom: '0%', right: '-6%', opacity: 0.09, animationDelay: '4s', '--orb-color': '#8fc7a8' } as CSSProperties} />
+      <div className="sala-orb" aria-hidden="true" style={{ width: 170, height: 170, top: '36%', right: '28%', opacity: 0.07, animationDelay: '7s', '--orb-color': 'color-mix(in srgb, var(--sala-primary), white 30%)' } as CSSProperties} />
       <div
         style={{
           position: 'relative',

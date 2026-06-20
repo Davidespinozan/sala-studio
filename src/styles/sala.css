@@ -2480,10 +2480,10 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   isolation: isolate;
   overflow: hidden;
   background:
-    radial-gradient(58% 48% at 15% 10%, color-mix(in srgb, var(--sala-primary) 46%, transparent), transparent 60%),
-    radial-gradient(54% 46% at 88% 80%, color-mix(in srgb, var(--sala-primary) 38%, transparent), transparent 58%),
-    radial-gradient(42% 36% at 72% 26%, color-mix(in srgb, #8fc7a8 20%, transparent), transparent 60%),
-    radial-gradient(130% 80% at 50% 132%, rgba(0, 0, 0, 0.5), transparent 72%),
+    radial-gradient(58% 48% at 15% 10%, color-mix(in srgb, var(--sala-primary) 32%, transparent), transparent 60%),
+    radial-gradient(54% 46% at 88% 80%, color-mix(in srgb, var(--sala-primary) 26%, transparent), transparent 58%),
+    radial-gradient(42% 36% at 72% 26%, color-mix(in srgb, #8fc7a8 13%, transparent), transparent 60%),
+    radial-gradient(130% 84% at 50% 128%, rgba(0, 0, 0, 0.55), transparent 72%),
     var(--grad-immersive);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
