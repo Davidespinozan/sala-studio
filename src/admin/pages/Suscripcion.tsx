@@ -7,6 +7,7 @@ import { useSuscripcion } from '../hooks/useSuscripcion';
 import { iniciarCheckoutSaas } from '../lib/suscripcionService';
 import { CheckoutModalMock } from '../components/CheckoutModalMock';
 import { EstadoSuscripcionCard } from '../components/EstadoSuscripcionCard';
+import { ActivarCobrosCard } from '../components/ActivarCobrosCard';
 import {
   PLANES_SAAS,
   TIERS_ORDEN,
@@ -142,6 +143,23 @@ export default function Suscripcion() {
                 onElegir={() => elegirPlan(tier)}
               />
             ))}
+          </div>
+
+          {/* Flujo 2 — cobros del gym a sus socios (Stripe Connect). */}
+          <div style={{ marginTop: '36px', borderTop: '1px solid var(--sala-border)', paddingTop: '24px' }}>
+            <h2
+              style={{
+                fontFamily: 'var(--ek-font-display)',
+                fontSize: '16px',
+                fontWeight: 600,
+                letterSpacing: '-0.02em',
+                color: 'var(--sala-text-primary)',
+                margin: '0 0 12px'
+              }}
+            >
+              Cobros a tus socios
+            </h2>
+            <ActivarCobrosCard />
           </div>
         </>
       )}
