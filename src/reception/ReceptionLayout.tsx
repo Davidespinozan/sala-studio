@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { CalendarClock, Users } from 'lucide-react';
+import { useReservasHoy } from './hooks/useReservasHoy';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
 import { accesoRevocado } from '@shared/lib/accountStatus';
@@ -67,6 +68,7 @@ export default function ReceptionLayout() {
               sections={RECEPCION_SECTIONS}
               roleLabel="RECEPCIÓN"
               homePath="/recepcion"
+              statusSlot={<ReceptionStatus />}
               onNavigate={onNavigate}
             />
           )}
@@ -154,6 +156,47 @@ function SedeBar() {
     >
       <MapPin size={14} style={{ color: 'var(--sala-primary)' }} />
       Operando en {sucursalNombre}
+    </div>
+  );
+}
+
+/** Bloque discreto del sidebar: estado del sistema (en línea + hora) + actividad
+ *  del día (check-ins / reservas). Indicadores de "centro de operaciones". */
+function ReceptionStatus() {
+  const { reservas } = useReservasHoy();
+  const checkins = reservas.filter((r) => r.status === 'completada').length;
+  const total = reservas.filter((r) => r.status !== 'cancelada').length;
+  const [hora, setHora] = useState(() =>
+    new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })
+  );
+  useEffect(() => {
+    const id = setInterval(
+      () => setHora(new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })),
+      30000
+    );
+    return () => clearInterval(id);
+  }, []);
+
+  const num = { fontFamily: 'var(--ek-font-display)', fontSize: '18px', fontWeight: 700, color: 'rgba(255,255,255,0.95)', lineHeight: 1 } as const;
+  const cap = { fontSize: '9px', letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginTop: '3px' } as const;
+
+  return (
+    <div style={{ margin: '0 0 14px', padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.10)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 0 3px rgba(52,211,153,0.20)', flexShrink: 0 }} />
+        <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>Sistema en línea</span>
+        <span style={{ marginLeft: 'auto', fontSize: '11px', fontVariantNumeric: 'tabular-nums', color: 'rgba(255,255,255,0.55)' }}>{hora}</span>
+      </div>
+      <div style={{ display: 'flex', gap: '18px' }}>
+        <div>
+          <div style={num}>{checkins}</div>
+          <div style={cap}>check-ins</div>
+        </div>
+        <div>
+          <div style={num}>{total}</div>
+          <div style={cap}>reservas hoy</div>
+        </div>
+      </div>
     </div>
   );
 }

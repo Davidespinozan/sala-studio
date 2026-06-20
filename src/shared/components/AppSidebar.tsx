@@ -63,6 +63,8 @@ interface Props {
   collapsible?: boolean;
   /** Key de localStorage cuando collapsible. */
   collapseKey?: string;
+  /** Bloque discreto sobre el footer (recepción: estado del sistema + actividad). */
+  statusSlot?: ReactNode;
   onNavigate?: () => void;
 }
 
@@ -73,6 +75,7 @@ export function AppSidebar({
   verComoLinks,
   collapsible = false,
   collapseKey = 'sala-sidebar-collapsed',
+  statusSlot,
   onNavigate
 }: Props) {
   const { usuario, signOut } = useAuth();
@@ -237,6 +240,7 @@ export function AppSidebar({
       </nav>
 
       <div className="adm-sidebar-footer">
+        {statusSlot}
         <div style={{ marginBottom: '12px' }}>
           <p className="ek-eyebrow" style={{ fontSize: '9px', marginBottom: '4px', color: 'rgba(255, 255, 255, 0.55)' }}>
             CONECTADO
