@@ -302,7 +302,7 @@ export default function Dashboard() {
       )}
 
       {/* Greeting */}
-      <div style={{ marginBottom: '28px' }}>
+      <div style={{ marginBottom: '16px' }}>
         <h1
           style={{
             fontFamily: 'var(--ek-font-display)',
@@ -320,7 +320,7 @@ export default function Dashboard() {
 
       {/* Próxima clase (hero) o nudge compacto */}
       {loadingReserva ? (
-        <section style={{ marginBottom: '40px' }}>
+        <section style={{ marginBottom: '26px' }}>
           <div
             style={{
               height: '200px',
@@ -331,7 +331,7 @@ export default function Dashboard() {
           />
         </section>
       ) : proximaClase && proximaReserva ? (
-        <section style={{ marginBottom: '40px' }}>
+        <section style={{ marginBottom: '26px' }}>
           <ProximaClaseHero clase={proximaClase} reservaId={proximaReserva.id} />
         </section>
       ) : (
@@ -339,13 +339,13 @@ export default function Dashboard() {
       )}
 
       {/* Resumen rápido (chips de progreso) */}
-      <section style={{ marginBottom: '40px' }}>
+      <section style={{ marginBottom: '26px' }}>
         <ResumenRapido proximas={proximas} sesionesMes={sesionesMes} favoritas={favoritas} />
       </section>
 
       {/* En lista de espera */}
       {listasEspera.length > 0 && (
-        <section style={{ marginBottom: '40px' }}>
+        <section style={{ marginBottom: '26px' }}>
           <SectionHeader title="En lista de espera" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {listasEspera.map((item) => (
@@ -356,7 +356,7 @@ export default function Dashboard() {
       )}
 
       {/* Clases de hoy */}
-      <section style={{ marginBottom: '40px' }}>
+      <section style={{ marginBottom: '26px' }}>
         <SectionHeader title="Clases de hoy" linkTo="/app/reservar" linkLabel="Ver todas" />
         {loadingClases ? (
           <SkeletonScrollRow />

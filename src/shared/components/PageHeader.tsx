@@ -22,8 +22,8 @@ export function PageHeader({ eyebrow, title, subtitle, right }: Props) {
   return (
     <div
       style={{
-        paddingBottom: '20px',
-        marginBottom: '24px',
+        paddingBottom: '12px',
+        marginBottom: '16px',
         borderBottom: '0.5px solid var(--sala-border)',
       }}
     >

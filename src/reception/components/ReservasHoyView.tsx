@@ -169,7 +169,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
   return (
     <div className="rec-hoy" style={{ paddingBottom: '110px' }}>
       {/* Selector de día — barra compacta */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
         <button
           onClick={() => cambiarDia(-1)}
           className="ek-icon-btn"
@@ -208,7 +208,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
           gap: '12px',
-          marginBottom: '30px'
+          marginBottom: '22px'
         }}
       >
         <KpiTile label="Reservas" value={kpis.total} hint={esHoy ? 'del día' : 'ese día'} icon={<CalendarDays size={15} strokeWidth={2} />} />
@@ -219,7 +219,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
       </div>
 
       {/* Llegando ahora — bloque principal */}
-      <section style={{ marginBottom: '34px' }}>
+      <section style={{ marginBottom: '26px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
           <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: 0 }}>LLEGANDO AHORA</p>
           {llegando.length > 0 && (

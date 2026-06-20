@@ -84,9 +84,9 @@ export default function Socios() {
 
   return (
     <div className="ek-page">
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '24px 20px' }}>
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '16px 20px' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '6px' }}>RECEPCIÓN</p>
-        <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '28px', fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 20px', color: 'var(--sala-text-primary)' }}>
+        <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '28px', fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 14px', color: 'var(--sala-text-primary)' }}>
           Socios
         </h1>
 
