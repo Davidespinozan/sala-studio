@@ -11,7 +11,7 @@ type Recurso = Database['public']['Tables']['recursos']['Row'];
 
 export interface ReservaConJoin extends Reserva {
   recurso: Pick<Recurso, 'id' | 'slug' | 'nombre'> | null;
-  usuario: Pick<Usuario, 'id' | 'nombre' | 'email' | 'membresia_tier'> | null;
+  usuario: Pick<Usuario, 'id' | 'nombre' | 'email' | 'membresia_tier' | 'avatar_url'> | null;
 }
 
 /**
@@ -37,7 +37,7 @@ export function useReservasHoy(fecha?: Date) {
     // que useReservasRango del admin.
     let query = supabase
       .from('reservas')
-      .select('*, recurso:recursos!inner(id, slug, nombre, sucursal_id), usuario:usuarios!reservas_usuario_id_fkey(id, nombre, email, membresia_tier)')
+      .select('*, recurso:recursos!inner(id, slug, nombre, sucursal_id), usuario:usuarios!reservas_usuario_id_fkey(id, nombre, email, membresia_tier, avatar_url)')
       .eq('tenant_id', tenant.id)
       .gte('slot_inicio', inicio.toISOString())
       .lt('slot_inicio', fin.toISOString())
