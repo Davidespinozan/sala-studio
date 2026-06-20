@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useToast } from '@shared/hooks/useToast';
+import { esTenantDemo } from '@shared/lib/demoAuth';
 import { useSuscripcion } from '../hooks/useSuscripcion';
+import { iniciarCheckoutSaas } from '../lib/suscripcionService';
 import { CheckoutModalMock } from '../components/CheckoutModalMock';
 import { EstadoSuscripcionCard } from '../components/EstadoSuscripcionCard';
 import {
@@ -17,17 +20,60 @@ import {
 
 export default function Suscripcion() {
   const tenant = useTenant();
+  const toast = useToast();
   const { suscripcion, uso, isLoading, refetch } = useSuscripcion();
 
   // La moneda la fija el MERCADO del gym (su timezone), no es elegible.
   const moneda = monedaDelTenant(tenant);
+  const esDemo = esTenantDemo(tenant.slug);
   const [checkout, setCheckout] = useState<TierSaas | null>(null);
+  const [procesando, setProcesando] = useState<TierSaas | null>(null);
 
   // El tier vigente — null si no hay suscripción o está cancelada.
   const tierActual =
     suscripcion && suscripcion.estado !== 'cancelada'
       ? (suscripcion.tier as TierSaas)
       : null;
+
+  // Retorno de Stripe Checkout (?checkout=success|cancel) → avisar + refrescar.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const estado = params.get('checkout');
+    if (!estado) return;
+    if (estado === 'success') {
+      toast.success('¡Pago confirmado! Tu plan se está activando.');
+      void refetch();
+    } else if (estado === 'cancel') {
+      toast.error('Checkout cancelado. No se cobró nada.');
+    }
+    params.delete('checkout');
+    const q = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (q ? `?${q}` : ''));
+  }, [toast, refetch]);
+
+  // Demo → modal mock. Real → checkout de Stripe (o "pago en camino" si Stripe
+  // todavía no está conectado). El backend decide; acá solo ruteamos.
+  async function elegirPlan(tier: TierSaas) {
+    if (esDemo) {
+      setCheckout(tier);
+      return;
+    }
+    setProcesando(tier);
+    try {
+      const res = await iniciarCheckoutSaas({ tier, moneda, returnPath: window.location.pathname });
+      if (res.url) return; // redirigiendo a Stripe
+      if (res.reason === 'stripe_pendiente') {
+        toast.success('Pago en camino — estamos conectando Stripe. Te avisamos.');
+      } else if (res.activated) {
+        await refetch();
+        toast.success('¡Suscripción activada!');
+      }
+    } catch {
+      toast.error('No pudimos iniciar el checkout. Probá de nuevo.');
+    } finally {
+      setProcesando(null);
+    }
+  }
 
   return (
     <div className="adm-page">
@@ -39,20 +85,22 @@ export default function Suscripcion() {
           <p className="ek-eyebrow">SUSCRIPCIÓN</p>
           <h1 className="ek-h2">Tu plan en SALA</h1>
         </div>
-        <span
-          title="Los pagos están simulados — todavía no se cobra de verdad."
-          style={{
-            fontSize: '9px',
-            fontWeight: 700,
-            letterSpacing: '0.12em',
-            color: 'var(--sala-accent)',
-            background: 'var(--sala-accent-light)',
-            padding: '4px 10px',
-            borderRadius: '999px'
-          }}
-        >
-          MODO DEMO
-        </span>
+        {esDemo && (
+          <span
+            title="Los pagos están simulados — todavía no se cobra de verdad."
+            style={{
+              fontSize: '9px',
+              fontWeight: 700,
+              letterSpacing: '0.12em',
+              color: 'var(--sala-accent)',
+              background: 'var(--sala-accent-light)',
+              padding: '4px 10px',
+              borderRadius: '999px'
+            }}
+          >
+            MODO DEMO
+          </span>
+        )}
       </div>
 
       {isLoading ? (
@@ -90,7 +138,8 @@ export default function Suscripcion() {
                 moneda={moneda}
                 esActual={tier === tierActual}
                 hayPlanActivo={tierActual !== null}
-                onElegir={() => setCheckout(tier)}
+                cargando={procesando === tier}
+                onElegir={() => elegirPlan(tier)}
               />
             ))}
           </div>
@@ -121,12 +170,14 @@ function PlanCard({
   moneda,
   esActual,
   hayPlanActivo,
+  cargando,
   onElegir
 }: {
   tier: TierSaas;
   moneda: MonedaSaas;
   esActual: boolean;
   hayPlanActivo: boolean;
+  cargando: boolean;
   onElegir: () => void;
 }) {
   const plan = PLANES_SAAS[tier];
@@ -230,15 +281,17 @@ function PlanCard({
       <button
         type="button"
         onClick={onElegir}
-        disabled={esActual}
+        disabled={esActual || cargando}
         className={destacado && !esActual ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
-        style={{ marginTop: 'auto', opacity: esActual ? 0.55 : 1, cursor: esActual ? 'default' : 'pointer' }}
+        style={{ marginTop: 'auto', opacity: esActual ? 0.55 : 1, cursor: esActual || cargando ? 'default' : 'pointer' }}
       >
-        {esActual
-          ? 'Plan actual'
-          : hayPlanActivo
-            ? 'Cambiar a este plan'
-            : `Probar ${TRIAL_DIAS} días gratis`}
+        {cargando
+          ? 'Redirigiendo…'
+          : esActual
+            ? 'Plan actual'
+            : hayPlanActivo
+              ? 'Cambiar a este plan'
+              : `Probar ${TRIAL_DIAS} días gratis`}
       </button>
     </div>
   );

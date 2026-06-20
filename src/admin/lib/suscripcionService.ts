@@ -1,5 +1,36 @@
 import { supabase } from '@shared/lib/supabase';
+import { backendPost } from '@shared/lib/backend';
 import { precioCentavos, TRIAL_DIAS, type TierSaas, type MonedaSaas } from '@shared/lib/planesSaas';
+
+export interface CheckoutSaasResult {
+  /** URL de la Stripe Checkout Session → redirigir. */
+  url?: string;
+  /** Reservado: true si quedó activa ya. */
+  activated?: boolean;
+  /** 'stripe_pendiente' cuando el tenant es real y Stripe aún no está conectado. */
+  reason?: string;
+}
+
+/**
+ * Checkout REAL del SaaS (tenant→SALA) vía la function `suscribir-saas`. El
+ * backend decide: `{ url }` → redirige a Stripe Checkout; `{ activated:false,
+ * reason:'stripe_pendiente' }` → Stripe aún no conectado (UI: "pago en camino").
+ * El DEMO sigue usando `crearSuscripcion` (mock) — la rama vive en Suscripcion.tsx.
+ */
+export async function iniciarCheckoutSaas(params: {
+  tier: TierSaas;
+  moneda: MonedaSaas;
+  returnPath?: string;
+}): Promise<CheckoutSaasResult> {
+  const res = await backendPost<CheckoutSaasResult>('suscribir-saas', {
+    tier: params.tier,
+    moneda: params.moneda,
+    ciclo: 'mensual',
+    return_path: params.returnPath
+  });
+  if (res.url) window.location.href = res.url;
+  return res;
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // MOCK DE PAGO — leer antes de tocar

@@ -77,6 +77,13 @@ export const handler: Handler = async (event) => {
       return forbidden('Solo el admin del gym puede gestionar la suscripción');
     }
 
+    // Deploy-safe: si Stripe aún no está conectado (sin claves), no cobramos ni
+    // activamos nada → la UI muestra "pago en camino". Mismo contrato que el
+    // socio (suscribir-membresia con reason 'stripe_pendiente').
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return ok({ activated: false, reason: 'stripe_pendiente' });
+    }
+
     // 2) Stripe: resolver price por lookup_key + get-or-create customer del tenant.
     const stripe = getStripe();
     const adminDb = createClient(supabaseUrl, serviceKey, {
