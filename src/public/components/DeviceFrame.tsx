@@ -114,23 +114,23 @@ function StatusBarMock({ bg }: { bg: string }) {
         zIndex: 1
       }}
     >
-      <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.02em' }}>9:41</span>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      <span style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: '0.02em' }}>9:41</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         {/* señal */}
-        <svg width="15" height="10" viewBox="0 0 17 11" fill="#fff" aria-hidden="true">
+        <svg width="12" height="9" viewBox="0 0 17 11" fill="#fff" aria-hidden="true">
           <rect x="0" y="7.5" width="3" height="3.5" rx="0.6" />
           <rect x="4.7" y="5" width="3" height="6" rx="0.6" />
           <rect x="9.3" y="2.5" width="3" height="8.5" rx="0.6" />
           <rect x="14" y="0" width="3" height="11" rx="0.6" />
         </svg>
         {/* wifi */}
-        <svg width="14" height="10" viewBox="0 0 16 11" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+        <svg width="12" height="9" viewBox="0 0 16 11" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
           <path d="M1.2 3.4a10 10 0 0 1 13.6 0" />
           <path d="M3.8 6a6.2 6.2 0 0 1 8.4 0" />
           <path d="M6.3 8.5a2.6 2.6 0 0 1 3.4 0" />
         </svg>
         {/* batería */}
-        <svg width="23" height="11" viewBox="0 0 26 12" fill="none" aria-hidden="true">
+        <svg width="19" height="9" viewBox="0 0 26 12" fill="none" aria-hidden="true">
           <rect x="0.6" y="0.6" width="22" height="10.8" rx="3" stroke="#fff" strokeOpacity="0.5" />
           <rect x="2.2" y="2.2" width="16" height="7.6" rx="1.6" fill="#fff" />
           <path d="M24.4 4v4a2 2 0 0 0 0-4Z" fill="#fff" fillOpacity="0.5" />
@@ -180,8 +180,8 @@ export function PhoneFrame({
             top: 8,
             left: '50%',
             transform: 'translateX(-50%)',
-            width: '28%',
-            height: 16,
+            width: '24%',
+            height: 15,
             borderRadius: '999px',
             background: '#000',
             zIndex: 2
