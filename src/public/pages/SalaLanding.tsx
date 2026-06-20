@@ -7,6 +7,7 @@ import {
   Building2,
   CalendarCheck,
   Check,
+  Dumbbell,
   Palette,
   QrCode,
   Search,
@@ -16,7 +17,7 @@ import {
   type LucideIcon
 } from 'lucide-react';
 import { SalaLogo } from '@shared/components/SalaLogo';
-import { BrowserFrame, PhoneFrame } from '../components/DeviceFrame';
+import { BrowserFrame, PhoneFrame, AppIconMockup } from '../components/DeviceFrame';
 import { Reveal } from '../components/Reveal';
 import BuscarEstudio from '../components/BuscarEstudio';
 import ProbarDemoModal from '../components/ProbarDemoModal';
@@ -37,6 +38,7 @@ import {
 const SHOTS = {
   agenda: '/shots/agenda.png',
   socio: '/shots/socio.png',
+  inicio: '/shots/inicio.png',
   checkin: '/shots/checkin.png',
   dashboard: '/shots/dashboard.png',
   mapa: '/shots/mapa.png',
@@ -549,14 +551,18 @@ function Showcase() {
         <ShowcaseRow
           reverse
           eyebrow="Tu web, tu marca"
-          titulo="Tu propia web, con tu cara."
-          texto="Tu hero, tus salas, tus instructores y tus planes — en tu dominio y con tu marca. Tus socios llegan a una página que es 100% tuya y reservan al instante. La nuestra no aparece por ningún lado."
+          titulo="Tu web y tu app, con tu cara."
+          texto="Tu hero, tus salas, tus instructores y tus planes — en tu dominio y con tu marca. Tus socios la abren desde el celular y la instalan como app: tu ícono en su pantalla de inicio. La nuestra no aparece por ningún lado."
           media={
-            <BrowserFrame
-              src={shot('estudio')}
-              video={{ webm: '/shots/estudio-hero.webm', mp4: '/shots/estudio-hero.mp4' }}
-              alt="Landing pública del gym con su propia marca y hero rotativo"
-            />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'clamp(18px, 3.5vw, 40px)', flexWrap: 'wrap' }}>
+              <PhoneFrame
+                src={shot('estudio')}
+                video={{ webm: '/shots/estudio-hero-mobile.webm', mp4: '/shots/estudio-hero-mobile.mp4' }}
+                alt="Landing pública del gym en el celular"
+                width="min(230px, 56vw)"
+              />
+              <AppIconMockup nombre="Healthy Space" monograma="H" icon={<Dumbbell size={40} strokeWidth={2.25} />} />
+            </div>
           }
         />
       </Reveal>
@@ -564,8 +570,13 @@ function Showcase() {
         <ShowcaseRow
           eyebrow="Para tus socios"
           titulo="Tu app, en el bolsillo de cada socio."
-          texto="Reservan, entran a lista de espera y muestran su QR desde el celular. Sin descargar nada: es una web app instalable con tu marca."
-          media={<PhoneFrame src={shot('socio')} alt="App del socio reservando una clase" />}
+          texto="Su próxima clase y su QR de acceso al abrir. Reservan, entran a lista de espera y muestran el código desde el celular. Sin descargar nada: una web app instalable con tu marca."
+          media={
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'clamp(12px, 2.5vw, 26px)', flexWrap: 'wrap' }}>
+              <PhoneFrame src={shot('inicio')} alt="Inicio de la app: tu próxima clase y tu QR de acceso" width="min(208px, 45vw)" />
+              <PhoneFrame src={shot('socio')} alt="Socio reservando una clase del día" width="min(208px, 45vw)" />
+            </div>
+          }
         />
       </Reveal>
       <Reveal>

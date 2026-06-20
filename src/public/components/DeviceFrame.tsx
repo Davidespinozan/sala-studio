@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { ImageIcon } from 'lucide-react';
 
 /**
@@ -94,12 +94,23 @@ export function BrowserFrame({
   );
 }
 
-/** Marco de teléfono para capturas de la app del socio (9:19.5). */
-export function PhoneFrame({ src, alt }: { src?: string; alt: string }) {
+/** Marco de teléfono para capturas de la app del socio (9:19.5). Acepta `width`
+ *  (para mostrar pares de teléfonos) y `video` (loop mudo con `src` de poster). */
+export function PhoneFrame({
+  src,
+  alt,
+  video,
+  width = 'min(260px, 70vw)'
+}: {
+  src?: string;
+  alt: string;
+  video?: { mp4?: string; webm?: string };
+  width?: string;
+}) {
   return (
     <div
       style={{
-        width: 'min(260px, 70vw)',
+        width,
         borderRadius: '34px',
         padding: '10px',
         background: 'var(--sala-neutral-dark, #1a1f1c)',
@@ -122,12 +133,59 @@ export function PhoneFrame({ src, alt }: { src?: string; alt: string }) {
             zIndex: 2
           }}
         />
-        {src ? (
+        {video ? (
+          <video poster={src} autoPlay muted loop playsInline preload="metadata" aria-label={alt} style={BLEED}>
+            {video.webm && <source src={video.webm} type="video/webm" />}
+            {video.mp4 && <source src={video.mp4} type="video/mp4" />}
+          </video>
+        ) : src ? (
           <img src={src} alt={alt} style={BLEED} />
         ) : (
           <Placeholder label="App del socio" />
         )}
       </div>
+    </div>
+  );
+}
+
+/** Mockup de "tu marca como app instalable": ícono estilo iOS (squircle) con el
+ *  monograma/ícono de la marca + el nombre, sobre un sutil fondo de pantalla de
+ *  inicio. Muestra a un dueño cómo se vería su gym como app de iPhone. */
+export function AppIconMockup({
+  nombre,
+  monograma,
+  icon
+}: {
+  nombre: string;
+  monograma: string;
+  icon?: ReactNode;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+      <div
+        style={{
+          width: 'clamp(86px, 20vw, 112px)',
+          aspectRatio: '1',
+          borderRadius: '23%',
+          background:
+            'linear-gradient(158deg, color-mix(in srgb, var(--sala-primary) 50%, white), color-mix(in srgb, var(--sala-primary), black 6%))',
+          boxShadow:
+            '0 0 0 1px rgba(255,255,255,0.28), inset 0 1.5px 0 rgba(255,255,255,0.45), 0 24px 54px rgba(10,15,12,0.62)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#ffffff'
+        }}
+      >
+        {icon ?? (
+          <span style={{ fontFamily: 'var(--ek-font-display)', fontWeight: 800, fontSize: 'clamp(30px, 7vw, 40px)', letterSpacing: '-0.02em', color: '#fff' }}>
+            {monograma}
+          </span>
+        )}
+      </div>
+      <span style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.96)', letterSpacing: '-0.01em' }}>
+        {nombre}
+      </span>
     </div>
   );
 }
