@@ -19,7 +19,7 @@ export default function PublicLayout() {
   useRoleRedirect(['/', '/login', '/signup']);
 
   return (
-    <div className="ek-page">
+    <div className="ek-page ek-immersive-top">
       <ModoDemoBanner />
       <DemoBanner vista="Landing" />
       <header

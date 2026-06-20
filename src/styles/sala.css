@@ -1568,6 +1568,25 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     color: var(--ek-ink);
   }
 
+  /* Status bar inmersivo (solo la landing pública). El .ek-page ya empuja el
+     contenido bajo el safe-area, pero esa franja quedaba con el fondo claro de
+     la página → en iPhone se veía una barra muerta sobre el header oscuro. Este
+     scrim fijo pinta SOLO la zona del status bar (hora/batería) con el hue
+     inmersivo de la marca, igual que el tope de --grad-immersive. Altura 0 en
+     equipos sin notch → no afecta desktop ni Android sin recorte. No se aplica a
+     socio/recepción porque comparten .ek-page pero tienen header claro. */
+  .ek-immersive-top::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top, 0px);
+    background: color-mix(in srgb, var(--sala-primary) 80%, var(--sala-neutral-dark));
+    z-index: 95;
+    pointer-events: none;
+  }
+
   .ek-container {
     max-width: 640px;
     margin: 0 auto;

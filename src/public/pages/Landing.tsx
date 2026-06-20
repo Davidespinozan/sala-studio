@@ -1417,6 +1417,9 @@ function SucursalModal({
           background: 'var(--sala-bg)',
           borderRadius: '24px 24px 0 0',
           padding: 'clamp(24px, 4vw, 36px)',
+          // Hoja pegada al borde inferior → suma el home indicator para que el
+          // contenido de abajo no quede tapado por la barra del iPhone.
+          paddingBottom: 'calc(clamp(24px, 4vw, 36px) + env(safe-area-inset-bottom, 0px))',
           boxShadow: '0 -20px 60px rgba(10, 15, 12, 0.4)'
         }}
       >
