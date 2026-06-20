@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useToast } from '@shared/hooks/useToast';
-import { cancelarSuscripcion } from '../lib/suscripcionService';
+import { useTenant } from '@shared/hooks/useTenant';
+import { esTenantDemo } from '@shared/lib/demoAuth';
+import { cancelarSuscripcion, cambiarCancelacionSaas } from '../lib/suscripcionService';
 import {
   PLANES_SAAS,
   TIERS_ORDEN,
@@ -43,8 +45,11 @@ export function EstadoSuscripcionCard({
   onCambio: () => void;
 }) {
   const toast = useToast();
+  const tenant = useTenant();
+  const esDemo = esTenantDemo(tenant.slug);
   const [confirmando, setConfirmando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
+  const [reactivando, setReactivando] = useState(false);
 
   // Sin plan vigente → prompt para elegir uno.
   if (!suscripcion || suscripcion.estado === 'cancelada') {
@@ -96,19 +101,47 @@ export function EstadoSuscripcionCard({
       : 'var(--sala-primary)';
 
   const tierSiguiente = siguienteTier(suscripcion.tier as TierSaas);
+  const cancelacionPendiente = suscripcion.cancel_at_period_end && suscripcion.estado !== 'cancelada';
 
   async function handleCancelar() {
     if (!suscripcion) return;
     setCancelando(true);
-    const { error } = await cancelarSuscripcion(suscripcion.id);
-    setCancelando(false);
-    setConfirmando(false);
-    if (error) {
-      toast.error('No pudimos cancelar la suscripción. Prueba de nuevo.');
-      return;
+    try {
+      if (esDemo) {
+        const { error } = await cancelarSuscripcion(suscripcion.id);
+        if (error) throw new Error(error);
+        toast.success('Suscripción cancelada. (modo demo)');
+      } else {
+        const res = await cambiarCancelacionSaas(false);
+        if (res.reason === 'stripe_pendiente') {
+          toast.success('Pago en camino — Stripe se conecta pronto.');
+        } else if (!res.ok) {
+          throw new Error('cancel_failed');
+        } else {
+          toast.success('Listo: tu plan se cancela al final del período.');
+        }
+      }
+      onCambio();
+    } catch {
+      toast.error('No pudimos cancelar la suscripción. Probá de nuevo.');
+    } finally {
+      setCancelando(false);
+      setConfirmando(false);
     }
-    toast.success('Suscripción cancelada. (modo demo)');
-    onCambio();
+  }
+
+  async function handleReactivar() {
+    setReactivando(true);
+    try {
+      const res = await cambiarCancelacionSaas(true);
+      if (!res.ok) throw new Error('reactivate_failed');
+      toast.success('¡Suscripción reactivada! No se cancelará.');
+      onCambio();
+    } catch {
+      toast.error('No pudimos reactivar. Probá de nuevo.');
+    } finally {
+      setReactivando(false);
+    }
   }
 
   return (
@@ -195,6 +228,32 @@ export function EstadoSuscripcionCard({
         )}
       </div>
 
+      {/* Pago vencido (dunning) */}
+      {suscripcion.payment_past_due && (
+        <AvisoLimite
+          fuerte
+          texto="Tu último pago no se procesó. Actualizá tu método de pago para no perder el acceso a tu plan."
+        />
+      )}
+
+      {/* Cancelación programada al fin del periodo */}
+      {cancelacionPendiente && (
+        <div
+          style={{
+            padding: '12px 14px',
+            borderRadius: '10px',
+            background: 'var(--sala-bg)',
+            border: '1px solid var(--sala-border-strong)'
+          }}
+        >
+          <p style={{ fontSize: '13px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
+            <strong>Cancelación programada · </strong>
+            Tu plan sigue activo hasta el{' '}
+            {suscripcion.periodo_actual_termina ? formatFecha(suscripcion.periodo_actual_termina) : 'fin del período'}. Podés reactivarlo antes.
+          </p>
+        </div>
+      )}
+
       {/* Uso de miembros */}
       {uso && (
         <div>
@@ -262,33 +321,49 @@ export function EstadoSuscripcionCard({
         </div>
       )}
 
-      {/* Acción cancelar */}
+      {/* Acción: reactivar (si hay cancelación pendiente) o cancelar */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--sala-border)', paddingTop: '14px' }}>
-        <button
-          type="button"
-          onClick={() => setConfirmando(true)}
-          style={{
-            padding: '8px 16px',
-            minHeight: '38px',
-            background: 'transparent',
-            color: 'var(--sala-error)',
-            border: '1px solid var(--sala-error)',
-            borderRadius: '999px',
-            fontSize: '13px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: 'inherit'
-          }}
-        >
-          Cancelar suscripción
-        </button>
+        {cancelacionPendiente ? (
+          <button
+            type="button"
+            onClick={handleReactivar}
+            disabled={reactivando}
+            className="ek-cta"
+            style={{ minHeight: '38px', opacity: reactivando ? 0.7 : 1 }}
+          >
+            {reactivando ? 'Reactivando…' : 'Reactivar suscripción'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmando(true)}
+            style={{
+              padding: '8px 16px',
+              minHeight: '38px',
+              background: 'transparent',
+              color: 'var(--sala-error)',
+              border: '1px solid var(--sala-error)',
+              borderRadius: '999px',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit'
+            }}
+          >
+            Cancelar suscripción
+          </button>
+        )}
       </div>
 
       <ConfirmDialog
         isOpen={confirmando}
         variant="danger"
         title="¿Cancelar tu suscripción?"
-        description="Perdés el acceso a las funciones de tu plan al terminar el período actual. Puedes volver a suscribirte cuando quieras. (Modo demo — no se procesa ningún reembolso real.)"
+        description={
+          esDemo
+            ? 'Perdés el acceso al terminar el período actual. Puedes volver a suscribirte cuando quieras. (Modo demo — no se procesa ningún reembolso real.)'
+            : 'Tu plan sigue activo hasta el final del período actual y luego se cancela. No se reembolsa el período en curso. Podés reactivarlo antes de esa fecha.'
+        }
         confirmLabel={cancelando ? 'Cancelando…' : 'Sí, cancelar'}
         cancelLabel="Volver"
         onConfirm={handleCancelar}

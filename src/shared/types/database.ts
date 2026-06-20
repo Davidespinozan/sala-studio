@@ -911,14 +911,19 @@ export type Database = {
       }
       suscripciones_saas: {
         Row: {
+          cancel_at_period_end: boolean
           cancelada_at: string | null
+          ciclo: string
           created_at: string
           estado: string
           id: string
+          last_event_at: string | null
           moneda: string
+          payment_past_due: boolean
           periodo_actual_termina: string | null
           precio_centavos: number
           stripe_customer_id: string | null
+          stripe_price_id: string | null
           stripe_subscription_id: string | null
           tenant_id: string
           tier: string
@@ -926,14 +931,19 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cancel_at_period_end?: boolean
           cancelada_at?: string | null
+          ciclo?: string
           created_at?: string
           estado: string
           id?: string
+          last_event_at?: string | null
           moneda: string
+          payment_past_due?: boolean
           periodo_actual_termina?: string | null
           precio_centavos: number
           stripe_customer_id?: string | null
+          stripe_price_id?: string | null
           stripe_subscription_id?: string | null
           tenant_id: string
           tier: string
@@ -941,14 +951,19 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cancel_at_period_end?: boolean
           cancelada_at?: string | null
+          ciclo?: string
           created_at?: string
           estado?: string
           id?: string
+          last_event_at?: string | null
           moneda?: string
+          payment_past_due?: boolean
           periodo_actual_termina?: string | null
           precio_centavos?: number
           stripe_customer_id?: string | null
+          stripe_price_id?: string | null
           stripe_subscription_id?: string | null
           tenant_id?: string
           tier?: string

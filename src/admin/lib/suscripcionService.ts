@@ -32,6 +32,21 @@ export async function iniciarCheckoutSaas(params: {
   return res;
 }
 
+export interface CancelacionSaasResult {
+  ok?: boolean;
+  cancel_at_period_end?: boolean;
+  reason?: string;
+}
+
+/**
+ * Cancela (cancel_at_period_end:true) o reactiva (false) la suscripción REAL del
+ * gym vía `cancelar-saas`. El webhook sincroniza suscripciones_saas. Solo para
+ * tenants reales; el DEMO usa cancelarSuscripcion (mock).
+ */
+export async function cambiarCancelacionSaas(reactivar: boolean): Promise<CancelacionSaasResult> {
+  return backendPost<CancelacionSaasResult>('cancelar-saas', { reactivar });
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // MOCK DE PAGO — leer antes de tocar
 // ════════════════════════════════════════════════════════════════════════════
