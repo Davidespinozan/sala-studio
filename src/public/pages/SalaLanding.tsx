@@ -538,17 +538,11 @@ function Showcase() {
     <section className="sala-showcase-band">
       {/* Profundidad tipo hero: mesh animado + orbs flotantes con glow (verde
           claro/menta) sobre el verde oscuro. Mismo efecto que el hero pro. */}
-      <div
-        className="sala-hero-mesh"
-        aria-hidden="true"
-        style={{
-          '--mesh-1': 'rgba(168, 216, 190, 0.14)',
-          '--mesh-2': 'rgba(120, 178, 148, 0.12)'
-        } as CSSProperties}
-      />
-      <div className="sala-orb" aria-hidden="true" style={{ width: 340, height: 340, top: '-10%', left: '-8%', opacity: 0.10, animationDelay: '0s', '--orb-color': '#8fc7a8' } as CSSProperties} />
-      <div className="sala-orb" aria-hidden="true" style={{ width: 260, height: 260, bottom: '0%', right: '-6%', opacity: 0.09, animationDelay: '4s', '--orb-color': '#8fc7a8' } as CSSProperties} />
-      <div className="sala-orb" aria-hidden="true" style={{ width: 170, height: 170, top: '36%', right: '28%', opacity: 0.07, animationDelay: '7s', '--orb-color': 'color-mix(in srgb, var(--sala-primary), white 30%)' } as CSSProperties} />
+      {/* Mismo efecto del hero: mesh sage por defecto + orbs primary/accent. */}
+      <div className="sala-hero-mesh" aria-hidden="true" />
+      <div className="sala-orb" aria-hidden="true" style={{ width: 320, height: 320, top: '-6%', left: '-6%', opacity: 0.12, animationDelay: '0s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
+      <div className="sala-orb" aria-hidden="true" style={{ width: 240, height: 240, top: '42%', right: '-4%', opacity: 0.12, animationDelay: '4s', '--orb-color': ACCENT_DARK } as CSSProperties} />
+      <div className="sala-orb" aria-hidden="true" style={{ width: 200, height: 200, bottom: '4%', left: '14%', opacity: 0.10, animationDelay: '7s', '--orb-color': 'var(--sala-primary)' } as CSSProperties} />
       <div
         style={{
           position: 'relative',
