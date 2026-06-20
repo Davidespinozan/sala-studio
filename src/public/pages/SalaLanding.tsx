@@ -573,8 +573,8 @@ function Showcase() {
           texto="Su próxima clase y su QR de acceso al abrir. Reservan, entran a lista de espera y muestran el código desde el celular. Sin descargar nada: una web app instalable con tu marca."
           media={
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'clamp(12px, 2.5vw, 26px)', flexWrap: 'wrap' }}>
-              <PhoneFrame src={shot('inicio')} alt="Inicio de la app: tu próxima clase y tu QR de acceso" width="min(208px, 45vw)" />
-              <PhoneFrame src={shot('socio')} alt="Socio reservando una clase del día" width="min(208px, 45vw)" />
+              <PhoneFrame src={shot('inicio')} alt="Inicio de la app: tu próxima clase y tu QR de acceso" width="min(208px, 45vw)" bakedStatusBar />
+              <PhoneFrame src={shot('socio')} alt="Socio reservando una clase del día" width="min(208px, 45vw)" bakedStatusBar />
             </div>
           }
         />
