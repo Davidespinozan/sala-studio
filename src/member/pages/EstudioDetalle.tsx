@@ -161,7 +161,7 @@ export default function EstudioDetalle() {
       </div>
 
       {tipoContenido.length > 0 && (
-        <div style={{ marginBottom: '32px' }}>
+        <div style={{ marginBottom: '22px' }}>
           <p className="ek-eyebrow" style={{ marginBottom: '10px' }}>IDEAL PARA</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {tipoContenido.map((tipo) => (

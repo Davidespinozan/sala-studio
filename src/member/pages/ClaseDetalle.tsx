@@ -330,7 +330,7 @@ export default function ClaseDetalle() {
 
   if (notFound || !clase) {
     return (
-      <div className="ek-container" style={{ paddingTop: '24px' }}>
+      <div className="ek-container" style={{ paddingTop: '14px' }}>
         <BackButton onClick={handleBack} inline />
         <div style={{
           padding: '48px 20px',
