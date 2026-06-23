@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useToast } from '@shared/hooks/useToast';
 import { useTenant } from '@shared/hooks/useTenant';
 import { esTenantDemo } from '@shared/lib/demoAuth';
-import { cancelarSuscripcion, cambiarCancelacionSaas } from '../lib/suscripcionService';
+import { cancelarSuscripcion, cambiarCancelacionSaas, abrirPortalSaas } from '../lib/suscripcionService';
 import {
   PLANES_SAAS,
   TIERS_ORDEN,
@@ -50,6 +50,7 @@ export function EstadoSuscripcionCard({
   const [confirmando, setConfirmando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
   const [reactivando, setReactivando] = useState(false);
+  const [abriendoPortal, setAbriendoPortal] = useState(false);
 
   // Sin plan vigente → prompt para elegir uno.
   if (!suscripcion || suscripcion.estado === 'cancelada') {
@@ -141,6 +142,27 @@ export function EstadoSuscripcionCard({
       toast.error('No pudimos reactivar. Probá de nuevo.');
     } finally {
       setReactivando(false);
+    }
+  }
+
+  async function gestionarFacturacion() {
+    setAbriendoPortal(true);
+    try {
+      const res = await abrirPortalSaas(window.location.pathname);
+      if (res.url) return; // redirigiendo al portal de Stripe
+      if (res.reason === 'sin_suscripcion') {
+        toast.info('Todavía no hay una suscripción real para gestionar.');
+      } else if (res.reason === 'portal_no_configurado') {
+        toast.error('Falta activar el Customer Portal en Stripe (Settings → Billing).');
+      } else if (res.reason === 'stripe_pendiente') {
+        toast.info('Estamos conectando Stripe. Disponible pronto.');
+      } else {
+        toast.error('No pudimos abrir la facturación. Probá de nuevo.');
+      }
+    } catch {
+      toast.error('No pudimos abrir la facturación. Probá de nuevo.');
+    } finally {
+      setAbriendoPortal(false);
     }
   }
 
@@ -321,8 +343,21 @@ export function EstadoSuscripcionCard({
         </div>
       )}
 
-      {/* Acción: reactivar (si hay cancelación pendiente) o cancelar */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--sala-border)', paddingTop: '14px' }}>
+      {/* Acciones: facturación (portal) + reactivar/cancelar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap', borderTop: '1px solid var(--sala-border)', paddingTop: '14px' }}>
+        {!esDemo ? (
+          <button
+            type="button"
+            onClick={gestionarFacturacion}
+            disabled={abriendoPortal}
+            className="ek-cta ek-cta--secondary"
+            style={{ minHeight: '38px' }}
+          >
+            {abriendoPortal ? 'Abriendo…' : 'Facturación y tarjeta'}
+          </button>
+        ) : (
+          <span />
+        )}
         {cancelacionPendiente ? (
           <button
             type="button"

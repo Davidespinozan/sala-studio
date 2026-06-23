@@ -19,7 +19,7 @@ import { getStripe } from '../_lib/stripe';
  */
 
 interface Body {
-  action?: 'get' | 'setup';
+  action?: 'get' | 'setup' | 'historial';
 }
 
 export const handler: Handler = async (event) => {
@@ -31,7 +31,8 @@ export const handler: Handler = async (event) => {
     const userToken = authHeader.slice('Bearer '.length);
 
     const body: Body = JSON.parse(event.body || '{}');
-    const action = body.action === 'setup' ? 'setup' : 'get';
+    const action: 'get' | 'setup' | 'historial' =
+      body.action === 'setup' || body.action === 'historial' ? body.action : 'get';
 
     const supabaseUrl = requireEnv('VITE_SUPABASE_URL');
     const anonKey = requireEnv('VITE_SUPABASE_ANON_KEY');
@@ -77,6 +78,22 @@ export const handler: Handler = async (event) => {
         { stripeAccount: acct }
       );
       return ok({ client_secret: session.client_secret, account: acct });
+    }
+
+    // Historial: últimos cobros del socio en la cuenta conectada.
+    if (action === 'historial') {
+      if (!customerId || customerId.startsWith('mock_')) return ok({ pagos: [] });
+      const charges = await stripe.charges.list({ customer: customerId, limit: 12 }, { stripeAccount: acct });
+      return ok({
+        pagos: charges.data.map((c) => ({
+          id: c.id,
+          amount: c.amount,
+          currency: c.currency,
+          created: c.created,
+          status: c.status,
+          descripcion: c.description ?? null
+        }))
+      });
     }
 
     // GET: tarjeta por defecto del customer.

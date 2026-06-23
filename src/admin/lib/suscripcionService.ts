@@ -47,6 +47,16 @@ export async function cambiarCancelacionSaas(reactivar: boolean): Promise<Cancel
   return backendPost<CancelacionSaasResult>('cancelar-saas', { reactivar });
 }
 
+/**
+ * Abre el Stripe Customer Portal de la suscripción del gym a SALA (gestionar
+ * tarjeta, ver facturas, cancelar). Redirige si hay url.
+ */
+export async function abrirPortalSaas(returnPath?: string): Promise<{ url: string | null; reason?: string }> {
+  const res = await backendPost<{ url: string | null; reason?: string }>('portal-saas', { return_path: returnPath });
+  if (res.url) window.location.href = res.url;
+  return res;
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // MOCK DE PAGO — leer antes de tocar
 // ════════════════════════════════════════════════════════════════════════════

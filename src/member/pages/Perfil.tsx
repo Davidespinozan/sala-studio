@@ -721,15 +721,68 @@ function MetodoPago() {
 // Historial de pagos
 // ============================================================================
 
+interface PagoHist {
+  id: string;
+  amount: number;
+  currency: string;
+  created: number;
+  status: string;
+  descripcion: string | null;
+}
+
 function HistorialPagos() {
-  // TODO STRIPE: listar los pagos reales (tabla payment_events / invoices de
-  // Stripe) cuando se conecte. Hoy: placeholder. Ver STRIPE.md → touchpoints.
+  const [pagos, setPagos] = useState<PagoHist[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const res = await backendPost<{ pagos: PagoHist[] }>('metodo-pago', { action: 'historial' });
+        if (!cancel) setPagos(res.pagos ?? []);
+      } catch {
+        if (!cancel) setPagos([]);
+      } finally {
+        if (!cancel) setLoading(false);
+      }
+    })();
+    return () => { cancel = true; };
+  }, []);
+
   return (
     <section style={{ marginTop: '32px' }}>
       <p className="ek-eyebrow" style={{ marginBottom: '10px' }}>HISTORIAL DE PAGOS</p>
-      <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', margin: 0, lineHeight: 1.5 }}>
-        Todavía no hay pagos. Van a aparecer acá cuando se habiliten los pagos en línea.
-      </p>
+      {loading ? (
+        <div className="ek-skeleton" style={{ height: '64px', borderRadius: 'var(--ek-r-card)' }} aria-hidden="true" />
+      ) : pagos.length === 0 ? (
+        <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', margin: 0, lineHeight: 1.5 }}>
+          Todavía no tienes pagos.
+        </p>
+      ) : (
+        <div className="ek-stack-sm">
+          {pagos.map((p) => (
+            <div
+              key={p.id}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', background: 'var(--sala-surface)', border: '1px solid var(--sala-border)', borderRadius: 'var(--ek-r-card)' }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: 'var(--sala-text-primary)' }}>
+                  ${(p.amount / 100).toLocaleString('es-MX')} {p.currency.toUpperCase()}
+                </p>
+                <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '2px 0 0' }}>
+                  {new Date(p.created * 1000).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  {p.descripcion ? ` · ${p.descripcion}` : ''}
+                </p>
+              </div>
+              <span
+                style={{ flexShrink: 0, fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 10px', borderRadius: '999px', color: p.status === 'succeeded' ? 'var(--sala-success)' : 'var(--sala-error)', background: p.status === 'succeeded' ? 'var(--sala-success-bg)' : 'var(--sala-error-bg)' }}
+              >
+                {p.status === 'succeeded' ? 'Pagado' : p.status === 'failed' ? 'Falló' : p.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
