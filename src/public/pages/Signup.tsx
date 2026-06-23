@@ -3,7 +3,6 @@ import { ArrowLeft, Check, Star } from 'lucide-react';
 import { useNavigate, useSearchParams, Link, Navigate } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
-import { iniciarCheckout } from '@shared/lib/checkout';
 import { validarPassword } from '../lib/onboardingLogic';
 
 type Tier = 'basica' | 'pro';
@@ -173,15 +172,9 @@ export default function Signup() {
         throw new Error('Cuenta creada pero error al iniciar sesión. Inicia sesión manualmente.');
       }
 
-      // Demo → membresía ya activa (gratis), va a /app. Gym REAL → la cuenta
-      // quedó 'pendiente_pago': cobramos por Stripe (iniciarCheckout redirige al
-      // Checkout). Si no hay url (plan gratis o el gym no activó cobros), entra a
-      // /app y ve la pantalla de membresía pendiente.
-      if (result.pendiente_pago && tierRow) {
-        const checkout = await iniciarCheckout(tierRow.id);
-        if (checkout.url) return; // redirigiendo a Stripe Checkout
-      }
-
+      // Demo / plan gratis → membresía ya activa, entra a /app. Gym real con plan
+      // pago → la cuenta quedó 'pendiente_pago': cae en la pantalla "Membresía
+      // pendiente" con el botón "Pagar y activar mi plan" (sin redirect abrupto).
       navigate('/app');
     } catch (err) {
       console.error('[Signup]', err);

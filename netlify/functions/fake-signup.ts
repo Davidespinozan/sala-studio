@@ -89,6 +89,11 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    // Activar gratis (sin cobro) si es el DEMO o el plan no cuesta (precio 0).
+    // Si el plan es PAGO en un gym real → la cuenta queda 'pendiente_pago' y el
+    // socio paga por Stripe desde la pantalla de membresía pendiente.
+    const activarGratis = esDemo || (tierData.precio_centavos ?? 0) <= 0;
+
     // 1c. Resolver la sede del socio. Si el gym es multisede, el signup manda la
     //     elegida; validamos que sea de este tenant. Si no manda ninguna (gym de
     //     1 sede o cliente viejo), caemos a la sede por defecto (menor orden).
@@ -151,12 +156,12 @@ export const handler: Handler = async (event) => {
       .update({
         nombre,
         membresia_tier: tier,
-        status: esDemo ? 'activo' : 'pendiente_pago',
+        status: activarGratis ? 'activo' : 'pendiente_pago',
         rol: 'miembro',
         tenant_id: tenant.id,
         sucursal_id: sucursalId,
-        notas_admin: esDemo
-          ? `CUENTA DEMO — PAGO SIMULADO — ${fechaHoy}`
+        notas_admin: activarGratis
+          ? `Alta self-service — ${fechaHoy}`
           : `Alta self-service — pendiente de pago — ${fechaHoy}`
       })
       .eq('auth_id', authUserId)
@@ -173,10 +178,10 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // 3b. DEMO: crear la MEMBRESÍA real (pago simulado) → el visitante reserva ya.
-    //     Gym REAL: NO se activa nada acá; la membresía la crea el webhook de
-    //     Stripe cuando el socio paga (status queda 'pendiente_pago').
-    if (esDemo) {
+    // 3b. Plan gratis/demo: crear la MEMBRESÍA real ya → el socio reserva.
+    //     Plan PAGO en gym real: NO se activa nada acá; la membresía la crea el
+    //     webhook de Stripe cuando el socio paga (status 'pendiente_pago').
+    if (activarGratis) {
       const { error: memError } = await supabaseAdmin.rpc('activar_suscripcion_socio', {
         p_usuario_id: usuarioUpdated.id,
         p_tier_id: tierData.id
@@ -221,7 +226,7 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify({
         success: true,
         auth_user_id: authUserId,
-        pendiente_pago: !esDemo
+        pendiente_pago: !activarGratis
       })
     };
   } catch (err) {
