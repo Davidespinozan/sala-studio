@@ -10,6 +10,7 @@ import type { Database } from '@shared/types/database';
 import { useMembresiaActual, membresiaEstado } from '@member/hooks/useMembresiaActual';
 import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { iniciarCheckout } from '@shared/lib/checkout';
+import { CheckoutModal } from '@shared/components/CheckoutModal';
 
 type Tier = Database['public']['Tables']['tiers']['Row'];
 
@@ -321,6 +322,7 @@ function PlanHero({
   const estado = membresiaEstado(membresia);
   const tierActual = membresia ? tiers.find((t) => t.id === membresia.tier_id) ?? null : null;
   const esCreditos = membresia?.tier_tipo === 'creditos' || membresia?.tier_tipo === 'hibrido';
+  const [comprando, setComprando] = useState(false);
 
   // Sede + alcance del plan (solo gyms con 2+ sedes).
   const { sucursales, multisede } = useMemberSucursal();
@@ -405,6 +407,17 @@ function PlanHero({
               </p>
             )}
 
+            {esCreditos && tierActual && (
+              <button
+                type="button"
+                onClick={() => setComprando(true)}
+                className="ek-cta"
+                style={{ marginTop: '16px', width: '100%', background: 'rgba(255,255,255,0.96)', color: 'var(--sala-primary)' }}
+              >
+                {(membresia.creditos_restantes ?? 0) <= 0 ? 'Comprar otro paquete' : 'Comprar más clases'}
+              </button>
+            )}
+
             {multisede && (sedeNombre || accesoTexto) && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '16px' }}>
                 {sedeNombre && (
@@ -431,6 +444,17 @@ function PlanHero({
           </>
         )}
       </div>
+
+      {comprando && membresia && (
+        <CheckoutModal
+          tierId={membresia.tier_id}
+          onClose={() => setComprando(false)}
+          onSuccess={() => {
+            setComprando(false);
+            setTimeout(() => window.location.reload(), 1500);
+          }}
+        />
+      )}
     </section>
   );
 }
