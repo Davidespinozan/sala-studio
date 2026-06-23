@@ -3,6 +3,15 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
 import { isAdminPreview, latchAdminPreview } from '@shared/lib/adminPreview';
 
+// Flag de módulo: durante el alta de socio que va a pagar, suprimimos el
+// redirect por rol para que el auto-login NO lo tire a /app (que mostraría
+// "membresía pendiente") mientras se arma el Checkout. Se auto-resetea al salir
+// a Stripe (window.location = navegación completa → el módulo se reinicia).
+let suprimirRedirect = false;
+export function setSuprimirRoleRedirect(v: boolean) {
+  suprimirRedirect = v;
+}
+
 /**
  * Redirige al área correcta según rol después del login.
  * Útil cuando el usuario llega a / o /login estando ya autenticado.
@@ -23,6 +32,7 @@ export function useRoleRedirect(redirectPaths: string[] = ['/', '/login', '/sign
 
   useEffect(() => {
     if (isLoading || !usuario) return;
+    if (suprimirRedirect) return; // alta de socio yendo a pagar → no tirar a /app
     if (!redirectPaths.includes(location.pathname)) return;
 
     // VER COMO (Sprint D-Polish): si admin abre una vista pública con

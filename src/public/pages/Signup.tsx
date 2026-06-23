@@ -3,6 +3,8 @@ import { ArrowLeft, Check, Star } from 'lucide-react';
 import { useNavigate, useSearchParams, Link, Navigate } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { iniciarCheckout } from '@shared/lib/checkout';
+import { setSuprimirRoleRedirect } from '@shared/hooks/useRoleRedirect';
 import { validarPassword } from '../lib/onboardingLogic';
 
 type Tier = 'basica' | 'pro';
@@ -110,6 +112,7 @@ export default function Signup() {
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [sucursalId, setSucursalId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [redirigiendoPago, setRedirigiendoPago] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const plan: PlanInfo | null = tierRow
@@ -163,24 +166,61 @@ export default function Signup() {
       }
 
       // Auto-login
-      const { error: loginError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      // Gym real con plan PAGO → vamos DERECHO al Checkout. Suprimimos el redirect
+      // por rol (para que el auto-login no muestre /app "pendiente") y mostramos
+      // "te llevamos al pago" mientras se arma la sesión de Stripe — sin parpadeo.
+      const irAPagar = result.pendiente_pago === true && !!tierRow;
+      if (irAPagar) {
+        setSuprimirRoleRedirect(true);
+        setRedirigiendoPago(true);
+      }
 
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
       if (loginError) {
+        setSuprimirRoleRedirect(false);
         throw new Error('Cuenta creada pero error al iniciar sesión. Inicia sesión manualmente.');
       }
 
-      // Demo / plan gratis → membresía ya activa, entra a /app. Gym real con plan
-      // pago → la cuenta quedó 'pendiente_pago': cae en la pantalla "Membresía
-      // pendiente" con el botón "Pagar y activar mi plan" (sin redirect abrupto).
+      if (irAPagar) {
+        const checkout = await iniciarCheckout(tierRow!.id);
+        if (checkout.url) return; // redirigiendo a Stripe Checkout (sin parpadeo)
+        // Sin url (el gym no activó cobros, etc.) → entra a /app (pantalla pendiente).
+        setSuprimirRoleRedirect(false);
+      }
+
+      // Demo / plan gratis → membresía ya activa, entra a /app.
       navigate('/app');
     } catch (err) {
       console.error('[Signup]', err);
       setError(err instanceof Error ? err.message : 'Error inesperado. Intenta de nuevo.');
       setIsProcessing(false);
     }
+  }
+
+  // Yendo al Checkout de Stripe: pantalla puente (sin parpadeo a /app).
+  if (redirigiendoPago) {
+    return (
+      <div
+        style={{
+          minHeight: '100dvh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '14px',
+          textAlign: 'center',
+          padding: '24px'
+        }}
+      >
+        <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: 0 }}>PAGO SEGURO</p>
+        <p style={{ fontFamily: 'var(--ek-font-display)', fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--ek-ink)', margin: 0 }}>
+          Te estamos llevando al pago…
+        </p>
+        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0 }}>
+          No cierres esta ventana.
+        </p>
+      </div>
+    );
   }
 
   if (tierLoading) {
