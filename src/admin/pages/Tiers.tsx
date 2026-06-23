@@ -441,8 +441,11 @@ function TierRow({
           )}
         </div>
         <p style={{ fontSize: '14px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '8px' }}>
-          ${(t.precio_centavos / 100).toLocaleString('es-MX')} {t.moneda}/{t.periodo}
-          {compromiso ? ` · ${compromiso} meses de compromiso` : ''}
+          ${(t.precio_centavos / 100).toLocaleString('es-MX')} {t.moneda}
+          {t.tipo === 'creditos' || t.tipo === 'hibrido'
+            ? ` · ${t.clases_incluidas ?? 0} clases${t.tipo === 'hibrido' && t.duracion_dias ? ` · vencen en ${t.duracion_dias} días` : ''}`
+            : `/${t.periodo}`}
+          {compromiso && t.tipo === 'tiempo' ? ` · ${compromiso} meses de compromiso` : ''}
         </p>
         {beneficios.slice(0, 3).length > 0 && (
           <ul
@@ -598,6 +601,17 @@ function EditarTierModal({
     if (typeof raw === 'number') return raw;
     return tier?.slug === 'pro' ? 4 : 2;
   });
+  // Modelo de plan: mensualidad (tiempo) o paquete de clases (creditos/hibrido).
+  const [esPaquete, setEsPaquete] = useState<boolean>(
+    () => tier?.tipo === 'creditos' || tier?.tipo === 'hibrido'
+  );
+  const [clasesIncluidas, setClasesIncluidas] = useState<string>(
+    () => (tier?.clases_incluidas != null ? String(tier.clases_incluidas) : '10')
+  );
+  const [vence, setVence] = useState<boolean>(() => tier?.tipo === 'hibrido');
+  const [duracionDias, setDuracionDias] = useState<string>(
+    () => (tier?.duracion_dias != null ? String(tier.duracion_dias) : '30')
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -612,6 +626,27 @@ function EditarTierModal({
     const precioCentavos = Math.round(parseFloat(precio) * 100);
     if (!Number.isFinite(precioCentavos) || precioCentavos < 0) {
       setError('Precio inválido.');
+      setSaving(false);
+      return;
+    }
+
+    // Modelo de plan → tipo + clases + vigencia.
+    const tipo = !esPaquete ? 'tiempo' : vence ? 'hibrido' : 'creditos';
+    const clasesVal = esPaquete ? Math.round(Number(clasesIncluidas)) : null;
+    const duracionVal = esPaquete
+      ? vence
+        ? Math.round(Number(duracionDias))
+        : null
+      : periodo === 'anual'
+        ? 365
+        : 30;
+    if (esPaquete && (!Number.isFinite(clasesVal as number) || (clasesVal ?? 0) < 1)) {
+      setError('El paquete debe incluir al menos 1 clase.');
+      setSaving(false);
+      return;
+    }
+    if (esPaquete && vence && (!Number.isFinite(duracionVal as number) || (duracionVal ?? 0) < 1)) {
+      setError('La vigencia debe ser de al menos 1 día.');
       setSaving(false);
       return;
     }
@@ -648,6 +683,9 @@ function EditarTierModal({
         precio_centavos: precioCentavos,
         moneda,
         periodo,
+        tipo,
+        clases_incluidas: clasesVal,
+        duracion_dias: duracionVal,
         beneficios: beneficios as never,
         reglas: reglas as never,
         activo,
@@ -674,6 +712,9 @@ function EditarTierModal({
       precio_centavos: precioCentavos,
       moneda,
       periodo,
+      tipo,
+      clases_incluidas: clasesVal,
+      duracion_dias: duracionVal,
       beneficios,
       reglas: reglasNuevas as never,
       activo,
@@ -740,6 +781,34 @@ function EditarTierModal({
           />
         </label>
 
+        {/* Modelo de plan: mensualidad (tiempo) vs paquete de clases (créditos). */}
+        <div className="ek-form-field" style={{ marginTop: '12px' }}>
+          <label className="ek-label" style={{ display: 'block', marginBottom: '6px' }}>Modelo de plan</label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setEsPaquete(false)}
+              className={!esPaquete ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
+              style={{ flex: 1, minHeight: 38 }}
+            >
+              Mensualidad
+            </button>
+            <button
+              type="button"
+              onClick={() => setEsPaquete(true)}
+              className={esPaquete ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
+              style={{ flex: 1, minHeight: 38 }}
+            >
+              Paquete de clases
+            </button>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '6px 0 0', lineHeight: 1.5 }}>
+            {esPaquete
+              ? 'El socio compra N clases (pago único). Cada reserva descuenta una.'
+              : 'Acceso ilimitado por tiempo, con cobro recurrente (mensual/anual).'}
+          </p>
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
           <label className="ek-label">
             Precio ({moneda})
@@ -761,17 +830,55 @@ function EditarTierModal({
               ))}
             </select>
           </label>
-          <label className="ek-label">
-            Cobro
-            <select value={periodo} onChange={(e) => setPeriodo(e.target.value)} className="ek-input">
-              {PERIODO_OPTS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {!esPaquete ? (
+            <label className="ek-label">
+              Cobro
+              <select value={periodo} onChange={(e) => setPeriodo(e.target.value)} className="ek-input">
+                {PERIODO_OPTS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <label className="ek-label">
+              Nº de clases
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={clasesIncluidas}
+                onChange={(e) => setClasesIncluidas(e.target.value)}
+                className="ek-input"
+              />
+            </label>
+          )}
         </div>
+
+        {esPaquete && (
+          <div className="ek-form-field" style={{ marginTop: '12px' }}>
+            <Toggle
+              checked={vence}
+              onChange={setVence}
+              label="Las clases vencen"
+              description="Si está activo, el paquete caduca a los X días de la compra."
+            />
+            {vence && (
+              <label className="ek-label" style={{ display: 'block', marginTop: '10px' }}>
+                Vigencia (días)
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={duracionDias}
+                  onChange={(e) => setDuracionDias(e.target.value)}
+                  className="ek-input"
+                />
+              </label>
+            )}
+          </div>
+        )}
 
         <div className="ek-form-field" style={{ marginTop: '12px' }}>
           <Toggle
