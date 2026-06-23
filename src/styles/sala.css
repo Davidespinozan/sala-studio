@@ -2437,12 +2437,12 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   z-index: 1;
 }
 @media (min-width: 900px) {
-  /* La captura crece desde su borde izquierdo: llena el alto (mata el verde
-     muerto de antes) y SANGRA por el borde derecho del bloque (clip por el
-     overflow:hidden) → se siente que "hay más", con dinamismo premium. */
+  /* La captura crece un poco desde el CENTRO pero queda CONTENIDA dentro del
+     bloque (con el padding del hero como margen) — antes sangraba al borde
+     derecho y se veía cortada. */
   .sala-hero-media {
-    transform: scale(1.2);
-    transform-origin: left center;
+    transform: scale(1.04);
+    transform-origin: center;
   }
 }
 
