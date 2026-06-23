@@ -12,6 +12,8 @@ interface PlanInfo {
   precio: number;
   tier: Tier;
   beneficios: string[];
+  esPaquete: boolean;
+  clases: number | null;
 }
 
 interface TierRow {
@@ -19,6 +21,8 @@ interface TierRow {
   slug: string;
   nombre: string;
   precio_centavos: number;
+  tipo: string;
+  clases_incluidas: number | null;
   beneficios: unknown;
 }
 
@@ -52,7 +56,7 @@ function useTierPorSlug(slug: string) {
       // tier (basica/pro) devolverían múltiples filas y romperían la query.
       const { data, error } = await supabase
         .from('tiers')
-        .select('id, slug, nombre, precio_centavos, beneficios')
+        .select('id, slug, nombre, precio_centavos, tipo, clases_incluidas, beneficios')
         .eq('tenant_id', tenant.id)
         .eq('slug', slug)
         .eq('activo', true)
@@ -117,7 +121,9 @@ export default function Signup() {
         nombre: tierRow.nombre,
         precio: Math.round(tierRow.precio_centavos / 100),
         tier: tierRow.slug as Tier,
-        beneficios: parseBeneficios(tierRow.beneficios).slice(0, 4)
+        beneficios: parseBeneficios(tierRow.beneficios).slice(0, 4),
+        esPaquete: tierRow.tipo === 'creditos' || tierRow.tipo === 'hibrido',
+        clases: tierRow.clases_incluidas
       }
     : null;
 
@@ -230,7 +236,9 @@ export default function Signup() {
           lineHeight: 1
         }}>
           ${plan.precio.toLocaleString('es-MX')}
-          <span style={{ fontSize: '14px', color: 'var(--ek-ink-muted)', fontWeight: 500 }}>/mes</span>
+          <span style={{ fontSize: '14px', color: 'var(--ek-ink-muted)', fontWeight: 500 }}>
+            {plan.esPaquete ? ` · ${plan.clases ?? 0} clases` : '/mes'}
+          </span>
         </p>
         <ul style={{ listStyle: 'none', padding: 0, margin: '16px 0 0 0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {plan.beneficios.map((b) => (
@@ -359,7 +367,9 @@ export default function Signup() {
         >
           {isProcessing
             ? 'Activando tu cuenta…'
-            : `Activar mi plan — $${plan.precio.toLocaleString('es-MX')}/mes`
+            : plan.esPaquete
+              ? `Crear cuenta — $${plan.precio.toLocaleString('es-MX')} · ${plan.clases ?? 0} clases`
+              : `Activar mi plan — $${plan.precio.toLocaleString('es-MX')}/mes`
           }
         </button>
 

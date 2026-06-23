@@ -37,6 +37,9 @@ interface TierPublico {
   precio_centavos: number;
   moneda: string;
   periodo: string;
+  tipo: string;
+  clases_incluidas: number | null;
+  duracion_dias: number | null;
   descripcion: string | null;
   beneficios: unknown;
   reglas: Record<string, unknown> | null;
@@ -90,7 +93,7 @@ function useTiersPublicos() {
       // de un gym mostraría planes de otros tenants.
       const { data, error } = await supabase
         .from('tiers')
-        .select('slug, nombre, precio_centavos, moneda, periodo, descripcion, beneficios, reglas, orden')
+        .select('slug, nombre, precio_centavos, moneda, periodo, tipo, clases_incluidas, duracion_dias, descripcion, beneficios, reglas, orden')
         .eq('tenant_id', tenant.id)
         .eq('activo', true)
         .order('orden', { ascending: true });
@@ -1197,7 +1200,9 @@ export default function Landing() {
                   }}>
                     {formatearPrecioTier(tier.precio_centavos, tier.moneda)}
                     <span style={{ fontSize: '16px', color: esDestacado ? 'rgba(255, 255, 255, 0.5)' : 'var(--sala-text-tertiary)', fontWeight: 500 }}>
-                      {tier.periodo === 'anual' ? '/año' : '/mes'}
+                      {tier.tipo === 'creditos' || tier.tipo === 'hibrido'
+                        ? ` · ${tier.clases_incluidas ?? 0} clases`
+                        : tier.periodo === 'anual' ? '/año' : '/mes'}
                     </span>
                   </p>
                   <p style={{
