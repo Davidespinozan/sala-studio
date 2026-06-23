@@ -62,7 +62,7 @@ export default function MemberLayout() {
   if (usuario && usuario.status === 'pendiente_pago') {
     return (
       <TenantGuard>
-        <MembresiaPendiente nombre={usuario.nombre} onCerrarSesion={() => signOut()} />
+        <MembresiaPendiente nombre={usuario.nombre} tierSlug={usuario.membresia_tier} onCerrarSesion={() => signOut()} />
       </TenantGuard>
     );
   }

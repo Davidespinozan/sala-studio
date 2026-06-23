@@ -67,6 +67,11 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    // DEMO (healthyspace) → activa la membresía gratis (experiencia completa).
+    // Gym REAL → la cuenta queda 'pendiente_pago' SIN membresía: el socio paga
+    // por Stripe (lo dispara Signup.tsx) y el webhook activa la membresía.
+    const esDemo = tenant.slug === 'healthyspace';
+
     // 1b. Obtener tier real de BD para usar su precio (no hardcode)
     const { data: tierData, error: tierError } = await supabaseAdmin
       .from('tiers')
@@ -146,11 +151,13 @@ export const handler: Handler = async (event) => {
       .update({
         nombre,
         membresia_tier: tier,
-        status: 'activo',
+        status: esDemo ? 'activo' : 'pendiente_pago',
         rol: 'miembro',
         tenant_id: tenant.id,
         sucursal_id: sucursalId,
-        notas_admin: `CUENTA DE PRUEBA — PAGO FAKE — ${fechaHoy}`
+        notas_admin: esDemo
+          ? `CUENTA DEMO — PAGO SIMULADO — ${fechaHoy}`
+          : `Alta self-service — pendiente de pago — ${fechaHoy}`
       })
       .eq('auth_id', authUserId)
       .select('id')
@@ -166,53 +173,55 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // 3b. Crear la MEMBRESÍA real. Setear `membresia_tier` en usuarios NO crea
-    //     fila en `membresias`, y el gate de reserva exige esa fila → sin esto el
-    //     socio quedaba en SIN_MEMBRESIA y no podía reservar nada. El RPC crea la
-    //     membresía, siembra los créditos del tier y sincroniza los caches.
-    //     (Cuando entre Stripe real, el webhook llama a este mismo RPC.)
-    const { error: memError } = await supabaseAdmin.rpc('activar_suscripcion_socio', {
-      p_usuario_id: usuarioUpdated.id,
-      p_tier_id: tierData.id
-    });
-
-    if (memError) {
-      console.error('[fake-signup] membresia error:', memError);
-      // Best-effort cleanup: la cuenta sin membresía es inútil → borrar el zombie.
-      await supabaseAdmin.auth.admin.deleteUser(authUserId);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: 'No pudimos activar la membresía. Intentá de nuevo.' })
-      };
+    // 3b. DEMO: crear la MEMBRESÍA real (pago simulado) → el visitante reserva ya.
+    //     Gym REAL: NO se activa nada acá; la membresía la crea el webhook de
+    //     Stripe cuando el socio paga (status queda 'pendiente_pago').
+    if (esDemo) {
+      const { error: memError } = await supabaseAdmin.rpc('activar_suscripcion_socio', {
+        p_usuario_id: usuarioUpdated.id,
+        p_tier_id: tierData.id
+      });
+      if (memError) {
+        console.error('[fake-signup] membresia error:', memError);
+        // Best-effort cleanup: la cuenta sin membresía es inútil → borrar el zombie.
+        await supabaseAdmin.auth.admin.deleteUser(authUserId);
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: 'No pudimos activar la membresía. Intentá de nuevo.' })
+        };
+      }
     }
 
     // 4. Registrar evento de pago fake en payment_events.
     //    El schema real es Stripe-céntrico: necesita stripe_event_id único,
     //    stripe_event_type y raw_payload. Usamos prefijos 'fake_' para
     //    distinguir de eventos reales cuando se integre Stripe.
-    const fakeEventId = `fake_signup_${authUserId}_${Date.now()}`;
-    const montoCentavos = tierData.precio_centavos;
-
-    await supabaseAdmin
-      .from('payment_events')
-      .insert({
-        stripe_event_id: fakeEventId,
-        stripe_event_type: 'fake_signup',
-        tenant_id: tenant.id,
-        usuario_id: usuarioUpdated.id,
-        monto_centavos: montoCentavos,
-        moneda: 'MXN',
-        status: 'fake_succeeded',
-        raw_payload: { tier, fake: true, fecha: fechaHoy, source: 'fake-signup function' },
-        processed_at: new Date().toISOString()
-      });
+    // Evento de pago SOLO para el demo (pago simulado). En gym real el pago real
+    // lo registra Stripe; acá no hubo cobro.
+    if (esDemo) {
+      const fakeEventId = `fake_signup_${authUserId}_${Date.now()}`;
+      await supabaseAdmin
+        .from('payment_events')
+        .insert({
+          stripe_event_id: fakeEventId,
+          stripe_event_type: 'fake_signup',
+          tenant_id: tenant.id,
+          usuario_id: usuarioUpdated.id,
+          monto_centavos: tierData.precio_centavos,
+          moneda: 'MXN',
+          status: 'fake_succeeded',
+          raw_payload: { tier, fake: true, fecha: fechaHoy, source: 'fake-signup function' },
+          processed_at: new Date().toISOString()
+        });
+    }
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         success: true,
-        auth_user_id: authUserId
+        auth_user_id: authUserId,
+        pendiente_pago: !esDemo
       })
     };
   } catch (err) {
