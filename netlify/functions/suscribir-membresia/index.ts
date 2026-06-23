@@ -32,6 +32,8 @@ const DEMO_TENANT_SLUG = 'healthyspace';
 
 interface Body {
   tier_id?: string;
+  /** true → Embedded Checkout (modal en SALA): devuelve client_secret en vez de url. */
+  embedded?: boolean;
 }
 
 export const handler: Handler = async (event) => {
@@ -132,32 +134,42 @@ export const handler: Handler = async (event) => {
       event.headers.referer?.replace(/\/+$/, '') ||
       optionalEnv('APP_URL', 'https://salastudio.app');
 
-    const session = await stripe.checkout.sessions.create(
-      {
-        mode: 'subscription',
-        customer: customerId,
-        line_items: [
-          {
-            price_data: {
-              currency: (tier.moneda || 'mxn').toLowerCase(),
-              product_data: { name: tier.nombre },
-              unit_amount: tier.precio_centavos,
-              recurring: { interval: 'month' }
-            },
-            quantity: 1
-          }
-        ],
-        subscription_data: {
-          metadata: { app: 'sala', usuario_id: socio.id, tier_id: tier.id },
-          ...(feePct > 0 ? { application_fee_percent: feePct } : {})
-        },
+    const baseParams = {
+      mode: 'subscription' as const,
+      customer: customerId,
+      line_items: [
+        {
+          price_data: {
+            currency: (tier.moneda || 'mxn').toLowerCase(),
+            product_data: { name: tier.nombre },
+            unit_amount: tier.precio_centavos,
+            recurring: { interval: 'month' as const }
+          },
+          quantity: 1
+        }
+      ],
+      subscription_data: {
         metadata: { app: 'sala', usuario_id: socio.id, tier_id: tier.id },
-        success_url: `${origin}/app?compra=ok`,
-        cancel_url: `${origin}/app?compra=cancel`
+        ...(feePct > 0 ? { application_fee_percent: feePct } : {})
       },
+      metadata: { app: 'sala', usuario_id: socio.id, tier_id: tier.id }
+    };
+
+    // Embedded → modal en SALA (devuelve client_secret + la cuenta conectada,
+    // que el front necesita para inicializar Stripe.js sobre esa cuenta).
+    if (body.embedded) {
+      const session = await stripe.checkout.sessions.create(
+        { ...baseParams, ui_mode: 'embedded_page', redirect_on_completion: 'never' },
+        { stripeAccount: acct }
+      );
+      return ok({ activated: false, client_secret: session.client_secret, account: acct });
+    }
+
+    // Hosted (redirect) — fallback.
+    const session = await stripe.checkout.sessions.create(
+      { ...baseParams, success_url: `${origin}/app?compra=ok`, cancel_url: `${origin}/app?compra=cancel` },
       { stripeAccount: acct }
     );
-
     return ok({ activated: false, url: session.url });
   } catch (err) {
     console.error('[suscribir-membresia]', err instanceof Error ? err.message : err);

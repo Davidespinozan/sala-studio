@@ -23,6 +23,8 @@
   },
   "dependencies": {
     "@sentry/react": "^10.51.0",
+    "@stripe/react-stripe-js": "^6.6.0",
+    "@stripe/stripe-js": "^9.8.0",
     "@supabase/supabase-js": "^2.49.1",
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
