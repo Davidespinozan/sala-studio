@@ -108,6 +108,43 @@ export const handler: Handler = async (event) => {
         break;
       }
 
+      case 'invoice.paid':
+      case 'invoice.payment_succeeded': {
+        // RENOVACIÓN mensual de la suscripción del socio. El primer cobro
+        // (subscription_create) lo maneja checkout.session.completed → acá solo
+        // los ciclos siguientes: refrescamos créditos/periodo vía la misma RPC.
+        const inv = stripeEvent.data.object as any;
+        if (inv.billing_reason !== 'subscription_cycle') break;
+        const subId = typeof inv.subscription === 'string' ? inv.subscription : inv.subscription?.id;
+        if (!subId || !acct) break;
+        const sub = await stripe.subscriptions.retrieve(subId, {}, { stripeAccount: acct });
+        if ((sub.metadata as any)?.app !== 'sala') break;
+        const usuarioId = (sub.metadata as any)?.usuario_id;
+        const tierId = (sub.metadata as any)?.tier_id;
+        const customerId = typeof sub.customer === 'string' ? sub.customer : (sub.customer as any)?.id;
+        if (!usuarioId || !tierId) break;
+        const { error } = await admin.rpc('activar_suscripcion_socio', {
+          p_usuario_id: usuarioId,
+          p_tier_id: tierId,
+          p_stripe_subscription_id: subId,
+          p_stripe_customer_id: customerId ?? null,
+          p_periodo_fin: periodEndISO(sub)
+        });
+        if (error) throw error;
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        // Pago de renovación falló → past_due (dunning). Stripe reintenta solo.
+        const inv = stripeEvent.data.object as any;
+        const subId = typeof inv.subscription === 'string' ? inv.subscription : inv.subscription?.id;
+        if (!subId || !acct) break;
+        const sub = await stripe.subscriptions.retrieve(subId, {}, { stripeAccount: acct });
+        if ((sub.metadata as any)?.app !== 'sala') break;
+        await admin.from('membresias').update({ status: 'past_due' }).eq('stripe_subscription_id', subId);
+        break;
+      }
+
       default:
         break;
     }

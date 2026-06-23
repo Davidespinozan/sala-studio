@@ -39,6 +39,7 @@ export interface MembresiaActual {
 export type EstadoMembresia =
   | 'sin_membresia'
   | 'congelada'
+  | 'past_due'
   | 'vencida'
   | 'sin_creditos'
   | 'sana';
@@ -53,6 +54,7 @@ export function membresiaEstado(
 ): EstadoMembresia {
   if (!m) return 'sin_membresia';
   if (m.status === 'congelada') return 'congelada';
+  if (m.status === 'past_due') return 'past_due'; // pago de renovación falló (dunning)
   if (m.periodo_actual_fin && new Date(m.periodo_actual_fin) <= now) return 'vencida';
   if (
     (m.tier_tipo === 'creditos' || m.tier_tipo === 'hibrido') &&

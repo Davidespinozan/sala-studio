@@ -740,12 +740,52 @@ function HistorialPagos() {
 
 function CancelarSuscripcion({ tenantNombre }: { tenantNombre: string }) {
   const toast = useToast();
+  const [confirmando, setConfirmando] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
+
+  async function cancelar() {
+    setCancelando(true);
+    try {
+      const res = await backendPost<{ ok?: boolean; reason?: string }>('cancelar-membresia', { reactivar: false });
+      if (res.ok) {
+        toast.success('Listo: tu plan se cancela al final del período ya pagado.');
+      } else if (res.reason === 'sin_suscripcion') {
+        toast.info('Tu plan es un paquete de clases — no se cancela, se agota al usar las clases.');
+      } else if (res.reason === 'stripe_pendiente') {
+        toast.info(`Para cancelar tu plan, habla con ${tenantNombre}.`);
+      } else {
+        toast.error('No pudimos cancelar. Probá de nuevo.');
+      }
+    } catch {
+      toast.error('No pudimos cancelar. Probá de nuevo.');
+    } finally {
+      setCancelando(false);
+      setConfirmando(false);
+    }
+  }
+
+  if (confirmando) {
+    return (
+      <div style={{ marginTop: '24px', padding: '16px', borderRadius: 'var(--ek-r-card)', background: 'var(--sala-bg)', border: '1px solid var(--sala-border-strong)' }}>
+        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 12px', lineHeight: 1.5 }}>
+          ¿Seguro? Conservás el acceso hasta el final del período ya pagado; después tu plan no se renueva.
+        </p>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button type="button" onClick={() => setConfirmando(false)} disabled={cancelando} className="ek-cta ek-cta--secondary" style={{ flex: 1 }}>
+            Volver
+          </button>
+          <button type="button" onClick={cancelar} disabled={cancelando} className="ek-cta" style={{ flex: 1, background: 'var(--sala-error)', borderColor: 'var(--sala-error)' }}>
+            {cancelando ? 'Cancelando…' : 'Sí, cancelar'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"
-      onClick={() =>
-        toast.info(`Para cancelar tu plan, habla con ${tenantNombre}. Pronto vas a poder hacerlo desde acá.`)
-      }
+      onClick={() => setConfirmando(true)}
       className="ek-cta ek-cta--secondary ek-cta--full"
       style={{ marginTop: '24px', color: 'var(--sala-text-secondary)' }}
     >
@@ -761,19 +801,19 @@ function CancelarSuscripcion({ tenantNombre }: { tenantNombre: string }) {
 const FAQ_PLAN: Array<{ q: string; a: string }> = [
   {
     q: '¿Cuándo se hace el cobro?',
-    a: 'Al renovar tu plan, en la fecha que ves arriba. Los pagos en línea estarán disponibles pronto.'
+    a: 'Si es mensualidad, al renovar en la fecha que ves arriba. Si es un paquete de clases, pagas una vez y se descuenta una clase por reserva.'
   },
   {
     q: '¿Qué pasa si cancelo?',
-    a: 'Conservas el acceso hasta el final del período ya pagado. Después, tu plan no se renueva.'
+    a: 'Conservas el acceso hasta el final del período ya pagado. Después, tu plan no se renueva. (Los paquetes no se cancelan: se agotan al usar las clases.)'
   },
   {
     q: '¿Puedo cambiar de plan cuando quiera?',
-    a: 'Sí. Por ahora coordinas el cambio con tu gimnasio; pronto vas a poder hacerlo desde acá.'
+    a: 'Sí, desde las opciones de plan acá mismo.'
   },
   {
     q: '¿Cómo agrego o cambio mi tarjeta?',
-    a: 'Desde "Método de pago", cuando habilitemos los pagos en línea.'
+    a: 'Desde "Método de pago", acá en tu perfil.'
   }
 ];
 

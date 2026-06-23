@@ -909,6 +909,7 @@ export function membresiaCardTexto(
 ): { value: string; problema: boolean } {
   if (estado === 'sin_membresia') return { value: 'Sin membresía activa', problema: true };
   if (estado === 'congelada') return { value: 'Membresía pausada', problema: true };
+  if (estado === 'past_due') return { value: 'Pago pendiente · revisá tu tarjeta', problema: true };
   // m no es null para los estados que siguen
   const fin = m?.periodo_actual_fin ? new Date(m.periodo_actual_fin) : null;
   const fechaCorta = fin

@@ -70,8 +70,8 @@ export default function EstadoMembresiaBanner() {
           {mensaje}
         </p>
         <div style={{ marginTop: '10px' }}>
-          {estado === 'sin_membresia' || estado === 'vencida' ? (
-            // Compra/renovación → Perfil (flujo de planes, cableado para Stripe).
+          {estado === 'sin_membresia' || estado === 'vencida' || estado === 'past_due' ? (
+            // Compra/renovación/actualizar pago → Perfil.
             <Link
               to="/app/perfil"
               style={{
@@ -83,7 +83,7 @@ export default function EstadoMembresiaBanner() {
                 gap: '5px'
               }}
             >
-              {estado === 'vencida' ? 'Renueva tu plan' : 'Elige tu plan'}
+              {estado === 'vencida' ? 'Renueva tu plan' : estado === 'past_due' ? 'Actualizar mi pago' : 'Elige tu plan'}
               <ArrowRight size={15} strokeWidth={2.25} />
             </Link>
           ) : (
@@ -129,6 +129,13 @@ function bannerContenido(estado: Exclude<EstadoMembresia, 'sana'>): {
         eyebrow: 'Sin clases disponibles',
         mensaje: 'Te quedaste sin clases. Contacta al gimnasio para recargar.',
         waMensaje: 'Hola, me quedé sin clases y quiero recargar mi paquete.'
+      };
+    case 'past_due':
+      return {
+        variant: 'warning',
+        eyebrow: 'Pago pendiente',
+        mensaje: 'No pudimos cobrar la renovación de tu plan. Revisá tu tarjeta en tu perfil.',
+        waMensaje: 'Hola, tengo un pago pendiente de mi membresía.'
       };
   }
 }
