@@ -145,6 +145,22 @@ export const handler: Handler = async (event) => {
         break;
       }
 
+      case 'account.updated': {
+        // El estado de la cuenta conectada del gym cambió (verificación, etc.) →
+        // mantenemos charges_enabled/details_submitted frescos en tenants. El
+        // .eq por stripe_account_id ya scopea a nuestros tenants.
+        const account = stripeEvent.data.object as any;
+        if (!account?.id) break;
+        await admin
+          .from('tenants')
+          .update({
+            stripe_charges_enabled: account.charges_enabled === true,
+            stripe_details_submitted: account.details_submitted === true
+          })
+          .eq('stripe_account_id', account.id);
+        break;
+      }
+
       default:
         break;
     }
