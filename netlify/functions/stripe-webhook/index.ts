@@ -69,18 +69,21 @@ export const handler: Handler = async (event) => {
       case 'checkout.session.completed': {
         const session = stripeEvent.data.object as any;
         if (session.metadata?.app !== 'sala') break;
-        if (session.mode !== 'subscription') break;
         const usuarioId = session.metadata?.usuario_id;
         const tierId = session.metadata?.tier_id;
-        const subId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
         const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
-        if (!usuarioId || !tierId || !subId) break;
+        if (!usuarioId || !tierId) break;
 
-        // Periodo: traer la suscripción de la cuenta conectada.
+        // Suscripción (mensualidad) → traemos la sub para el periodo. Pago único
+        // (paquete) → sin sub ni periodo: la RPC calcula la vigencia del tier.
+        let subId: string | null = null;
         let periodoFin: string | null = null;
-        if (acct) {
-          const sub = await stripe.subscriptions.retrieve(subId, {}, { stripeAccount: acct });
-          periodoFin = periodEndISO(sub);
+        if (session.mode === 'subscription') {
+          subId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+          if (subId && acct) {
+            const sub = await stripe.subscriptions.retrieve(subId, {}, { stripeAccount: acct });
+            periodoFin = periodEndISO(sub);
+          }
         }
 
         const { error } = await admin.rpc('activar_suscripcion_socio', {

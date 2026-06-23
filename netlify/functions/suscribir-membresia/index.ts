@@ -79,7 +79,7 @@ export const handler: Handler = async (event) => {
     // 3) Validar el tier (de su tenant, activo) + traer precio/moneda/nombre.
     const { data: tier } = await admin
       .from('tiers')
-      .select('id, activo, tenant_id, nombre, precio_centavos, moneda')
+      .select('id, activo, tenant_id, nombre, precio_centavos, moneda, tipo')
       .eq('id', body.tier_id)
       .maybeSingle();
     if (!tier || tier.tenant_id !== socio.tenant_id || tier.activo !== true) {
@@ -134,26 +134,44 @@ export const handler: Handler = async (event) => {
       event.headers.referer?.replace(/\/+$/, '') ||
       optionalEnv('APP_URL', 'https://salastudio.app');
 
-    const baseParams = {
-      mode: 'subscription' as const,
-      customer: customerId,
-      line_items: [
-        {
-          price_data: {
-            currency: (tier.moneda || 'mxn').toLowerCase(),
-            product_data: { name: tier.nombre },
-            unit_amount: tier.precio_centavos,
-            recurring: { interval: 'month' as const }
+    const meta = { app: 'sala', usuario_id: socio.id, tier_id: tier.id };
+    const currency = (tier.moneda || 'mxn').toLowerCase();
+
+    // Paquete de clases (creditos/hibrido) → PAGO ÚNICO. Mensualidad (tiempo) →
+    // SUSCRIPCIÓN recurrente. El webhook materializa la membresía en ambos casos.
+    const esPaquete = tier.tipo === 'creditos' || tier.tipo === 'hibrido';
+
+    const baseParams = esPaquete
+      ? {
+          mode: 'payment' as const,
+          customer: customerId,
+          line_items: [
+            {
+              price_data: { currency, product_data: { name: tier.nombre }, unit_amount: tier.precio_centavos },
+              quantity: 1
+            }
+          ],
+          payment_intent_data: {
+            metadata: meta,
+            ...(feePct > 0 ? { application_fee_amount: Math.round((tier.precio_centavos * feePct) / 100) } : {})
           },
-          quantity: 1
+          metadata: meta
         }
-      ],
-      subscription_data: {
-        metadata: { app: 'sala', usuario_id: socio.id, tier_id: tier.id },
-        ...(feePct > 0 ? { application_fee_percent: feePct } : {})
-      },
-      metadata: { app: 'sala', usuario_id: socio.id, tier_id: tier.id }
-    };
+      : {
+          mode: 'subscription' as const,
+          customer: customerId,
+          line_items: [
+            {
+              price_data: { currency, product_data: { name: tier.nombre }, unit_amount: tier.precio_centavos, recurring: { interval: 'month' as const } },
+              quantity: 1
+            }
+          ],
+          subscription_data: {
+            metadata: meta,
+            ...(feePct > 0 ? { application_fee_percent: feePct } : {})
+          },
+          metadata: meta
+        };
 
     // Embedded → modal en SALA (devuelve client_secret + la cuenta conectada,
     // que el front necesita para inicializar Stripe.js sobre esa cuenta).
