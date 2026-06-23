@@ -43,7 +43,11 @@ const OK: ResultadoValidacion = { ok: true };
 export interface DatosCuenta {
   nombre: string;
   email: string;
+  /** Confirmación del email (debe coincidir) — evita typos que dejan al dueño afuera. */
+  emailConfirm: string;
   password: string;
+  /** Confirmación de la contraseña (debe coincidir). */
+  passwordConfirm: string;
 }
 
 export interface DatosGym {
@@ -134,7 +138,15 @@ export function validarPasoCuenta(d: DatosCuenta): ResultadoValidacion {
   if (!d.nombre.trim()) return { ok: false, error: 'Ingresa tu nombre.' };
   const email = validarEmail(d.email);
   if (!email.ok) return email;
-  return validarPassword(d.password);
+  if (d.email.trim().toLowerCase() !== d.emailConfirm.trim().toLowerCase()) {
+    return { ok: false, error: 'Los emails no coinciden.' };
+  }
+  const password = validarPassword(d.password);
+  if (!password.ok) return password;
+  if (d.password !== d.passwordConfirm) {
+    return { ok: false, error: 'Las contraseñas no coinciden.' };
+  }
+  return OK;
 }
 
 /** Paso 2 — Datos del gym. */

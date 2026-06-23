@@ -30,7 +30,7 @@ import {
 const PASOS = ['Cuenta', 'Tu gym', 'Plan', 'Pago', 'Setup'];
 
 const ESTADO_INICIAL: OnboardingState = {
-  cuenta: { nombre: '', email: '', password: '' },
+  cuenta: { nombre: '', email: '', emailConfirm: '', password: '', passwordConfirm: '' },
   gym: { gymNombre: '', slug: '', timezone: 'America/Mexico_City' },
   tier: null,
   setup: { colorPrimario: COLOR_PRIMARIO_DEFAULT, colorAcento: COLOR_ACENTO_DEFAULT, logoUrl: null, salaNombre: '', salaCupo: 15 }
@@ -285,12 +285,30 @@ function PasoCuenta({
           autoComplete="email"
         />
       </Campo>
+      <Campo label="Confirmar email" hint="Escribilo de nuevo para evitar errores.">
+        <input
+          type="email"
+          className="ek-input"
+          value={value.emailConfirm}
+          onChange={(e) => onChange({ ...value, emailConfirm: e.target.value })}
+          autoComplete="email"
+        />
+      </Campo>
       <Campo label="Contraseña" hint="Mínimo 8 caracteres, con una letra y un número.">
         <input
           type="password"
           className="ek-input"
           value={value.password}
           onChange={(e) => onChange({ ...value, password: e.target.value })}
+          autoComplete="new-password"
+        />
+      </Campo>
+      <Campo label="Confirmar contraseña">
+        <input
+          type="password"
+          className="ek-input"
+          value={value.passwordConfirm}
+          onChange={(e) => onChange({ ...value, passwordConfirm: e.target.value })}
           autoComplete="new-password"
         />
       </Campo>

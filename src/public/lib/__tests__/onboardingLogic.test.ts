@@ -18,7 +18,7 @@ import { monedaPorTimezone, precioCentavos, PLANES_SAAS } from '@shared/lib/plan
 // ── Fixture: un estado de onboarding válido y completo ──
 function estadoValido(overrides: Partial<OnboardingState> = {}): OnboardingState {
   return {
-    cuenta: { nombre: 'Ana Ruiz', email: 'ana@yogasol.com', password: 'segura123' },
+    cuenta: { nombre: 'Ana Ruiz', email: 'ana@yogasol.com', emailConfirm: 'ana@yogasol.com', password: 'segura123', passwordConfirm: 'segura123' },
     gym: { gymNombre: 'Yoga Sol', slug: 'yogasol', timezone: 'America/Mexico_City' },
     tier: 'pro',
     setup: { colorPrimario: COLOR_PRIMARIO_DEFAULT, colorAcento: COLOR_PRIMARIO_DEFAULT, logoUrl: null, salaNombre: 'Sala Principal', salaCupo: 15 },
@@ -155,13 +155,19 @@ describe('validarPasoCuenta', () => {
     expect(validarPasoCuenta(estadoValido().cuenta).ok).toBe(true);
   });
   it('rechaza nombre vacío', () => {
-    expect(validarPasoCuenta({ nombre: '  ', email: 'a@b.com', password: 'segura123' }).ok).toBe(false);
+    expect(validarPasoCuenta({ nombre: '  ', email: 'a@b.com', emailConfirm: 'a@b.com', password: 'segura123', passwordConfirm: 'segura123' }).ok).toBe(false);
   });
   it('rechaza email inválido', () => {
-    expect(validarPasoCuenta({ nombre: 'Ana', email: 'mal', password: 'segura123' }).ok).toBe(false);
+    expect(validarPasoCuenta({ nombre: 'Ana', email: 'mal', emailConfirm: 'mal', password: 'segura123', passwordConfirm: 'segura123' }).ok).toBe(false);
   });
   it('rechaza password débil', () => {
-    expect(validarPasoCuenta({ nombre: 'Ana', email: 'a@b.com', password: 'corta' }).ok).toBe(false);
+    expect(validarPasoCuenta({ nombre: 'Ana', email: 'a@b.com', emailConfirm: 'a@b.com', password: 'corta', passwordConfirm: 'corta' }).ok).toBe(false);
+  });
+  it('rechaza si los emails no coinciden', () => {
+    expect(validarPasoCuenta({ nombre: 'Ana', email: 'a@b.com', emailConfirm: 'a@c.com', password: 'segura123', passwordConfirm: 'segura123' }).ok).toBe(false);
+  });
+  it('rechaza si las contraseñas no coinciden', () => {
+    expect(validarPasoCuenta({ nombre: 'Ana', email: 'a@b.com', emailConfirm: 'a@b.com', password: 'segura123', passwordConfirm: 'segura124' }).ok).toBe(false);
   });
 });
 
@@ -298,7 +304,7 @@ describe('construirPayloadOnboarding', () => {
   it('normaliza email (trim + minúsculas) y slug', () => {
     const p = construirPayloadOnboarding(
       estadoValido({
-        cuenta: { nombre: '  Ana  ', email: '  Ana@YogaSol.COM ', password: 'segura123' },
+        cuenta: { nombre: '  Ana  ', email: '  Ana@YogaSol.COM ', emailConfirm: '  Ana@YogaSol.COM ', password: 'segura123', passwordConfirm: 'segura123' },
         gym: { gymNombre: '  Yoga Sol  ', slug: '  YogaSol ', timezone: 'America/Mexico_City' }
       })
     );
