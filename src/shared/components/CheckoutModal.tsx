@@ -23,10 +23,13 @@ interface SesionResult {
 
 export function CheckoutModal({
   tierId,
+  modo = 'compra',
   onClose,
   onSuccess
 }: {
-  tierId: string;
+  tierId?: string;
+  /** 'compra' → cobra el plan; 'tarjeta' → solo guarda una tarjeta (setup). */
+  modo?: 'compra' | 'tarjeta';
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -39,7 +42,9 @@ export function CheckoutModal({
     let cancelado = false;
     (async () => {
       try {
-        const res = await backendPost<SesionResult>('suscribir-membresia', { tier_id: tierId, embedded: true });
+        const res = modo === 'tarjeta'
+          ? await backendPost<SesionResult>('metodo-pago', { action: 'setup' })
+          : await backendPost<SesionResult>('suscribir-membresia', { tier_id: tierId, embedded: true });
         if (cancelado) return;
         if (res.activated) {
           onSuccess(); // plan gratis → ya quedó activo
@@ -51,13 +56,16 @@ export function CheckoutModal({
         } else if (res.reason === 'cobros_no_activos') {
           toast.error('Este gimnasio todavía no activó los cobros online. Acércate a recepción.');
           onClose();
+        } else if (res.reason === 'sin_customer') {
+          toast.error('Comprá un plan primero para poder guardar una tarjeta.');
+          onClose();
         } else {
-          toast.error('No pudimos iniciar el pago. Probá de nuevo.');
+          toast.error('No pudimos abrir el pago. Probá de nuevo.');
           onClose();
         }
       } catch {
         if (!cancelado) {
-          toast.error('No pudimos iniciar el pago. Probá de nuevo.');
+          toast.error('No pudimos abrir el pago. Probá de nuevo.');
           onClose();
         }
       } finally {
@@ -66,7 +74,7 @@ export function CheckoutModal({
     })();
     return () => { cancelado = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tierId]);
+  }, [tierId, modo]);
 
   // Stripe.js inicializado SOBRE la cuenta conectada (direct charges).
   const stripePromise = useMemo(
@@ -104,7 +112,9 @@ export function CheckoutModal({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-          <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: 0 }}>PAGO SEGURO · STRIPE</p>
+          <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: 0 }}>
+            {modo === 'tarjeta' ? 'AGREGAR TARJETA · STRIPE' : 'PAGO SEGURO · STRIPE'}
+          </p>
           <button
             type="button"
             onClick={onClose}

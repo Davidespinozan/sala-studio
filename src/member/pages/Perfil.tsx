@@ -10,6 +10,7 @@ import type { Database } from '@shared/types/database';
 import { useMembresiaActual, membresiaEstado } from '@member/hooks/useMembresiaActual';
 import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { iniciarCheckout } from '@shared/lib/checkout';
+import { backendPost } from '@shared/lib/backend';
 import { CheckoutModal } from '@shared/components/CheckoutModal';
 
 type Tier = Database['public']['Tables']['tiers']['Row'];
@@ -638,54 +639,80 @@ function PlanOptionCard({
 // Método de pago
 // ============================================================================
 
+interface TarjetaGuardada {
+  brand: string;
+  last4: string;
+  exp_month: number;
+  exp_year: number;
+}
+
 function MetodoPago() {
-  const toast = useToast();
+  const [card, setCard] = useState<TarjetaGuardada | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showTarjeta, setShowTarjeta] = useState(false);
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await backendPost<{ card: TarjetaGuardada | null }>('metodo-pago', { action: 'get' });
+        if (!cancel) setCard(res.card ?? null);
+      } catch {
+        if (!cancel) setCard(null);
+      } finally {
+        if (!cancel) setLoading(false);
+      }
+    })();
+    return () => { cancel = true; };
+  }, [reload]);
 
   return (
     <section style={{ marginTop: '32px' }}>
       <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>MÉTODO DE PAGO</p>
 
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-          gap: '14px',
-          padding: '28px 20px',
-          background: 'var(--sala-bg)',
-          border: '1.5px dashed var(--sala-border-strong)',
-          borderRadius: 'var(--ek-r-card)'
-        }}
-      >
-        <div
-          aria-hidden="true"
-          style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            background: 'var(--sala-primary-light)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <CreditCard size={22} strokeWidth={2} style={{ color: 'var(--sala-primary)' }} />
+      {loading ? (
+        <div className="ek-skeleton" style={{ height: '84px', borderRadius: 'var(--ek-r-card)' }} aria-hidden="true" />
+      ) : card ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '18px 20px', background: 'var(--sala-surface)', border: '1px solid var(--sala-border)', borderRadius: 'var(--ek-r-card)' }}>
+          <div aria-hidden="true" style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'var(--sala-primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <CreditCard size={20} strokeWidth={2} style={{ color: 'var(--sala-primary)' }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: '15px', fontWeight: 600, margin: 0, color: 'var(--sala-text-primary)', textTransform: 'capitalize' }}>
+              {card.brand} ···· {card.last4}
+            </p>
+            <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '2px 0 0' }}>
+              Vence {String(card.exp_month).padStart(2, '0')}/{String(card.exp_year).slice(-2)}
+            </p>
+          </div>
+          <button type="button" onClick={() => setShowTarjeta(true)} className="ek-cta ek-cta--secondary" style={{ minHeight: '36px' }}>
+            Cambiar
+          </button>
         </div>
-        <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', margin: 0 }}>
-          No tienes una tarjeta guardada.
-        </p>
-        {/* TODO STRIPE: abrir el Customer Portal / SetupIntent de Stripe para
-            guardar una tarjeta (ver STRIPE.md → touchpoints). Hoy: placeholder. */}
-        <button
-          type="button"
-          onClick={() => toast.info('Disponible pronto, cuando habilitemos los pagos en línea.')}
-          className="ek-cta ek-lift ek-cta--full"
-        >
-          Agregar tarjeta
-          <ArrowRight size={16} strokeWidth={2.25} />
-        </button>
-      </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '14px', padding: '28px 20px', background: 'var(--sala-bg)', border: '1.5px dashed var(--sala-border-strong)', borderRadius: 'var(--ek-r-card)' }}>
+          <div aria-hidden="true" style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--sala-primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CreditCard size={22} strokeWidth={2} style={{ color: 'var(--sala-primary)' }} />
+          </div>
+          <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', margin: 0 }}>
+            No tienes una tarjeta guardada.
+          </p>
+          <button type="button" onClick={() => setShowTarjeta(true)} className="ek-cta ek-lift ek-cta--full">
+            Agregar tarjeta
+            <ArrowRight size={16} strokeWidth={2.25} />
+          </button>
+        </div>
+      )}
+
+      {showTarjeta && (
+        <CheckoutModal
+          modo="tarjeta"
+          onClose={() => setShowTarjeta(false)}
+          onSuccess={() => { setShowTarjeta(false); setReload((r) => r + 1); }}
+        />
+      )}
     </section>
   );
 }

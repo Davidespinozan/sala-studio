@@ -153,6 +153,7 @@ export const handler: Handler = async (event) => {
           ],
           payment_intent_data: {
             metadata: meta,
+            setup_future_usage: 'on_session' as const, // guarda la tarjeta para re-comprar
             ...(feePct > 0 ? { application_fee_amount: Math.round((tier.precio_centavos * feePct) / 100) } : {})
           },
           metadata: meta
