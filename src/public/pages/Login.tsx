@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
+import { PasswordInput } from '@shared/components/PasswordInput';
 import { useTenant } from '@shared/hooks/useTenant';
 import { esTenantDemo, DEMO_LOGIN } from '@shared/lib/demoAuth';
 
@@ -111,15 +112,13 @@ export default function Login() {
 
             <div className="ek-form-field">
               <label htmlFor="password" className="ek-label">Contraseña</label>
-              <input
+              <PasswordInput
                 id="password"
-                type="password"
                 autoComplete="current-password"
                 required
                 minLength={8}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="ek-input"
+                onChange={setPassword}
                 placeholder="••••••••"
               />
             </div>

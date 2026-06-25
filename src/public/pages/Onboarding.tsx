@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
+import { PasswordInput } from '@shared/components/PasswordInput';
 import { CheckoutSaasEmbedded } from '@public/components/CheckoutSaasEmbedded';
 import { TIMEZONE_OPTIONS } from '@shared/lib/timezone';
 import { MARKETING_DOMAIN } from '@shared/providers/TenantProvider';
@@ -325,20 +326,16 @@ function PasoCuenta({
         />
       </Campo>
       <Campo label="Contraseña" hint="Mínimo 8 caracteres, con una letra y un número.">
-        <input
-          type="password"
-          className="ek-input"
+        <PasswordInput
           value={value.password}
-          onChange={(e) => onChange({ ...value, password: e.target.value })}
+          onChange={(password) => onChange({ ...value, password })}
           autoComplete="new-password"
         />
       </Campo>
       <Campo label="Confirmar contraseña">
-        <input
-          type="password"
-          className="ek-input"
+        <PasswordInput
           value={value.passwordConfirm}
-          onChange={(e) => onChange({ ...value, passwordConfirm: e.target.value })}
+          onChange={(passwordConfirm) => onChange({ ...value, passwordConfirm })}
           autoComplete="new-password"
         />
       </Campo>

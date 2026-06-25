@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, FormEvent } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
+import { PasswordInput } from '@shared/components/PasswordInput';
 import { AuthShell } from '../components/AuthShell';
 import { validarNuevaContrasena, traducirErrorRecuperacion } from '../lib/recuperacionLogic';
 
@@ -148,14 +149,12 @@ export default function NuevaContrasena() {
 
         <div className="ek-form-field">
           <label htmlFor="np-password" className="ek-label">Nueva contraseña</label>
-          <input
+          <PasswordInput
             id="np-password"
-            type="password"
             autoComplete="new-password"
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="ek-input"
+            onChange={setPassword}
             placeholder="••••••••"
           />
           <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)' }}>
@@ -165,14 +164,12 @@ export default function NuevaContrasena() {
 
         <div className="ek-form-field">
           <label htmlFor="np-confirm" className="ek-label">Repite la contraseña</label>
-          <input
+          <PasswordInput
             id="np-confirm"
-            type="password"
             autoComplete="new-password"
             required
             value={confirmacion}
-            onChange={(e) => setConfirmacion(e.target.value)}
-            className="ek-input"
+            onChange={setConfirmacion}
             placeholder="••••••••"
           />
         </div>

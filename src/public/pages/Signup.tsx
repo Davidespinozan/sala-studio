@@ -3,6 +3,7 @@ import { ArrowLeft, Check, Star } from 'lucide-react';
 import { useNavigate, useSearchParams, Link, Navigate } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { PasswordInput } from '@shared/components/PasswordInput';
 import { validarPassword } from '../lib/onboardingLogic';
 
 type Tier = 'basica' | 'pro';
@@ -282,12 +283,10 @@ export default function Signup() {
 
         <div className="ek-form-field">
           <label className="ek-label" htmlFor="signup-password">Contraseña</label>
-          <input
+          <PasswordInput
             id="signup-password"
-            type="password"
-            className="ek-input"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={setPassword}
             required
             minLength={8}
             disabled={isProcessing}
@@ -297,12 +296,10 @@ export default function Signup() {
 
         <div className="ek-form-field">
           <label className="ek-label" htmlFor="signup-password-confirm">Confirmar contraseña</label>
-          <input
+          <PasswordInput
             id="signup-password-confirm"
-            type="password"
-            className="ek-input"
             value={passwordConfirm}
-            onChange={(e) => setPasswordConfirm(e.target.value)}
+            onChange={setPasswordConfirm}
             required
             disabled={isProcessing}
             autoComplete="new-password"
