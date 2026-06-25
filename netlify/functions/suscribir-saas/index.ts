@@ -38,6 +38,8 @@ interface Body {
   moneda?: string;
   ciclo?: string;
   return_path?: string;
+  /** true → Embedded Checkout (modal en SALA, alta del gym): devuelve client_secret. */
+  embedded?: boolean;
 }
 
 export const handler: Handler = async (event) => {
@@ -110,8 +112,8 @@ export const handler: Handler = async (event) => {
     // 4) Checkout Session. metadata { app:'sala', tenant_id } en la SUSCRIPCIÓN
     //    → el webhook filtra por app y sabe a qué tenant aplicar (cuenta Stripe
     //    compartida con HSC). tier/moneda/ciclo viajan para el snapshot.
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
+    const baseParams = {
+      mode: 'subscription' as const,
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
@@ -119,12 +121,25 @@ export const handler: Handler = async (event) => {
         metadata: { app: 'sala', tenant_id: admin.tenant_id, tier: body.tier!, moneda: body.moneda!, ciclo }
       },
       metadata: { app: 'sala', tenant_id: admin.tenant_id },
+      billing_address_collection: 'auto' as const
+    };
+
+    // Embedded → modal en SALA (alta del gym). SaaS = cuenta plataforma, sin Connect.
+    if (body.embedded) {
+      const session = await stripe.checkout.sessions.create({
+        ...baseParams,
+        ui_mode: 'embedded_page',
+        redirect_on_completion: 'never'
+      });
+      return ok({ client_secret: session.client_secret });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      ...baseParams,
       allow_promotion_codes: true,
-      billing_address_collection: 'auto',
       success_url: `${origin}${returnPath}?checkout=success`,
       cancel_url: `${origin}${returnPath}?checkout=cancel`
     });
-
     return ok({ url: session.url });
   } catch (err) {
     console.error('[suscribir-saas]', err instanceof Error ? err.message : err);
