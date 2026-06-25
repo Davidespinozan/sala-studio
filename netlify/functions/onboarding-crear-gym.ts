@@ -58,8 +58,10 @@ interface Body {
   colorPrimario: string;
   colorAcento?: string;
   logoUrl: string | null;
-  salaNombre: string;
-  salaCupo: number;
+  // Sala OPCIONAL: el alta ya no la pide (un gym puede tener varias → se crean
+  // adentro, en /admin/recursos). Si no llega, el gym nace sin salas.
+  salaNombre?: string | null;
+  salaCupo?: number | null;
 }
 
 export const handler: Handler = async (event) => {
@@ -98,8 +100,12 @@ export const handler: Handler = async (event) => {
     if (!Number.isInteger(b.precioCentavos) || b.precioCentavos < 0) {
       return badRequest('Precio inválido.');
     }
-    if (!b.salaNombre?.trim()) return badRequest('Falta el nombre de la sala.');
-    if (!Number.isInteger(b.salaCupo) || b.salaCupo < 1) {
+    // Sala opcional: si llega cupo, validamos que sea coherente; si no, null.
+    const salaNombre = b.salaNombre?.trim() || null;
+    const salaCupo = Number.isInteger(b.salaCupo) && (b.salaCupo as number) > 0
+      ? (b.salaCupo as number)
+      : null;
+    if (salaNombre && salaCupo === null) {
       return badRequest('El cupo de la sala debe ser mayor a 0.');
     }
 
@@ -168,8 +174,8 @@ export const handler: Handler = async (event) => {
         ? b.colorAcento.trim()
         : null,
       p_logo_url: b.logoUrl || null,
-      p_sala_nombre: b.salaNombre.trim(),
-      p_sala_cupo: b.salaCupo
+      p_sala_nombre: salaNombre,
+      p_sala_cupo: salaCupo
     });
 
     if (rpcErr) {

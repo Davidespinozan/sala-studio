@@ -20,7 +20,6 @@ import {
   validarPasoCuenta,
   validarPasoGym,
   validarPasoPlan,
-  validarPasoSetup,
   validarSubdominio,
   sugerirSubdominio,
   construirPayloadOnboarding,
@@ -82,7 +81,7 @@ export default function Onboarding() {
   }
 
   async function crearGym() {
-    const v = validarPasoSetup(state.setup);
+    const v = validarPasoPlan(state.tier);
     if (!v.ok) {
       setErrorPaso(v.error ?? 'Revisa los datos.');
       return;
@@ -112,7 +111,7 @@ export default function Onboarding() {
       }
       // Gym creado + logueado → avanzamos al paso "Pago" (tarjeta + trial embebido).
       setCreadoSlug(slug);
-      setPaso(4);
+      setPaso(3);
     } catch (e) {
       setErrorPaso(e instanceof Error ? e.message : 'Error inesperado. Prueba de nuevo.');
     } finally {
@@ -171,13 +170,7 @@ export default function Onboarding() {
             onChange={(tier) => setState((s) => ({ ...s, tier }))}
           />
         )}
-        {paso === 3 && (
-          <PasoSetup
-            value={state.setup}
-            onChange={(setup) => setState((s) => ({ ...s, setup }))}
-          />
-        )}
-        {paso === 4 && state.tier && creadoSlug && (
+        {paso === 3 && state.tier && creadoSlug && (
           <PasoPagoConTarjeta
             tier={state.tier}
             moneda={monedaPorTimezone(state.gym.timezone)}
@@ -193,7 +186,7 @@ export default function Onboarding() {
       )}
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-        {paso > 0 && paso < 4 && (
+        {paso > 0 && paso < 3 && (
           <button
             type="button"
             onClick={retroceder}
@@ -217,12 +210,6 @@ export default function Onboarding() {
           </button>
         )}
         {paso === 2 && (
-          <button type="button" className="ek-cta" style={{ flex: 1 }}
-            onClick={() => avanzar(validarPasoPlan(state.tier))}>
-            Continuar
-          </button>
-        )}
-        {paso === 3 && (
           <button type="button" className="ek-cta" style={{ flex: 1 }}
             onClick={crearGym} disabled={submitting}>
             {submitting ? 'Creando tu gym…' : 'Crear mi gym'}
@@ -681,77 +668,6 @@ function PasoPagoConTarjeta({
 }
 
 // ============================================================================
-// Paso 3 — Setup
-// ============================================================================
-
-function PasoSetup({
-  value,
-  onChange
-}: {
-  value: OnboardingState['setup'];
-  onChange: (v: OnboardingState['setup']) => void;
-}) {
-  return (
-    <div className="ek-stack-md">
-      <p className="ek-body-muted" style={{ margin: 0 }}>
-        Últimos toques. Puedes cambiar todo después desde el panel.
-      </p>
-      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-        <Campo label="Color primario">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <input
-              type="color"
-              value={value.colorPrimario}
-              onChange={(e) => onChange({ ...value, colorPrimario: e.target.value })}
-              style={{ width: '48px', height: '40px', border: 'none', background: 'none', cursor: 'pointer' }}
-            />
-            <span style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', fontFamily: 'var(--ek-font-mono)' }}>
-              {value.colorPrimario}
-            </span>
-          </div>
-        </Campo>
-        <Campo label="Color de acento">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <input
-              type="color"
-              value={value.colorAcento}
-              onChange={(e) => onChange({ ...value, colorAcento: e.target.value })}
-              style={{ width: '48px', height: '40px', border: 'none', background: 'none', cursor: 'pointer' }}
-            />
-            <span style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', fontFamily: 'var(--ek-font-mono)' }}>
-              {value.colorAcento}
-            </span>
-          </div>
-        </Campo>
-      </div>
-      <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', margin: 0 }}>
-        El primario es tu color base; el acento es el toque que resalta detalles
-        (planes destacados, estados, etc.). Si quieres, deja el acento igual al
-        primario. El logo lo subes más tarde desde Ajustes › Marca.
-      </p>
-      <Campo label="Tu primera sala">
-        <input
-          type="text"
-          className="ek-input"
-          value={value.salaNombre}
-          onChange={(e) => onChange({ ...value, salaNombre: e.target.value })}
-          placeholder="Ej: Sala Principal"
-        />
-      </Campo>
-      <Campo label="Cupo de la sala" hint="Cuántas personas entran por clase.">
-        <input
-          type="number"
-          min={1}
-          className="ek-input"
-          value={value.salaCupo}
-          onChange={(e) => onChange({ ...value, salaCupo: Math.floor(Number(e.target.value)) || 0 })}
-        />
-      </Campo>
-    </div>
-  );
-}
-
-// ============================================================================
 // Paso final — Listo
 // ============================================================================
 
@@ -775,8 +691,9 @@ function PasoListo({ state, slug }: { state: OnboardingState; slug: string }) {
         ¡Tu gym está listo!
       </h1>
       <p className="ek-body-muted" style={{ margin: '0 0 24px' }}>
-        Creamos <strong>{state.gym.gymNombre}</strong> con tu plan, tu primera sala
-        y tu cuenta de administrador.
+        Creamos <strong>{state.gym.gymNombre}</strong> con tu plan y tu cuenta de
+        administrador. Apenas entres, te guiamos para configurar tus salas, horarios
+        y personalizar tu marca.
       </p>
 
       <div
@@ -791,7 +708,6 @@ function PasoListo({ state, slug }: { state: OnboardingState; slug: string }) {
         <Resumen label="Tu cuenta" valor={email} />
         <Resumen label="Gym" valor={state.gym.gymNombre} />
         <Resumen label="Plan" valor={state.tier ? PLANES_SAAS[state.tier].nombre : '—'} />
-        <Resumen label="Sala" valor={`${state.setup.salaNombre} · cupo ${state.setup.salaCupo}`} />
         <Resumen label="Dirección" valor={`${slug}`} ultimo />
       </div>
 
