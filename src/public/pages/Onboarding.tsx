@@ -29,7 +29,7 @@ import {
   type OnboardingState
 } from '../lib/onboardingLogic';
 
-const PASOS = ['Cuenta', 'Tu gym', 'Plan', 'Pago', 'Setup'];
+const PASOS = ['Cuenta', 'Tu gym', 'Plan', 'Setup', 'Pago'];
 
 const ESTADO_INICIAL: OnboardingState = {
   cuenta: { nombre: '', email: '', emailConfirm: '', password: '', passwordConfirm: '' },
@@ -64,7 +64,8 @@ export default function Onboarding() {
   const [errorPaso, setErrorPaso] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [resultado, setResultado] = useState<{ slug: string } | null>(null);
-  const [pendienteCobro, setPendienteCobro] = useState<{ slug: string } | null>(null);
+  // Slug del gym ya creado + logueado → habilita el paso "Pago" (tarjeta real).
+  const [creadoSlug, setCreadoSlug] = useState<string | null>(null);
 
   function avanzar(validacion: { ok: boolean; error?: string }) {
     if (!validacion.ok) {
@@ -109,8 +110,9 @@ export default function Onboarding() {
         setResultado({ slug });
         return;
       }
-      // Paso de cobro real (tarjeta + 7 días de prueba) embebido en SALA.
-      setPendienteCobro({ slug });
+      // Gym creado + logueado → avanzamos al paso "Pago" (tarjeta + trial embebido).
+      setCreadoSlug(slug);
+      setPaso(4);
     } catch (e) {
       setErrorPaso(e instanceof Error ? e.message : 'Error inesperado. Prueba de nuevo.');
     } finally {
@@ -120,21 +122,6 @@ export default function Onboarding() {
 
   if (resultado) {
     return <PasoListo state={state} slug={resultado.slug} />;
-  }
-
-  if (pendienteCobro && state.tier) {
-    const irAListo = () => {
-      setResultado({ slug: pendienteCobro.slug });
-      setPendienteCobro(null);
-    };
-    return (
-      <PasoCobroReal
-        tier={state.tier}
-        moneda={monedaPorTimezone(state.gym.timezone)}
-        onListo={irAListo}
-        onDespues={irAListo}
-      />
-    );
   }
 
   return (
@@ -184,13 +171,17 @@ export default function Onboarding() {
             onChange={(tier) => setState((s) => ({ ...s, tier }))}
           />
         )}
-        {paso === 3 && state.tier && (
-          <PasoPago tier={state.tier} timezone={state.gym.timezone} />
-        )}
-        {paso === 4 && (
+        {paso === 3 && (
           <PasoSetup
             value={state.setup}
             onChange={(setup) => setState((s) => ({ ...s, setup }))}
+          />
+        )}
+        {paso === 4 && state.tier && creadoSlug && (
+          <PasoPagoConTarjeta
+            tier={state.tier}
+            moneda={monedaPorTimezone(state.gym.timezone)}
+            onListo={() => setResultado({ slug: creadoSlug })}
           />
         )}
       </div>
@@ -202,7 +193,7 @@ export default function Onboarding() {
       )}
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-        {paso > 0 && (
+        {paso > 0 && paso < 4 && (
           <button
             type="button"
             onClick={retroceder}
@@ -232,12 +223,6 @@ export default function Onboarding() {
           </button>
         )}
         {paso === 3 && (
-          <button type="button" className="ek-cta" style={{ flex: 1 }}
-            onClick={() => { setErrorPaso(null); setPaso(4); }}>
-            Continuar
-          </button>
-        )}
-        {paso === 4 && (
           <button type="button" className="ek-cta" style={{ flex: 1 }}
             onClick={crearGym} disabled={submitting}>
             {submitting ? 'Creando tu gym…' : 'Crear mi gym'}
@@ -642,12 +627,20 @@ function PlanColumna({
 }
 
 // ============================================================================
-// Paso 4 — Pago (review; la tarjeta se pide al final, embebida)
+// Paso 4 — Pago: el gym ya existe (logueado) → tarjeta real + trial, embebido
 // ============================================================================
 
-function PasoPago({ tier, timezone }: { tier: TierSaas; timezone: string }) {
-  const moneda = monedaPorTimezone(timezone);
+function PasoPagoConTarjeta({
+  tier,
+  moneda,
+  onListo
+}: {
+  tier: TierSaas;
+  moneda: MonedaSaas;
+  onListo: () => void;
+}) {
   const precioStr = `${formatPrecio(precioCentavos(tier, moneda), moneda)}/mes`;
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="ek-stack-md">
@@ -666,52 +659,20 @@ function PasoPago({ tier, timezone }: { tier: TierSaas; timezone: string }) {
           {TRIAL_DIAS} días gratis
         </p>
         <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0 }}>
-          Después, {precioStr}. Cancelás cuando quieras.
+          Después, {precioStr}. No se cobra nada durante la prueba; el primer cobro es al terminar los {TRIAL_DIAS} días.
         </p>
       </div>
-      <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0, lineHeight: 1.5 }}>
-        Te vamos a pedir la tarjeta al confirmar (pago seguro con Stripe). No se cobra nada durante la prueba;
-        el primer cobro es al terminar los {TRIAL_DIAS} días.
-      </p>
-    </div>
-  );
-}
 
-// ============================================================================
-// Paso final — Cobro real (tarjeta + trial) embebido, tras crear el gym
-// ============================================================================
-
-function PasoCobroReal({
-  tier,
-  moneda,
-  onListo,
-  onDespues
-}: {
-  tier: TierSaas;
-  moneda: MonedaSaas;
-  onListo: () => void;
-  onDespues: () => void;
-}) {
-  const plan = PLANES_SAAS[tier];
-  const [error, setError] = useState<string | null>(null);
-  return (
-    <div className="sala-brand" style={{ maxWidth: '520px', margin: '0 auto', padding: '40px 24px 80px', minHeight: '100vh' }}>
-      <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: '0 0 4px' }}>ÚLTIMO PASO · PAGO SEGURO</p>
-      <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '28px', fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 6px' }}>
-        Activá tu plan {plan.nombre}
-      </h1>
-      <p className="ek-body-muted" style={{ margin: '0 0 20px' }}>
-        {TRIAL_DIAS} días gratis. Después, {formatPrecio(precioCentavos(tier, moneda), moneda)}/mes.
-      </p>
       {error ? (
         <p style={{ color: 'var(--sala-error)', fontSize: '14px', lineHeight: 1.5 }}>{error}</p>
       ) : (
         <CheckoutSaasEmbedded tier={tier} moneda={moneda} onComplete={onListo} onError={setError} />
       )}
+
       <button
         type="button"
-        onClick={onDespues}
-        style={{ marginTop: '20px', background: 'none', border: 'none', color: 'var(--ek-ink-muted)', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}
+        onClick={onListo}
+        style={{ background: 'none', border: 'none', color: 'var(--ek-ink-muted)', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit', alignSelf: 'flex-start' }}
       >
         Configurar el pago después
       </button>
@@ -720,7 +681,7 @@ function PasoCobroReal({
 }
 
 // ============================================================================
-// Paso 5 — Setup
+// Paso 3 — Setup
 // ============================================================================
 
 function PasoSetup({
