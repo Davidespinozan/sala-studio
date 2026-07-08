@@ -3,6 +3,7 @@ import { supabase } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { getFont, getScaleValue, buildFontsHref } from '@shared/lib/fonts';
+import { intentarAutoRecarga, limpiarFlagAutoRecarga } from '@shared/lib/autoReload';
 
 type Tenant = Database['public']['Tables']['tenants']['Row'];
 
@@ -411,6 +412,9 @@ export function TenantProvider({ children }: TenantProviderProps) {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  // Auto-recuperación de versión vieja: mientras hacemos el hard reload,
+  // mostramos la pantalla de carga en vez de parpadear el error.
+  const [recargando, setRecargando] = useState(false);
 
   /**
    * Aplica un tenant cargado al estado + branding (colores y, vía el objeto
@@ -468,11 +472,20 @@ export function TenantProvider({ children }: TenantProviderProps) {
     fetchTenant()
       .then((data) => {
         if (!isMounted) return;
+        limpiarFlagAutoRecarga(); // cargó bien → habilita futura auto-recarga
         aplicarTenant(data);
         setIsLoading(false);
       })
-      .catch((err) => {
+      .catch(async (err) => {
         if (!isMounted) return;
+        // Puede ser una versión vieja cacheada → intentamos limpiar caché +
+        // hard reload UNA vez. Si ya se intentó, mostramos el error real.
+        const recuperando = await intentarAutoRecarga();
+        if (!isMounted) return;
+        if (recuperando) {
+          setRecargando(true);
+          return;
+        }
         setError(err instanceof Error ? err : new Error(String(err)));
         setIsLoading(false);
       });
@@ -481,7 +494,7 @@ export function TenantProvider({ children }: TenantProviderProps) {
     };
   }, [fetchTenant, aplicarTenant]);
 
-  if (isLoading) {
+  if (isLoading || recargando) {
     return <LoadingScreen />;
   }
 

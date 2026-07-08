@@ -6,6 +6,7 @@ import { ErrorBoundary } from '@shared/components/ErrorBoundary';
 import { TenantProvider } from '@shared/providers/TenantProvider';
 import { AuthProvider } from '@shared/providers/AuthProvider';
 import { initSentry } from '@shared/lib/sentry';
+import { intentarAutoRecarga } from '@shared/lib/autoReload';
 
 import './styles/tailwind.css';
 import './styles/tokens.css';
@@ -30,6 +31,14 @@ if ('serviceWorker' in navigator) {
     window.location.reload();
   });
 }
+
+// Versión vieja cacheada: el index.html viejo pide un chunk JS que ya no existe
+// (tras un deploy) → Vite dispara 'vite:preloadError'. Limpiamos caché + hard
+// reload UNA vez para traer la versión fresca en vez de dejar la pantalla rota.
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault(); // evitamos que el error sin manejar tumbe la app
+  void intentarAutoRecarga();
+});
 
 const rootEl = document.getElementById('root');
 if (!rootEl) {
