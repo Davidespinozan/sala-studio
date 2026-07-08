@@ -30,6 +30,21 @@ if ('serviceWorker' in navigator) {
     refreshing = true;
     window.location.reload();
   });
+
+  // Chequeo de update al volver a la pestaña / recuperar el foco: los que dejan
+  // la PWA abierta días se actualizan sin depender de que algo se rompa. Si hay
+  // SW nuevo, update() lo instala → autoUpdate lo activa → 'controllerchange'
+  // (arriba) recarga. Throttle de 30s para no consultar de más.
+  let ultimoChequeo = 0;
+  const chequearUpdate = () => {
+    if (document.visibilityState !== 'visible') return;
+    const ahora = Date.now();
+    if (ahora - ultimoChequeo < 30_000) return;
+    ultimoChequeo = ahora;
+    navigator.serviceWorker.getRegistration().then((reg) => reg?.update()).catch(() => {});
+  };
+  document.addEventListener('visibilitychange', chequearUpdate);
+  window.addEventListener('focus', chequearUpdate);
 }
 
 // Versión vieja cacheada: el index.html viejo pide un chunk JS que ya no existe
