@@ -4,6 +4,7 @@ import { Search, ChevronRight } from 'lucide-react';
 import { EmptyState } from '@shared/components/EmptyState';
 import { useSocios, type SocioListItem } from '../hooks/useSocios';
 import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
+import { RegistrarSocioModal } from '../components/RegistrarSocioModal';
 
 function iniciales(nombre: string | null): string {
   const t = (nombre ?? '').trim().split(/\s+/).filter(Boolean);
@@ -69,7 +70,8 @@ function guardarQuery(value: string): void {
 
 export default function Socios() {
   const [q, setQ] = useState<string>(() => leerQueryGuardada());
-  const { socios, isLoading, error } = useSocios(q);
+  const [showNuevo, setShowNuevo] = useState(false);
+  const { socios, isLoading, error, refetch } = useSocios(q);
   const { sucursalId, sucursales, multisede } = useReceptionSucursal();
   // Etiqueta de sede para socios que NO son de este mostrador (solo multisede).
   const sedeDe = (id: string | null): string | null =>
@@ -86,9 +88,14 @@ export default function Socios() {
     <div className="ek-page">
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '16px 20px' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '6px' }}>RECEPCIÓN</p>
-        <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '28px', fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 14px', color: 'var(--sala-text-primary)' }}>
-          Socios
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', margin: '0 0 14px' }}>
+          <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '28px', fontWeight: 700, letterSpacing: '-0.03em', margin: 0, color: 'var(--sala-text-primary)' }}>
+            Socios
+          </h1>
+          <button className="ek-cta" style={{ flex: '0 0 auto' }} onClick={() => setShowNuevo(true)}>
+            + Nuevo socio
+          </button>
+        </div>
 
         {/* Buscador protagonista (estilo Spotlight) */}
         <div style={{ position: 'relative', marginBottom: '18px' }}>
@@ -146,6 +153,12 @@ export default function Socios() {
           </div>
         )}
       </div>
+
+      <RegistrarSocioModal
+        isOpen={showNuevo}
+        onClose={() => setShowNuevo(false)}
+        onDone={refetch}
+      />
     </div>
   );
 }

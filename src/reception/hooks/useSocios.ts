@@ -40,6 +40,7 @@ export function useSocios(query: string) {
   const [padron, setPadron] = useState<SocioListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [nonce, setNonce] = useState(0); // bump → recarga el padrón (tras alta)
 
   // Carga el padrón COMPLETO del tenant (RLS ya scopea por tenant). El buscador
   // debe encontrar a cualquier socio — incluido uno con plan global que entrena
@@ -71,7 +72,7 @@ export function useSocios(query: string) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [nonce]);
 
   // Filtrado local instantáneo (solo CPU, sin debounce ni race conditions).
   const socios = useMemo(() => {
@@ -94,5 +95,5 @@ export function useSocios(query: string) {
       .slice(0, 50); // tope 50 (más amplio que server-side porque es local)
   }, [padron, query, sucursalId]);
 
-  return { socios, isLoading, error };
+  return { socios, isLoading, error, refetch: () => setNonce((n) => n + 1) };
 }

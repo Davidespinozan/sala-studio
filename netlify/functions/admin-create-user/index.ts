@@ -68,9 +68,16 @@ export const handler: Handler = async (event) => {
       .eq('auth_id', authUser.id)
       .maybeSingle();
 
-    // status='activo': un admin revocado/suspendido no debe poder operar (fix C2).
-    if (!adminProfile || adminProfile.rol !== 'admin' || adminProfile.status !== 'activo') {
-      return forbidden('Solo admin puede crear usuarios');
+    // status='activo': un staff revocado/suspendido no debe poder operar (fix C2).
+    const esAdmin = adminProfile?.rol === 'admin' && adminProfile.status === 'activo';
+    const esRecepcion = adminProfile?.rol === 'recepcionista' && adminProfile.status === 'activo';
+    if (!adminProfile || (!esAdmin && !esRecepcion)) {
+      return forbidden('Sin permiso para crear usuarios');
+    }
+    // Recepción puede dar de alta SOCIOS (walk-in), nunca staff/admin (evita
+    // escalada de privilegios). El admin puede crear cualquier rol válido.
+    if (esRecepcion && body.rol !== 'miembro') {
+      return forbidden('Recepción solo puede dar de alta socios.');
     }
 
     const tenantId = adminProfile.tenant_id;
