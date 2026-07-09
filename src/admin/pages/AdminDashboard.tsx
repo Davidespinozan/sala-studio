@@ -17,6 +17,7 @@ import { useToast } from '@shared/hooks/useToast';
 import { useDashboardData, type DashboardData } from '../hooks/useAdminData';
 import { useGymSetup, gymOperativo } from '../hooks/useGymSetup';
 import ChecklistActivacion from '../components/ChecklistActivacion';
+import CentroPendientes from '../components/CentroPendientes';
 import CardMenuDropdown from '../components/CardMenuDropdown';
 import CancelarReservaModal, { type ReservaParaCancelar } from '../components/CancelarReservaModal';
 
@@ -78,6 +79,7 @@ export default function AdminDashboard() {
       </div>
 
       {setup && !gymOperativo(setup) && <ChecklistActivacion setup={setup} />}
+      {setup && gymOperativo(setup) && <CentroPendientes />}
 
       <SeccionHoy data={data} onCancelar={setCancelar} />
       <SeccionTuMes data={data} />

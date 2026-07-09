@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { User, CreditCard, Lock, Unlock } from 'lucide-react';
 import { useMiembros } from '../hooks/useAdminData';
 import { NuevaPersonaModal } from '../components/NuevaPersonaModal';
@@ -12,8 +12,10 @@ type MiembroLista = Database['public']['Tables']['usuarios']['Row'];
 
 export default function Miembros() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<string>('');
+  // Permite llegar pre-filtrado desde el Centro de pendientes (?status=pendiente_pago).
+  const [status, setStatus] = useState<string>(() => searchParams.get('status') ?? '');
   const [showNuevo, setShowNuevo] = useState(false);
   const [cambiarPlanFor, setCambiarPlanFor] = useState<MiembroLista | null>(null);
   const [bloquearFor, setBloquearFor] = useState<MiembroLista | null>(null);
