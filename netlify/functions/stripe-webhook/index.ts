@@ -26,6 +26,54 @@ function periodEndISO(sub: any): string | null {
   return epochToISO(sub?.current_period_end ?? item?.current_period_end ?? null);
 }
 
+/**
+ * Tras guardar una tarjeta (checkout mode 'setup'): la fija como default del
+ * customer y de sus suscripciones 'sala' vigentes, y reintenta la factura
+ * abierta. Así un socio en past_due se reactiva al toque. Si el reintento falla,
+ * invoice.payment_failed mantiene past_due (no rompemos el webhook).
+ */
+async function recuperarConNuevaTarjeta(stripe: Stripe, session: any, acct?: string): Promise<void> {
+  if (!acct) return;
+  const siId = typeof session.setup_intent === 'string' ? session.setup_intent : session.setup_intent?.id;
+  const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+  if (!siId || !customerId) return;
+
+  const si = await stripe.setupIntents.retrieve(siId, {}, { stripeAccount: acct });
+  const pmId = typeof si.payment_method === 'string' ? si.payment_method : (si.payment_method as any)?.id;
+  if (!pmId) return;
+
+  // Default del customer (facturas futuras).
+  await stripe.customers.update(
+    customerId,
+    { invoice_settings: { default_payment_method: pmId } },
+    { stripeAccount: acct }
+  );
+
+  const subs = await stripe.subscriptions.list(
+    { customer: customerId, status: 'all', limit: 10 },
+    { stripeAccount: acct }
+  );
+  for (const sub of subs.data) {
+    if ((sub.metadata as any)?.app !== 'sala') continue;
+    if (!['active', 'past_due', 'trialing', 'unpaid'].includes(sub.status)) continue;
+
+    await stripe.subscriptions.update(sub.id, { default_payment_method: pmId }, { stripeAccount: acct });
+
+    const invRef = (sub as any).latest_invoice;
+    const invId = typeof invRef === 'string' ? invRef : invRef?.id;
+    if (!invId) continue;
+    const inv = await stripe.invoices.retrieve(invId, {}, { stripeAccount: acct });
+    if (inv.status === 'open') {
+      try {
+        // El pago exitoso dispara invoice.paid → el handler reactiva la membresía.
+        await stripe.invoices.pay(invId, {}, { stripeAccount: acct });
+      } catch (e) {
+        console.error('[webhook-socio] reintento de factura falló:', e instanceof Error ? e.message : e);
+      }
+    }
+  }
+}
+
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method not allowed' };
 
@@ -69,6 +117,16 @@ export const handler: Handler = async (event) => {
       case 'checkout.session.completed': {
         const session = stripeEvent.data.object as any;
         if (session.metadata?.app !== 'sala') break;
+
+        // Guardado de tarjeta (mode 'setup'): promover el nuevo método de pago a
+        // default del customer + de la suscripción y reintentar la factura
+        // vencida → un socio en past_due recupera acceso al instante (sin esperar
+        // el reintento automático de Stripe).
+        if (session.mode === 'setup') {
+          await recuperarConNuevaTarjeta(stripe, session, acct);
+          break;
+        }
+
         const usuarioId = session.metadata?.usuario_id;
         const tierId = session.metadata?.tier_id;
         const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;

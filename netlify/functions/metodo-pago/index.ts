@@ -74,7 +74,15 @@ export const handler: Handler = async (event) => {
         return ok({ client_secret: null, reason: 'sin_customer' });
       }
       const session = await stripe.checkout.sessions.create(
-        { mode: 'setup', ui_mode: 'embedded_page', redirect_on_completion: 'never', customer: customerId },
+        {
+          mode: 'setup',
+          ui_mode: 'embedded_page',
+          redirect_on_completion: 'never',
+          customer: customerId,
+          // metadata app:'sala' → el webhook Connect reconoce el guardado de
+          // tarjeta y promueve el PM + reintenta la factura vencida (past_due).
+          metadata: { app: 'sala', usuario_id: socio.id, tenant_id: socio.tenant_id }
+        },
         { stripeAccount: acct }
       );
       return ok({ client_secret: session.client_secret, account: acct });
