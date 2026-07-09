@@ -13,6 +13,7 @@ import { BloquearSocioModal } from '../components/acciones/BloquearSocioModal';
 import { DesbloquearSocioModal } from '../components/acciones/DesbloquearSocioModal';
 import { AgregarNotaModal } from '../components/acciones/AgregarNotaModal';
 import { EditarContactoModal } from '../components/acciones/EditarContactoModal';
+import { EnviarAvisoModal } from '../components/acciones/EnviarAvisoModal';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData } from '../hooks/useSocioFicha';
 import { useSocioNotas } from '../hooks/useSocioNotas';
 
@@ -28,7 +29,8 @@ type ModalAccion =
   | 'bloquear'
   | 'desbloquear'
   | 'agregar_nota'
-  | 'editar_contacto';
+  | 'editar_contacto'
+  | 'enviar_aviso';
 
 // ── Helpers de formato ──────────────────────────────────────────────────────
 function iniciales(nombre: string | null): string {
@@ -200,6 +202,7 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           <AccionBtn onClick={() => setModalAbierto('bloquear')}>Bloquear socio</AccionBtn>
         )}
         <AccionBtn onClick={() => setModalAbierto('editar_contacto')}>Editar contacto</AccionBtn>
+        <AccionBtn onClick={() => setModalAbierto('enviar_aviso')}>Enviar aviso</AccionBtn>
       </div>
 
       {/* MEMBRESÍA */}
@@ -456,6 +459,15 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           socioNombre={socioNombre}
           telefonoActual={socio.telefono}
           emailActual={socio.email}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
+      {modalAbierto === 'enviar_aviso' && (
+        <EnviarAvisoModal
+          isOpen
+          socioId={socio.id}
+          socioNombre={socioNombre}
           onClose={cerrar}
           onDone={handleDone}
         />
