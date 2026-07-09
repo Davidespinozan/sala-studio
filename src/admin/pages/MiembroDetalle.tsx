@@ -22,6 +22,7 @@ import {
   MiembroHistorial,
   type HistorialItem
 } from '../components/miembro/MiembroHistorial';
+import { MiembroHistorialCambios } from '../components/miembro/MiembroHistorialCambios';
 import { MiembroNotasInternas } from '../components/miembro/MiembroNotasInternas';
 import { GestionarMembresiaModal } from '../components/miembro/GestionarMembresiaModal';
 import { BloquearAccesoModal } from '../components/miembro/BloquearAccesoModal';
@@ -186,6 +187,11 @@ export default function MiembroDetalle() {
       <section style={{ marginBottom: '32px' }}>
         <SectionHeading hint="Últimos 30 días">Historial de asistencia</SectionHeading>
         <MiembroHistorial items={historialItems} />
+      </section>
+
+      <section style={{ marginBottom: '32px' }}>
+        <SectionHeading hint="Quién hizo qué">Historial de cambios</SectionHeading>
+        <MiembroHistorialCambios usuarioId={miembro.id} />
       </section>
 
       <section style={{ marginBottom: '32px' }}>
