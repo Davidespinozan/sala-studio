@@ -3,6 +3,8 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
 
+import { COLUMNAS_USUARIO_CLIENTE } from '@shared/lib/usuariosSelect';
+
 type Usuario = Database['public']['Tables']['usuarios']['Row'];
 
 interface AuthContextValue {
@@ -45,7 +47,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   async function hydrateUsuario(userId: string) {
     const { data, error } = await supabase
       .from('usuarios')
-      .select('*')
+      .select(COLUMNAS_USUARIO_CLIENTE)
       .eq('auth_id', userId)
       .maybeSingle();
 
@@ -54,7 +56,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return;
     }
 
-    setUsuario(data);
+    setUsuario((data as unknown as Usuario | null) ?? null);
   }
 
   useEffect(() => {

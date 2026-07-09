@@ -6,6 +6,8 @@ import { backendPost } from '@shared/lib/backend';
 import type { Database } from '@shared/types/database';
 import type { SalaLayout } from '@shared/lib/salaLayout';
 
+import { COLUMNAS_USUARIO_CLIENTE } from '@shared/lib/usuariosSelect';
+
 type Usuario = Database['public']['Tables']['usuarios']['Row'];
 type Recurso = Database['public']['Tables']['recursos']['Row'];
 type Tier = Database['public']['Tables']['tiers']['Row'];
@@ -32,7 +34,7 @@ export function useMiembros(filtros?: { search?: string; status?: string; rol?: 
     setIsLoading(true);
     let query = supabase
       .from('usuarios')
-      .select('*')
+      .select(COLUMNAS_USUARIO_CLIENTE)
       .eq('tenant_id', tenant.id)
       .order('created_at', { ascending: false });
 
@@ -56,7 +58,7 @@ export function useMiembros(filtros?: { search?: string; status?: string; rol?: 
       setIsLoading(false);
       return;
     }
-    setMiembros(data ?? []);
+    setMiembros((data as unknown as Usuario[]) ?? []);
     setIsLoading(false);
   }, [tenant.id, filtros?.search, filtros?.status, filtros?.rol]);
 
@@ -77,7 +79,7 @@ export function useMiembroDetalle(miembroId: string | undefined) {
     setIsLoading(true);
     try {
       const [m, r] = await Promise.all([
-        supabase.from('usuarios').select('*').eq('id', miembroId).maybeSingle(),
+        supabase.from('usuarios').select(COLUMNAS_USUARIO_CLIENTE).eq('id', miembroId).maybeSingle(),
         supabase
           .from('reservas')
           .select('*, recurso:recursos(id, slug, nombre)')
@@ -85,7 +87,7 @@ export function useMiembroDetalle(miembroId: string | undefined) {
           .order('slot_inicio', { ascending: false })
           .limit(50)
       ]);
-      setMiembro(m.data);
+      setMiembro((m.data as unknown as Usuario | null) ?? null);
       setReservas((r.data ?? []) as unknown as ReservaConJoin[]);
     } catch (err) {
       console.error('[useMiembroDetalle]', err);

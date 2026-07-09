@@ -14,6 +14,8 @@ import CredencialesCreadasModal from '../components/CredencialesCreadasModal';
 import CambiarRolModal from '../components/CambiarRolModal';
 import type { Database } from '@shared/types/database';
 
+import { COLUMNAS_USUARIO_CLIENTE } from '@shared/lib/usuariosSelect';
+
 type Usuario = Database['public']['Tables']['usuarios']['Row'];
 type RolStaff = 'admin' | 'recepcionista';
 
@@ -67,7 +69,7 @@ export default function Equipo() {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('usuarios')
-      .select('*')
+      .select(COLUMNAS_USUARIO_CLIENTE)
       .eq('tenant_id', tenant.id)
       .in('rol', ['admin', 'recepcionista'])
       .neq('status', 'revocado')
@@ -80,7 +82,7 @@ export default function Equipo() {
       setIsLoading(false);
       return;
     }
-    setStaff(data ?? []);
+    setStaff((data as unknown as Usuario[]) ?? []);
     setIsLoading(false);
   }, [tenant.id, toast]);
 
