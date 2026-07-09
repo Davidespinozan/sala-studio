@@ -26,6 +26,7 @@ import { MiembroHistorialCambios } from '../components/miembro/MiembroHistorialC
 import { MiembroNotasInternas } from '../components/miembro/MiembroNotasInternas';
 import { GestionarMembresiaModal } from '../components/miembro/GestionarMembresiaModal';
 import { BloquearAccesoModal } from '../components/miembro/BloquearAccesoModal';
+import { EnviarAvisoModal } from '../components/miembro/EnviarAvisoModal';
 import type { Database } from '@shared/types/database';
 
 type Recurso = Pick<Database['public']['Tables']['recursos']['Row'], 'nombre'>;
@@ -66,6 +67,7 @@ export default function MiembroDetalle() {
 
   const [showCambiarPlan, setShowCambiarPlan] = useState(false);
   const [showBloquear, setShowBloquear] = useState(false);
+  const [showAviso, setShowAviso] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -192,6 +194,16 @@ export default function MiembroDetalle() {
       <section style={{ marginBottom: '32px' }}>
         <SectionHeading hint="Quién hizo qué">Historial de cambios</SectionHeading>
         <MiembroHistorialCambios usuarioId={miembro.id} />
+      </section>
+
+      <section style={{ marginBottom: '32px' }}>
+        <SectionHeading>Comunicación</SectionHeading>
+        <button type="button" className="ek-cta ek-cta--secondary" onClick={() => setShowAviso(true)}>
+          Enviar aviso
+        </button>
+        <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', marginTop: '8px' }}>
+          Le llega al socio en su campana de notificaciones. Queda en el historial de cambios.
+        </p>
       </section>
 
       <section style={{ marginBottom: '32px' }}>
@@ -350,6 +362,15 @@ export default function MiembroDetalle() {
         />
       )}
 
+      {showAviso && (
+        <EnviarAvisoModal
+          isOpen
+          socioId={miembro.id}
+          socioNombre={miembro.nombre ?? miembro.email}
+          onClose={() => setShowAviso(false)}
+          onDone={async () => { setShowAviso(false); await refetch(); }}
+        />
+      )}
       {showBloquear && (
         <BloquearAccesoModal
           usuarioId={miembro.id}
