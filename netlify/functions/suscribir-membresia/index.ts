@@ -137,6 +137,66 @@ export const handler: Handler = async (event) => {
     const meta = { app: 'sala', usuario_id: socio.id, tier_id: tier.id };
     const currency = (tier.moneda || 'mxn').toLowerCase();
 
+    // ── Cambio de plan MENSUAL → MENSUAL: swap in-place con prorrateo. Si el
+    //    socio ya tiene una suscripción activa y el nuevo tier también es mensual
+    //    (tipo 'tiempo'), NO abrimos un checkout nuevo (evita duplicar la
+    //    suscripción y re-pedir la tarjeta): cambiamos el precio del item con
+    //    proration_behavior 'create_prorations' (la diferencia se ajusta en el
+    //    próximo ciclo, contra la tarjeta guardada) y sincronizamos la membresía.
+    if (tier.tipo === 'tiempo') {
+      const { data: memActual } = await admin
+        .from('membresias')
+        .select('stripe_subscription_id')
+        .eq('usuario_id', socio.id)
+        .in('status', ['activa', 'trialing', 'past_due'])
+        .not('stripe_subscription_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const subId = memActual?.stripe_subscription_id as string | undefined;
+      if (subId) {
+        const sub = await stripe.subscriptions.retrieve(subId, {}, { stripeAccount: acct });
+        const itemId = sub.items?.data?.[0]?.id;
+        if (sub.status !== 'canceled' && itemId) {
+          // Price nuevo al vuelo (con su product) para el nuevo tier.
+          const nuevoPrice = await stripe.prices.create(
+            {
+              currency,
+              unit_amount: tier.precio_centavos,
+              recurring: { interval: 'month' },
+              product_data: { name: tier.nombre }
+            },
+            { stripeAccount: acct }
+          );
+          const updated = await stripe.subscriptions.update(
+            subId,
+            {
+              items: [{ id: itemId, price: nuevoPrice.id }],
+              proration_behavior: 'create_prorations',
+              metadata: meta
+            },
+            { stripeAccount: acct }
+          );
+          const cpe =
+            (updated as any).current_period_end ??
+            (updated as any).items?.data?.[0]?.current_period_end ??
+            null;
+          const periodoFin = typeof cpe === 'number' ? new Date(cpe * 1000).toISOString() : null;
+
+          const { error: rpcErr } = await admin.rpc('activar_suscripcion_socio', {
+            p_usuario_id: socio.id,
+            p_tier_id: tier.id,
+            p_stripe_subscription_id: subId,
+            p_stripe_customer_id: customerId,
+            p_periodo_fin: periodoFin
+          });
+          if (rpcErr) return serverError(rpcErr.message);
+          return ok({ activated: true, cambio: 'prorrateado' });
+        }
+      }
+    }
+
     // Paquete de clases (creditos/hibrido) → PAGO ÚNICO. Mensualidad (tiempo) →
     // SUSCRIPCIÓN recurrente. El webhook materializa la membresía en ambos casos.
     const esPaquete = tier.tipo === 'creditos' || tier.tipo === 'hibrido';
