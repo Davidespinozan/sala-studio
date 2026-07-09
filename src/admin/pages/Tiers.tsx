@@ -372,7 +372,11 @@ function TierRow({
   duplicating: boolean;
 }) {
   const memberCount = useMemberCount(t, tenantId);
-  const esPro = t.slug === 'pro';
+  // Editable desde el form (reglas.recomendado). Compat: si un gym viejo nunca
+  // lo marcó, cae al histórico 'pro' hasta que el dueño elija otro.
+  const esRecomendado =
+    ((t.reglas as Record<string, unknown> | null)?.recomendado as boolean | undefined) ??
+    (t.slug === 'pro');
   const beneficios = parseBeneficios(t.beneficios);
   const compromiso = ((t.reglas as Record<string, unknown> | null)?.commitment_meses ?? null) as number | null;
 
@@ -389,7 +393,7 @@ function TierRow({
       }}
       style={{
         background: 'var(--ek-bg-soft)',
-        border: esPro ? '0.5px solid var(--sala-accent-dim)' : '0.5px solid var(--ek-line)',
+        border: esRecomendado ? '0.5px solid var(--sala-accent-dim)' : '0.5px solid var(--ek-line)',
         borderRadius: '16px',
         padding: '20px',
         display: 'flex',
@@ -397,7 +401,7 @@ function TierRow({
         gap: '16px',
         cursor: 'pointer',
         transition: 'background 0.18s ease, border-color 0.18s ease',
-        boxShadow: esPro ? '0 0 0 1px var(--sala-accent-dim)' : 'none'
+        boxShadow: esRecomendado ? '0 0 0 1px var(--sala-accent-dim)' : 'none'
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = 'var(--ek-mustard-soft)';
@@ -420,7 +424,7 @@ function TierRow({
           >
             {t.nombre}
           </h3>
-          {esPro && (
+          {esRecomendado && (
             <span
               className="ek-badge"
               style={{
@@ -592,6 +596,10 @@ function EditarTierModal({
   const [accesoTodasSucursales, setAccesoTodasSucursales] = useState(
     tier?.acceso_todas_sucursales ?? true
   );
+  const [recomendado, setRecomendado] = useState<boolean>(
+    ((tier?.reglas as Record<string, unknown> | null)?.recomendado as boolean | undefined) ??
+      (tier?.slug === 'pro') // compat: 'pro' era el recomendado por defecto
+  );
   const [beneficios, setBeneficios] = useState<string[]>(() =>
     tier ? parseBeneficios(tier.beneficios) : []
   );
@@ -673,7 +681,7 @@ function EditarTierModal({
         return;
       }
 
-      const reglas = { max_invitados: maxInvitados };
+      const reglas = { max_invitados: maxInvitados, recomendado };
 
       const { error: err } = await insertTier({
         tenant_id: tenant.id,
@@ -704,7 +712,7 @@ function EditarTierModal({
 
     // Edit mode
     const reglasActuales = (tier!.reglas as Record<string, unknown>) ?? {};
-    const reglasNuevas = { ...reglasActuales, max_invitados: maxInvitados };
+    const reglasNuevas = { ...reglasActuales, max_invitados: maxInvitados, recomendado };
 
     const { error: err } = await updateTier(tier!.id, {
       nombre,
@@ -899,6 +907,15 @@ function EditarTierModal({
             />
           </div>
         )}
+
+        <div className="ek-form-field" style={{ marginTop: '12px' }}>
+          <Toggle
+            checked={recomendado}
+            onChange={setRecomendado}
+            label="Destacar como recomendado"
+            description="Resalta este plan con el badge RECOMENDADO en la lista de planes."
+          />
+        </div>
 
         <div className="ek-form-field" style={{ marginTop: '16px' }}>
           <label className="ek-label">Máximo de invitados por clase</label>
