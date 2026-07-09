@@ -12,6 +12,14 @@ interface IssueResponse {
   expires_at: string;
 }
 
+/** Traduce el error del backend a copy claro para el socio (nunca el mensaje crudo). */
+function traducirErrorQR(raw: string): string {
+  const m = raw.toLowerCase();
+  if (m.includes('cancelada')) return 'Esta reserva está cancelada.';
+  if (m.includes('no encontrada') || m.includes('no autorizada')) return 'No encontramos esta reserva.';
+  return 'No pudimos generar tu código. Probá de nuevo en un momento.';
+}
+
 export default function MiQR() {
   const { reservaId } = useParams<{ reservaId: string }>();
   const tenant = useTenant();
@@ -24,6 +32,7 @@ export default function MiQR() {
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [nonce, setNonce] = useState(0); // bump → reintenta
 
   // Cargar datos de la reserva y emitir QR
   useEffect(() => {
@@ -39,7 +48,7 @@ export default function MiQR() {
 
       if (!mounted) return;
       if (!r) {
-        setError('Reserva no encontrada');
+        setError('No encontramos esta reserva.');
         setIsLoading(false);
         return;
       }
@@ -53,14 +62,15 @@ export default function MiQR() {
         setIsLoading(false);
       } catch (e) {
         if (!mounted) return;
-        setError(e instanceof Error ? e.message : 'Error generando QR');
+        console.error('[MiQR] qr-issue falló:', e);
+        setError(traducirErrorQR(e instanceof Error ? e.message : ''));
         setIsLoading(false);
       }
     }
 
     load();
     return () => { mounted = false; };
-  }, [reservaId]);
+  }, [reservaId, nonce]);
 
   // Renderizar QR con qr-code-styling
   useEffect(() => {
@@ -86,10 +96,21 @@ export default function MiQR() {
   if (isLoading) return <div className="ek-container"><p className="ek-body">Generando QR…</p></div>;
 
   if (error) {
+    const esCancelada = error.toLowerCase().includes('cancelada');
     return (
       <div className="ek-container">
         <Link to="/app/historial" className="adm-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><ArrowLeft size={15} strokeWidth={2.25} />Volver</Link>
         <p className="ek-error-text" style={{ marginTop: '1rem' }}>{error}</p>
+        {!esCancelada && (
+          <button
+            type="button"
+            onClick={() => { setError(null); setIsLoading(true); setNonce((n) => n + 1); }}
+            className="ek-cta ek-cta--secondary"
+            style={{ marginTop: '0.75rem' }}
+          >
+            Reintentar
+          </button>
+        )}
       </div>
     );
   }

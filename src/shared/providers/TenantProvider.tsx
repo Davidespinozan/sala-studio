@@ -478,6 +478,8 @@ export function TenantProvider({ children }: TenantProviderProps) {
       })
       .catch(async (err) => {
         if (!isMounted) return;
+        // El detalle crudo (Postgres/JWT) va a consola/Sentry, NUNCA a la UI.
+        console.error('[tenant] carga inicial falló:', err);
         // Puede ser una versión vieja cacheada → intentamos limpiar caché +
         // hard reload UNA vez. Si ya se intentó, mostramos el error real.
         const recuperando = await intentarAutoRecarga();
@@ -517,11 +519,19 @@ export function TenantProvider({ children }: TenantProviderProps) {
             ERROR
           </p>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-            No se pudo cargar la configuración
+            No pudimos cargar esta página
           </h1>
-          <p style={{ color: 'var(--ek-ink-muted)', maxWidth: '32rem' }}>
-            {error?.message ?? 'Tenant no disponible'}
+          <p style={{ color: 'var(--ek-ink-muted)', maxWidth: '32rem', margin: '0 auto', lineHeight: 1.55 }}>
+            Puede ser un problema temporal de conexión. Probá de nuevo en un momento.
           </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="ek-cta"
+            style={{ marginTop: '1.25rem' }}
+          >
+            Reintentar
+          </button>
         </div>
       </div>
     );
