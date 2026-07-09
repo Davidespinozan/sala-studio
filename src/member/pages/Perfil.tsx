@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { ArrowRight, CalendarCheck, Check, ChevronRight, CreditCard, LifeBuoy, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Avatar } from '@shared/components/Avatar';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
@@ -105,12 +106,6 @@ export default function Perfil() {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ') ?? '';
 
-  const initials = (usuario?.nombre ?? usuario?.email ?? '?')
-    .split(/[\s@]/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('') || '?';
 
   return (
     <div className="ek-container">
@@ -122,36 +117,15 @@ export default function Perfil() {
 
         {/* Avatar + antigüedad */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-          {usuario?.avatar_url ? (
-            <img
-              src={usuario.avatar_url}
-              alt={usuario.nombre ?? 'Avatar'}
-              style={{
-                width: '120px',
-                height: '120px',
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '0.5px solid var(--ek-line)'
-              }}
-            />
-          ) : (
-            <div style={{
-              width: '120px',
-              height: '120px',
-              borderRadius: '50%',
-              background: 'var(--ek-mustard)',
-              color: 'var(--ek-bg)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'var(--ek-font-display)',
-              fontSize: '40px',
-              fontWeight: 700,
-              letterSpacing: '-0.04em'
-            }}>
-              {initials}
-            </div>
-          )}
+          <Avatar
+            src={usuario?.avatar_url}
+            nombre={usuario?.nombre}
+            email={usuario?.email}
+            size={120}
+            fallbackBg="var(--ek-mustard)"
+            fallbackColor="var(--ek-bg)"
+            style={{ border: '0.5px solid var(--ek-line)' }}
+          />
 
           {miembroDesde && (
             <span

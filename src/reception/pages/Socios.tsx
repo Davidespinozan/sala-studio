@@ -5,12 +5,7 @@ import { EmptyState } from '@shared/components/EmptyState';
 import { useSocios, type SocioListItem } from '../hooks/useSocios';
 import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
 import { RegistrarSocioModal } from '../components/RegistrarSocioModal';
-
-function iniciales(nombre: string | null): string {
-  const t = (nombre ?? '').trim().split(/\s+/).filter(Boolean);
-  if (!t.length) return '?';
-  return (t[0][0] + (t[1]?.[0] ?? '')).toUpperCase();
-}
+import { Avatar } from '@shared/components/Avatar';
 
 function capitalizar(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
@@ -178,15 +173,7 @@ function SocioRow({ socio, sedeBadge }: { socio: SocioListItem; sedeBadge: strin
       onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--sala-primary)'; }}
       onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--sala-border)'; }}
     >
-      {socio.avatar_url ? (
-        <img src={socio.avatar_url} alt="" loading="lazy"
-          style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-      ) : (
-        <div aria-hidden="true"
-          style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'var(--sala-primary-light)', color: 'var(--sala-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--ek-font-display)', fontWeight: 700, fontSize: '15px', flexShrink: 0 }}>
-          {iniciales(socio.nombre)}
-        </div>
-      )}
+      <Avatar src={socio.avatar_url} nombre={socio.nombre} size={44} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ margin: 0, fontWeight: 600, fontSize: '15px', color: 'var(--sala-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {socio.nombre ?? socio.email}

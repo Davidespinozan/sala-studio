@@ -161,15 +161,16 @@ function Cell({ label, value, mono, color }: { label: string; value: string; mon
 }
 
 function Avatar({ nombre, url }: { nombre: string; url: string | null }) {
-  if (url) {
-    return <img src={url} alt={nombre} className="rec-detail-avatar" />;
-  }
+  const [failed, setFailed] = useState(false);
   const initials = nombre
     .split(/[\s@]/)
     .filter(Boolean)
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase() ?? '')
     .join('');
+  if (url && !failed) {
+    return <img src={url} alt={nombre} className="rec-detail-avatar" onError={() => setFailed(true)} />;
+  }
   return (
     <div className="rec-detail-avatar rec-detail-avatar--initials">
       {initials || '?'}

@@ -1,4 +1,5 @@
 import type { Database } from '@shared/types/database';
+import { Avatar } from '@shared/components/Avatar';
 
 type Usuario = Database['public']['Tables']['usuarios']['Row'];
 
@@ -23,15 +24,6 @@ function capitalizar(s: string | null | undefined): string {
     .join(' ');
 }
 
-function iniciales(nombre: string | null, email: string): string {
-  const base = nombre ?? email;
-  return base
-    .split(/[\s@]/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('') || '?';
-}
 
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
   activo: {
@@ -71,7 +63,6 @@ export function MiembroHero({
   onBloquearAcceso
 }: Props) {
   const nombreFmt = capitalizar(miembro.nombre);
-  const inits = iniciales(miembro.nombre, miembro.email);
   const statusCfg = STATUS_LABEL[miembro.status] ?? {
     label: miembro.status,
     color: 'var(--sala-text-tertiary)',
@@ -109,41 +100,15 @@ export function MiembroHero({
           flexWrap: 'wrap'
         }}
       >
-        {miembro.avatar_url ? (
-          <img
-            src={miembro.avatar_url}
-            alt={nombreFmt}
-            style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '50%',
-              objectFit: 'cover',
-              border: '1px solid var(--sala-border-strong)',
-              flexShrink: 0
-            }}
-          />
-        ) : (
-          <div
-            aria-hidden="true"
-            style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '50%',
-              background: 'var(--sala-primary)',
-              color: 'var(--sala-text-on-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'var(--ek-font-display)',
-              fontSize: '24px',
-              fontWeight: 700,
-              letterSpacing: '-0.03em',
-              flexShrink: 0
-            }}
-          >
-            {inits}
-          </div>
-        )}
+        <Avatar
+          src={miembro.avatar_url}
+          nombre={miembro.nombre}
+          email={miembro.email}
+          size={64}
+          fallbackBg="var(--sala-primary)"
+          fallbackColor="var(--sala-text-on-primary)"
+          style={{ border: '1px solid var(--sala-border-strong)' }}
+        />
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <p

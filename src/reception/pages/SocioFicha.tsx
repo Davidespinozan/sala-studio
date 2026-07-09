@@ -15,6 +15,7 @@ import { AgregarNotaModal } from '../components/acciones/AgregarNotaModal';
 import { EditarContactoModal } from '../components/acciones/EditarContactoModal';
 import { EnviarAvisoModal } from '../components/acciones/EnviarAvisoModal';
 import { ResetPasswordModal } from '../components/acciones/ResetPasswordModal';
+import { Avatar } from '@shared/components/Avatar';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData } from '../hooks/useSocioFicha';
 import { useSocioNotas } from '../hooks/useSocioNotas';
 
@@ -35,11 +36,6 @@ type ModalAccion =
   | 'reset_password';
 
 // ── Helpers de formato ──────────────────────────────────────────────────────
-function iniciales(nombre: string | null): string {
-  const t = (nombre ?? '').trim().split(/\s+/).filter(Boolean);
-  if (!t.length) return '?';
-  return (t[0][0] + (t[1]?.[0] ?? '')).toUpperCase();
-}
 function fmtFechaCorta(iso: string | null): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
@@ -151,25 +147,15 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {socio.avatar_url ? (
-            <img
-              src={socio.avatar_url}
-              alt=""
-              style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(255,255,255,0.22)' }}
-            />
-          ) : (
-            <div
-              aria-hidden="true"
-              style={{
-                width: '64px', height: '64px', borderRadius: '50%', flexShrink: 0,
-                background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.22)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'var(--ek-font-display)', fontWeight: 700, fontSize: '24px',
-              }}
-            >
-              {iniciales(socio.nombre)}
-            </div>
-          )}
+          <Avatar
+            src={socio.avatar_url}
+            nombre={socio.nombre}
+            email={socio.email}
+            size={64}
+            fallbackBg="rgba(255,255,255,0.14)"
+            fallbackColor="#fff"
+            style={{ border: '1px solid rgba(255,255,255,0.22)' }}
+          />
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1 }}>
               {socio.nombre ?? socio.email}
