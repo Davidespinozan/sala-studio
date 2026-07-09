@@ -44,3 +44,7 @@
 [[scheduled_functions]]
   name = "cron-expirar-membresias"
   cron = "0 7 * * *"
+
+[[scheduled_functions]]
+  name = "cron-recordatorios"
+  cron = "*/15 * * * *"
