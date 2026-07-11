@@ -10,6 +10,8 @@ import { TenantLogo } from '@shared/components/TenantLogo';
 const Landing = lazy(() => import('./pages/Landing'));
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
+const Privacidad = lazy(() => import('./pages/Privacidad'));
+const Terminos = lazy(() => import('./pages/Terminos'));
 
 export default function PublicLayout() {
   const { authUser, signOut } = useAuth();
@@ -73,6 +75,8 @@ export default function PublicLayout() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/privacidad" element={<Privacidad />} />
+          <Route path="/terminos" element={<Terminos />} />
         </Routes>
       </Suspense>
     </div>

@@ -116,6 +116,7 @@ export default function Signup() {
   const [sucursalId, setSucursalId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [acepta, setAcepta] = useState(false);
 
   const plan: PlanInfo | null = tierRow
     ? {
@@ -132,6 +133,10 @@ export default function Signup() {
     e.preventDefault();
     setError(null);
 
+    if (!acepta) {
+      setError('Debes aceptar los términos y el aviso de privacidad para continuar.');
+      return;
+    }
     if (password !== passwordConfirm) {
       setError('Las contraseñas no coinciden.');
       return;
@@ -356,11 +361,27 @@ export default function Signup() {
           </div>
         )}
 
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '12px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={acepta}
+            onChange={(e) => setAcepta(e.target.checked)}
+            disabled={isProcessing}
+            style={{ marginTop: '3px', width: '16px', height: '16px', flexShrink: 0, cursor: 'pointer' }}
+          />
+          <span style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', lineHeight: 1.5 }}>
+            Acepto los{' '}
+            <Link to="/terminos" style={{ color: 'var(--ek-mustard)' }}>Términos y condiciones</Link>
+            {' '}y el{' '}
+            <Link to="/privacidad" style={{ color: 'var(--ek-mustard)' }}>Aviso de privacidad</Link>.
+          </span>
+        </label>
+
         <button
           type="submit"
           className="ek-cta ek-cta--full"
           style={{ marginTop: '12px', padding: '16px', fontSize: '15px' }}
-          disabled={isProcessing}
+          disabled={isProcessing || !acepta}
         >
           {isProcessing
             ? 'Activando tu cuenta…'
@@ -377,7 +398,6 @@ export default function Signup() {
           marginTop: '4px',
           lineHeight: 1.5
         }}>
-          Al continuar aceptas los términos.<br />
           El gimnasio coordina el cobro de tu plan contigo.
         </p>
 
