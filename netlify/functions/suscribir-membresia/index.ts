@@ -201,6 +201,26 @@ export const handler: Handler = async (event) => {
     // SUSCRIPCIÓN recurrente. El webhook materializa la membresía en ambos casos.
     const esPaquete = tier.tipo === 'creditos' || tier.tipo === 'hibrido';
 
+    // Guard: comprar un PAQUETE teniendo una mensualidad viva hijackearía la
+    // única fila de membresía (la vuelve paquete) mientras la suscripción sigue
+    // facturando (y el próximo invoice.paid la revierte, borrando los créditos).
+    // Como el modelo es UNA membresía por socio, se rechaza: primero cancelar la
+    // mensualidad.
+    if (esPaquete) {
+      const { data: memMensual } = await admin
+        .from('membresias')
+        .select('stripe_subscription_id')
+        .eq('usuario_id', socio.id)
+        .in('status', ['activa', 'trialing', 'past_due', 'congelada'])
+        .not('stripe_subscription_id', 'is', null)
+        .limit(1)
+        .maybeSingle();
+      const subMensual = memMensual?.stripe_subscription_id as string | undefined;
+      if (subMensual && !subMensual.startsWith('mock_')) {
+        return ok({ activated: false, reason: 'tiene_mensualidad' });
+      }
+    }
+
     const baseParams = esPaquete
       ? {
           mode: 'payment' as const,

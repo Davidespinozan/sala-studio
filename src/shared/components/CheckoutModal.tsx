@@ -59,6 +59,9 @@ export function CheckoutModal({
         } else if (res.reason === 'sin_customer') {
           toast.error('Comprá un plan primero para poder guardar una tarjeta.');
           onClose();
+        } else if (res.reason === 'tiene_mensualidad') {
+          toast.error('Ya tenés una mensualidad activa. Cancelala antes de comprar un paquete.');
+          onClose();
         } else {
           toast.error('No pudimos abrir el pago. Probá de nuevo.');
           onClose();
