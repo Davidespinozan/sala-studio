@@ -100,6 +100,45 @@ export const handler: Handler = async (event) => {
       authUser.email ?? null
     );
 
+    // 2b) CAMBIO DE PLAN in-place: si el tenant YA tiene una suscripción viva,
+    //     NO creamos otra (evitaría DOBLE COBRO — Checkout siempre crea una sub
+    //     nueva y nada cancelaba la vieja). Cambiamos el precio del item con
+    //     proration_behavior 'create_prorations' contra la tarjeta en archivo,
+    //     sin trial nuevo, y sincronizamos el snapshot.
+    const { data: subActual } = await adminDb
+      .from('suscripciones_saas')
+      .select('stripe_subscription_id, estado')
+      .eq('tenant_id', admin.tenant_id)
+      .maybeSingle();
+
+    const subIdActual = subActual?.stripe_subscription_id as string | undefined;
+    if (
+      subIdActual &&
+      !subIdActual.startsWith('mock_') &&
+      ['trial', 'activa', 'pausada'].includes(subActual?.estado as string)
+    ) {
+      const sub = await stripe.subscriptions.retrieve(subIdActual);
+      const itemId = sub.items?.data?.[0]?.id;
+      if (sub.status !== 'canceled' && itemId) {
+        const updated = await stripe.subscriptions.update(subIdActual, {
+          items: [{ id: itemId, price: priceId }],
+          proration_behavior: 'create_prorations',
+          metadata: { app: 'sala', tenant_id: admin.tenant_id, tier: body.tier!, moneda: body.moneda!, ciclo }
+        });
+        await adminDb
+          .from('suscripciones_saas')
+          .update({
+            tier: body.tier!,
+            moneda: body.moneda!,
+            ciclo,
+            stripe_price_id: priceId,
+            cancel_at_period_end: updated.cancel_at_period_end ?? false
+          })
+          .eq('tenant_id', admin.tenant_id);
+        return ok({ activated: true, cambio: 'prorrateado' });
+      }
+    }
+
     // 3) URLs de retorno (al panel de suscripción del admin).
     const origin =
       event.headers.origin ||
