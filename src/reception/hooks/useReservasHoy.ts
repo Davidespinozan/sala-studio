@@ -67,6 +67,49 @@ export function useReservasHoy(fecha?: Date) {
   return { reservas, isLoading, refetch };
 }
 
+/**
+ * Reservas de los próximos N días (default 7) del tenant, para la Agenda de
+ * recepción (solo-lectura). Mismo scope de sede que useReservasHoy. Sin polling.
+ */
+export function useReservasSemana(dias = 7) {
+  const tenant = useTenant();
+  const { sucursalId } = useReceptionSucursal();
+  const [reservas, setReservas] = useState<ReservaConJoin[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const refetch = useCallback(async () => {
+    const inicio = new Date();
+    inicio.setHours(0, 0, 0, 0);
+    const fin = new Date(inicio);
+    fin.setDate(fin.getDate() + dias);
+
+    let query = supabase
+      .from('reservas')
+      .select('*, recurso:recursos!inner(id, slug, nombre, sucursal_id), usuario:usuarios!reservas_usuario_id_fkey(id, nombre, email, membresia_tier, avatar_url)')
+      .eq('tenant_id', tenant.id)
+      .gte('slot_inicio', inicio.toISOString())
+      .lt('slot_inicio', fin.toISOString())
+      .order('slot_inicio', { ascending: true });
+
+    if (sucursalId) query = query.eq('recurso.sucursal_id', sucursalId);
+
+    const { data, error } = await query;
+    if (error) {
+      console.error('[useReservasSemana]', error);
+      setIsLoading(false);
+      return;
+    }
+    setReservas((data ?? []) as unknown as ReservaConJoin[]);
+    setIsLoading(false);
+  }, [tenant.id, sucursalId, dias]);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  return { reservas, isLoading, refetch };
+}
+
 export async function checkInManual(reservaId: string, motivo?: string) {
   const { data, error } = await supabase.rpc('check_in_manual_atomic', {
     p_reserva_id: reservaId,
