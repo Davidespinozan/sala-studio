@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AccionModal } from '@shared/components/AccionModal';
 import { MotivoField } from '@shared/components/MotivoField';
-import { useAccionRecepcion } from '../../hooks/useAccionRecepcion';
+import { backendPost } from '@shared/lib/backend';
 
 interface Props {
   socioId: string;
@@ -15,9 +15,6 @@ interface Props {
 export function PausarReactivarMembresiaModal({ socioId, socioNombre, modo, isOpen, onClose, onDone }: Props) {
   const [motivo, setMotivo] = useState('');
   const esPausar = modo === 'pausar';
-  const { ejecutar } = useAccionRecepcion({
-    rpcName: esPausar ? 'recepcion_congelar_membresia' : 'recepcion_reactivar_membresia',
-  });
 
   const opciones = esPausar
     ? ['Viaje del cliente', 'Lesión / cirugía', 'Solicitud del cliente', 'Pausa administrativa']
@@ -36,7 +33,12 @@ export function PausarReactivarMembresiaModal({ socioId, socioNombre, modo, isOp
       confirmLabel={esPausar ? 'Pausar' : 'Reactivar'}
       canConfirm={motivo.trim().length > 0}
       onConfirm={async () => {
-        await ejecutar({ p_usuario_id: socioId, p_motivo: motivo });
+        // Pasa por la función (pausa/reanuda también la suscripción de Stripe).
+        await backendPost('pausar-membresia', {
+          usuario_id: socioId,
+          modo,
+          motivo: motivo.trim()
+        });
         await onDone();
       }}
       onClose={onClose}
