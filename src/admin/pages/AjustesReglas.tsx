@@ -8,6 +8,7 @@ type ReglasDraft = {
   anticipacion_min_horas: number;
   duracion_default_min: number;
   permitir_continuas: boolean;
+  cancelacion_min_horas: number;
   no_show_bloqueo_dias: number;
   timezone: string;
 };
@@ -16,6 +17,7 @@ const DEFAULT: ReglasDraft = {
   anticipacion_min_horas: 24,
   duracion_default_min: 60,
   permitir_continuas: false,
+  cancelacion_min_horas: 4, // debe coincidir con el default del RPC cancelar_reserva_atomic
   no_show_bloqueo_dias: 7,
   timezone: DEFAULT_TIMEZONE
 };
@@ -33,6 +35,7 @@ function readDraft(config: Record<string, unknown> | null): ReglasDraft {
     anticipacion_min_horas: num(reserva.anticipacion_min_horas, DEFAULT.anticipacion_min_horas),
     duracion_default_min: num(reserva.duracion_default_min, DEFAULT.duracion_default_min),
     permitir_continuas: Boolean(reserva.permitir_continuas ?? DEFAULT.permitir_continuas),
+    cancelacion_min_horas: num(reserva.cancelacion_min_horas, DEFAULT.cancelacion_min_horas),
     no_show_bloqueo_dias: num(penalizaciones.no_show_bloqueo_dias, DEFAULT.no_show_bloqueo_dias),
     timezone:
       typeof config?.timezone === 'string' && config.timezone
@@ -108,6 +111,10 @@ export default function AjustesReglas() {
       toast.error('Duración debe ser mayor a 0.');
       return;
     }
+    if (!Number.isFinite(draft.cancelacion_min_horas) || draft.cancelacion_min_horas < 0) {
+      toast.error('La ventana de cancelación debe ser un número positivo.');
+      return;
+    }
 
     // Merge no destructivo: solo escribimos los campos consumidos.
     // Los campos DEAD (cupos_por_recurso, etc) se preservan en BD.
@@ -119,7 +126,8 @@ export default function AjustesReglas() {
         ...reserva,
         anticipacion_min_horas: draft.anticipacion_min_horas,
         duracion_default_min: draft.duracion_default_min,
-        permitir_continuas: draft.permitir_continuas
+        permitir_continuas: draft.permitir_continuas,
+        cancelacion_min_horas: draft.cancelacion_min_horas
       },
       penalizaciones: {
         ...penalizaciones,
@@ -209,6 +217,23 @@ export default function AjustesReglas() {
             description="Si está activado, los miembros pueden reservar dos sesiones seguidas. Si está desactivado, debe haber al menos un slot entre reservas del mismo miembro."
           />
         </div>
+      </Section>
+
+      <Section title="CANCELACIONES">
+        <FormField
+          label="Ventana de cancelación (horas antes)"
+          helper="Hasta cuántas horas antes de la clase el miembro puede cancelar y recuperar su crédito. Si cancela más tarde, el crédito se pierde (cuenta como asistida). No aplica a planes de mensualidad."
+        >
+          <input
+            type="number"
+            min={0}
+            value={draft.cancelacion_min_horas}
+            onChange={(e) =>
+              setDraft({ ...draft, cancelacion_min_horas: parseInt(e.target.value) || 0 })
+            }
+            className="ek-input"
+          />
+        </FormField>
       </Section>
 
       <Section title="PENALIZACIONES">
