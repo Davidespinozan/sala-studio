@@ -349,6 +349,27 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 @media (min-width: 900px) {
   .landing-nav-links { display: flex; gap: 30px; align-items: center; margin-right: 18px; }
 }
+/* ── Barra superior de la landing pública ──────────────────────────────────
+   Todo escala con el viewport. Antes el logo (58px), el padding (16px) y el
+   botón (40px) eran FIJOS: en desktop se ven bien, pero en un teléfono de
+   ~400px de ancho la barra se comía la pantalla y el conjunto se veía tosco. */
+.landing-topbar {
+  padding: clamp(10px, 3vw, 16px) clamp(14px, 4vw, 20px);
+}
+
+/* TenantLogo dibuja el alto inline, por eso hace falta ganarle desde acá. */
+.landing-topbar-logo img,
+.landing-topbar-logo svg {
+  height: clamp(34px, 10vw, 58px) !important;
+  width: auto;
+}
+
+.landing-topbar .ek-cta {
+  padding: clamp(8px, 2.4vw, 10px) clamp(14px, 4vw, 20px);
+  font-size: clamp(13px, 3.4vw, 14px);
+  min-height: clamp(36px, 9.5vw, 44px);
+}
+
 .landing-nav-link {
   font-size: 14px;
   font-weight: 500;

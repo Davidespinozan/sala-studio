@@ -335,6 +335,12 @@ export function HeroView({
     ? 'color-mix(in srgb, var(--sala-accent), white 14%)'
     : 'var(--sala-accent)';
 
+  // Medidas de los CTA: crecen con el ancho en vez de quedar clavadas.
+  const ctaPadding = hasImg
+    ? 'clamp(12px, 3.2vw, 17px) clamp(20px, 5.6vw, 34px)'
+    : 'clamp(11px, 3vw, 16px) clamp(18px, 5vw, 28px)';
+  const ctaFontSize = 'clamp(14px, 3.7vw, 16px)';
+
   const inner = (
     <>
       {hero.eyebrow && (
@@ -347,7 +353,7 @@ export function HeroView({
       )}
       <h1 style={{
         fontFamily: 'var(--ek-font-display)',
-        fontSize: 'clamp(33px, 8.5vw, 80px)',
+        fontSize: 'clamp(30px, 7.6vw, 80px)',
         fontWeight: 700,
         letterSpacing: '-0.04em',
         lineHeight: 1.02,
@@ -375,12 +381,14 @@ export function HeroView({
           {hero.subtitulo}
         </p>
       )}
-      <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* Los CTA escalan con el viewport: en fijo (17px/34px/16px) se veían
+          desproporcionados en un teléfono. */}
+      <div style={{ display: 'flex', gap: 'clamp(10px, 2.8vw, 14px)', flexWrap: 'wrap', alignItems: 'center' }}>
         {preview ? (
           <a
             href={hero.cta_link || '#membresias'}
             className="ek-cta ek-lift"
-            style={{ padding: hasImg ? '17px 34px' : '16px 28px', fontSize: '16px', display: 'inline-flex', alignItems: 'center' }}
+            style={{ padding: ctaPadding, fontSize: ctaFontSize, display: 'inline-flex', alignItems: 'center' }}
           >
             {hero.cta_texto}
           </a>
@@ -388,7 +396,7 @@ export function HeroView({
           <MagneticButton
             href={hero.cta_link || '#membresias'}
             className="ek-cta"
-            style={{ padding: hasImg ? '17px 34px' : '16px 28px', fontSize: '16px' }}
+            style={{ padding: ctaPadding, fontSize: ctaFontSize }}
           >
             {hero.cta_texto}
           </MagneticButton>
@@ -401,8 +409,8 @@ export function HeroView({
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: hasImg ? '17px 30px' : '16px 26px',
-              fontSize: '16px',
+              padding: ctaPadding,
+              fontSize: ctaFontSize,
               fontWeight: 600,
               borderRadius: '999px',
               textDecoration: 'none',

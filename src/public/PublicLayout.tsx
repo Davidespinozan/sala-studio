@@ -24,9 +24,12 @@ export default function PublicLayout() {
     <div className="ek-page ek-immersive-top">
       <ModoDemoBanner />
       <DemoBanner vista="Landing" />
+      {/* El tamaño (padding, alto del logo, botón) lo maneja .landing-topbar en
+          sala.css: escala con el viewport. En fijo, el logo de 58px + el botón
+          de 40px comían media pantalla en un teléfono. */}
       <header
+        className="landing-topbar"
         style={{
-          padding: '1rem 1.25rem',
           background: 'var(--grad-immersive)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
           display: 'flex',
@@ -34,7 +37,7 @@ export default function PublicLayout() {
           alignItems: 'center'
         }}
       >
-        <Link to="/" style={{ textDecoration: 'none', display: 'inline-block' }}>
+        <Link to="/" className="landing-topbar-logo" style={{ textDecoration: 'none', display: 'inline-block' }}>
           <TenantLogo variant="completo" height={58} fallbackFontSize={36} showSuffix={true} />
         </Link>
         <nav style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -62,8 +65,7 @@ export default function PublicLayout() {
             <Link
               to="/login"
               className="ek-cta ek-cta--secondary"
-              style={{ padding: '0.625rem 1.25rem', minHeight: '40px' }}
-            >
+                          >
               Iniciar sesión
             </Link>
           ) : null}
