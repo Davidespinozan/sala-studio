@@ -49,6 +49,7 @@ export type Database = {
           disciplina: string | null
           duracion_minutos: number
           fecha: string
+          foto_url: string | null
           hora_inicio: string
           horario_recurrente_id: string | null
           id: string
@@ -71,6 +72,7 @@ export type Database = {
           disciplina?: string | null
           duracion_minutos?: number
           fecha: string
+          foto_url?: string | null
           hora_inicio: string
           horario_recurrente_id?: string | null
           id?: string
@@ -93,6 +95,7 @@ export type Database = {
           disciplina?: string | null
           duracion_minutos?: number
           fecha?: string
+          foto_url?: string | null
           hora_inicio?: string
           horario_recurrente_id?: string | null
           id?: string
@@ -149,8 +152,11 @@ export type Database = {
           activo: boolean
           created_at: string
           cupo_max: number | null
+          descripcion: string | null
           dias_semana: number[]
+          disciplina: string | null
           duracion_minutos: number
+          foto_url: string | null
           hora_inicio: string
           id: string
           instructor_id: string | null
@@ -164,8 +170,11 @@ export type Database = {
           activo?: boolean
           created_at?: string
           cupo_max?: number | null
+          descripcion?: string | null
           dias_semana: number[]
+          disciplina?: string | null
           duracion_minutos?: number
+          foto_url?: string | null
           hora_inicio: string
           id?: string
           instructor_id?: string | null
@@ -179,8 +188,11 @@ export type Database = {
           activo?: boolean
           created_at?: string
           cupo_max?: number | null
+          descripcion?: string | null
           dias_semana?: number[]
+          disciplina?: string | null
           duracion_minutos?: number
+          foto_url?: string | null
           hora_inicio?: string
           id?: string
           instructor_id?: string | null

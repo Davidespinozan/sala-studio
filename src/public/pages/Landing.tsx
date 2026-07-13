@@ -124,6 +124,61 @@ interface InstructorPublico {
   sucursal_id: string;
 }
 
+interface HorarioPublico {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  dias_semana: number[];
+  hora_inicio: string;
+  duracion_minutos: number;
+  foto_url: string | null;
+}
+
+/**
+ * Programa de la semana: qué clase toca cada día.
+ *
+ * Un gym de UNA sola sala con un enfoque distinto por día (fuerza inferior el
+ * lunes, superior el martes…) no tenía NADA que mostrar en la landing: la
+ * sección de salas le enseñaba una sola tarjeta. Su producto es el programa.
+ */
+function useProgramaSemanal() {
+  const tenant = useTenant();
+  const [horarios, setHorarios] = useState<HorarioPublico[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from('horarios_recurrentes')
+        .select('id, nombre, descripcion, dias_semana, hora_inicio, duracion_minutos, foto_url')
+        // Igual que el resto de lecturas anónimas: el filtro de tenant es la
+        // primera línea de defensa (anon no tiene JWT, la RLS no puede scopear).
+        .eq('tenant_id', tenant.id)
+        .eq('activo', true)
+        .order('hora_inicio', { ascending: true });
+      if (!mounted) return;
+      if (error) console.error('[useProgramaSemanal]', error);
+      else setHorarios((data ?? []) as HorarioPublico[]);
+      setIsLoading(false);
+    })();
+    return () => { mounted = false; };
+  }, [tenant.id]);
+
+  return { horarios, isLoading };
+}
+
+/** dow según la DB: 0=domingo … 6=sábado. La semana se muestra de lunes a domingo. */
+const DIAS_SEMANA: { dow: number; label: string }[] = [
+  { dow: 1, label: 'Lunes' },
+  { dow: 2, label: 'Martes' },
+  { dow: 3, label: 'Miércoles' },
+  { dow: 4, label: 'Jueves' },
+  { dow: 5, label: 'Viernes' },
+  { dow: 6, label: 'Sábado' },
+  { dow: 0, label: 'Domingo' }
+];
+
 /** S6-5: instructores activos del tenant para la sección de la landing. */
 function useInstructoresPublicos() {
   const tenant = useTenant();
@@ -827,6 +882,7 @@ export default function Landing() {
   const { estudios, isLoading: estudiosLoading } = useEstudiosPublicos();
   const { tiers, isLoading: tiersLoading } = useTiersPublicos();
   const { instructores } = useInstructoresPublicos();
+  const { horarios: programa } = useProgramaSemanal();
   const { sucursales } = useSucursalesPublicas();
   const { hero, secciones, post_hero, cta_final, faq, whatsappUrl, mostrarInstructores } = useLandingConfig();
   const ctaWhatsappUrl = whatsappUrl();
@@ -1194,6 +1250,44 @@ export default function Landing() {
               direccion={sucursales[0].direccion}
               height={320}
             />
+          </div>
+        </section>
+      )}
+
+      {/* ============================================================
+          PROGRAMA DE LA SEMANA — qué se hace cada día.
+          Solo si el gym cargó horarios. Para un gym de una sola sala, ESTO es
+          su producto: la sección de salas le mostraba una tarjeta y nada más.
+          ============================================================ */}
+      {programa.length > 0 && (
+        <section id="programa" className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
+          <SeccionHeading heading={secciones.programa} editorial />
+
+          <div className="landing-programa">
+            {DIAS_SEMANA.map(({ dow, label }) => {
+              const clases = programa
+                .filter((h) => h.dias_semana.includes(dow))
+                .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+              if (clases.length === 0) return null;
+              return (
+                <div key={dow} className="landing-programa-dia">
+                  <p className="landing-programa-dia-label">{label}</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {clases.map((c) => (
+                      <div key={`${dow}-${c.id}`} className="landing-programa-clase">
+                        <span className="landing-programa-hora">{c.hora_inicio.slice(0, 5)}</span>
+                        <span style={{ minWidth: 0 }}>
+                          <span className="landing-programa-nombre">{c.nombre}</span>
+                          {c.descripcion && (
+                            <span className="landing-programa-enfoque">{c.descripcion}</span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}

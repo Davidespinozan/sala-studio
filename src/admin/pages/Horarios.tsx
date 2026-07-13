@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useTenant } from '@shared/hooks/useTenant';
+import ImageUploader from '../components/ImageUploader';
 import { useSucursal } from '../providers/SucursalProvider';
 import { useToast } from '@shared/hooks/useToast';
 import {
@@ -408,6 +409,11 @@ function HorarioModal({
   })();
   const [duracion, setDuracion] = useState(String(horario?.duracion_minutos ?? duracionDefault));
   const [nombre, setNombre] = useState(horario?.nombre ?? '');
+  // Una misma sala puede tener una clase distinta cada día: el enfoque, la
+  // disciplina y la foto son de la CLASE, no de la sala.
+  const [descripcion, setDescripcion] = useState(horario?.descripcion ?? '');
+  const [disciplina, setDisciplina] = useState(horario?.disciplina ?? '');
+  const [fotoUrl, setFotoUrl] = useState<string | null>(horario?.foto_url ?? null);
   const [instructorId, setInstructorId] = useState(horario?.instructor_id ?? '');
   const [cupo, setCupo] = useState(horario?.cupo_max != null ? String(horario.cupo_max) : '');
   const [activo, setActivo] = useState(horario?.activo ?? true);
@@ -499,6 +505,9 @@ function HorarioModal({
       hora_inicio: horaInicio,
       duracion_minutos: dur,
       nombre: nombre.trim(),
+      descripcion: descripcion.trim() || null,
+      disciplina: disciplina.trim() || null,
+      foto_url: fotoUrl,
       instructor_id: instructorId || null,
       cupo_max: cupoVal,
       activo
@@ -607,9 +616,50 @@ function HorarioModal({
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             className="ek-input"
-            placeholder="Ej: Yoga Flow matutino"
+            placeholder="Ej: Fuerza Inferior"
           />
         </label>
+
+        <label className="ek-label" style={{ marginTop: '14px' }}>
+          Enfoque (opcional)
+          <input
+            type="text"
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            className="ek-input"
+            placeholder="Ej: Piernas + Cardio HIIT"
+          />
+          <span className="ek-helper-text">
+            Lo que se trabaja ese día. Es lo que distingue una clase de otra cuando comparten sala.
+          </span>
+        </label>
+
+        <label className="ek-label" style={{ marginTop: '14px' }}>
+          Disciplina (opcional)
+          <input
+            type="text"
+            value={disciplina}
+            onChange={(e) => setDisciplina(e.target.value)}
+            className="ek-input"
+            placeholder="Ej: Fuerza"
+          />
+          <span className="ek-helper-text">
+            Si la dejás vacía, se usa la de la sala.
+          </span>
+        </label>
+
+        <div className="ek-form-field" style={{ marginTop: '14px' }}>
+          <label className="ek-label">Foto de la clase (opcional)</label>
+          <ImageUploader
+            bucket="estudios"
+            pathPrefix={`${tenant.slug}/clase-${horario?.id ?? 'nueva'}`}
+            currentUrl={fotoUrl}
+            onUploaded={(url) => setFotoUrl(url)}
+            label="Imagen de esta clase"
+            previewMaxHeight={160}
+            helperText="Si no subís una, se usa la foto de la sala. Con una sola sala, todas las clases se verían con la misma imagen."
+          />
+        </div>
 
         <label className="ek-label" style={{ marginTop: '14px' }}>
           Instructor (opcional)

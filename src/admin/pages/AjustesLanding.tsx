@@ -166,6 +166,7 @@ function readSecciones(landing: Record<string, unknown>): LandingSecciones {
   };
   return {
     salas: one(o.salas, SECCIONES_DEFAULT.salas),
+    programa: one(o.programa, SECCIONES_DEFAULT.programa),
     membresias: one(o.membresias, SECCIONES_DEFAULT.membresias),
     instructores: one(o.instructores, SECCIONES_DEFAULT.instructores),
     faq: one(o.faq, SECCIONES_DEFAULT.faq)
@@ -957,6 +958,9 @@ export default function AjustesLanding() {
       >
         <SubBloque label="Salas">
           <SeccionHeadingFields value={draft.secciones.salas} onChange={(v) => setSeccion('salas', v)} />
+        </SubBloque>
+        <SubBloque label="Programa de la semana">
+          <SeccionHeadingFields value={draft.secciones.programa} onChange={(v) => setSeccion('programa', v)} />
         </SubBloque>
         <SubBloque label="Membresías">
           <SeccionHeadingFields

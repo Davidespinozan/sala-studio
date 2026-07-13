@@ -213,6 +213,9 @@ export type LandingSeccionHeading = {
 
 export type LandingSecciones = {
   salas: LandingSeccionHeading;
+  /** Programa de la semana: qué clase toca cada día. Clave para gyms de UNA sala
+   *  con un enfoque distinto por día — su producto ES el programa. */
+  programa: LandingSeccionHeading;
   membresias: LandingSeccionHeading;
   instructores: LandingSeccionHeading;
   faq: LandingSeccionHeading;
@@ -226,6 +229,12 @@ export const SECCIONES_DEFAULT: LandingSecciones = {
     titulo: 'Varias disciplinas.',
     titulo_accent: 'Un solo lugar.',
     subtitulo: 'Cada sala diseñada para una disciplina distinta. Elige la que va contigo.'
+  },
+  programa: {
+    eyebrow: 'PROGRAMA',
+    titulo: 'Cada día,',
+    titulo_accent: 'un enfoque distinto.',
+    subtitulo: 'Así se ve tu semana con nosotros.'
   },
   membresias: {
     eyebrow: 'MEMBRESÍAS',
@@ -264,6 +273,7 @@ function parseSecciones(value: unknown): LandingSecciones {
   const o = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
   return {
     salas: parseSeccionHeading(o.salas, SECCIONES_DEFAULT.salas),
+    programa: parseSeccionHeading(o.programa, SECCIONES_DEFAULT.programa),
     membresias: parseSeccionHeading(o.membresias, SECCIONES_DEFAULT.membresias),
     instructores: parseSeccionHeading(o.instructores, SECCIONES_DEFAULT.instructores),
     faq: parseSeccionHeading(o.faq, SECCIONES_DEFAULT.faq)

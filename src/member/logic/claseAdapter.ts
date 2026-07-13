@@ -173,6 +173,9 @@ export interface ClaseExpansionRow {
   reservados: number;
   recurso_nombre: string | null;
   recurso_foto_url: string | null;
+  /** Imagen EFECTIVA de la clase (la suya → la del horario → la de la sala).
+   *  Sin esto, un gym de una sola sala mostraba la misma foto en todas sus clases. */
+  clase_foto_url?: string | null;
   recurso_tiers_permitidos: string[] | null;
   instructor_foto_url: string | null;
   instructor_bio: string | null;
@@ -204,7 +207,7 @@ export function claseFromExpansion(row: ClaseExpansionRow, fallbackTz: string): 
     disciplina: row.disciplina ?? '',
     intensidad: row.intensidad ?? undefined,
     descripcion: row.descripcion ?? undefined,
-    imagenUrl: row.recurso_foto_url ?? undefined,
+    imagenUrl: row.clase_foto_url ?? row.recurso_foto_url ?? undefined,
     salaNombre: row.recurso_nombre ?? undefined,
     tiersPermitidos: row.recurso_tiers_permitidos ?? undefined,
     status: row.status,

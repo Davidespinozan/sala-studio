@@ -12,6 +12,13 @@ export interface HorarioRecurrenteFormData {
   hora_inicio: string; // 'HH:MM'
   duracion_minutos: number;
   nombre: string;
+  /** Enfoque de la clase ("Piernas + Cardio HIIT"). Lo que la distingue de otra
+   *  clase que comparte la misma sala. */
+  descripcion: string | null;
+  /** Disciplina de ESTA clase. Vacío → la de la sala. */
+  disciplina: string | null;
+  /** Imagen de ESTA clase. Vacío → la de la sala. */
+  foto_url: string | null;
   instructor_id: string | null;
   cupo_max: number | null;
   activo: boolean;
