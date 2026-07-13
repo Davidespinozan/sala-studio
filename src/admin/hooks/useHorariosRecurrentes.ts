@@ -80,6 +80,34 @@ export async function actualizarHorarioRecurrente(
   return { error: error?.message ?? null };
 }
 
+/**
+ * Aplica la IDENTIDAD de una clase (nombre, enfoque, disciplina, foto) a todas
+ * sus franjas horarias.
+ *
+ * Una clase como "PWR + METCon" puede tener 10 franjas (5am…8pm): son 10 filas
+ * de horarios_recurrentes, pero UNA sola clase. Sin esto, cambiarle la foto
+ * obligaba a editar las 10 a mano — y bastaba olvidarse de una para que el socio
+ * viera dos imágenes distintas de la misma clase.
+ *
+ * Solo toca lo que define QUÉ es la clase. La hora, los días y el cupo son de
+ * cada franja y no se tocan.
+ */
+export async function aplicarIdentidadAClase(
+  tenantId: string,
+  recursoId: string,
+  nombreActual: string,
+  identidad: Pick<HorarioRecurrenteFormData, 'nombre' | 'descripcion' | 'disciplina' | 'foto_url'>
+): Promise<{ error: string | null; afectados: number }> {
+  const { data, error } = await supabase
+    .from('horarios_recurrentes')
+    .update(identidad)
+    .eq('tenant_id', tenantId)
+    .eq('recurso_id', recursoId)
+    .eq('nombre', nombreActual)
+    .select('id');
+  return { error: error?.message ?? null, afectados: data?.length ?? 0 };
+}
+
 export async function toggleActivoHorario(
   id: string,
   activo: boolean

@@ -8,6 +8,7 @@ import {
   useHorariosRecurrentes,
   crearHorarioRecurrente,
   actualizarHorarioRecurrente,
+  aplicarIdentidadAClase,
   eliminarHorarioRecurrente,
   type HorarioRecurrente,
   type HorarioRecurrenteFormData
@@ -392,6 +393,7 @@ function HorarioModal({
 }) {
   const tenant = useTenant();
   const { sucursalId } = useSucursal();
+  const toast = useToast();
   const esCreacion = horario === null;
 
   const [recursoId, setRecursoId] = useState(horario?.recurso_id ?? '');
@@ -414,6 +416,10 @@ function HorarioModal({
   const [descripcion, setDescripcion] = useState(horario?.descripcion ?? '');
   const [disciplina, setDisciplina] = useState(horario?.disciplina ?? '');
   const [fotoUrl, setFotoUrl] = useState<string | null>(horario?.foto_url ?? null);
+  // Una clase suele tener varias franjas (5am, 6am, 7am…). El enfoque, la
+  // disciplina y la foto son de la CLASE, no de la franja: por default se
+  // aplican a todas sus hermanas para que no queden desparejas.
+  const [aplicarATodas, setAplicarATodas] = useState(true);
   const [instructorId, setInstructorId] = useState(horario?.instructor_id ?? '');
   const [cupo, setCupo] = useState(horario?.cupo_max != null ? String(horario.cupo_max) : '');
   const [activo, setActivo] = useState(horario?.activo ?? true);
@@ -426,6 +432,16 @@ function HorarioModal({
     (i) => i.activo || i.id === horario?.instructor_id
   );
   const recursoSel = recursos.find((r) => r.id === recursoId) ?? null;
+
+  // Otras franjas de ESTA misma clase (mismo nombre, misma sala).
+  const hermanas = horario
+    ? horarios.filter(
+        (h) =>
+          h.id !== horario.id &&
+          h.recurso_id === horario.recurso_id &&
+          h.nombre === horario.nombre
+      )
+    : [];
 
   function elegirRecurso(id: string) {
     setRecursoId(id);
@@ -517,6 +533,30 @@ function HorarioModal({
     const { error: err } = esCreacion
       ? await crearHorarioRecurrente(tenant.id, sucursalId!, data)
       : await actualizarHorarioRecurrente(horario!.id, data);
+
+    // La identidad (nombre/enfoque/disciplina/foto) es de la CLASE, no de la
+    // franja: si el admin lo pidió, se propaga a las demás franjas con el nombre
+    // ANTERIOR (si le cambió el nombre, hay que buscarlas por el viejo).
+    if (!err && !esCreacion && aplicarATodas && hermanas.length > 0) {
+      const { error: errProp, afectados } = await aplicarIdentidadAClase(
+        tenant.id,
+        horario!.recurso_id,
+        horario!.nombre,
+        {
+          nombre: data.nombre,
+          descripcion: data.descripcion,
+          disciplina: data.disciplina,
+          foto_url: data.foto_url
+        }
+      );
+      if (errProp) {
+        setSaving(false);
+        setError('Se guardó esta franja, pero no pudimos aplicarlo a las demás. Probá de nuevo.');
+        return;
+      }
+      toast.success(`Aplicado a las ${afectados} franjas de "${data.nombre}".`);
+    }
+
     setSaving(false);
 
     if (err) {
@@ -660,6 +700,40 @@ function HorarioModal({
             helperText="Si no subís una, se usa la foto de la sala. Con una sola sala, todas las clases se verían con la misma imagen."
           />
         </div>
+
+        {/* La identidad es de la CLASE, no de la franja: sin esto, cambiar la foto
+            de una clase con 10 franjas obligaba a editar las 10 a mano. */}
+        {hermanas.length > 0 && (
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+              marginTop: '14px',
+              padding: '12px 14px',
+              borderRadius: '10px',
+              background: 'var(--sala-primary-light)',
+              border: '0.5px solid var(--sala-border)',
+              cursor: 'pointer'
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={aplicarATodas}
+              onChange={(e) => setAplicarATodas(e.target.checked)}
+              style={{ marginTop: '2px', accentColor: 'var(--sala-primary)' }}
+            />
+            <span>
+              <span style={{ display: 'block', fontWeight: 600, fontSize: '13px' }}>
+                Aplicar a las otras {hermanas.length} franjas de “{horario!.nombre}”
+              </span>
+              <span style={{ display: 'block', fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '2px', lineHeight: 1.45 }}>
+                El nombre, el enfoque, la disciplina y la foto se copian a todas las horas de esta
+                misma clase. La hora, los días y el cupo de cada franja no se tocan.
+              </span>
+            </span>
+          </label>
+        )}
 
         <label className="ek-label" style={{ marginTop: '14px' }}>
           Instructor (opcional)
