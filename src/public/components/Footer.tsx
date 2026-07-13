@@ -5,16 +5,6 @@ import MapaSucursal from '@shared/components/MapaSucursal';
 
 const ICON_SIZE = 18;
 
-function IconInstagram() {
-  return (
-    <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="2" y="2" width="20" height="20" rx="5" />
-      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-    </svg>
-  );
-}
-
 function IconTikTok() {
   return (
     <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -40,17 +30,17 @@ function IconFacebook() {
   );
 }
 
-const REDES_ORDEN: Array<{ key: 'instagram' | 'tiktok' | 'youtube' | 'facebook'; label: string; Icon: () => JSX.Element }> = [
-  { key: 'instagram', label: 'Instagram', Icon: IconInstagram },
+/* Instagram NO va acá: tiene su propia burbuja flotante, siempre a la vista.
+   Repetirlo en el footer era ruido. Ídem WhatsApp. */
+const REDES_ORDEN: Array<{ key: 'tiktok' | 'youtube' | 'facebook'; label: string; Icon: () => JSX.Element }> = [
   { key: 'tiktok', label: 'TikTok', Icon: IconTikTok },
   { key: 'youtube', label: 'YouTube', Icon: IconYouTube },
   { key: 'facebook', label: 'Facebook', Icon: IconFacebook }
 ];
 
 export default function Footer() {
-  const { footer, contacto, whatsappUrl } = useLandingConfig();
+  const { footer, contacto } = useLandingConfig();
   const tenant = useTenant();
-  const waUrl = whatsappUrl();
 
   // Brand text: primer token del nombre del tenant (ej. "SALA Studio" → "SALA").
   // Si está vacío, fallback a "SALA" para no romper visualmente.
@@ -65,11 +55,10 @@ export default function Footer() {
         : null;
 
   const redesActivas = REDES_ORDEN.filter((r) => !!footer.redes[r.key]);
-  const telefono = contacto.telefono?.trim() || null;
   // Con coordenadas fijadas en Ajustes › Contacto, el domicilio se muestra COMO
-  // MAPA (con link para cómo llegar); sin ellas, cae al texto de siempre.
+  // MAPA (con el botón para llegar en Google Maps); sin ellas, cae al texto.
   const hayMapa = typeof contacto.lat === 'number' && typeof contacto.lng === 'number';
-  const hayContacto = !!footer.email || !!footer.direccion || !!telefono || !!waUrl;
+  const hayContacto = !!footer.email || !!footer.direccion;
 
   return (
     <footer
@@ -173,39 +162,7 @@ export default function Footer() {
                 {footer.email}
               </a>
             )}
-            {/* El WhatsApp vivía SOLO dentro del CTA final de la landing, que se
-                oculta si el tenant no le puso título: un gym con WhatsApp cargado
-                no lo mostraba en ningún lado. Acá siempre aparece. */}
-            {waUrl && (
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'block',
-                  fontSize: '13px',
-                  color: 'rgba(255, 255, 255, 0.75)',
-                  textDecoration: 'none',
-                  marginBottom: '6px'
-                }}
-              >
-                WhatsApp
-              </a>
-            )}
-            {telefono && (
-              <a
-                href={`tel:${telefono.replace(/[^\d+]/g, '')}`}
-                style={{
-                  display: 'block',
-                  fontSize: '13px',
-                  color: 'rgba(255, 255, 255, 0.75)',
-                  textDecoration: 'none',
-                  marginBottom: '6px'
-                }}
-              >
-                {telefono}
-              </a>
-            )}
+            {/* WhatsApp no se repite acá: tiene su burbuja flotante. */}
             {hayMapa ? (
               <div style={{ marginTop: '10px', borderRadius: 'var(--ek-r-xs)', overflow: 'hidden' }}>
                 <MapaSucursal
@@ -214,6 +171,7 @@ export default function Footer() {
                   nombre={tenant.nombre ?? undefined}
                   direccion={footer.direccion}
                   height={160}
+                  sobreOscuro
                 />
               </div>
             ) : (

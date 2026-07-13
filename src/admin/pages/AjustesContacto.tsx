@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '@shared/lib/supabase';
 import { useTenantConfigEditor } from '../hooks/useTenantConfigEditor';
 import MapaPicker from '../components/MapaPicker';
 import { useToast } from '@shared/hooks/useToast';
@@ -6,8 +8,6 @@ import { useToast } from '@shared/hooks/useToast';
 type ContactoDraft = {
   whatsapp_e164: string;
   whatsapp_mensaje_default: string;
-  /** Teléfono para llamar (distinto del WhatsApp). */
-  telefono: string;
   /** Domicilio y correo: vivían escondidos en Ajustes › Landing (sección Footer),
    *  que es donde nadie los buscaba. Su lugar natural es esta pantalla. */
   direccion: string;
@@ -39,7 +39,6 @@ function readDraft(config: Record<string, unknown> | null): {
     contacto: {
       whatsapp_e164: String(contacto.whatsapp_e164 ?? ''),
       whatsapp_mensaje_default: String(contacto.whatsapp_mensaje_default ?? ''),
-      telefono: contacto.telefono == null ? '' : String(contacto.telefono),
       // direccion/email se siguen guardando en landing.footer (es de donde los lee
       // el footer público); acá solo cambia DÓNDE se editan.
       direccion: footer.direccion == null ? '' : String(footer.direccion),
@@ -120,7 +119,6 @@ export default function AjustesContacto() {
   const [contacto, setContacto] = useState<ContactoDraft>({
     whatsapp_e164: '',
     whatsapp_mensaje_default: '',
-    telefono: '',
     direccion: '',
     email: '',
     lat: null,
@@ -128,6 +126,21 @@ export default function AjustesContacto() {
   });
   const [redes, setRedes] = useState<RedesDraft>({ instagram: '', tiktok: '', youtube: '', facebook: '' });
   const [originalJson, setOriginalJson] = useState('');
+  // Multi-sucursal: las direcciones viven en cada sede, no acá.
+  const [sucursalesActivas, setSucursalesActivas] = useState(0);
+  const multiSucursal = sucursalesActivas > 1;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from('sucursales')
+        .select('id', { count: 'exact', head: true })
+        .eq('activa', true);
+      if (!cancelled) setSucursalesActivas(count ?? 0);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!config) return;
@@ -168,7 +181,6 @@ export default function AjustesContacto() {
       contacto: {
         whatsapp_e164: contacto.whatsapp_e164,
         whatsapp_mensaje_default: contacto.whatsapp_mensaje_default,
-        telefono: contacto.telefono.trim() || null,
         lat: contacto.lat,
         lng: contacto.lng
       },
@@ -234,31 +246,57 @@ export default function AjustesContacto() {
 
       <Section
         title="DATOS DEL NEGOCIO"
-        description="Domicilio, correo y teléfono. Aparecen en el pie de tu página pública."
+        description="Domicilio y correo. Aparecen en el pie de tu página pública."
       >
-        <FormField
-          label="Domicilio"
-          helper="La dirección de tu estudio, como querés que la lea un cliente. Si tenés varias sedes, cada una lleva su propia dirección en Sucursales."
-        >
-          <input
-            value={contacto.direccion}
-            onChange={(e) => setContacto({ ...contacto, direccion: e.target.value })}
-            className="ek-input"
-            placeholder="Av. Álvaro Obregón 123, Col. Centro, Culiacán"
-          />
-        </FormField>
+        {/* Con varias sedes, cada dirección vive en su sucursal: pedirla también acá
+            crearía un segundo domicilio que puede contradecir al de la sede. */}
+        {multiSucursal ? (
+          <p
+            style={{
+              fontSize: '13px',
+              color: 'var(--ek-ink-muted)',
+              background: 'var(--sala-primary-light)',
+              border: '0.5px solid var(--sala-border)',
+              borderRadius: '8px',
+              padding: '12px 14px',
+              margin: '0 0 14px',
+              lineHeight: 1.55
+            }}
+          >
+            Tenés <strong>{sucursalesActivas} sedes</strong>, así que el domicilio y el mapa de
+            cada una se cargan en{' '}
+            <Link to="/admin/sucursales" style={{ color: 'var(--sala-primary)', fontWeight: 600 }}>
+              Sucursales
+            </Link>
+            . Tu página muestra todas en la sección “Dónde estamos”.
+          </p>
+        ) : (
+          <>
+            <FormField
+              label="Domicilio"
+              helper="La dirección de tu estudio, como querés que la lea un cliente."
+            >
+              <input
+                value={contacto.direccion}
+                onChange={(e) => setContacto({ ...contacto, direccion: e.target.value })}
+                className="ek-input"
+                placeholder="Av. Álvaro Obregón 123, Col. Centro, Culiacán"
+              />
+            </FormField>
 
-        <FormField
-          label="Ubicación en el mapa"
-          helper="Escribí el domicilio arriba y tocá 'Ubicar dirección', o arrastrá el pin. Con la ubicación fijada, la página muestra el MAPA en lugar del texto."
-        >
-          <MapaPicker
-            lat={contacto.lat}
-            lng={contacto.lng}
-            direccion={contacto.direccion}
-            onChange={(lat, lng) => setContacto({ ...contacto, lat, lng })}
-          />
-        </FormField>
+            <FormField
+              label="Ubicación en el mapa"
+              helper="Escribí el domicilio arriba y tocá 'Ubicar dirección', o arrastrá el pin. Con la ubicación fijada, la página muestra el mapa con el botón para llegar en Google Maps."
+            >
+              <MapaPicker
+                lat={contacto.lat}
+                lng={contacto.lng}
+                direccion={contacto.direccion}
+                onChange={(lat, lng) => setContacto({ ...contacto, lat, lng })}
+              />
+            </FormField>
+          </>
+        )}
 
         <FormField
           label="Correo de contacto"
@@ -271,19 +309,6 @@ export default function AjustesContacto() {
             onChange={(e) => setContacto({ ...contacto, email: e.target.value })}
             className="ek-input"
             placeholder="hola@tugimnasio.com"
-          />
-        </FormField>
-
-        <FormField
-          label="Teléfono"
-          helper="Para llamar. Es distinto del WhatsApp: podés poner el fijo del estudio."
-        >
-          <input
-            type="tel"
-            value={contacto.telefono}
-            onChange={(e) => setContacto({ ...contacto, telefono: e.target.value })}
-            className="ek-input"
-            placeholder="667 123 4567"
           />
         </FormField>
       </Section>

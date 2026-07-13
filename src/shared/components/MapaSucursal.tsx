@@ -12,13 +12,17 @@ export default function MapaSucursal({
   lng,
   nombre,
   direccion,
-  height = 220
+  height = 220,
+  sobreOscuro = false
 }: {
   lat: number;
   lng: number;
   nombre?: string;
   direccion?: string | null;
   height?: number;
+  /** Montado sobre fondo oscuro (footer): el link en color primario quedaba
+   *  invisible ahí. Con esto va en claro y como botón, no como texto suelto. */
+  sobreOscuro?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -71,7 +75,13 @@ export default function MapaSucursal({
         }}
       />
       <a
-        href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`}
+        href={
+          // Con dirección, Google abre la ficha del lugar (no un pin suelto en
+          // medio de la nada); las coordenadas quedan como respaldo exacto.
+          direccion
+            ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(direccion)}`
+            : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+        }
         target="_blank"
         rel="noopener noreferrer"
         style={{
@@ -81,14 +91,22 @@ export default function MapaSucursal({
           marginTop: '10px',
           fontSize: '13px',
           fontWeight: 600,
-          color: 'var(--sala-primary)',
-          textDecoration: 'none'
+          textDecoration: 'none',
+          ...(sobreOscuro
+            ? {
+                padding: '8px 14px',
+                borderRadius: '999px',
+                background: 'rgba(255, 255, 255, 0.12)',
+                border: '0.5px solid rgba(255, 255, 255, 0.35)',
+                color: 'rgba(255, 255, 255, 0.96)'
+              }
+            : { color: 'var(--sala-primary)' })
         }}
       >
         Cómo llegar →
       </a>
       {direccion && (
-        <span style={{ display: 'block', marginTop: '4px', fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
+        <span style={{ display: 'block', marginTop: '6px', fontSize: '12px', color: sobreOscuro ? 'rgba(255, 255, 255, 0.6)' : 'var(--sala-text-tertiary)' }}>
           {direccion}
         </span>
       )}
