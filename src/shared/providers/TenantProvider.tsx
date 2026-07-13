@@ -66,6 +66,61 @@ export function contrastRatio(hexA: string, hexB: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+/** Ancla oscura de las superficies inmersivas (igual que --sala-neutral-dark). */
+const NEUTRAL_DARK = '#0A0F0C';
+
+/** Mezcla en sRGB, misma fórmula que color-mix(in srgb, a pct%, b). */
+function mixHex(hexA: string, pctA: number, hexB: string): string {
+  const a = hexToRgb(hexA);
+  const b = hexToRgb(hexB);
+  if (!a || !b) return hexA;
+  const w = pctA / 100;
+  const ch = (ca: number, cb: number) =>
+    Math.round(ca * w + cb * (1 - w))
+      .toString(16)
+      .padStart(2, '0');
+  return `#${ch(a.r, b.r)}${ch(a.g, b.g)}${ch(a.b, b.b)}`;
+}
+
+/**
+ * Cuánto del primario puede sobrevivir en las superficies inmersivas (sidebar,
+ * heros, header/nav) sin romper el texto blanco que va encima.
+ *
+ * El color del tenant se respeta TAL CUAL (100%) siempre que aguante 4.5:1
+ * contra blanco — que es el caso de cualquier marca de tono medio u oscuro.
+ * Solo si la marca es clara se baja el porcentaje, y únicamente lo mínimo
+ * necesario para que el texto siga legible.
+ */
+function pickImmersiveMix(primary: string): {
+  top: number;
+  bottom: number;
+  mutedOpacity: number;
+} {
+  let top = 25; // piso: si ni así pasa, priorizamos legibilidad
+  for (let p = 100; p >= 25; p -= 1) {
+    if (contrastRatio(mixHex(primary, p, NEUTRAL_DARK), '#FFFFFF') >= 4.5) {
+      top = p;
+      break;
+    }
+  }
+  // El texto secundario de esas superficies (nav, items de sidebar) es blanco
+  // TRANSLÚCIDO. Al no oscurecer el fondo, una opacidad fija se volvía ilegible
+  // → se calcula la mínima que aún pasa 4.5:1 sobre el tope del degradado (el
+  // punto más claro). Marca oscura → puede bajar y mantener jerarquía; marca
+  // media → sube sola.
+  const bgTop = mixHex(primary, top, NEUTRAL_DARK);
+  let mutedOpacity = 1;
+  for (let o = 55; o <= 100; o += 1) {
+    if (contrastRatio(mixHex('#FFFFFF', o, bgTop), bgTop) >= 4.5) {
+      mutedOpacity = o / 100;
+      break;
+    }
+  }
+  // El fondo del degradado baja 8 puntos: da relieve sin cambiar el hue, y al
+  // ser más oscuro que el tope nunca empeora el contraste.
+  return { top, bottom: Math.max(top - 8, 20), mutedOpacity };
+}
+
 interface BrandingColors {
   color_primary?: string | null;
   color_accent?: string | null;
@@ -100,6 +155,16 @@ export function applyBranding(branding: BrandingColors | null | undefined): void
   root.style.setProperty('--sala-accent', accent);
   root.style.setProperty('--sala-accent-text', pickTextOn(accent));
   root.style.setProperty('--sala-accent-tint', pickHoverTint(accent));
+
+  // Superficies inmersivas: el color del tenant va tal cual salvo que sea tan
+  // claro que el texto blanco encima deje de leerse.
+  const immersive = pickImmersiveMix(primary);
+  root.style.setProperty('--sala-immersive-top', `${immersive.top}%`);
+  root.style.setProperty('--sala-immersive-bottom', `${immersive.bottom}%`);
+  root.style.setProperty(
+    '--sala-on-immersive-muted',
+    `rgba(255, 255, 255, ${immersive.mutedOpacity})`
+  );
 
   // D-021 (dos capas de color): los tokens SEMÁNTICOS (--sala-warning/-error y
   // derivados) son FIJOS del sistema (ámbar/coral/verde) — NO se remapean a la

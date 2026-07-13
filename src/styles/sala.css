@@ -45,6 +45,15 @@
   --sala-primary-text:      #FFFFFF;   /* JS-decidido por luminance WCAG */
   --sala-primary-tint:      #000000;   /* JS-decidido: black=darken, white=lighten */
 
+  /* Cuánto del primario sobrevive en las superficies inmersivas (sidebar,
+     heros, header/nav). 100% = el color del tenant TAL CUAL. JS los baja solo
+     si la marca es tan clara que el texto blanco encima no llegaría a 4.5:1. */
+  --sala-immersive-top:     100%;
+  --sala-immersive-bottom:  92%;
+  /* Texto secundario sobre superficies inmersivas. Blanco translúcido: JS sube
+     la opacidad si el fondo (= la marca sin oscurecer) lo necesita para 4.5:1. */
+  --sala-on-immersive-muted: rgba(255, 255, 255, 0.80);
+
   /* Paleta monocromática: accent = primary por defecto (sin segundo color).
      applyBranding lo sobreescribe si el tenant define su propio color_accent. */
   --sala-accent:            #3D6B52;
@@ -104,14 +113,15 @@
     var(--sala-accent) 52%,
     var(--sala-accent-active) 100%
   );
-  /* Gradiente para superficies INMERSIVAS (cards/heroes oscuros). Mantiene el
-     HUE de la marca (no se desvanece a negro): tono oscuro y saturado de la
-     marca arriba → un poco más oscuro abajo. Antes se mezclaba al 25% con
-     casi-negro y un naranja/violeta terminaba pareciendo café/gris. */
+  /* Gradiente para superficies INMERSIVAS (sidebar, heros, header/nav). Por
+     default arranca en el color EXACTO del tenant (top 100%) y solo baja un
+     8% hacia el ancla oscura para dar relieve. Las mezclas ya no son fijas:
+     TenantProvider baja --sala-immersive-* únicamente si la marca es tan clara
+     que el texto blanco encima no llegaría a 4.5:1. */
   --grad-immersive: linear-gradient(
     160deg,
-    color-mix(in srgb, var(--sala-primary) 80%, var(--sala-neutral-dark)) 0%,
-    color-mix(in srgb, var(--sala-primary) 60%, var(--sala-neutral-dark)) 100%
+    color-mix(in srgb, var(--sala-primary) var(--sala-immersive-top), var(--sala-neutral-dark)) 0%,
+    color-mix(in srgb, var(--sala-primary) var(--sala-immersive-bottom), var(--sala-neutral-dark)) 100%
   );
 
   /* === DERIVADOS ERROR/WARNING (semánticos fijos, no dinámicos) === */
@@ -342,7 +352,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 .landing-nav-link {
   font-size: 14px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--sala-on-immersive-muted);
   text-decoration: none;
   transition: color 0.15s ease;
   white-space: nowrap;
@@ -879,7 +889,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.55);
+    color: var(--sala-on-immersive-muted);
   }
 
   .ek-bottom-nav-item--active { background: rgba(255, 255, 255, 0.14); }
@@ -891,7 +901,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   .ek-bottom-nav-icon {
     width: 22px;
     height: 22px;
-    color: rgba(255, 255, 255, 0.55);
+    color: var(--sala-on-immersive-muted);
     stroke-width: 2;
   }
 
@@ -1582,7 +1592,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     left: 0;
     right: 0;
     height: env(safe-area-inset-top, 0px);
-    background: color-mix(in srgb, var(--sala-primary) 80%, var(--sala-neutral-dark));
+    background: color-mix(in srgb, var(--sala-primary) var(--sala-immersive-top), var(--sala-neutral-dark));
     z-index: 95;
     pointer-events: none;
   }
@@ -1677,9 +1687,10 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     gap: 12px;
     padding: 10px 12px;
     border-radius: 10px;
-    /* Fase B Round 1: items nav en light apagado.
-       Opacidad 0.70 valida 4.5:1 con los 4 primarios extremos. */
-    color: rgba(255, 255, 255, 0.70);
+    /* Items nav en light apagado. La opacidad ya no es fija (0.70 asumía el
+       fondo oscurecido al 80%): la calcula JS para pasar 4.5:1 sobre el color
+       real de la marca. */
+    color: var(--sala-on-immersive-muted);
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
@@ -1807,7 +1818,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     color: #fff;
   }
   .adm-topbar-mobile .ek-eyebrow {
-    color: rgba(255, 255, 255, 0.70);
+    color: var(--sala-on-immersive-muted);
   }
 
   @media (min-width: 1024px) {
