@@ -254,11 +254,11 @@ function InstructorLandingCard({ instructor }: { instructor: InstructorPublico }
         }}
       />
 
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px' }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 'clamp(14px, 2vw, 20px)' }}>
         <h3
           style={{
             fontFamily: 'var(--ek-font-display)',
-            fontSize: '16px',
+            fontSize: 'clamp(17px, 1.5vw, 22px)',
             fontWeight: 700,
             letterSpacing: '-0.02em',
             lineHeight: 1.15,
@@ -268,22 +268,32 @@ function InstructorLandingCard({ instructor }: { instructor: InstructorPublico }
         >
           {instructor.nombre}
         </h3>
+        {/* Especialidades como CHIPS: antes iban en una línea con ellipsis, así que
+            "Entrenamiento funcional · Cardio" se cortaba en "ENTRENAMIENTO FUNCIONAL …"
+            y no se leía ninguna completa. */}
         {instructor.especialidades.length > 0 && (
-          <p
-            style={{
-              fontSize: '10px',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'rgba(255, 255, 255, 0.9)',
-              margin: '5px 0 0',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {instructor.especialidades.join(' · ')}
-          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '8px' }}>
+            {instructor.especialidades.slice(0, 3).map((e) => (
+              <span
+                key={e}
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255, 255, 255, 0.92)',
+                  background: 'rgba(255, 255, 255, 0.14)',
+                  border: '0.5px solid rgba(255, 255, 255, 0.22)',
+                  borderRadius: '999px',
+                  padding: '4px 9px',
+                  backdropFilter: 'blur(6px)',
+                  WebkitBackdropFilter: 'blur(6px)'
+                }}
+              >
+                {e}
+              </span>
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -1069,24 +1079,39 @@ export default function Landing() {
           }}
         >
           <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
-            <SeccionHeading heading={secciones.instructores} editorial light />
+            {/* Con POCOS instructores el layout editorial (título a la izquierda +
+                tarjetas chicas centradas) dejaba dos ejes peleando y un hueco enorme.
+                Con 1-3, título centrado y retratos grandes; con 4+, el carrusel. */}
+            <SeccionHeading
+              heading={secciones.instructores}
+              editorial={instructoresLanding.length > 3}
+              light
+            />
 
-            <div className="landing-hscroll" style={{
-              display: 'flex',
-              gap: '14px',
-              overflowX: 'auto',
-              justifyContent: 'safe center',
-              scrollSnapType: 'x mandatory',
-              paddingBottom: '4px',
-              marginInline: '-24px',
-              paddingInline: '24px'
-            }}>
-              {instructoresLanding.map((i) => (
-                <div key={i.id} className="landing-instructor-item">
-                  <InstructorLandingCard instructor={i} />
-                </div>
-              ))}
-            </div>
+            {instructoresLanding.length <= 3 ? (
+              <div className="landing-instructores-grid">
+                {instructoresLanding.map((i) => (
+                  <InstructorLandingCard key={i.id} instructor={i} />
+                ))}
+              </div>
+            ) : (
+              <div className="landing-hscroll" style={{
+                display: 'flex',
+                gap: '14px',
+                overflowX: 'auto',
+                justifyContent: 'safe center',
+                scrollSnapType: 'x mandatory',
+                paddingBottom: '4px',
+                marginInline: '-24px',
+                paddingInline: '24px'
+              }}>
+                {instructoresLanding.map((i) => (
+                  <div key={i.id} className="landing-instructor-item">
+                    <InstructorLandingCard instructor={i} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       )}
