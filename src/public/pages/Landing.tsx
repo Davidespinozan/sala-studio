@@ -13,6 +13,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import EstudioModal, { type EstudioInfo } from '../components/EstudioModal';
 import Footer from '../components/Footer';
 import { MagneticButton } from '@shared/components/MagneticButton';
+import { PlanTipoToggle, type VistaPlan } from '@shared/components/PlanTipoToggle';
 import { HeroCarousel } from '@shared/components/HeroCarousel';
 import MapaSucursal from '@shared/components/MapaSucursal';
 
@@ -787,6 +788,7 @@ function formatearPrecioTier(centavos: number, moneda: string): string {
 export default function Landing() {
   const [estudioAbierto, setEstudioAbierto] = useState<EstudioInfo | null>(null);
   const [sucursalAbierta, setSucursalAbierta] = useState<SucursalPublica | null>(null);
+  const [tipoPlanVista, setTipoPlanVista] = useState<VistaPlan>('membresias');
   const { estudios, isLoading: estudiosLoading } = useEstudiosPublicos();
   const { tiers, isLoading: tiersLoading } = useTiersPublicos();
   const { instructores } = useInstructoresPublicos();
@@ -799,8 +801,28 @@ export default function Landing() {
   const precios = tiers.map((t) => t.precio_centavos);
   const precioPro = precios.length ? Math.max(...precios) : undefined;
   const precioBasica = precios.length ? Math.min(...precios) : undefined;
-  const tierDestacadoSlug = tiers.length
-    ? tiers.reduce((a, b) => (b.precio_centavos > a.precio_centavos ? b : a)).slug
+
+  // Membresías (acceso por tiempo) y paquetes (bolsa de clases) son dos modelos
+  // distintos: mostrarlos en la misma grilla amontonaba las tarjetas y el socio
+  // no sabía qué estaba comparando. Se separan por pestaña, como en ekko.
+  const planesMensuales = tiers.filter((t) => t.tipo !== 'creditos' && t.tipo !== 'hibrido');
+  const planesPaquetes = tiers.filter((t) => t.tipo === 'creditos' || t.tipo === 'hibrido');
+  const hayAmbosTipos = planesMensuales.length > 0 && planesPaquetes.length > 0;
+  // Vista DERIVADA: si el gym solo vende paquetes, cae en 'paquetes' solo y el
+  // toggle ni aparece (no hay nada entre qué elegir).
+  const vistaPlan: VistaPlan =
+    tipoPlanVista === 'paquetes' && planesPaquetes.length > 0
+      ? 'paquetes'
+      : planesMensuales.length > 0
+        ? 'membresias'
+        : 'paquetes';
+  const planesVisibles = vistaPlan === 'membresias' ? planesMensuales : planesPaquetes;
+
+  // El destacado se elige DENTRO del grupo visible (el más caro de esa pestaña):
+  // si fuera el más caro de todos, al abrir la otra pestaña no se destacaría
+  // ninguna tarjeta.
+  const tierDestacadoSlug = planesVisibles.length
+    ? planesVisibles.reduce((a, b) => (b.precio_centavos > a.precio_centavos ? b : a)).slug
     : null;
 
   const aEstudioInfo = (r: EstudioPublico): EstudioInfo => {
@@ -1126,6 +1148,13 @@ export default function Landing() {
       <section id="membresias" className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
         <SeccionHeading heading={secciones.membresias} editorial />
 
+        {/* Solo si el gym vende los dos modelos: si no, no hay nada que elegir. */}
+        {!tiersLoading && hayAmbosTipos && (
+          <div className="landing-plan-toggle-wrap">
+            <PlanTipoToggle value={vistaPlan} onChange={setTipoPlanVista} />
+          </div>
+        )}
+
         {tiersLoading ? (
           <div className="landing-planes-grid">
             {[1, 2].map((n) => (
@@ -1134,7 +1163,7 @@ export default function Landing() {
           </div>
         ) : (
           <div className="landing-planes-grid">
-            {tiers.map((tier) => {
+            {planesVisibles.map((tier) => {
               const esDestacado = tier.slug === tierDestacadoSlug;
               const beneficios = parseBeneficios(tier.beneficios);
 
@@ -1210,7 +1239,11 @@ export default function Landing() {
                     <span style={{ fontSize: '16px', color: esDestacado ? 'rgba(255, 255, 255, 0.5)' : 'var(--sala-text-tertiary)', fontWeight: 500 }}>
                       {tier.tipo === 'creditos' || tier.tipo === 'hibrido'
                         ? ` · ${tier.clases_incluidas ?? 0} clases`
-                        : tier.periodo === 'anual' ? '/año' : '/mes'}
+                        : tier.periodo === 'anual'
+                          ? '/año'
+                          : tier.periodo === 'quincenal'
+                            ? '/quincena'
+                            : '/mes'}
                     </span>
                   </p>
                   <p style={{

@@ -335,6 +335,46 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   }
 }
 
+/* ── Toggle Membresías · Paquetes (sección de planes) ──────────────────────
+   Membresías y paquetes son dos modelos distintos; juntos en una sola grilla la
+   sección quedaba amontonada. La pestaña muestra un grupo a la vez. */
+.sala-plan-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 5px;
+  margin: 0 auto 28px;
+  border-radius: 999px;
+  background: var(--sala-primary-soft);
+  border: 0.5px solid var(--sala-border);
+}
+/* El contenedor de la sección centra el texto; esto centra la píldora. */
+.landing-plan-toggle-wrap { display: flex; justify-content: center; }
+
+.sala-plan-toggle-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--sala-text-secondary);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 9px 18px;
+  min-height: 40px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.sala-plan-toggle-btn:hover { color: var(--sala-text-primary); }
+.sala-plan-toggle-btn.is-active {
+  background: var(--sala-accent);
+  color: var(--sala-accent-text);
+}
+
+@media (max-width: 720px) {
+  .sala-plan-toggle { display: flex; width: 100%; }
+  .sala-plan-toggle-btn { flex: 1; padding: 9px 10px; font-size: 12.5px; }
+}
+
 /* Scroll horizontal sin barra visible (fea sobre banda oscura). */
 .landing-hscroll { scrollbar-width: none; }
 .landing-hscroll::-webkit-scrollbar { display: none; }
