@@ -1265,26 +1265,39 @@ export default function Landing() {
 
           <div className="landing-programa">
             {DIAS_SEMANA.map(({ dow, label }) => {
-              const clases = programa
-                .filter((h) => h.dias_semana.includes(dow))
-                .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
-              if (clases.length === 0) return null;
+              // AGRUPADO POR CLASE: el mismo entrenamiento se repite en 10 franjas
+              // horarias. Listarlas una por una repetía nombre y enfoque 10 veces
+              // y la sección era una pared ilegible. La clase se nombra UNA vez y
+              // las horas van como chips.
+              const delDia = programa.filter((h) => h.dias_semana.includes(dow));
+              if (delDia.length === 0) return null;
+
+              const porClase = new Map<string, { nombre: string; enfoque: string | null; horas: string[] }>();
+              for (const h of delDia) {
+                const clave = `${h.nombre}|${h.descripcion ?? ''}`;
+                const entrada = porClase.get(clave) ?? {
+                  nombre: h.nombre,
+                  enfoque: h.descripcion,
+                  horas: []
+                };
+                entrada.horas.push(h.hora_inicio.slice(0, 5));
+                porClase.set(clave, entrada);
+              }
+
               return (
                 <div key={dow} className="landing-programa-dia">
                   <p className="landing-programa-dia-label">{label}</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {clases.map((c) => (
-                      <div key={`${dow}-${c.id}`} className="landing-programa-clase">
-                        <span className="landing-programa-hora">{c.hora_inicio.slice(0, 5)}</span>
-                        <span style={{ minWidth: 0 }}>
-                          <span className="landing-programa-nombre">{c.nombre}</span>
-                          {c.descripcion && (
-                            <span className="landing-programa-enfoque">{c.descripcion}</span>
-                          )}
-                        </span>
+                  {[...porClase.values()].map((c) => (
+                    <div key={c.nombre} className="landing-programa-clase">
+                      <p className="landing-programa-nombre">{c.nombre}</p>
+                      {c.enfoque && <p className="landing-programa-enfoque">{c.enfoque}</p>}
+                      <div className="landing-programa-horas">
+                        {c.horas.sort().map((h) => (
+                          <span key={h} className="landing-programa-hora">{h}</span>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               );
             })}
