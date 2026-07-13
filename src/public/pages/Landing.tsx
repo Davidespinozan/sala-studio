@@ -11,6 +11,7 @@ import {
 } from '@shared/hooks/useLandingConfig';
 import { useTenant } from '@shared/hooks/useTenant';
 import EstudioModal, { type EstudioInfo } from '../components/EstudioModal';
+import { ProgramaSemanal } from '../components/ProgramaSemanal';
 import Footer from '../components/Footer';
 import { MagneticButton } from '@shared/components/MagneticButton';
 import { PlanTipoToggle, type VistaPlan } from '@shared/components/PlanTipoToggle';
@@ -1109,6 +1110,18 @@ export default function Landing() {
                 </div>
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Gym de UNA sola sala: el programa ES su producto, esconderlo detrás de
+            un clic es perder la venta. Con 2+ salas se queda dentro de la ficha
+            de cada una (que es donde corresponde: el programa es de la sala). */}
+        {estudiosInfo.length === 1 && programa.length > 0 && (
+          <div style={{ marginTop: 'clamp(28px, 4vw, 44px)' }}>
+            <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '16px', textAlign: 'center' }}>
+              PROGRAMA DE LA SEMANA
+            </p>
+            <ProgramaSemanal horarios={programa.filter((h) => h.recurso_id === estudiosInfo[0].id)} />
           </div>
         )}
       </section>
