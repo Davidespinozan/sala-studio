@@ -5,6 +5,12 @@ import { useToast } from '@shared/hooks/useToast';
 type ContactoDraft = {
   whatsapp_e164: string;
   whatsapp_mensaje_default: string;
+  /** Teléfono para llamar (distinto del WhatsApp). */
+  telefono: string;
+  /** Domicilio y correo: vivían escondidos en Ajustes › Landing (sección Footer),
+   *  que es donde nadie los buscaba. Su lugar natural es esta pantalla. */
+  direccion: string;
+  email: string;
 };
 
 type RedesDraft = {
@@ -28,7 +34,12 @@ function readDraft(config: Record<string, unknown> | null): {
   return {
     contacto: {
       whatsapp_e164: String(contacto.whatsapp_e164 ?? ''),
-      whatsapp_mensaje_default: String(contacto.whatsapp_mensaje_default ?? '')
+      whatsapp_mensaje_default: String(contacto.whatsapp_mensaje_default ?? ''),
+      telefono: contacto.telefono == null ? '' : String(contacto.telefono),
+      // direccion/email se siguen guardando en landing.footer (es de donde los lee
+      // el footer público); acá solo cambia DÓNDE se editan.
+      direccion: footer.direccion == null ? '' : String(footer.direccion),
+      email: footer.email == null ? '' : String(footer.email)
     },
     redes: {
       instagram: redes.instagram == null ? '' : String(redes.instagram),
@@ -100,7 +111,13 @@ function Section({
 export default function AjustesContacto() {
   const { config, isLoading, isSaving, saveTopLevel } = useTenantConfigEditor();
   const toast = useToast();
-  const [contacto, setContacto] = useState<ContactoDraft>({ whatsapp_e164: '', whatsapp_mensaje_default: '' });
+  const [contacto, setContacto] = useState<ContactoDraft>({
+    whatsapp_e164: '',
+    whatsapp_mensaje_default: '',
+    telefono: '',
+    direccion: '',
+    email: ''
+  });
   const [redes, setRedes] = useState<RedesDraft>({ instagram: '', tiktok: '', youtube: '', facebook: '' });
   const [originalJson, setOriginalJson] = useState('');
 
@@ -116,6 +133,7 @@ export default function AjustesContacto() {
   const dirty = currentJson !== originalJson;
 
   const whatsappValido = !contacto.whatsapp_e164 || /^\d{10,15}$/.test(contacto.whatsapp_e164);
+  const emailValido = !contacto.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contacto.email.trim());
   const redesInvalidas: Array<keyof RedesDraft> = (
     Object.keys(redes) as Array<keyof RedesDraft>
   ).filter((k) => redes[k] !== '' && !URL_REGEX.test(redes[k]));
@@ -129,6 +147,10 @@ export default function AjustesContacto() {
       toast.error('Las URLs de redes deben empezar con http:// o https://');
       return;
     }
+    if (!emailValido) {
+      toast.error('El correo de contacto no es válido.');
+      return;
+    }
 
     // Merge no destructivo: preservar otras keys de landing.footer
     const landing = (config?.landing ?? {}) as Record<string, unknown>;
@@ -137,12 +159,15 @@ export default function AjustesContacto() {
     const patch = {
       contacto: {
         whatsapp_e164: contacto.whatsapp_e164,
-        whatsapp_mensaje_default: contacto.whatsapp_mensaje_default
+        whatsapp_mensaje_default: contacto.whatsapp_mensaje_default,
+        telefono: contacto.telefono.trim() || null
       },
       landing: {
         ...landing,
         footer: {
           ...footer,
+          direccion: contacto.direccion.trim() || null,
+          email: contacto.email.trim() || null,
           redes: {
             instagram: redes.instagram || null,
             tiktok: redes.tiktok || null,
@@ -196,6 +221,50 @@ export default function AjustesContacto() {
       <p style={{ fontSize: '14px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '24px' }}>
         Cómo te contactan tus clientes y dónde ven tus redes.
       </p>
+
+      <Section
+        title="DATOS DEL NEGOCIO"
+        description="Domicilio, correo y teléfono. Aparecen en el pie de tu página pública."
+      >
+        <FormField
+          label="Domicilio"
+          helper="La dirección de tu estudio, como querés que la lea un cliente. Si tenés varias sedes, cada una lleva su propia dirección en Sucursales."
+        >
+          <input
+            value={contacto.direccion}
+            onChange={(e) => setContacto({ ...contacto, direccion: e.target.value })}
+            className="ek-input"
+            placeholder="Av. Álvaro Obregón 123, Col. Centro, Culiacán"
+          />
+        </FormField>
+
+        <FormField
+          label="Correo de contacto"
+          helper="Al que te escriben tus clientes. En la página se muestra como un link para enviarte un mail."
+          error={!emailValido ? 'Correo inválido. Revisá que tenga @ y dominio.' : undefined}
+        >
+          <input
+            type="email"
+            value={contacto.email}
+            onChange={(e) => setContacto({ ...contacto, email: e.target.value })}
+            className="ek-input"
+            placeholder="hola@tugimnasio.com"
+          />
+        </FormField>
+
+        <FormField
+          label="Teléfono"
+          helper="Para llamar. Es distinto del WhatsApp: podés poner el fijo del estudio."
+        >
+          <input
+            type="tel"
+            value={contacto.telefono}
+            onChange={(e) => setContacto({ ...contacto, telefono: e.target.value })}
+            className="ek-input"
+            placeholder="667 123 4567"
+          />
+        </FormField>
+      </Section>
 
       <Section title="WHATSAPP" description="Tu canal principal de contacto.">
         <FormField

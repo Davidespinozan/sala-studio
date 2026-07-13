@@ -55,6 +55,8 @@ type LandingFooter = {
 type ContactoConfig = {
   whatsapp_e164: string;
   whatsapp_mensaje_default: string;
+  /** Teléfono fijo del negocio (para llamar). Distinto del WhatsApp. */
+  telefono: string | null;
 };
 
 // Defaults: strings vacíos por diseño (kernel reusable).
@@ -100,7 +102,8 @@ const FOOTER_DEFAULT: LandingFooter = {
 
 const CONTACTO_DEFAULT: ContactoConfig = {
   whatsapp_e164: '',
-  whatsapp_mensaje_default: 'Hola, me interesa saber más.'
+  whatsapp_mensaje_default: 'Hola, me interesa saber más.',
+  telefono: null
 };
 
 function parseObject<T extends object>(value: unknown, fallback: T): T {

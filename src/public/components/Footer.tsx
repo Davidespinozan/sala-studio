@@ -47,7 +47,7 @@ const REDES_ORDEN: Array<{ key: 'instagram' | 'tiktok' | 'youtube' | 'facebook';
 ];
 
 export default function Footer() {
-  const { footer } = useLandingConfig();
+  const { footer, contacto } = useLandingConfig();
   const tenant = useTenant();
 
   // Brand text: primer token del nombre del tenant (ej. "SALA Studio" → "SALA").
@@ -63,7 +63,8 @@ export default function Footer() {
         : null;
 
   const redesActivas = REDES_ORDEN.filter((r) => !!footer.redes[r.key]);
-  const hayContacto = !!footer.email || !!footer.direccion;
+  const telefono = contacto.telefono?.trim() || null;
+  const hayContacto = !!footer.email || !!footer.direccion || !!telefono;
 
   return (
     <footer
@@ -165,6 +166,20 @@ export default function Footer() {
                 }}
               >
                 {footer.email}
+              </a>
+            )}
+            {telefono && (
+              <a
+                href={`tel:${telefono.replace(/[^\d+]/g, '')}`}
+                style={{
+                  display: 'block',
+                  fontSize: '13px',
+                  color: 'rgba(255, 255, 255, 0.75)',
+                  textDecoration: 'none',
+                  marginBottom: '6px'
+                }}
+              >
+                {telefono}
               </a>
             )}
             {footer.direccion && (

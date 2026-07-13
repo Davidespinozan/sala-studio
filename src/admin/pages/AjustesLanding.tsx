@@ -926,7 +926,7 @@ export default function AjustesLanding() {
             lineHeight: 1.5
           }}
         >
-          El WhatsApp y las redes sociales del footer se configuran en{' '}
+          El domicilio, el correo, el teléfono, el WhatsApp y las redes del footer se configuran en{' '}
           <Link to="/admin/contacto" style={{ color: 'var(--sala-primary)', fontWeight: 600 }}>
             Ajustes › Contacto
           </Link>
@@ -954,28 +954,9 @@ export default function AjustesLanding() {
           />
         </FormField>
 
-        <FormField label="Dirección" helper="Opcional. Si la dejas vacía, no aparece en el footer.">
-          <input
-            value={draft.footer.direccion}
-            onChange={(e) =>
-              setDraft({ ...draft, footer: { ...draft.footer, direccion: e.target.value } })
-            }
-            className="ek-input"
-            placeholder="Av. ... (opcional)"
-          />
-        </FormField>
-
-        <FormField label="Email" helper="Opcional. Si la dejas vacía, no aparece en el footer.">
-          <input
-            type="email"
-            value={draft.footer.email}
-            onChange={(e) =>
-              setDraft({ ...draft, footer: { ...draft.footer, email: e.target.value } })
-            }
-            className="ek-input"
-            placeholder="contacto@salastudio.com"
-          />
-        </FormField>
+        {/* Dirección y email se editan en Ajustes › Contacto. Estaban también acá,
+            y como ambas pantallas guardan landing.footer, la última en guardar
+            pisaba lo que había escrito la otra. */}
       </Section>
 
       <Section title="PREGUNTAS FRECUENTES" description="Las preguntas que ven tus visitantes. Editalas a tu realidad. Sin preguntas = la sección no se muestra.">
