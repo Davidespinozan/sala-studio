@@ -4,6 +4,7 @@ import { UserX } from 'lucide-react';
 import { PageHeader } from '@shared/components/PageHeader';
 import { EmptyState } from '@shared/components/EmptyState';
 import { RenovarMembresiaModal } from '../components/acciones/RenovarMembresiaModal';
+import { CrearReservaModal } from '../components/acciones/CrearReservaModal';
 import { CambiarPlanModal } from '../components/acciones/CambiarPlanModal';
 import { RecargarCreditosModal } from '../components/acciones/RecargarCreditosModal';
 import { PausarReactivarMembresiaModal } from '../components/acciones/PausarReactivarMembresiaModal';
@@ -21,6 +22,7 @@ import { useSocioNotas } from '../hooks/useSocioNotas';
 
 type ModalAccion =
   | null
+  | 'crear_reserva'
   | 'renovar'
   | 'cambiar_plan'
   | 'recargar'
@@ -276,7 +278,14 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
 
       {/* PRÓXIMAS RESERVAS */}
       <div className="ek-card ek-card--md" style={{ marginBottom: '12px' }}>
-        <p className="ek-eyebrow" style={{ marginBottom: '9px' }}>PRÓXIMAS RESERVAS</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '9px' }}>
+          <p className="ek-eyebrow" style={{ margin: 0 }}>PRÓXIMAS RESERVAS</p>
+          {/* Walk-in: el socio llegó sin reservar. Solo con membresía viva —
+              sin plan no puede entrar a una clase, igual que desde la app. */}
+          {(estado === 'activa') && (
+            <AccionBtn onClick={() => setModalAbierto('crear_reserva')}>+ Crear reserva</AccionBtn>
+          )}
+        </div>
         {reservas.length === 0 ? (
           <p style={{ textAlign: 'center', color: 'var(--sala-text-tertiary)', fontSize: '13px', padding: '6px 0', margin: 0 }}>
             {estado === 'pausada'
@@ -357,6 +366,16 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           </div>
         )}
       </div>
+
+      {modalAbierto === 'crear_reserva' && (
+        <CrearReservaModal
+          socioId={socio.id}
+          socioNombre={socio.nombre ?? 'el socio'}
+          isOpen
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
 
       {modalAbierto === 'renovar' && (
         <RenovarMembresiaModal
