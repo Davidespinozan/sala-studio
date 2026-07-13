@@ -375,6 +375,58 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   .sala-plan-toggle-btn { flex: 1; padding: 9px 10px; font-size: 12.5px; }
 }
 
+/* ── Burbujas flotantes de contacto (WhatsApp · Instagram) ─────────────────
+   Esquina inferior derecha de la web pública. Respetan el safe-area del iPhone
+   para no quedar debajo de la barra de gestos. */
+.sala-burbujas {
+  position: fixed;
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 80; /* sobre el contenido, debajo de modales (90+) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.sala-burbuja {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  text-decoration: none;
+  transition: transform 0.16s ease, box-shadow 0.2s ease;
+}
+.sala-burbuja:hover { transform: translateY(-2px); }
+.sala-burbuja:active { transform: scale(0.94); }
+
+/* WhatsApp = acción principal → color de ACENTO (como cualquier CTA). */
+.sala-burbuja--principal {
+  width: 56px;
+  height: 56px;
+  background: var(--grad-accent);
+  color: var(--sala-accent-text);
+  border: 0.5px solid var(--sala-accent);
+  box-shadow: 0 8px 24px var(--sala-accent-dim), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+.sala-burbuja--principal:hover { box-shadow: 0 12px 30px var(--sala-accent-glow); }
+
+/* Instagram = secundaria → superficie con el primario, más discreta. */
+.sala-burbuja--secundaria {
+  width: 46px;
+  height: 46px;
+  background: var(--sala-surface);
+  color: var(--sala-primary);
+  border: 0.5px solid var(--sala-border-strong);
+  box-shadow: 0 6px 18px var(--sala-primary-shadow);
+}
+.sala-burbuja--secundaria:hover { box-shadow: 0 10px 24px var(--sala-primary-dim); }
+
+@media (max-width: 480px) {
+  .sala-burbuja--principal { width: 52px; height: 52px; }
+  .sala-burbuja--secundaria { width: 42px; height: 42px; }
+}
+
 /* Scroll horizontal sin barra visible (fea sobre banda oscura). */
 .landing-hscroll { scrollbar-width: none; }
 .landing-hscroll::-webkit-scrollbar { display: none; }

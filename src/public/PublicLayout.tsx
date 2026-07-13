@@ -5,6 +5,7 @@ import { useRoleRedirect } from '@shared/hooks/useRoleRedirect';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { DemoBanner } from '@shared/components/DemoBanner';
 import { ModoDemoBanner } from '@shared/components/ModoDemoBanner';
+import { BurbujasContacto } from './components/BurbujasContacto';
 import { TenantLogo } from '@shared/components/TenantLogo';
 
 const Landing = lazy(() => import('./pages/Landing'));
@@ -81,6 +82,11 @@ export default function PublicLayout() {
           <Route path="/terminos" element={<Terminos />} />
         </Routes>
       </Suspense>
+
+      {/* Contacto siempre a la vista: en el footer había que scrollear hasta el
+          final para encontrarlo. En login/signup no aparece: ahí el visitante ya
+          está en una tarea concreta y la burbuja solo estorba. */}
+      {!enLogin && <BurbujasContacto />}
     </div>
   );
 }
