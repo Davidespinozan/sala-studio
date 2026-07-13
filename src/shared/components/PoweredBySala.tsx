@@ -52,7 +52,10 @@ export function PoweredBySala({ align = 'center', tone = 'light' }: Props = {}) 
         textDecoration: 'none'
       }}
     >
-      <span style={{ opacity: isDark ? 0.45 : 0.55, display: 'inline-flex' }}>
+      {/* Isotipo a opacidad plena: bajarla lo dejaba lavado/"sucio" sobre el
+          fondo. La discreción de la atribución la da el tamaño (17px) y el tono
+          tenue del texto, no un logo desteñido. */}
+      <span style={{ display: 'inline-flex' }}>
         <SalaLogo variant="isotipo" height={17} />
       </span>
       <span>
