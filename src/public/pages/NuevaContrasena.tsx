@@ -178,7 +178,7 @@ export default function NuevaContrasena() {
 
         <button
           type="submit"
-          className="ek-cta ek-cta--full"
+          className="ek-cta ek-cta--full ek-cta--solid"
           disabled={guardando || !password || !confirmacion}
         >
           {guardando ? 'Guardando…' : 'Guardar contraseña'}

@@ -673,6 +673,14 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     box-shadow: none !important;
   }
 
+  /* Deshabilitado SIN apagar el color (login/signup): el botón conserva el
+     color de marca y solo pierde el relieve y el hover. Se sigue sin poder
+     clickear (el atributo disabled manda); el atenuado al 40% se veía sucio
+     en un formulario donde el botón nace deshabilitado. */
+  .ek-cta--solid:disabled {
+    opacity: 1;
+  }
+
   .ek-cta--full { width: 100%; }
 
   /* Utilidad de micro-interacción para CTAs con estilo inline (background/glow

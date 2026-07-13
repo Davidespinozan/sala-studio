@@ -91,7 +91,7 @@ export default function RecuperarContrasena() {
 
           <button
             type="submit"
-            className="ek-cta ek-cta--full"
+            className="ek-cta ek-cta--full ek-cta--solid"
             disabled={enviando || !email}
           >
             {enviando ? 'Enviando…' : 'Enviar enlace de recuperación'}

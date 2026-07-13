@@ -379,7 +379,7 @@ export default function Signup() {
 
         <button
           type="submit"
-          className="ek-cta ek-cta--full"
+          className="ek-cta ek-cta--full ek-cta--solid"
           style={{ marginTop: '12px', padding: '16px', fontSize: '15px' }}
           disabled={isProcessing || !acepta}
         >

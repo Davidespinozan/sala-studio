@@ -140,7 +140,7 @@ export default function Login() {
 
             <button
               type="submit"
-              className="ek-cta ek-cta--full"
+              className="ek-cta ek-cta--full ek-cta--solid"
               disabled={isSubmitting || !email || !password}
             >
               {isSubmitting ? 'Iniciando sesión…' : 'Iniciar sesión'}
