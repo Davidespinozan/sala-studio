@@ -421,6 +421,57 @@ export type Database = {
           },
         ]
       }
+      pagos: {
+        Row: {
+          cobrado_por: string | null
+          concepto: string
+          created_at: string
+          id: string
+          membresia_id: string | null
+          metodo: string
+          moneda: string
+          monto_centavos: number
+          notas: string | null
+          referencia: string | null
+          sucursal_id: string | null
+          tenant_id: string
+          tier_id: string | null
+          usuario_id: string
+        }
+        Insert: {
+          cobrado_por?: string | null
+          concepto: string
+          created_at?: string
+          id?: string
+          membresia_id?: string | null
+          metodo: string
+          moneda?: string
+          monto_centavos: number
+          notas?: string | null
+          referencia?: string | null
+          sucursal_id?: string | null
+          tenant_id: string
+          tier_id?: string | null
+          usuario_id: string
+        }
+        Update: {
+          cobrado_por?: string | null
+          concepto?: string
+          created_at?: string
+          id?: string
+          membresia_id?: string | null
+          metodo?: string
+          moneda?: string
+          monto_centavos?: number
+          notas?: string | null
+          referencia?: string | null
+          sucursal_id?: string | null
+          tenant_id?: string
+          tier_id?: string | null
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       membresias: {
         Row: {
           cancelada_at: string | null
