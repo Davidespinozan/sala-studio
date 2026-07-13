@@ -9,6 +9,13 @@
 [functions]
   node_bundler = "esbuild"
 
+# Reescribe el <head> del HTML con la marca del tenant (nombre, imagen, color)
+# ANTES de servirlo. Los bots de preview (WhatsApp, iMessage) no ejecutan JS, así
+# que sin esto el link de cualquier gym se comparte con el logo y el texto de SALA.
+[[edge_functions]]
+  function = "tenant-meta"
+  path = "/*"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

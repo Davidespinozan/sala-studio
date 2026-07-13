@@ -26,5 +26,8 @@
     }
   },
   "include": ["src", "e2e", "netlify"],
+  // Las edge functions corren en Deno (globals propios), no en Node ni en el
+  // bundle del front. Las tipa Netlify en su build, no este tsconfig.
+  "exclude": ["netlify/edge-functions"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

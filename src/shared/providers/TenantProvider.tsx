@@ -257,6 +257,11 @@ function applyTenantHead(branding: BrandingColors | null | undefined, nombre: st
   if (nombre) {
     setMeta('property', 'og:title', nombre);
     setMeta('name', 'twitter:title', nombre);
+    setMeta('property', 'og:site_name', nombre);
+    // iOS: al "Agregar a inicio", el nombre del ícono sale de ESTE meta (le gana
+    // al <title> y al manifest). El index.html lo trae fijo en "SALA" → sin esto,
+    // el atajo quedaba con el isotipo del gym pero el nombre de SALA.
+    setMeta('name', 'apple-mobile-web-app-title', nombre);
   }
   const og = typeof b.og_image_url === 'string' ? b.og_image_url : null;
   if (og) {
