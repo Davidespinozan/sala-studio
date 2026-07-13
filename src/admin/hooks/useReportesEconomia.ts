@@ -47,9 +47,16 @@ const VENTANA_CHURN_DIAS = 90;
 const DIA_MS = 86_400_000;
 const LIFESPAN_TOPE_MESES = 36;
 
-/** Precio del tier normalizado a mensual (anual → /12). */
+/**
+ * Precio del tier normalizado a MENSUAL, para que el MRR compare peras con peras:
+ * un anual se divide entre 12 y un quincenal se multiplica por 2 (se cobra dos
+ * veces al mes). Sin esto, un plan quincenal aportaba al MRR la mitad de lo que
+ * factura de verdad.
+ */
 function precioMensual(t: TierRow): number {
-  return t.periodo === 'anual' ? Math.round(t.precio_centavos / 12) : t.precio_centavos;
+  if (t.periodo === 'anual') return Math.round(t.precio_centavos / 12);
+  if (t.periodo === 'quincenal') return t.precio_centavos * 2;
+  return t.precio_centavos;
 }
 
 export function useReportesEconomia() {

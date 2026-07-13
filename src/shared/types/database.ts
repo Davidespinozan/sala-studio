@@ -1038,6 +1038,8 @@ export type Database = {
           descripcion: string | null
           duracion_dias: number | null
           id: string
+          inscripcion_centavos: number
+          invitados_por_periodo: number
           moneda: string
           nombre: string
           orden: number
@@ -1059,6 +1061,8 @@ export type Database = {
           descripcion?: string | null
           duracion_dias?: number | null
           id?: string
+          inscripcion_centavos?: number
+          invitados_por_periodo?: number
           moneda?: string
           nombre: string
           orden?: number
@@ -1080,6 +1084,8 @@ export type Database = {
           descripcion?: string | null
           duracion_dias?: number | null
           id?: string
+          inscripcion_centavos?: number
+          invitados_por_periodo?: number
           moneda?: string
           nombre?: string
           orden?: number
@@ -1163,6 +1169,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          inscripcion_pagada_at: string | null
           invitado: boolean
           membresia_activa_id: string | null
           membresia_tier: string | null
@@ -1187,6 +1194,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          inscripcion_pagada_at?: string | null
           invitado?: boolean
           membresia_activa_id?: string | null
           membresia_tier?: string | null
@@ -1211,6 +1219,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          inscripcion_pagada_at?: string | null
           invitado?: boolean
           membresia_activa_id?: string | null
           membresia_tier?: string | null
@@ -1323,7 +1332,17 @@ export type Database = {
       }
       generar_mis_clases_recurrentes: { Args: never; Returns: Json }
       gestionar_membresia_socio: {
-        Args: { p_motivo?: string; p_tier_id: string; p_usuario_id: string }
+        Args: {
+          p_motivo?: string
+          p_tier_id: string
+          p_usuario_id: string
+          p_metodo_pago?: string | null
+          p_monto_centavos?: number | null
+        }
+        Returns: Json
+      }
+      invitados_disponibles: {
+        Args: { p_usuario_id: string }
         Returns: Json
       }
       get_my_rol: { Args: never; Returns: string }

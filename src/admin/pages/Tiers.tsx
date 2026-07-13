@@ -27,9 +27,17 @@ const MONEDA_OPTS: { value: string; label: string }[] = [
   { value: 'EUR', label: 'EUR · euro' }
 ];
 const PERIODO_OPTS: { value: string; label: string }[] = [
+  { value: 'quincenal', label: 'Quincenal (15 días)' },
   { value: 'mensual', label: 'Mensual' },
   { value: 'anual', label: 'Anual' }
 ];
+
+/** Días de vigencia de cada periodo. Es lo que la DB usa para vencer la membresía. */
+const DIAS_POR_PERIODO: Record<string, number> = {
+  quincenal: 15,
+  mensual: 30,
+  anual: 365
+};
 
 type ModalState =
   | { mode: 'edit'; tier: Tier }
@@ -603,12 +611,15 @@ function EditarTierModal({
   const [beneficios, setBeneficios] = useState<string[]>(() =>
     tier ? parseBeneficios(tier.beneficios) : []
   );
-  const [maxInvitados, setMaxInvitados] = useState<number>(() => {
-    const reglas = tier?.reglas as Record<string, unknown> | null;
-    const raw = reglas?.max_invitados;
-    if (typeof raw === 'number') return raw;
-    return tier?.slug === 'pro' ? 4 : 2;
-  });
+  // Pases de invitado incluidos en cada periodo del plan (bolsa, no techo por
+  // clase). 0 = el plan no permite invitados.
+  const [invitadosPorPeriodo, setInvitadosPorPeriodo] = useState<number>(
+    () => tier?.invitados_por_periodo ?? 0
+  );
+  // Cuota única de alta. Se cobra una sola vez por socio.
+  const [inscripcion, setInscripcion] = useState<string>(
+    () => ((tier?.inscripcion_centavos ?? 0) / 100).toString()
+  );
   // Modelo de plan: mensualidad (tiempo) o paquete de clases (creditos/hibrido).
   const [esPaquete, setEsPaquete] = useState<boolean>(
     () => tier?.tipo === 'creditos' || tier?.tipo === 'hibrido'
@@ -638,6 +649,13 @@ function EditarTierModal({
       return;
     }
 
+    const inscripcionCentavos = Math.round(parseFloat(inscripcion || '0') * 100);
+    if (!Number.isFinite(inscripcionCentavos) || inscripcionCentavos < 0) {
+      setError('Inscripción inválida.');
+      setSaving(false);
+      return;
+    }
+
     // Modelo de plan → tipo + clases + vigencia.
     const tipo = !esPaquete ? 'tiempo' : vence ? 'hibrido' : 'creditos';
     const clasesVal = esPaquete ? Math.round(Number(clasesIncluidas)) : null;
@@ -645,9 +663,7 @@ function EditarTierModal({
       ? vence
         ? Math.round(Number(duracionDias))
         : null
-      : periodo === 'anual'
-        ? 365
-        : 30;
+      : (DIAS_POR_PERIODO[periodo] ?? 30);
     if (esPaquete && (!Number.isFinite(clasesVal as number) || (clasesVal ?? 0) < 1)) {
       setError('El paquete debe incluir al menos 1 clase.');
       setSaving(false);
@@ -681,7 +697,7 @@ function EditarTierModal({
         return;
       }
 
-      const reglas = { max_invitados: maxInvitados, recomendado };
+      const reglas = { recomendado };
 
       const { error: err } = await insertTier({
         tenant_id: tenant.id,
@@ -689,6 +705,8 @@ function EditarTierModal({
         nombre: nombre.trim(),
         descripcion: descripcion || null,
         precio_centavos: precioCentavos,
+        inscripcion_centavos: inscripcionCentavos,
+        invitados_por_periodo: invitadosPorPeriodo,
         moneda,
         periodo,
         tipo,
@@ -712,12 +730,14 @@ function EditarTierModal({
 
     // Edit mode
     const reglasActuales = (tier!.reglas as Record<string, unknown>) ?? {};
-    const reglasNuevas = { ...reglasActuales, max_invitados: maxInvitados, recomendado };
+    const reglasNuevas = { ...reglasActuales, recomendado };
 
     const { error: err } = await updateTier(tier!.id, {
       nombre,
       descripcion: descripcion || null,
       precio_centavos: precioCentavos,
+      inscripcion_centavos: inscripcionCentavos,
+      invitados_por_periodo: invitadosPorPeriodo,
       moneda,
       periodo,
       tipo,
@@ -918,18 +938,38 @@ function EditarTierModal({
         </div>
 
         <div className="ek-form-field" style={{ marginTop: '16px' }}>
-          <label className="ek-label">Máximo de invitados por clase</label>
+          <label className="ek-label">Inscripción (cuota única)</label>
           <input
             type="number"
             min={0}
-            max={10}
-            value={maxInvitados}
-            onChange={(e) => setMaxInvitados(parseInt(e.target.value) || 0)}
+            step="0.01"
+            value={inscripcion}
+            onChange={(e) => setInscripcion(e.target.value)}
+            className="ek-input"
+            placeholder="0"
+          />
+          <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
+            Se cobra <strong>una sola vez</strong>, al dar de alta al socio: ni al renovar ni al
+            cambiar de plan se vuelve a cobrar. Si el socio ya pagó inscripción antes, tampoco.
+            Dejalo en 0 si tu plan no cobra inscripción.
+          </p>
+        </div>
+
+        <div className="ek-form-field" style={{ marginTop: '16px' }}>
+          <label className="ek-label">Pases de invitado por periodo</label>
+          <input
+            type="number"
+            min={0}
+            max={50}
+            value={invitadosPorPeriodo}
+            onChange={(e) => setInvitadosPorPeriodo(parseInt(e.target.value) || 0)}
             className="ek-input"
           />
           <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
-            Cantidad de invitados adicionales que el miembro puede traer a cada clase (no
-            incluye al titular). El RPC de reservas valida este número.
+            Invitados que el socio puede traer <strong>en total</strong> durante cada periodo del
+            plan (ej. 10 al mes; en un plan quincenal, 10 por quincena), no por clase. La bolsa se
+            reinicia al renovar, y cancelar una reserva devuelve los pases. <strong>0</strong> = el
+            plan no incluye invitados.
           </p>
         </div>
 

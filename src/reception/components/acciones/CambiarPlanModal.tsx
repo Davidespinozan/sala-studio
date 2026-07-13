@@ -3,10 +3,13 @@ import { supabase } from '@shared/lib/supabase';
 import { AccionModal } from '@shared/components/AccionModal';
 import { MotivoField } from '@shared/components/MotivoField';
 import { useAccionRecepcion } from '../../hooks/useAccionRecepcion';
+import { MetodoPagoField, type MetodoPago } from './MetodoPagoField';
 
 interface TierOption {
   id: string;
   nombre: string;
+  precio_centavos: number;
+  moneda: string;
 }
 
 interface Props {
@@ -22,6 +25,7 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
   const [motivo, setMotivo] = useState('');
   const [nuevoTierId, setNuevoTierId] = useState('');
   const [tiers, setTiers] = useState<TierOption[]>([]);
+  const [metodo, setMetodo] = useState<MetodoPago | ''>('efectivo');
   const { ejecutar } = useAccionRecepcion({ rpcName: 'recepcion_cambiar_plan' });
 
   // Tiers activos del tenant (RLS scopea), excluyendo el plan actual.
@@ -30,7 +34,7 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
     (async () => {
       let req = supabase
         .from('tiers')
-        .select('id, nombre')
+        .select('id, nombre, precio_centavos, moneda')
         .eq('activo', true)
         .order('orden', { ascending: true });
       if (tierActualId) req = req.neq('id', tierActualId);
@@ -42,6 +46,8 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
     };
   }, [tierActualId]);
 
+  const tier = tiers.find((t) => t.id === nuevoTierId);
+
   return (
     <AccionModal
       isOpen={isOpen}
@@ -51,7 +57,12 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
       confirmLabel="Cambiar plan"
       canConfirm={motivo.trim().length > 0 && nuevoTierId.length > 0}
       onConfirm={async () => {
-        await ejecutar({ p_usuario_id: socioId, p_nuevo_tier_id: nuevoTierId, p_motivo: motivo });
+        await ejecutar({
+          p_usuario_id: socioId,
+          p_nuevo_tier_id: nuevoTierId,
+          p_motivo: motivo,
+          p_metodo_pago: metodo === '' ? null : metodo
+        });
         await onDone();
       }}
       onClose={onClose}
@@ -70,6 +81,17 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
           ))}
         </select>
       </div>
+
+      {/* Cambiar de plan no re-cobra inscripción: ya es socio. */}
+      {tier && (
+        <MetodoPagoField
+          value={metodo}
+          onChange={setMetodo}
+          precioCentavos={tier.precio_centavos ?? 0}
+          inscripcionCentavos={0}
+          moneda={tier.moneda}
+        />
+      )}
 
       <MotivoField
         value={motivo}

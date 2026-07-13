@@ -144,12 +144,21 @@ export const handler: Handler = async (event) => {
           }
         }
 
+        // Dinero real de este cobro. El total incluye la inscripción (segundo
+        // line_item), así que se separa para registrar cada concepto por su lado.
+        const inscripcion = Number(session.metadata?.inscripcion_centavos ?? 0) || 0;
+        const total = Number(session.amount_total ?? 0) || 0;
+        const montoPlan = Math.max(total - inscripcion, 0);
+
         const { error } = await admin.rpc('activar_suscripcion_socio', {
           p_usuario_id: usuarioId,
           p_tier_id: tierId,
           p_stripe_subscription_id: subId,
           p_stripe_customer_id: customerId ?? null,
-          p_periodo_fin: periodoFin
+          p_periodo_fin: periodoFin,
+          p_monto_centavos: montoPlan,
+          p_referencia: session.id,
+          p_inscripcion_centavos: inscripcion
         });
         if (error) throw error;
         break;
@@ -186,7 +195,11 @@ export const handler: Handler = async (event) => {
           p_tier_id: tierId,
           p_stripe_subscription_id: subId,
           p_stripe_customer_id: customerId ?? null,
-          p_periodo_fin: periodEndISO(sub)
+          p_periodo_fin: periodEndISO(sub),
+          // Renovación: solo el plan (la inscripción se cobró una única vez).
+          p_monto_centavos: Number(inv.amount_paid ?? 0) || 0,
+          p_referencia: inv.id,
+          p_inscripcion_centavos: 0
         });
         if (error) throw error;
         break;

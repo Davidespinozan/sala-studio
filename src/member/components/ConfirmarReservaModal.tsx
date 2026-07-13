@@ -114,7 +114,10 @@ export function ConfirmarReservaModal({
                 fontWeight: 500
               }}
             >
-              Invitados ({invitados} de {maxInvitados} disponibles)
+              {/* maxInvitados = pases que le QUEDAN al socio en el periodo (bolsa
+                  del plan menos los ya usados), no un cupo por clase. */}
+              Invitados — te quedan {maxInvitados} {maxInvitados === 1 ? 'pase' : 'pases'} este
+              periodo
             </label>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button

@@ -60,7 +60,7 @@ export const handler: Handler = async (event) => {
 
     const { data: socio } = await asUser
       .from('usuarios')
-      .select('id, tenant_id, rol, stripe_customer_id')
+      .select('id, tenant_id, rol, stripe_customer_id, inscripcion_pagada_at')
       .eq('auth_id', authUser.id)
       .maybeSingle();
     if (!socio) return unauthorized('Sin perfil');
@@ -79,12 +79,31 @@ export const handler: Handler = async (event) => {
     // 3) Validar el tier (de su tenant, activo) + traer precio/moneda/nombre.
     const { data: tier } = await admin
       .from('tiers')
-      .select('id, activo, tenant_id, nombre, precio_centavos, moneda, tipo')
+      .select(
+        'id, activo, tenant_id, nombre, precio_centavos, moneda, tipo, periodo, inscripcion_centavos'
+      )
       .eq('id', body.tier_id)
       .maybeSingle();
     if (!tier || tier.tenant_id !== socio.tenant_id || tier.activo !== true) {
       return badRequest('Plan inválido');
     }
+
+    // Ciclo de cobro de Stripe según el periodo del plan. Antes estaba clavado en
+    // 'month': un plan quincenal se habría cobrado una vez al mes.
+    const recurring =
+      tier.periodo === 'anual'
+        ? ({ interval: 'year' as const, interval_count: 1 })
+        : tier.periodo === 'quincenal'
+          ? ({ interval: 'day' as const, interval_count: 15 })
+          : ({ interval: 'month' as const, interval_count: 1 });
+
+    // Inscripción: cuota ÚNICA, solo si el plan la cobra y el socio nunca la pagó.
+    // Va como segundo ítem del checkout (Stripe lo carga en la PRIMERA factura y
+    // no lo repite en las renovaciones).
+    const inscripcionCentavos =
+      socio.inscripcion_pagada_at == null && Number.isInteger(tier.inscripcion_centavos)
+        ? Math.max(tier.inscripcion_centavos as number, 0)
+        : 0;
 
     // ── DEMO: pago simulado → activar de una vez (misma RPC que el webhook). ──
     if (esDemo) {
@@ -134,7 +153,13 @@ export const handler: Handler = async (event) => {
       event.headers.referer?.replace(/\/+$/, '') ||
       optionalEnv('APP_URL', 'https://salastudio.app');
 
-    const meta = { app: 'sala', usuario_id: socio.id, tier_id: tier.id };
+    // El webhook lee esto para registrar el pago y marcar la inscripción.
+    const meta = {
+      app: 'sala',
+      usuario_id: socio.id,
+      tier_id: tier.id,
+      inscripcion_centavos: String(inscripcionCentavos)
+    };
     const currency = (tier.moneda || 'mxn').toLowerCase();
 
     // ── Cambio de plan MENSUAL → MENSUAL: swap in-place con prorrateo. Si el
@@ -164,7 +189,7 @@ export const handler: Handler = async (event) => {
             {
               currency,
               unit_amount: tier.precio_centavos,
-              recurring: { interval: 'month' },
+              recurring,
               product_data: { name: tier.nombre }
             },
             { stripeAccount: acct }
@@ -221,6 +246,22 @@ export const handler: Handler = async (event) => {
       }
     }
 
+    // Cargo único de inscripción. En 'subscription' Stripe lo suma a la primera
+    // factura y NO lo repite al renovar; en 'payment' es un ítem más del total.
+    const itemInscripcion =
+      inscripcionCentavos > 0
+        ? [
+            {
+              price_data: {
+                currency,
+                product_data: { name: `Inscripción — ${tier.nombre}` },
+                unit_amount: inscripcionCentavos
+              },
+              quantity: 1
+            }
+          ]
+        : [];
+
     const baseParams = esPaquete
       ? {
           mode: 'payment' as const,
@@ -229,12 +270,19 @@ export const handler: Handler = async (event) => {
             {
               price_data: { currency, product_data: { name: tier.nombre }, unit_amount: tier.precio_centavos },
               quantity: 1
-            }
+            },
+            ...itemInscripcion
           ],
           payment_intent_data: {
             metadata: meta,
             setup_future_usage: 'on_session' as const, // guarda la tarjeta para re-comprar
-            ...(feePct > 0 ? { application_fee_amount: Math.round((tier.precio_centavos * feePct) / 100) } : {})
+            ...(feePct > 0
+              ? {
+                  application_fee_amount: Math.round(
+                    ((tier.precio_centavos + inscripcionCentavos) * feePct) / 100
+                  )
+                }
+              : {})
           },
           metadata: meta
         }
@@ -243,9 +291,10 @@ export const handler: Handler = async (event) => {
           customer: customerId,
           line_items: [
             {
-              price_data: { currency, product_data: { name: tier.nombre }, unit_amount: tier.precio_centavos, recurring: { interval: 'month' as const } },
+              price_data: { currency, product_data: { name: tier.nombre }, unit_amount: tier.precio_centavos, recurring },
               quantity: 1
-            }
+            },
+            ...itemInscripcion
           ],
           subscription_data: {
             metadata: meta,
