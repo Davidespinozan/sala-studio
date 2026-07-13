@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTenantConfigEditor } from '../hooks/useTenantConfigEditor';
+import MapaPicker from '../components/MapaPicker';
 import { useToast } from '@shared/hooks/useToast';
 
 type ContactoDraft = {
@@ -11,6 +12,9 @@ type ContactoDraft = {
    *  que es donde nadie los buscaba. Su lugar natural es esta pantalla. */
   direccion: string;
   email: string;
+  /** Coordenadas del domicilio → el footer muestra el mapa en vez del texto. */
+  lat: number | null;
+  lng: number | null;
 };
 
 type RedesDraft = {
@@ -39,7 +43,9 @@ function readDraft(config: Record<string, unknown> | null): {
       // direccion/email se siguen guardando en landing.footer (es de donde los lee
       // el footer público); acá solo cambia DÓNDE se editan.
       direccion: footer.direccion == null ? '' : String(footer.direccion),
-      email: footer.email == null ? '' : String(footer.email)
+      email: footer.email == null ? '' : String(footer.email),
+      lat: typeof contacto.lat === 'number' ? contacto.lat : null,
+      lng: typeof contacto.lng === 'number' ? contacto.lng : null
     },
     redes: {
       instagram: redes.instagram == null ? '' : String(redes.instagram),
@@ -116,7 +122,9 @@ export default function AjustesContacto() {
     whatsapp_mensaje_default: '',
     telefono: '',
     direccion: '',
-    email: ''
+    email: '',
+    lat: null,
+    lng: null
   });
   const [redes, setRedes] = useState<RedesDraft>({ instagram: '', tiktok: '', youtube: '', facebook: '' });
   const [originalJson, setOriginalJson] = useState('');
@@ -160,7 +168,9 @@ export default function AjustesContacto() {
       contacto: {
         whatsapp_e164: contacto.whatsapp_e164,
         whatsapp_mensaje_default: contacto.whatsapp_mensaje_default,
-        telefono: contacto.telefono.trim() || null
+        telefono: contacto.telefono.trim() || null,
+        lat: contacto.lat,
+        lng: contacto.lng
       },
       landing: {
         ...landing,
@@ -235,6 +245,18 @@ export default function AjustesContacto() {
             onChange={(e) => setContacto({ ...contacto, direccion: e.target.value })}
             className="ek-input"
             placeholder="Av. Álvaro Obregón 123, Col. Centro, Culiacán"
+          />
+        </FormField>
+
+        <FormField
+          label="Ubicación en el mapa"
+          helper="Escribí el domicilio arriba y tocá 'Ubicar dirección', o arrastrá el pin. Con la ubicación fijada, la página muestra el MAPA en lugar del texto."
+        >
+          <MapaPicker
+            lat={contacto.lat}
+            lng={contacto.lng}
+            direccion={contacto.direccion}
+            onChange={(lat, lng) => setContacto({ ...contacto, lat, lng })}
           />
         </FormField>
 

@@ -57,6 +57,10 @@ type ContactoConfig = {
   whatsapp_mensaje_default: string;
   /** Teléfono fijo del negocio (para llamar). Distinto del WhatsApp. */
   telefono: string | null;
+  /** Coordenadas del domicilio: con ellas el footer muestra el MAPA en vez del
+   *  texto. Se fijan con el picker de Ajustes › Contacto. */
+  lat: number | null;
+  lng: number | null;
 };
 
 // Defaults: strings vacíos por diseño (kernel reusable).
@@ -103,7 +107,9 @@ const FOOTER_DEFAULT: LandingFooter = {
 const CONTACTO_DEFAULT: ContactoConfig = {
   whatsapp_e164: '',
   whatsapp_mensaje_default: 'Hola, me interesa saber más.',
-  telefono: null
+  telefono: null,
+  lat: null,
+  lng: null
 };
 
 function parseObject<T extends object>(value: unknown, fallback: T): T {

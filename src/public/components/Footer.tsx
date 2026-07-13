@@ -1,6 +1,7 @@
 import { useLandingConfig } from '@shared/hooks/useLandingConfig';
 import { useTenant } from '@shared/hooks/useTenant';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
+import MapaSucursal from '@shared/components/MapaSucursal';
 
 const ICON_SIZE = 18;
 
@@ -47,8 +48,9 @@ const REDES_ORDEN: Array<{ key: 'instagram' | 'tiktok' | 'youtube' | 'facebook';
 ];
 
 export default function Footer() {
-  const { footer, contacto } = useLandingConfig();
+  const { footer, contacto, whatsappUrl } = useLandingConfig();
   const tenant = useTenant();
+  const waUrl = whatsappUrl();
 
   // Brand text: primer token del nombre del tenant (ej. "SALA Studio" → "SALA").
   // Si está vacío, fallback a "SALA" para no romper visualmente.
@@ -64,7 +66,10 @@ export default function Footer() {
 
   const redesActivas = REDES_ORDEN.filter((r) => !!footer.redes[r.key]);
   const telefono = contacto.telefono?.trim() || null;
-  const hayContacto = !!footer.email || !!footer.direccion || !!telefono;
+  // Con coordenadas fijadas en Ajustes › Contacto, el domicilio se muestra COMO
+  // MAPA (con link para cómo llegar); sin ellas, cae al texto de siempre.
+  const hayMapa = typeof contacto.lat === 'number' && typeof contacto.lng === 'number';
+  const hayContacto = !!footer.email || !!footer.direccion || !!telefono || !!waUrl;
 
   return (
     <footer
@@ -168,6 +173,25 @@ export default function Footer() {
                 {footer.email}
               </a>
             )}
+            {/* El WhatsApp vivía SOLO dentro del CTA final de la landing, que se
+                oculta si el tenant no le puso título: un gym con WhatsApp cargado
+                no lo mostraba en ningún lado. Acá siempre aparece. */}
+            {waUrl && (
+              <a
+                href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'block',
+                  fontSize: '13px',
+                  color: 'rgba(255, 255, 255, 0.75)',
+                  textDecoration: 'none',
+                  marginBottom: '6px'
+                }}
+              >
+                WhatsApp
+              </a>
+            )}
             {telefono && (
               <a
                 href={`tel:${telefono.replace(/[^\d+]/g, '')}`}
@@ -182,17 +206,29 @@ export default function Footer() {
                 {telefono}
               </a>
             )}
-            {footer.direccion && (
-              <p
-                style={{
-                  fontSize: '13px',
-                  color: 'rgba(255, 255, 255, 0.75)',
-                  margin: 0,
-                  lineHeight: 1.5
-                }}
-              >
-                {footer.direccion}
-              </p>
+            {hayMapa ? (
+              <div style={{ marginTop: '10px', borderRadius: 'var(--ek-r-xs)', overflow: 'hidden' }}>
+                <MapaSucursal
+                  lat={contacto.lat as number}
+                  lng={contacto.lng as number}
+                  nombre={tenant.nombre ?? undefined}
+                  direccion={footer.direccion}
+                  height={160}
+                />
+              </div>
+            ) : (
+              footer.direccion && (
+                <p
+                  style={{
+                    fontSize: '13px',
+                    color: 'rgba(255, 255, 255, 0.75)',
+                    margin: 0,
+                    lineHeight: 1.5
+                  }}
+                >
+                  {footer.direccion}
+                </p>
+              )
             )}
           </div>
         )}
