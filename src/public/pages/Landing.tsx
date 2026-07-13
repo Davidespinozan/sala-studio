@@ -27,6 +27,8 @@ interface EstudioPublico {
   equipo_incluido: string[] | null;
   estilo_visual: string | null;
   capacidad_personas: number | null;
+  /** Lo que el admin edita de verdad ("Cupo máximo por clase"). */
+  cupo_max_default: number | null;
   foto_url: string | null;
   destacado: boolean;
   sucursal_id: string;
@@ -62,7 +64,7 @@ function useEstudiosPublicos() {
       const { data, error } = await supabase
         .from('recursos')
         .select(
-          'id, slug, nombre, descripcion, tiers_permitidos, tipo_contenido, equipo_incluido, estilo_visual, capacidad_personas, foto_url, destacado, sucursal_id'
+          'id, slug, nombre, descripcion, tiers_permitidos, tipo_contenido, equipo_incluido, estilo_visual, capacidad_personas, cupo_max_default, foto_url, destacado, sucursal_id'
         )
         .eq('tenant_id', tenant.id)
         .eq('activo', true)
@@ -97,7 +99,8 @@ function useTiersPublicos() {
         .select('slug, nombre, precio_centavos, moneda, periodo, tipo, clases_incluidas, duracion_dias, descripcion, beneficios, reglas, orden')
         .eq('tenant_id', tenant.id)
         .eq('activo', true)
-        .order('orden', { ascending: true });
+        // De menor a mayor: es el orden en que la gente compara precios.
+        .order('precio_centavos', { ascending: true });
 
       if (!mounted) return;
       if (error) console.error('[useTiersPublicos]', error);
@@ -840,12 +843,15 @@ export default function Landing() {
         : 'paquetes';
   const planesVisibles = vistaPlan === 'membresias' ? planesMensuales : planesPaquetes;
 
-  // El destacado se elige DENTRO del grupo visible (el más caro de esa pestaña):
-  // si fuera el más caro de todos, al abrir la otra pestaña no se destacaría
-  // ninguna tarjeta.
-  const tierDestacadoSlug = planesVisibles.length
-    ? planesVisibles.reduce((a, b) => (b.precio_centavos > a.precio_centavos ? b : a)).slug
-    : null;
+  // El destacado lo decide el ADMIN con el toggle "Destacar como recomendado"
+  // (reglas.recomendado). Antes la landing elegía sola el plan MÁS CARO, así que
+  // siempre había uno resaltado aunque el gym no hubiera marcado ninguno — y
+  // marcar otro en admin no cambiaba nada. Si no hay ninguno marcado, no se
+  // destaca ninguno.
+  const tierDestacadoSlug =
+    planesVisibles.find(
+      (t) => (t.reglas as Record<string, unknown> | null)?.recomendado === true
+    )?.slug ?? null;
 
   const aEstudioInfo = (r: EstudioPublico): EstudioInfo => {
     // "Exclusiva" = la sala restringe a algún plan (cualquier slug).
@@ -855,8 +861,11 @@ export default function Landing() {
       slug: r.slug,
       nombre: r.nombre,
       tier,
-      capacidad: r.capacidad_personas
-        ? `Hasta ${r.capacidad_personas} personas`
+      // El cupo real es cupo_max_default (lo que el admin edita en Salas).
+      // capacidad_personas es legacy y queda en 0 → decía "por confirmar" aunque
+      // el gym SÍ hubiera cargado la capacidad.
+      capacidad: (r.cupo_max_default ?? r.capacidad_personas)
+        ? `Hasta ${r.cupo_max_default ?? r.capacidad_personas} personas`
         : 'Capacidad por confirmar',
       contenido: r.tipo_contenido ?? [],
       descripcion: r.descripcion ?? '',
