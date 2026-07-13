@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowRight, CalendarCheck, Check, ChevronRight, CreditCard, LifeBuoy, Plus } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CalendarCheck, Check, ChevronRight, CreditCard, LifeBuoy, Plus, RotateCcw, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Avatar } from '@shared/components/Avatar';
 import { useAuth } from '@shared/hooks/useAuth';
@@ -9,6 +9,7 @@ import { useLandingConfig } from '@shared/hooks/useLandingConfig';
 import { supabase } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
 import { useMembresiaActual, membresiaEstado } from '@member/hooks/useMembresiaActual';
+import { PlanTipoToggle, type VistaPlan } from '@shared/components/PlanTipoToggle';
 import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { iniciarCheckout } from '@shared/lib/checkout';
 import { backendPost } from '@shared/lib/backend';
@@ -155,7 +156,8 @@ export default function Perfil() {
           )}
         </div>
 
-        {/* Plan: hero + método de pago + opciones + historial + cancelar + FAQ */}
+        {/* Plan: avisos + hero + método de pago + opciones + historial + cancelar + FAQ */}
+        <AvisosPlan membresia={membresia} tenantNombre={tenant.nombre} />
         <PlanHero
           membresia={membresia}
           loading={loadingMembresia}
@@ -165,7 +167,9 @@ export default function Perfil() {
         <MetodoPago />
         <PlanActualYOpciones membresia={membresia} tiers={tiers} tenantNombre={tenant.nombre} />
         <HistorialPagos />
-        {membresia && <CancelarSuscripcion tenantNombre={tenant.nombre} />}
+        {membresia && !membresia.cancelada_at && (
+          <CancelarSuscripcion tenantNombre={tenant.nombre} />
+        )}
         <FaqPlan />
 
         {/* Stat del mes */}
@@ -283,6 +287,155 @@ function AjusteRow({
 // Mi suscripción
 // ============================================================================
 
+/**
+ * Avisos que exigen una acción del socio, arriba de todo: si no los ve, pierde
+ * el acceso sin enterarse. Antes no existía ninguno — un pago rechazado era
+ * invisible hasta que la membresía moría.
+ */
+function AvisosPlan({
+  membresia,
+  tenantNombre
+}: {
+  membresia: ReturnType<typeof useMembresiaActual>['membresia'];
+  tenantNombre: string;
+}) {
+  const toast = useToast();
+  const [tarjetaAbierta, setTarjetaAbierta] = useState(false);
+  const [reactivando, setReactivando] = useState(false);
+  if (!membresia) return null;
+
+  const pagoVencido = membresia.status === 'past_due';
+  const cancelaAlFin = !!membresia.cancelada_at;
+  if (!pagoVencido && !cancelaAlFin) return null;
+
+  async function reactivar() {
+    setReactivando(true);
+    try {
+      const res = await backendPost<{ ok?: boolean }>('cancelar-membresia', { reactivar: true });
+      if (res.ok) {
+        toast.success('¡Listo! Tu plan se va a renovar normalmente.');
+        setTimeout(() => window.location.reload(), 900);
+        return;
+      }
+      toast.error(`No pudimos reactivarlo. Habla con ${tenantNombre}.`);
+    } catch {
+      toast.error('No pudimos reactivarlo. Probá de nuevo.');
+    } finally {
+      setReactivando(false);
+    }
+  }
+
+  const fin = membresia.cancelada_efectiva_at ?? membresia.periodo_actual_fin;
+
+  return (
+    <section style={{ marginTop: '16px' }}>
+      {pagoVencido && (
+        <div
+          role="alert"
+          className="ek-card"
+          style={{
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'flex-start',
+            borderColor: 'var(--sala-error)',
+            background: 'var(--sala-error-bg)',
+            marginBottom: cancelaAlFin ? '12px' : 0
+          }}
+        >
+          <AlertTriangle size={18} style={{ color: 'var(--sala-error)', flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: '14px' }}>Tu último pago no se procesó</p>
+            <p style={{ margin: '4px 0 10px', fontSize: '13px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
+              Actualizá tu tarjeta para no perder el acceso al gimnasio.
+            </p>
+            <button
+              type="button"
+              className="ek-cta"
+              style={{ padding: '9px 16px', fontSize: '13px' }}
+              onClick={() => setTarjetaAbierta(true)}
+            >
+              Actualizar tarjeta
+            </button>
+          </div>
+        </div>
+      )}
+
+      {cancelaAlFin && (
+        <div
+          className="ek-card"
+          style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', borderColor: 'var(--sala-warning)', background: 'var(--sala-warning-bg)' }}
+        >
+          <AlertTriangle size={18} style={{ color: 'var(--sala-warning)', flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: '14px' }}>
+              Tu plan se cancela{fin ? ` el ${formatearFechaCorta(fin)}` : ' al terminar el periodo'}
+            </p>
+            <p style={{ margin: '4px 0 10px', fontSize: '13px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
+              Seguís con acceso hasta esa fecha. Podés reactivarlo cuando quieras.
+            </p>
+            <button
+              type="button"
+              className="ek-cta"
+              style={{ padding: '9px 16px', fontSize: '13px' }}
+              onClick={() => void reactivar()}
+              disabled={reactivando}
+            >
+              {reactivando ? 'Reactivando…' : 'Reactivar plan'}
+              {!reactivando && <RotateCcw size={15} strokeWidth={2.25} />}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {tarjetaAbierta && (
+        <CheckoutModal
+          modo="tarjeta"
+          onClose={() => setTarjetaAbierta(false)}
+          onSuccess={() => {
+            setTarjetaAbierta(false);
+            toast.success('¡Tarjeta actualizada!');
+            setTimeout(() => window.location.reload(), 900);
+          }}
+        />
+      )}
+    </section>
+  );
+}
+
+/** Etiqueta del estado real de la membresía, con su tono. */
+function EstadoBadge({ estado }: { estado: ReturnType<typeof membresiaEstado> }) {
+  const META: Record<string, { texto: string; color: string }> = {
+    sana: { texto: 'Activa', color: 'rgba(255, 255, 255, 0.9)' },
+    past_due: { texto: 'Pago vencido', color: 'var(--sala-error)' },
+    vencida: { texto: 'Vencida', color: 'var(--sala-warning)' },
+    congelada: { texto: 'Pausada', color: 'var(--sala-warning)' },
+    sin_creditos: { texto: 'Sin clases', color: 'var(--sala-warning)' },
+    sin_membresia: { texto: 'Sin plan', color: 'rgba(255, 255, 255, 0.7)' }
+  };
+  const m = META[estado] ?? META.sana;
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '5px 12px',
+        borderRadius: '999px',
+        background: 'rgba(255, 255, 255, 0.08)',
+        border: '1px solid rgba(255, 255, 255, 0.14)',
+        color: m.color,
+        fontSize: '11px',
+        fontWeight: 800,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase'
+      }}
+    >
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} aria-hidden="true" />
+      {m.texto}
+    </span>
+  );
+}
+
 function PlanHero({
   membresia,
   loading,
@@ -327,23 +480,27 @@ function PlanHero({
           <div className="ek-skeleton" style={{ height: '76px', borderRadius: '12px', opacity: 0.35 }} />
         ) : membresia ? (
           <>
-            <span
-              style={{
-                display: 'inline-block',
-                padding: '5px 12px',
-                borderRadius: '999px',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.14)',
-                color: 'rgba(255, 255, 255, 0.92)',
-                fontSize: '11px',
-                fontWeight: 800,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                marginBottom: '16px'
-              }}
-            >
-              {membresia.tier_nombre}
-            </span>
+            {/* Nombre del plan + ESTADO. Antes solo se veía el nombre: un socio
+                en pago vencido o congelado no tenía forma de saberlo desde acá. */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
+              <span
+                style={{
+                  display: 'inline-block',
+                  padding: '5px 12px',
+                  borderRadius: '999px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.14)',
+                  color: 'rgba(255, 255, 255, 0.92)',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase'
+                }}
+              >
+                {membresia.tier_nombre}
+              </span>
+              <EstadoBadge estado={estado} />
+            </div>
 
             <p
               style={{
@@ -449,15 +606,37 @@ function PlanActualYOpciones({
 }) {
   const toast = useToast();
   const [enProceso, setEnProceso] = useState(false);
+  const [abierto, setAbierto] = useState(false);
+  const [vistaPlan, setVistaPlan] = useState<VistaPlan>('membresias');
+  // Pasar de un paquete con clases restantes a una mensualidad las descarta:
+  // que sea una decisión consciente, no una sorpresa.
+  const [confirmarPerdida, setConfirmarPerdida] = useState<Tier | null>(null);
+
   if (tiers.length === 0) return null;
 
   const tieneMembresia = !!membresia;
+  const esPaquete = (t: Tier) => t.tipo === 'creditos' || t.tipo === 'hibrido';
+  const planesMensuales = tiers.filter((t) => !esPaquete(t));
+  const planesPaquetes = tiers.filter((t) => esPaquete(t));
+  const hayAmbosTipos = planesMensuales.length > 0 && planesPaquetes.length > 0;
+  const vista: VistaPlan =
+    vistaPlan === 'paquetes' && planesPaquetes.length > 0
+      ? 'paquetes'
+      : planesMensuales.length > 0
+        ? 'membresias'
+        : 'paquetes';
+  const planesVisibles = vista === 'membresias' ? planesMensuales : planesPaquetes;
+  const creditos = membresia?.creditos_restantes ?? 0;
 
-  // Compra/cambio de plan vía el flujo de checkout (cableado para Stripe). Hoy:
-  // en el demo activa al instante (pago simulado); en tenant real avisa "pago en
-  // camino" hasta conectar Stripe. Con Stripe, iniciarCheckout redirige solo.
   const suscribir = async (tier: Tier) => {
     if (enProceso) return;
+    // Aviso previo: paquete con saldo → mensualidad = perdés las clases.
+    const veniaDePaquete =
+      membresia?.tier_tipo === 'creditos' || membresia?.tier_tipo === 'hibrido';
+    if (veniaDePaquete && creditos > 0 && !esPaquete(tier)) {
+      setConfirmarPerdida(tier);
+      return;
+    }
     setEnProceso(true);
     try {
       const res = await iniciarCheckout(tier.id);
@@ -467,7 +646,6 @@ function PlanActualYOpciones({
         setTimeout(() => window.location.reload(), 900);
         return;
       }
-      // Tenant real sin Stripe todavía.
       toast.info(`El pago online está en camino. Por ahora, habla con ${tenantNombre} para activar tu plan.`);
       setEnProceso(false);
     } catch (err) {
@@ -477,20 +655,125 @@ function PlanActualYOpciones({
   };
 
   return (
-    <section style={{ marginTop: '32px' }}>
-      <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>PLAN ACTUAL Y OPCIONES</p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
-        {tiers.map((tier) => (
-          <PlanOptionCard
-            key={tier.id}
-            tier={tier}
-            esActual={membresia?.tier_id === tier.id}
-            tieneMembresia={tieneMembresia}
-            enProceso={enProceso}
-            onCambiar={() => void suscribir(tier)}
-          />
-        ))}
-      </div>
+    <section style={{ marginTop: '20px' }}>
+      {/* Un solo botón. Antes acá se listaban TODAS las tarjetas de planes: el
+          perfil quedaba en una pared de opciones donde no se distinguía cuál era
+          el tuyo. Elegir plan es una tarea puntual → va en un modal. */}
+      <button
+        type="button"
+        onClick={() => {
+          setVistaPlan(
+            membresia && (membresia.tier_tipo === 'creditos' || membresia.tier_tipo === 'hibrido')
+              ? 'paquetes'
+              : 'membresias'
+          );
+          setAbierto(true);
+        }}
+        className="ek-cta ek-cta--full ek-lift"
+      >
+        {tieneMembresia ? 'Cambiar de plan' : 'Elegir un plan'}
+        <ArrowRight size={16} strokeWidth={2.25} />
+      </button>
+
+      {abierto && (
+        <div
+          className="ek-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Cambiar de plan"
+          onClick={() => setAbierto(false)}
+        >
+          <div
+            className="ek-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '440px', width: '100%', maxHeight: '86vh', overflowY: 'auto' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+              <p className="ek-eyebrow">{tieneMembresia ? 'CAMBIAR DE PLAN' : 'ELEGIR UN PLAN'}</p>
+              <button
+                type="button"
+                className="ek-icon-btn"
+                aria-label="Cerrar"
+                onClick={() => setAbierto(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {hayAmbosTipos && (
+              <div style={{ marginBottom: '16px' }}>
+                <PlanTipoToggle value={vista} onChange={setVistaPlan} />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {planesVisibles.map((tier) => (
+                <PlanOptionCard
+                  key={tier.id}
+                  tier={tier}
+                  esActual={membresia?.tier_id === tier.id}
+                  tieneMembresia={tieneMembresia}
+                  enProceso={enProceso}
+                  onCambiar={() => void suscribir(tier)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmarPerdida && (
+        <div className="ek-backdrop" role="dialog" aria-modal="true" onClick={() => setConfirmarPerdida(null)}>
+          <div className="ek-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px', width: '100%' }}>
+            <p className="ek-eyebrow" style={{ color: 'var(--sala-error)', marginBottom: '8px' }}>
+              PERDÉS TUS CLASES
+            </p>
+            <h3 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 700 }}>
+              Te quedan {creditos} {creditos === 1 ? 'clase' : 'clases'}
+            </h3>
+            <p style={{ margin: '0 0 18px', fontSize: '14px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
+              <strong>{confirmarPerdida.nombre}</strong> es una mensualidad, así que tu saldo de
+              clases <strong>se pierde</strong>. Si querés aprovecharlas, usalas antes de cambiar.
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                className="ek-cta ek-cta--secondary ek-cta--full"
+                onClick={() => setConfirmarPerdida(null)}
+              >
+                Mejor no
+              </button>
+              <button
+                type="button"
+                className="ek-cta ek-cta--full"
+                onClick={() => {
+                  const destino = confirmarPerdida;
+                  setConfirmarPerdida(null);
+                  setEnProceso(true);
+                  void (async () => {
+                    try {
+                      const res = await iniciarCheckout(destino.id);
+                      if (res.url) return;
+                      if (res.activated) {
+                        toast.success(`¡Listo! Tu plan ${destino.nombre} quedó activo.`);
+                        setTimeout(() => window.location.reload(), 900);
+                        return;
+                      }
+                      toast.info(`El pago online está en camino. Habla con ${tenantNombre}.`);
+                      setEnProceso(false);
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : 'No pudimos procesar la suscripción.');
+                      setEnProceso(false);
+                    }
+                  })();
+                }}
+              >
+                Continuar igual
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

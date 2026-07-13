@@ -29,6 +29,11 @@ export interface MembresiaActual {
   sucursal_id: string | null;
   /** El plan da acceso a todas las sedes (true) o solo a la suscrita (false). */
   tier_acceso_todas_sucursales: boolean;
+  /** NOT NULL = el socio pidió cancelar: sigue con acceso hasta que termine el
+   *  periodo pagado, y puede reactivar hasta entonces. */
+  cancelada_at: string | null;
+  /** Cuándo deja de tener acceso si no reactiva. */
+  cancelada_efectiva_at: string | null;
 }
 
 /**
@@ -99,7 +104,7 @@ export function useMembresiaActual(usuarioId?: string) {
     const { data, error: qerr } = await supabase
       .from('membresias')
       .select(
-        'id, status, periodo_actual_inicio, periodo_actual_fin, creditos_restantes, tier_id, sucursal_id, tier:tiers(slug, nombre, tipo, duracion_dias, clases_incluidas, acceso_todas_sucursales)'
+        'id, status, periodo_actual_inicio, periodo_actual_fin, creditos_restantes, tier_id, sucursal_id, cancelada_at, cancelada_efectiva_at, tier:tiers(slug, nombre, tipo, duracion_dias, clases_incluidas, acceso_todas_sucursales)'
       )
       .eq('usuario_id', targetId)
       .in('status', ['trialing', 'activa', 'past_due', 'congelada'])
@@ -132,6 +137,8 @@ export function useMembresiaActual(usuarioId?: string) {
     setMembresia({
       id: data.id,
       status: data.status as StatusMembresia,
+      cancelada_at: data.cancelada_at ?? null,
+      cancelada_efectiva_at: data.cancelada_efectiva_at ?? null,
       periodo_actual_inicio: data.periodo_actual_inicio,
       periodo_actual_fin: data.periodo_actual_fin,
       creditos_restantes: data.creditos_restantes,

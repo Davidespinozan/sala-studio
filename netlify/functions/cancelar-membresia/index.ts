@@ -66,7 +66,7 @@ export const handler: Handler = async (event) => {
     // Suscripción vigente del socio (la membresía activa con sub de Stripe).
     const { data: mem } = await admin
       .from('membresias')
-      .select('stripe_subscription_id')
+      .select('id, stripe_subscription_id, periodo_actual_fin')
       .eq('usuario_id', socio.id)
       .in('status', ['activa', 'trialing', 'past_due', 'congelada'])
       .order('created_at', { ascending: false })
@@ -81,6 +81,23 @@ export const handler: Handler = async (event) => {
 
     const stripe = getStripe();
     await stripe.subscriptions.update(subId, { cancel_at_period_end: !reactivar }, { stripeAccount: acct });
+
+    // Espejo en la DB: antes solo se avisaba a Stripe, así que la app no tenía
+    // forma de saber que el plan estaba por cancelarse → no podía mostrar el
+    // aviso ni ofrecer "Reactivar". cancelada_at marca la intención; el status
+    // sigue 'activa' hasta que Stripe cierre el periodo (el socio conserva
+    // acceso hasta cancelada_efectiva_at).
+    await admin
+      .from('membresias')
+      .update(
+        reactivar
+          ? { cancelada_at: null, cancelada_efectiva_at: null }
+          : {
+              cancelada_at: new Date().toISOString(),
+              cancelada_efectiva_at: mem?.periodo_actual_fin ?? null
+            }
+      )
+      .eq('id', mem!.id);
 
     return ok({ ok: true, cancel_at_period_end: !reactivar });
   } catch (err) {
