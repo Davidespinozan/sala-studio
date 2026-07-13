@@ -1,11 +1,12 @@
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, CalendarPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTenant } from '@shared/hooks/useTenant';
 import { type Clase } from '@member/logic/claseAdapter';
 
 interface Props {
-  clase: Clase;
-  reservaId: string;
+  /** null = el socio no tiene ninguna clase reservada. */
+  clase: Clase | null;
+  reservaId: string | null;
 }
 
 /**
@@ -13,14 +14,20 @@ interface Props {
  * EXPERIENCIA con foto de fondo + scrim para que el texto se lea. La foto es la
  * IMAGEN DEL SOCIO que el tenant eligió en admin (config.member.qr_bg_url); si
  * no la subió, cae a la foto de la sala de esa clase, y si no, a su gradiente.
+ *
+ * Se muestra SIEMPRE, con o sin reserva: antes, el socio sin reserva veía un
+ * bloque chico sin foto y el Home perdía toda su presencia justo cuando más falta
+ * hace empujarlo a reservar. Sin reserva cambia el mensaje y el botón, no el peso
+ * visual.
  */
 export function ProximaClaseHero({ clase, reservaId }: Props) {
   const tenant = useTenant();
   const heroImg = (
     (tenant.config as Record<string, unknown> | null)?.member as Record<string, unknown> | undefined
   )?.qr_bg_url as string | undefined;
-  // Imagen del socio (admin) → foto de la sala → gradiente de marca.
-  const bg = heroImg || clase.imagenUrl;
+  // Imagen del socio (admin) → foto de la sala de la clase → gradiente de marca.
+  const bg = heroImg || clase?.imagenUrl;
+  const hayReserva = !!clase && !!reservaId;
 
   return (
     <div
@@ -84,27 +91,69 @@ export function ProximaClaseHero({ clase, reservaId }: Props) {
             color: '#fff'
           }}
         >
-          {clase.nombre}
+          {hayReserva ? clase.nombre : 'Todavía no reservaste'}
         </h2>
 
-        <p
-          style={{
-            fontSize: '15px',
-            fontWeight: 600,
-            color: 'rgba(255, 255, 255, 0.9)',
-            margin: '0 0 3px',
-            fontVariantNumeric: 'tabular-nums'
-          }}
-        >
-          {clase.horaHumanaLabel}
-        </p>
+        {hayReserva ? (
+          <>
+            <p
+              style={{
+                fontSize: '15px',
+                fontWeight: 600,
+                color: 'rgba(255, 255, 255, 0.9)',
+                margin: '0 0 3px',
+                fontVariantNumeric: 'tabular-nums'
+              }}
+            >
+              {clase.horaHumanaLabel}
+            </p>
 
-        <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.66)', margin: '0 0 20px' }}>
-          {clase.instructorNombre ? `con ${clase.instructorNombre}` : 'Instructor por confirmar'}
-          {clase.salaNombre && clase.salaNombre !== clase.nombre && ` · ${clase.salaNombre}`}
-        </p>
+            <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.66)', margin: '0 0 20px' }}>
+              {clase.instructorNombre ? `con ${clase.instructorNombre}` : 'Instructor por confirmar'}
+              {clase.salaNombre && clase.salaNombre !== clase.nombre && ` · ${clase.salaNombre}`}
+            </p>
+          </>
+        ) : (
+          <p
+            style={{
+              fontSize: '14px',
+              color: 'rgba(255, 255, 255, 0.72)',
+              margin: '0 0 20px',
+              maxWidth: '320px',
+              lineHeight: 1.5
+            }}
+          >
+            Reservá tu próxima clase y va a aparecer acá, con tu código QR para entrar.
+          </p>
+        )}
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {!hayReserva ? (
+            <Link
+              to="/app/reservar"
+              className="ek-lift"
+              style={{
+                padding: '11px 22px',
+                minHeight: '42px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '999px',
+                background: 'var(--grad-accent)',
+                color: 'var(--sala-text-on-accent)',
+                border: '1px solid var(--sala-accent)',
+                fontSize: '13px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                boxShadow: '0 6px 18px var(--sala-accent-dim), inset 0 1px 0 rgba(255, 255, 255, 0.18)',
+                gap: '6px'
+              }}
+            >
+              Reservar ahora
+              <CalendarPlus size={16} strokeWidth={2.25} />
+            </Link>
+          ) : (
+          <>
           <Link
             to={`/app/clase/${encodeURIComponent(clase.id)}`}
             style={{
@@ -149,6 +198,8 @@ export function ProximaClaseHero({ clase, reservaId }: Props) {
             Mi QR
             <ArrowRight size={16} strokeWidth={2.25} />
           </Link>
+          </>
+          )}
         </div>
       </div>
     </div>

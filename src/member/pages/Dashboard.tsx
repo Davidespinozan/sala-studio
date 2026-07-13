@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Activity, ArrowDown, ArrowRight, CalendarCheck, Clock, Heart, Sparkles, type LucideIcon } from 'lucide-react';
+import { Activity, ArrowRight, CalendarCheck, Clock, Heart, Sparkles, type LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
@@ -330,12 +330,16 @@ export default function Dashboard() {
             }}
           />
         </section>
-      ) : proximaClase && proximaReserva ? (
-        <section style={{ marginBottom: '26px' }}>
-          <ProximaClaseHero clase={proximaClase} reservaId={proximaReserva.id} />
-        </section>
       ) : (
-        <EmptyProximaClaseInline />
+        // El hero va SIEMPRE: sin reserva cambia el mensaje y el botón, no
+        // desaparece. Antes el Home se quedaba sin su bloque principal justo
+        // cuando había que empujar al socio a reservar.
+        <section style={{ marginBottom: '26px' }}>
+          <ProximaClaseHero
+            clase={proximaClase ?? null}
+            reservaId={proximaReserva?.id ?? null}
+          />
+        </section>
       )}
 
       {/* Resumen rápido (chips de progreso) */}
@@ -580,31 +584,6 @@ function ListaEsperaCard({ item }: { item: ListaEsperaItem }) {
         En espera #{item.posicion}
       </span>
     </Link>
-  );
-}
-
-function EmptyProximaClaseInline() {
-  return (
-    <p
-      style={{
-        fontSize: '14px',
-        color: 'var(--sala-text-secondary)',
-        margin: 0,
-        marginBottom: '24px',
-        lineHeight: 1.5
-      }}
-    >
-      <span
-        style={{
-          fontWeight: 700,
-          color: 'var(--sala-text-primary)'
-        }}
-      >
-        No tienes clases reservadas.
-      </span>{' '}
-      Mira las opciones de hoy
-      <ArrowDown size={14} strokeWidth={2.25} style={{ display: 'inline', verticalAlign: 'text-bottom', marginLeft: '3px' }} />
-    </p>
   );
 }
 
