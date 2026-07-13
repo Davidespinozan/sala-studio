@@ -67,7 +67,27 @@ type HeroDraft = {
   image_url_mobile: string;
   imagenes: { desktop: string; mobile: string }[];
   layout: HeroLayout;
+  altura: HeroAltura;
+  encuadre: HeroEncuadre;
+  zoom: boolean;
+  oscurecido: number;
 };
+
+type HeroAltura = 'compacto' | 'medio' | 'alto' | 'pantalla';
+type HeroEncuadre = 'arriba' | 'centro' | 'abajo';
+
+const HERO_ALTURA_OPTS: { value: HeroAltura; label: string; hint: string }[] = [
+  { value: 'compacto', label: 'Compacto', hint: 'La foto ocupa poco; se ve más contenido debajo.' },
+  { value: 'medio', label: 'Medio', hint: 'Equilibrado (recomendado).' },
+  { value: 'alto', label: 'Alto', hint: 'La foto domina la pantalla.' },
+  { value: 'pantalla', label: 'Pantalla completa', hint: 'Ocupa casi toda la altura de la pantalla.' }
+];
+
+const HERO_ENCUADRE_OPTS: { value: HeroEncuadre; label: string; hint: string }[] = [
+  { value: 'arriba', label: 'Arriba', hint: 'Se conserva la parte de arriba de la foto.' },
+  { value: 'centro', label: 'Centro', hint: 'Se conserva el centro (recomendado).' },
+  { value: 'abajo', label: 'Abajo', hint: 'Se conserva la parte de abajo.' }
+];
 
 const HERO_LAYOUT_OPTS: { value: HeroLayout; label: string; hint: string }[] = [
   { value: 'contenido', label: 'Contenido', hint: 'Card con esquinas redondeadas, flota sobre el fondo' },
@@ -160,7 +180,7 @@ const FAQ_STARTER: FaqDraftItem[] = [
 ];
 
 const EMPTY: LandingDraft = {
-  hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta2_texto: '', cta2_link: '#membresias', image_url: '', image_url_mobile: '', imagenes: [], layout: 'contenido' },
+  hero: { eyebrow: '', titulo: '', titulo_accent: '', subtitulo: '', cta_texto: '', cta2_texto: '', cta2_link: '#membresias', image_url: '', image_url_mobile: '', imagenes: [], layout: 'contenido', altura: 'medio', encuadre: 'centro', zoom: false, oscurecido: 55 },
   secciones: SECCIONES_DEFAULT,
   post_hero: POST_HERO_DEFAULT,
   cta_final: { eyebrow: '', titulo: '', subtitulo: '', cta_texto: '' },
@@ -210,7 +230,18 @@ function readLanding(config: Record<string, unknown> | null): LandingDraft {
       image_url: String(hero.image_url ?? ''),
       image_url_mobile: String(hero.image_url_mobile ?? ''),
       imagenes: readHeroSlides(hero),
-      layout: hero.layout === 'completo' ? 'completo' : 'contenido'
+      layout: hero.layout === 'completo' ? 'completo' : 'contenido',
+      altura: (['compacto', 'medio', 'alto', 'pantalla'] as const).includes(hero.altura as HeroAltura)
+        ? (hero.altura as HeroAltura)
+        : 'medio',
+      encuadre: (['arriba', 'centro', 'abajo'] as const).includes(hero.encuadre as HeroEncuadre)
+        ? (hero.encuadre as HeroEncuadre)
+        : 'centro',
+      zoom: hero.zoom === true,
+      oscurecido:
+        typeof hero.oscurecido === 'number' && hero.oscurecido >= 0 && hero.oscurecido <= 100
+          ? hero.oscurecido
+          : 55
     },
     cta_final: {
       eyebrow: String(ctaFinal.eyebrow ?? ''),
@@ -651,6 +682,96 @@ export default function AjustesLanding() {
             })}
           </div>
         </FormField>
+        <FormField
+          label="Alto de la imagen"
+          helper="Cuánto espacio ocupa el hero en la pantalla. Con 'Compacto' la foto se recorta menos y se ve antes el resto de la página."
+        >
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {HERO_ALTURA_OPTS.map((opt) => {
+              const active = draft.hero.altura === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  title={opt.hint}
+                  onClick={() => setDraft({ ...draft, hero: { ...draft.hero, altura: opt.value } })}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '999px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    background: active ? 'var(--grad-primary)' : 'var(--sala-surface)',
+                    color: active ? 'var(--sala-text-on-primary)' : 'var(--sala-text-secondary)',
+                    border: `1px solid ${active ? 'var(--sala-primary)' : 'var(--sala-border)'}`
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </FormField>
+
+        <FormField
+          label="Encuadre"
+          helper="Qué parte de la foto se conserva cuando hay que recortarla. Si la cara o el logo quedan cortados, movelo."
+        >
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {HERO_ENCUADRE_OPTS.map((opt) => {
+              const active = draft.hero.encuadre === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  title={opt.hint}
+                  onClick={() => setDraft({ ...draft, hero: { ...draft.hero, encuadre: opt.value } })}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '999px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    background: active ? 'var(--grad-primary)' : 'var(--sala-surface)',
+                    color: active ? 'var(--sala-text-on-primary)' : 'var(--sala-text-secondary)',
+                    border: `1px solid ${active ? 'var(--sala-primary)' : 'var(--sala-border)'}`
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </FormField>
+
+        <FormField
+          label={`Oscurecido de la foto — ${draft.hero.oscurecido}%`}
+          helper="La foto se oscurece para que el texto se lea encima. Bajalo si tu imagen es clara y querés que se vea nítida; subilo si el título se pierde."
+        >
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={draft.hero.oscurecido}
+            onChange={(e) =>
+              setDraft({ ...draft, hero: { ...draft.hero, oscurecido: Number(e.target.value) } })
+            }
+            style={{ width: '100%', accentColor: 'var(--sala-primary)' }}
+          />
+        </FormField>
+
+        <div className="ek-form-field" style={{ marginBottom: '14px' }}>
+          <Toggle
+            checked={draft.hero.zoom}
+            onChange={(v) => setDraft({ ...draft, hero: { ...draft.hero, zoom: v } })}
+            label="Zoom lento en la imagen"
+            description="Acerca la foto muy despacio, en loop. Da movimiento, pero RECORTA los bordes: si tu imagen ya está justa de encuadre, dejalo apagado."
+          />
+        </div>
+
         <FormField
           label="Etiqueta superior"
           helper="Texto pequeño que aparece arriba del título principal."

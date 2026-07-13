@@ -434,6 +434,30 @@ export function HeroView({
   //   'contenido' → card con esquinas redondeadas flotando sobre el fondo
   const fullBleed = hero.layout === 'completo';
 
+  // Alto del hero, elegible desde admin. Antes estaba fijo en 'clamp(560px, 92vh,
+  // 760px)' full-bleed / 'clamp(520px, 80vh, 600px)' contenido: la foto se
+  // recortaba sí o sí y no había forma de darle aire.
+  const ALTURAS: Record<string, string> = {
+    compacto: 'clamp(320px, 46vh, 420px)',
+    medio: 'clamp(420px, 62vh, 560px)',
+    alto: 'clamp(520px, 80vh, 700px)',
+    pantalla: 'clamp(560px, 94vh, 900px)'
+  };
+  const alturaHero = preview
+    ? (fullBleed ? '460px' : '420px')
+    : (ALTURAS[hero.altura] ?? ALTURAS.medio);
+
+  // Qué parte de la foto sobrevive al recorte.
+  const objectPosition =
+    hero.encuadre === 'arriba' ? 'center top'
+      : hero.encuadre === 'abajo' ? 'center bottom'
+        : 'center center';
+
+  // Oscurecido: 0 = foto limpia, 100 = casi negra. El degradado sigue siendo más
+  // fuerte abajo (donde va el texto) y suave arriba.
+  const o = Math.max(0, Math.min(100, hero.oscurecido)) / 100;
+  const scrim = `linear-gradient(to top, rgba(10, 15, 12, ${(0.95 * o).toFixed(2)}) 0%, rgba(10, 15, 12, ${(0.6 * o).toFixed(2)}) 42%, rgba(10, 15, 12, ${(0.24 * o).toFixed(2)}) 100%)`;
+
   if (!hasImg) {
     return (
       <section
@@ -476,9 +500,7 @@ export function HeroView({
           position: 'relative',
           overflow: 'hidden',
           borderRadius: fullBleed ? 0 : 'var(--ek-r-card)',
-          minHeight: preview
-            ? (fullBleed ? '460px' : '420px')
-            : (fullBleed ? 'clamp(560px, 92vh, 760px)' : 'clamp(520px, 80vh, 600px)'),
+          minHeight: alturaHero,
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-end',
@@ -486,16 +508,16 @@ export function HeroView({
           boxShadow: fullBleed ? 'none' : '0 24px 60px rgba(10, 15, 12, 0.28)'
         }}
       >
-        {/* Carrusel de fondo (1 imagen = solo Ken Burns). */}
-        <HeroCarousel slides={slides} forceMobile={forceMobile} />
+        {/* Carrusel de fondo. El zoom (Ken Burns) y el encuadre los decide el admin. */}
+        <HeroCarousel
+          slides={slides}
+          forceMobile={forceMobile}
+          zoom={hero.zoom}
+          objectPosition={objectPosition}
+        />
         <div
           aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 1,
-            background: 'linear-gradient(to top, rgba(10, 15, 12, 0.92) 0%, rgba(10, 15, 12, 0.55) 42%, rgba(10, 15, 12, 0.22) 100%)'
-          }}
+          style={{ position: 'absolute', inset: 0, zIndex: 1, background: scrim }}
         />
         {/* Orbs ambientales SOBRE la foto (blend screen, muy tenues): hacen
             "respirar" al hero aunque haya una imagen a pantalla completa. */}

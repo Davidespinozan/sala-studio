@@ -2964,9 +2964,12 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
    frena en JS (usePrefersReducedMotion).
    ============================================================================ */
 
+/* Ken Burns. Antes iba de 1.05 a 1.16: un 16% de zoom recorta de más y desencuadra
+   la foto que subió el gym. Ahora es sutil (1.00 → 1.06) y además OPCIONAL: solo
+   corre si el admin lo activa (.has-zoom). */
 @keyframes sala-kenburns {
-  from { transform: scale(1.05); }
-  to   { transform: scale(1.16) translate(-1.5%, -1.5%); }
+  from { transform: scale(1); }
+  to   { transform: scale(1.06); }
 }
 .sala-hero-slide {
   position: absolute;
@@ -2978,9 +2981,10 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   transition: opacity 1.1s var(--ease-premium);
   will-change: opacity, transform;
 }
-.sala-hero-slide.is-active {
-  opacity: 1;
-  animation: sala-kenburns 18s var(--ease-premium) infinite alternate;
+.sala-hero-slide.is-active { opacity: 1; }
+/* Sin .has-zoom la foto se muestra tal cual se subió (sin recorte por zoom). */
+.sala-hero-slide.is-active.has-zoom {
+  animation: sala-kenburns 22s var(--ease-premium) infinite alternate;
 }
 
 .sala-hero-dots {

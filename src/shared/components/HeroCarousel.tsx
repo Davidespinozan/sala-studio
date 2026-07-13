@@ -13,13 +13,19 @@ import type { LandingHeroSlide } from '@shared/hooks/useLandingConfig';
 export function HeroCarousel({
   slides,
   intervalMs = 5000,
-  forceMobile = false
+  forceMobile = false,
+  zoom = false,
+  objectPosition = 'center center'
 }: {
   slides: LandingHeroSlide[];
   intervalMs?: number;
   /** Preview móvil: fuerza la imagen 3:4 (el <picture> usa el viewport real,
    *  que en el panel de admin es ancho, así que no cambiaría solo). */
   forceMobile?: boolean;
+  /** Ken Burns (zoom lento). Antes era obligatorio y recortaba la foto. */
+  zoom?: boolean;
+  /** Qué parte de la foto sobrevive al recorte (object-position). */
+  objectPosition?: string;
 }) {
   const reduced = usePrefersReducedMotion();
   const n = slides.length;
@@ -61,7 +67,8 @@ export function HeroCarousel({
             src={forceMobile ? s.mobile || s.desktop : s.desktop}
             alt=""
             aria-hidden="true"
-            className={`sala-hero-slide${i === idx ? ' is-active' : ''}`}
+            className={`sala-hero-slide${i === idx ? ' is-active' : ''}${zoom ? ' has-zoom' : ''}`}
+            style={{ objectPosition }}
           />
         </picture>
       ))}

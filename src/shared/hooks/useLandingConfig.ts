@@ -3,6 +3,8 @@ import { useTenant } from '@shared/hooks/useTenant';
 /** Estilo del hero CON imagen: 'contenido' = card con esquinas redondeadas
  *  (flota sobre el fondo); 'completo' = full-bleed de borde a borde. */
 export type LandingHeroLayout = 'contenido' | 'completo';
+export type LandingHeroAltura = 'compacto' | 'medio' | 'alto' | 'pantalla';
+export type LandingHeroEncuadre = 'arriba' | 'centro' | 'abajo';
 
 /** Un slide del carrusel del hero: imagen desktop (16:9) + móvil (3:4). */
 export type LandingHeroSlide = { desktop: string; mobile: string };
@@ -28,6 +30,18 @@ export type LandingHero = {
   imagenes: LandingHeroSlide[];
   /** Estilo del hero con imagen. Default 'contenido'. */
   layout: LandingHeroLayout;
+
+  // ── Control de la imagen (antes todo esto estaba fijo en el código) ──
+  /** Alto del hero: 'compacto' | 'medio' | 'alto' | 'pantalla'. Default 'medio'. */
+  altura: LandingHeroAltura;
+  /** Qué parte de la foto se ve al recortar (object-position). Default 'centro'. */
+  encuadre: LandingHeroEncuadre;
+  /** Zoom lento (Ken Burns). Antes era obligatorio y llegaba al 116% → recortaba
+   *  la foto. Ahora se puede apagar. Default false. */
+  zoom: boolean;
+  /** Cuánto se oscurece la foto para que el texto se lea, 0–100. El valor viejo
+   *  hardcodeado equivalía a ~90; el default nuevo es 55. */
+  oscurecido: number;
 };
 
 type LandingCtaFinal = {
@@ -79,7 +93,11 @@ const HERO_DEFAULT: LandingHero = {
   image_url: '',
   image_url_mobile: '',
   imagenes: [],
-  layout: 'contenido'
+  layout: 'contenido',
+  altura: 'medio',
+  encuadre: 'centro',
+  zoom: false,
+  oscurecido: 55
 };
 
 const CTA_FINAL_DEFAULT: LandingCtaFinal = {
@@ -280,6 +298,14 @@ export function useLandingConfig() {
 
   const hero = parseObject(landing.hero, HERO_DEFAULT);
   hero.imagenes = parseHeroSlides(hero.imagenes);
+  // Saneado: valores fuera de rango (o basura en el jsonb) caen al default.
+  if (!['compacto', 'medio', 'alto', 'pantalla'].includes(hero.altura)) hero.altura = 'medio';
+  if (!['arriba', 'centro', 'abajo'].includes(hero.encuadre)) hero.encuadre = 'centro';
+  hero.zoom = hero.zoom === true;
+  hero.oscurecido =
+    typeof hero.oscurecido === 'number' && hero.oscurecido >= 0 && hero.oscurecido <= 100
+      ? hero.oscurecido
+      : 55;
   const secciones = parseSecciones(landing.secciones);
   const post_hero = parsePostHero(landing.post_hero);
   const cta_final = parseObject(landing.cta_final, CTA_FINAL_DEFAULT);
