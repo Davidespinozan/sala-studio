@@ -126,6 +126,7 @@ interface InstructorPublico {
 
 interface HorarioPublico {
   id: string;
+  recurso_id: string;
   nombre: string;
   descripcion: string | null;
   dias_semana: number[];
@@ -151,7 +152,7 @@ function useProgramaSemanal() {
     (async () => {
       const { data, error } = await supabase
         .from('horarios_recurrentes')
-        .select('id, nombre, descripcion, dias_semana, hora_inicio, duracion_minutos, foto_url')
+        .select('id, recurso_id, nombre, descripcion, dias_semana, hora_inicio, duracion_minutos, foto_url')
         // Igual que el resto de lecturas anónimas: el filtro de tenant es la
         // primera línea de defensa (anon no tiene JWT, la RLS no puede scopear).
         .eq('tenant_id', tenant.id)
@@ -167,17 +168,6 @@ function useProgramaSemanal() {
 
   return { horarios, isLoading };
 }
-
-/** dow según la DB: 0=domingo … 6=sábado. La semana se muestra de lunes a domingo. */
-const DIAS_SEMANA: { dow: number; label: string }[] = [
-  { dow: 1, label: 'Lunes' },
-  { dow: 2, label: 'Martes' },
-  { dow: 3, label: 'Miércoles' },
-  { dow: 4, label: 'Jueves' },
-  { dow: 5, label: 'Viernes' },
-  { dow: 6, label: 'Sábado' },
-  { dow: 0, label: 'Domingo' }
-];
 
 /** S6-5: instructores activos del tenant para la sección de la landing. */
 function useInstructoresPublicos() {
@@ -924,15 +914,18 @@ export default function Landing() {
     const esExclusivo = (r.tiers_permitidos?.length ?? 0) > 0;
     const tier: 'basica' | 'pro' = esExclusivo ? 'pro' : 'basica';
     return {
+      id: r.id,
       slug: r.slug,
       nombre: r.nombre,
       tier,
       // El cupo real es cupo_max_default (lo que el admin edita en Salas).
       // capacidad_personas es legacy y queda en 0 → decía "por confirmar" aunque
       // el gym SÍ hubiera cargado la capacidad.
+      // Vacío = el gym no cargó cupo → el bloque no se dibuja (antes salía el
+      // título con un "por confirmar" que no aporta nada).
       capacidad: (r.cupo_max_default ?? r.capacidad_personas)
         ? `Hasta ${r.cupo_max_default ?? r.capacidad_personas} personas`
-        : 'Capacidad por confirmar',
+        : '',
       contenido: r.tipo_contenido ?? [],
       descripcion: r.descripcion ?? '',
       estiloVisual: r.estilo_visual ?? '',
@@ -1255,57 +1248,6 @@ export default function Landing() {
       )}
 
       {/* ============================================================
-          PROGRAMA DE LA SEMANA — qué se hace cada día.
-          Solo si el gym cargó horarios. Para un gym de una sola sala, ESTO es
-          su producto: la sección de salas le mostraba una tarjeta y nada más.
-          ============================================================ */}
-      {programa.length > 0 && (
-        <section id="programa" className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
-          <SeccionHeading heading={secciones.programa} editorial />
-
-          <div className="landing-programa">
-            {DIAS_SEMANA.map(({ dow, label }) => {
-              // AGRUPADO POR CLASE: el mismo entrenamiento se repite en 10 franjas
-              // horarias. Listarlas una por una repetía nombre y enfoque 10 veces
-              // y la sección era una pared ilegible. La clase se nombra UNA vez y
-              // las horas van como chips.
-              const delDia = programa.filter((h) => h.dias_semana.includes(dow));
-              if (delDia.length === 0) return null;
-
-              const porClase = new Map<string, { nombre: string; enfoque: string | null; horas: string[] }>();
-              for (const h of delDia) {
-                const clave = `${h.nombre}|${h.descripcion ?? ''}`;
-                const entrada = porClase.get(clave) ?? {
-                  nombre: h.nombre,
-                  enfoque: h.descripcion,
-                  horas: []
-                };
-                entrada.horas.push(h.hora_inicio.slice(0, 5));
-                porClase.set(clave, entrada);
-              }
-
-              return (
-                <div key={dow} className="landing-programa-dia">
-                  <p className="landing-programa-dia-label">{label}</p>
-                  {[...porClase.values()].map((c) => (
-                    <div key={c.nombre} className="landing-programa-clase">
-                      <p className="landing-programa-nombre">{c.nombre}</p>
-                      {c.enfoque && <p className="landing-programa-enfoque">{c.enfoque}</p>}
-                      <div className="landing-programa-horas">
-                        {c.horas.sort().map((h) => (
-                          <span key={h} className="landing-programa-hora">{h}</span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* ============================================================
           MEMBRESÍAS
           ============================================================ */}
       <section id="membresias" className="reveal" style={{ padding: 'clamp(56px, 8vw, 100px) 0' }}>
@@ -1573,6 +1515,7 @@ export default function Landing() {
 
       <EstudioModal
         estudio={estudioAbierto}
+        horarios={programa}
         onClose={() => setEstudioAbierto(null)}
       />
 

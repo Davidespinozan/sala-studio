@@ -959,9 +959,6 @@ export default function AjustesLanding() {
         <SubBloque label="Salas">
           <SeccionHeadingFields value={draft.secciones.salas} onChange={(v) => setSeccion('salas', v)} />
         </SubBloque>
-        <SubBloque label="Programa de la semana">
-          <SeccionHeadingFields value={draft.secciones.programa} onChange={(v) => setSeccion('programa', v)} />
-        </SubBloque>
         <SubBloque label="Membresías">
           <SeccionHeadingFields
             value={draft.secciones.membresias}

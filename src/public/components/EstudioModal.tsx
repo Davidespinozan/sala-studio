@@ -2,7 +2,11 @@ import { useEffect } from 'react';
 import { Check, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { ProgramaSemanal, type HorarioPublico } from './ProgramaSemanal';
+
 export interface EstudioInfo {
+  /** id del recurso: sirve para filtrar el programa de ESTA sala. */
+  id: string;
   slug: string;
   nombre: string;
   tier: 'basica' | 'pro';
@@ -17,11 +21,13 @@ export interface EstudioInfo {
 }
 
 interface Props {
+  /** Horarios recurrentes del gym; el modal filtra los de esta sala. */
+  horarios?: HorarioPublico[];
   estudio: EstudioInfo | null;
   onClose: () => void;
 }
 
-export default function EstudioModal({ estudio, onClose }: Props) {
+export default function EstudioModal({ estudio, horarios = [], onClose }: Props) {
   useEffect(() => {
     if (!estudio) return;
 
@@ -165,6 +171,10 @@ export default function EstudioModal({ estudio, onClose }: Props) {
             {estudio.descripcion}
           </p>
 
+          {/* Cada bloque se dibuja SOLO si el gym cargó ese dato. Antes el título
+              salía igual y quedaba una sección vacía con un encabezado huérfano:
+              el tenant no podía decidir qué mostrar y qué no. */}
+          {estudio.contenido.length > 0 && (
           <div style={{ marginBottom: '24px' }}>
             <p className="ek-eyebrow" style={{ marginBottom: '10px' }}>IDEAL PARA</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -175,7 +185,9 @@ export default function EstudioModal({ estudio, onClose }: Props) {
               ))}
             </div>
           </div>
+          )}
 
+          {estudio.capacidad && (
           <div className="ek-stat-card" style={{ marginBottom: '20px' }}>
             <p className="ek-eyebrow" style={{ marginBottom: '4px' }}>CAPACIDAD</p>
             <p style={{
@@ -188,7 +200,23 @@ export default function EstudioModal({ estudio, onClose }: Props) {
               {estudio.capacidad}
             </p>
           </div>
+          )}
 
+          {/* El programa ES de la sala: qué se entrena cada día acá adentro. */}
+          {(() => {
+            const delEstudio = horarios.filter((h) => h.recurso_id === estudio.id);
+            if (delEstudio.length === 0) return null;
+            return (
+              <div style={{ marginBottom: '24px' }}>
+                <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '12px' }}>
+                  PROGRAMA DE LA SEMANA
+                </p>
+                <ProgramaSemanal horarios={delEstudio} />
+              </div>
+            );
+          })()}
+
+          {estudio.equipoIncluido.length > 0 && (
           <div style={{ marginBottom: '20px' }}>
             <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '12px' }}>
               EQUIPO INCLUIDO
@@ -218,13 +246,16 @@ export default function EstudioModal({ estudio, onClose }: Props) {
               ))}
             </ul>
           </div>
+          )}
 
+          {estudio.estiloVisual && (
           <div style={{ marginBottom: '28px' }}>
             <p className="ek-eyebrow" style={{ marginBottom: '8px' }}>ESTILO</p>
             <p className="ek-body" style={{ lineHeight: 1.6, color: 'var(--ek-ink-muted)' }}>
               {estudio.estiloVisual}
             </p>
           </div>
+          )}
 
           <Link
             to={`/signup?tier=${estudio.tier}`}
