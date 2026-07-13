@@ -156,7 +156,7 @@ export default function Equipo() {
       >
         <div>
           <p className="ek-eyebrow">EQUIPO</p>
-          <h1 className="ek-h2">Personas con acceso a SALA admin</h1>
+          <h1 className="ek-h2">Personas con acceso al panel de {tenant.nombre || 'tu gym'}</h1>
           {!isLoading && (
             <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '4px' }}>
               {conAcceso} {conAcceso === 1 ? 'persona con acceso' : 'personas con acceso'}

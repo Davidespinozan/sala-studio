@@ -28,6 +28,7 @@ const AjustesContacto = lazy(() => import('./pages/AjustesContacto'));
 const AjustesReglas = lazy(() => import('./pages/AjustesReglas'));
 const AjustesMarca = lazy(() => import('./pages/AjustesMarca'));
 const Suscripcion = lazy(() => import('./pages/Suscripcion'));
+const Cobros = lazy(() => import('./pages/Cobros'));
 
 export default function AdminLayout() {
   const { isLoading } = useAdminGuard();
@@ -63,6 +64,7 @@ export default function AdminLayout() {
               <Route path="/reglas" element={<AjustesReglas />} />
               <Route path="/marca" element={<AjustesMarca />} />
               <Route path="/suscripcion" element={<Suscripcion />} />
+              <Route path="/cobros" element={<Cobros />} />
               {/* Legacy redirect: la página plana /admin/configuracion fue
                   reemplazada por las 4 páginas de AJUSTES (Sprint D-Admin). */}
               <Route path="/configuracion" element={<Navigate to="/admin/landing" replace />} />

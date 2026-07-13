@@ -6,7 +6,14 @@ import {
 } from '../hooks/useAdminData';
 import { useSucursal } from '../providers/SucursalProvider';
 
-type Rol = 'miembro' | 'recepcionista' | 'staff' | 'admin';
+/**
+ * Alta de MIEMBRO (cliente que paga). Este modal vive en la página Miembros y
+ * crea SOLO miembros: el equipo (admin/recepción) se crea desde Equipo, que es
+ * la pantalla pensada para eso (con sus guardas: no degradar al último admin, no
+ * cambiarte el rol a vos mismo). Antes acá había un selector con los tres roles,
+ * así que se podía fabricar un admin desde la lista de clientes.
+ */
+const ROL_FIJO = 'miembro' as const;
 type FormaActivacion = 'efectivo' | 'transferencia' | 'cortesia';
 
 // Asignar un plan activa al miembro (gestionar_membresia_socio pasa el status a
@@ -30,14 +37,14 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
   const [password, setPassword] = useState('');
-  const [rol, setRol] = useState<Rol>('miembro');
+  const rol = ROL_FIJO;
   // Sede de la persona (miembro/recepción en multisede). Default = la sede
   // activa del admin; el trigger de BD igual la rellena si quedara vacía.
   const [sucursalId, setSucursalId] = useState('');
   useEffect(() => {
     if (!sucursalId && adminSucursalId) setSucursalId(adminSucursalId);
   }, [adminSucursalId, sucursalId]);
-  const pideSucursal = multisede && rol !== 'admin';
+  const pideSucursal = multisede;
   // tier_id (uuid) o '' para "sin plan". Antes era slug hardcoded — ahora se
   // resuelve desde useTiersAdmin, así soporta tiers custom del tenant.
   const [tierId, setTierId] = useState<string>('');
@@ -45,7 +52,7 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ email: string; password: string; rol: string; warning?: string } | null>(null);
-  const [needsAdminConfirm, setNeedsAdminConfirm] = useState(false);
+
 
   const tiersActivos = tiers.filter((t) => t.activo);
 
@@ -58,11 +65,6 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (rol === 'admin' && !needsAdminConfirm) {
-      setNeedsAdminConfirm(true);
-      return;
-    }
-
     setSubmitting(true);
     setError(null);
 
@@ -116,7 +118,6 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No pudimos crear el usuario. Prueba de nuevo.');
       setSubmitting(false);
-      setNeedsAdminConfirm(false);
     }
   }
 
@@ -176,42 +177,6 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
     );
   }
 
-  if (needsAdminConfirm) {
-    return (
-      <div className="adm-modal-backdrop" onClick={() => !submitting && setNeedsAdminConfirm(false)}>
-        <div className="adm-modal" onClick={(e) => e.stopPropagation()}>
-          <p className="ek-eyebrow" style={{ color: 'var(--ek-danger)' }}>CONFIRMAR PROMOCIÓN A ADMIN</p>
-          <h3 className="ek-h3">Esta persona tendrá acceso total</h3>
-          <p style={{ color: 'var(--ek-ink-muted)', fontSize: '0.9375rem' }}>
-            <strong>{nombre}</strong> ({email}) podrá ver y modificar TODO en SALA:
-            crear/eliminar usuarios, cambiar precios, ver datos privados, cancelar reservas, etc.
-            <br /><br />
-            ¿Estás seguro?
-          </p>
-
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              onClick={() => setNeedsAdminConfirm(false)}
-              disabled={submitting}
-              className="ek-cta ek-cta--secondary"
-              style={{ flex: 1 }}
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSubmit as any}
-              disabled={submitting}
-              className="ek-cta"
-              style={{ flex: 1, background: 'var(--ek-danger)' }}
-            >
-              {submitting ? 'Creando…' : 'Sí, crear admin'}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="adm-modal-backdrop" onClick={() => !submitting && onClose()}>
       <div className="adm-modal" onClick={(e) => e.stopPropagation()}>
@@ -219,23 +184,6 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
         <h3 className="ek-h3" style={{ marginBottom: '0.5rem' }}>Crear cuenta</h3>
 
         <form onSubmit={handleSubmit} className="ek-stack-md">
-          <div className="ek-form-field">
-            <label className="ek-label" htmlFor="np-rol">Rol</label>
-            <select
-              id="np-rol"
-              value={rol}
-              onChange={(e) => setRol(e.target.value as Rol)}
-              className="ek-input"
-              required
-            >
-              <option value="miembro">Miembro (cliente que paga membresía)</option>
-              <option value="recepcionista">Recepción (escanea QR en mostrador)</option>
-              {/* 'staff' desactivado: rol a medias (permisos parciales sin UI propia).
-                  Se reintroduce cuando se diseñe el tier limitado. */}
-              <option value="admin">Admin (acceso total al negocio)</option>
-            </select>
-          </div>
-
           {pideSucursal && (
             <div className="ek-form-field">
               <label className="ek-label" htmlFor="np-sucursal">Sede</label>
@@ -250,14 +198,12 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
                 ))}
               </select>
               <p className="ek-helper-text">
-                {rol === 'recepcionista'
-                  ? 'La recepción opera solo en esta sede.'
-                  : 'Sede donde se inscribe. Su plan define si entrena solo aquí o en todas.'}
+                Sede donde se inscribe. Su plan define si entrena solo aquí o en todas.
               </p>
             </div>
           )}
 
-          {rol === 'miembro' && (
+          {(
             <div className="ek-form-field">
               <label className="ek-label" htmlFor="np-tier">Plan inicial (opcional)</label>
               <select
@@ -281,7 +227,7 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
             </div>
           )}
 
-          {rol === 'miembro' && tierId && (
+          {tierId && (
             <div className="ek-form-field">
               <label className="ek-label" htmlFor="np-activacion">Activación</label>
               <select

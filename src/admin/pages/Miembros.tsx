@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { User, CreditCard, Lock, Unlock } from 'lucide-react';
+import { useTenant } from '@shared/hooks/useTenant';
 import { useMiembros } from '../hooks/useAdminData';
 import { NuevaPersonaModal } from '../components/NuevaPersonaModal';
 import CardMenuDropdown from '../components/CardMenuDropdown';
@@ -11,6 +12,7 @@ import type { Database } from '@shared/types/database';
 type MiembroLista = Database['public']['Tables']['usuarios']['Row'];
 
 export default function Miembros() {
+  const tenant = useTenant();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
@@ -31,7 +33,7 @@ export default function Miembros() {
       >
         <div>
           <p className="ek-eyebrow">MIEMBROS</p>
-          <h1 className="ek-h2">Tus clientes en SALA</h1>
+          <h1 className="ek-h2">Tus clientes en {tenant.nombre || 'tu gym'}</h1>
           {!isLoading && (
             <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '4px' }}>
               {miembros.length}{' '}

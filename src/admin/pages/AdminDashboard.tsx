@@ -13,6 +13,7 @@ import {
   type LucideIcon
 } from 'lucide-react';
 import { useAuth } from '@shared/hooks/useAuth';
+import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { useDashboardData, type DashboardData } from '../hooks/useAdminData';
 import { useGymSetup, gymOperativo } from '../hooks/useGymSetup';
@@ -49,6 +50,7 @@ function calcTendencia(actual: number, anterior: number): number | null {
 
 export default function AdminDashboard() {
   const { usuario } = useAuth();
+  const tenant = useTenant();
   const { data, isLoading, refetch } = useDashboardData();
   const { setup } = useGymSetup();
   const [cancelar, setCancelar] = useState<ReservaParaCancelar | null>(null);
@@ -71,7 +73,8 @@ export default function AdminDashboard() {
     <div>
       <div className="adm-hero">
         <p className="adm-hero-eyebrow">Panel de control</p>
-        <h1 className="adm-hero-title">Hoy en SALA</h1>
+        {/* El nombre del GYM, no "SALA": el admin de Numa veía "Hoy en SALA". */}
+        <h1 className="adm-hero-title">Hoy en {tenant.nombre || 'tu gym'}</h1>
         <p className="adm-hero-subtitle" style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
           {saludo.texto}{nombre ? `, ${nombre}` : ''}
           <saludo.Icon size={17} strokeWidth={2.25} style={{ color: 'var(--ek-mustard)' }} />
