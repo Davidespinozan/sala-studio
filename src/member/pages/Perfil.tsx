@@ -10,6 +10,7 @@ import { supabase } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
 import { useMembresiaActual, membresiaEstado } from '@member/hooks/useMembresiaActual';
 import { PlanTipoToggle, type VistaPlan } from '@shared/components/PlanTipoToggle';
+import { ActivarAvisosPush } from '@shared/components/ActivarAvisosPush';
 import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { iniciarCheckout } from '@shared/lib/checkout';
 import { backendPost } from '@shared/lib/backend';
@@ -164,6 +165,17 @@ export default function Perfil() {
           tiers={tiers}
           tenantNombre={tenant.nombre}
         />
+        {/* Avisos en el teléfono: sin esto, el socio solo se entera si abre la app. */}
+        {usuario?.id && (
+          <div style={{ marginTop: '20px' }}>
+            <ActivarAvisosPush
+              usuarioId={usuario.id}
+              tenantId={tenant.id}
+              descripcion="Recordatorios de tus clases, avisos si se cancela una, y cuando tu plan esté por vencer."
+            />
+          </div>
+        )}
+
         <MetodoPago />
         <PlanActualYOpciones membresia={membresia} tiers={tiers} tenantNombre={tenant.nombre} />
         <HistorialPagos />

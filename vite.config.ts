@@ -50,6 +50,10 @@ export default defineConfig(({ mode }) => {
           ]
         },
         workbox: {
+          // Los handlers de push viven en public/push-sw.js y se IMPORTAN dentro
+          // del SW de Workbox: dos service workers peleando por el mismo scope es
+          // una fuente clásica de bugs.
+          importScripts: ['push-sw.js'],
           cleanupOutdatedCaches: true,
           navigateFallbackDenylist: [/^\/api/, /^\/.netlify/],
           runtimeCaching: [

@@ -433,6 +433,39 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          tenant_id: string
+          user_agent: string | null
+          usuario_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          tenant_id: string
+          user_agent?: string | null
+          usuario_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          tenant_id?: string
+          user_agent?: string | null
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       pagos: {
         Row: {
           cobrado_por: string | null
@@ -576,6 +609,7 @@ export type Database = {
           leida: boolean
           leida_at: string | null
           mensaje: string
+          push_enviado_at: string | null
           metadata: Json | null
           tenant_id: string
           tipo: string
@@ -600,6 +634,7 @@ export type Database = {
           leida?: boolean
           leida_at?: string | null
           mensaje?: string
+          push_enviado_at?: string | null
           metadata?: Json | null
           tenant_id?: string
           tipo?: string

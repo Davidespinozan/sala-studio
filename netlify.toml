@@ -55,3 +55,13 @@
 [[scheduled_functions]]
   name = "cron-recordatorios"
   cron = "*/15 * * * *"
+
+# Reparte por push las notificaciones pendientes (de cualquier origen).
+[[scheduled_functions]]
+  name = "cron-push"
+  cron = "* * * * *"
+
+# Avisa al socio 3 días antes de que su plan venza.
+[[scheduled_functions]]
+  name = "cron-membresias-por-vencer"
+  cron = "0 8 * * *"

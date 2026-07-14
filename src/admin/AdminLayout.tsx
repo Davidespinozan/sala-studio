@@ -27,6 +27,7 @@ const AjustesLanding = lazy(() => import('./pages/AjustesLanding'));
 const AjustesContacto = lazy(() => import('./pages/AjustesContacto'));
 const AjustesReglas = lazy(() => import('./pages/AjustesReglas'));
 const AjustesMarca = lazy(() => import('./pages/AjustesMarca'));
+const AjustesNotificaciones = lazy(() => import('./pages/AjustesNotificaciones'));
 const Suscripcion = lazy(() => import('./pages/Suscripcion'));
 const Cobros = lazy(() => import('./pages/Cobros'));
 
@@ -63,6 +64,7 @@ export default function AdminLayout() {
               <Route path="/contacto" element={<AjustesContacto />} />
               <Route path="/reglas" element={<AjustesReglas />} />
               <Route path="/marca" element={<AjustesMarca />} />
+              <Route path="/notificaciones" element={<AjustesNotificaciones />} />
               <Route path="/suscripcion" element={<Suscripcion />} />
               <Route path="/cobros" element={<Cobros />} />
               {/* Legacy redirect: la página plana /admin/configuracion fue

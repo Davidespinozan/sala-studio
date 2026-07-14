@@ -213,6 +213,36 @@ export const handler: Handler = async (event) => {
         const sub = await stripe.subscriptions.retrieve(subId, {}, { stripeAccount: acct });
         if ((sub.metadata as any)?.app !== 'sala') break;
         await admin.from('membresias').update({ status: 'past_due' }).eq('stripe_subscription_id', subId);
+
+        // AVISAR. Antes esto pasaba en SILENCIO: el socio perdía el acceso sin
+        // enterarse (solo lo veía si entraba a su perfil) y el gym tampoco sabía
+        // que tenía un cobro caído. El push sale solo vía cron-push.
+        const usuarioId = (sub.metadata as any)?.usuario_id;
+        if (usuarioId) {
+          const { data: socio } = await admin
+            .from('usuarios')
+            .select('tenant_id, nombre, email')
+            .eq('id', usuarioId)
+            .maybeSingle();
+
+          if (socio?.tenant_id) {
+            await admin.from('notificaciones').insert({
+              tenant_id: socio.tenant_id,
+              usuario_id: usuarioId,
+              tipo: 'pago_rechazado',
+              titulo: 'No pudimos cobrar tu plan',
+              mensaje: 'Tu tarjeta fue rechazada. Actualizala desde tu perfil para no perder el acceso.'
+            });
+
+            await admin.rpc('notificar_staff', {
+              p_tenant_id: socio.tenant_id,
+              p_tipo: 'pago_rechazado',
+              p_titulo: 'Cobro rechazado',
+              p_mensaje: `Le falló el cobro a ${socio.nombre ?? socio.email ?? 'un socio'}.`,
+              p_metadata: { usuario_id: usuarioId }
+            });
+          }
+        }
         break;
       }
 
