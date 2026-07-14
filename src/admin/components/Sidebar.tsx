@@ -1,5 +1,4 @@
-import { Home, User, ClipboardList } from 'lucide-react';
-import { AppSidebar, type AppNavSection, type VerComoLink } from '@shared/components/AppSidebar';
+import { AppSidebar, type AppNavSection } from '@shared/components/AppSidebar';
 
 // Nav de ADMIN (datos específicos del rol). El sistema visual + comportamiento
 // de colapso viven en el AppSidebar compartido (src/shared/components).
@@ -245,22 +244,12 @@ const SECTIONS: AppNavSection[] = [
   }
 ];
 
-// Íconos lucide-react con stroke=currentColor — heredan el color del item.
-const VER_COMO_LINKS: VerComoLink[] = [
-  // Signup excluido a propósito (Sprint D-Polish): admin ya lo ve en el flow
-  // normal cuando un visitante hace click en una membresía desde Landing.
-  { label: 'Landing', icon: <Home size={18} />, href: '/?demo=admin-preview' },
-  { label: 'Miembro', icon: <User size={18} />, href: '/app?demo=admin-preview' },
-  { label: 'Recepción', icon: <ClipboardList size={18} />, href: '/recepcion?demo=admin-preview' }
-];
-
 export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   return (
     <AppSidebar
       sections={SECTIONS}
       roleLabel="ADMIN"
       homePath="/admin"
-      verComoLinks={VER_COMO_LINKS}
       collapsible
       collapseKey="sala-admin-sidebar-collapsed"
       onNavigate={onNavigate}
