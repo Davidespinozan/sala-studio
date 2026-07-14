@@ -233,6 +233,96 @@ export type Database = {
           },
         ]
       }
+      credenciales_biometricas: {
+        Row: {
+          calidad: number | null
+          capturada_con: string | null
+          consentimiento_at: string
+          created_at: string
+          dedo: string
+          enrolado_por: string | null
+          formato: string
+          id: string
+          // La plantilla existe en la tabla pero tiene el SELECT revocado para
+          // authenticated: no se puede pedir por la API. Se deja tipada para el
+          // service_role, pero el frontend NUNCA la selecciona.
+          plantilla: string
+          revocada_at: string | null
+          revocada_por: string | null
+          tenant_id: string
+          usuario_id: string
+        }
+        Insert: {
+          calidad?: number | null
+          capturada_con?: string | null
+          consentimiento_at: string
+          created_at?: string
+          dedo: string
+          enrolado_por?: string | null
+          formato?: string
+          id?: string
+          plantilla: string
+          revocada_at?: string | null
+          revocada_por?: string | null
+          tenant_id: string
+          usuario_id: string
+        }
+        Update: {
+          calidad?: number | null
+          capturada_con?: string | null
+          consentimiento_at?: string
+          created_at?: string
+          dedo?: string
+          enrolado_por?: string | null
+          formato?: string
+          id?: string
+          plantilla?: string
+          revocada_at?: string | null
+          revocada_por?: string | null
+          tenant_id?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
+      enrolamientos_huella: {
+        Row: {
+          cancelado_at: string | null
+          completado_at: string | null
+          consentimiento_at: string
+          created_at: string
+          dedo: string
+          expira_at: string
+          id: string
+          solicitado_por: string | null
+          tenant_id: string
+          usuario_id: string
+        }
+        Insert: {
+          cancelado_at?: string | null
+          completado_at?: string | null
+          consentimiento_at: string
+          created_at?: string
+          dedo: string
+          expira_at?: string
+          id?: string
+          solicitado_por?: string | null
+          tenant_id: string
+          usuario_id: string
+        }
+        Update: {
+          cancelado_at?: string | null
+          completado_at?: string | null
+          consentimiento_at?: string
+          created_at?: string
+          dedo?: string
+          expira_at?: string
+          id?: string
+          solicitado_por?: string | null
+          tenant_id?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       favoritos: {
         Row: {
           created_at: string
@@ -319,6 +409,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lectores_biometricos: {
+        Row: {
+          activo: boolean
+          created_at: string
+          id: string
+          marca: string | null
+          modelo: string | null
+          nombre: string
+          sucursal_id: string | null
+          tenant_id: string
+          token_hash: string
+          ultimo_visto_at: string | null
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          nombre: string
+          sucursal_id?: string | null
+          tenant_id: string
+          token_hash: string
+          ultimo_visto_at?: string | null
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          nombre?: string
+          sucursal_id?: string | null
+          tenant_id?: string
+          token_hash?: string
+          ultimo_visto_at?: string | null
+        }
+        Relationships: []
       }
       lista_espera: {
         Row: {

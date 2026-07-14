@@ -16,9 +16,11 @@ import { AgregarNotaModal } from '../components/acciones/AgregarNotaModal';
 import { EditarContactoModal } from '../components/acciones/EditarContactoModal';
 import { EnviarAvisoModal } from '../components/acciones/EnviarAvisoModal';
 import { ResetPasswordModal } from '../components/acciones/ResetPasswordModal';
+import { HuellaModal } from '../components/acciones/HuellaModal';
 import { Avatar } from '@shared/components/Avatar';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData } from '../hooks/useSocioFicha';
 import { useSocioNotas } from '../hooks/useSocioNotas';
+import { useHuellasSocio } from '@shared/hooks/useHuellasSocio';
 
 type ModalAccion =
   | null
@@ -35,7 +37,8 @@ type ModalAccion =
   | 'agregar_nota'
   | 'editar_contacto'
   | 'enviar_aviso'
-  | 'reset_password';
+  | 'reset_password'
+  | 'huella';
 
 // ── Helpers de formato ──────────────────────────────────────────────────────
 function fmtFechaCorta(iso: string | null): string {
@@ -127,10 +130,12 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
 
   const socioNombre = socio.nombre ?? socio.email;
   const { notas, refetch: refetchNotas } = useSocioNotas(socio.id);
+  const { huellas, refetch: refetchHuellas } = useHuellasSocio(socio.id);
   const cerrar = () => setModalAbierto(null);
   const handleDone = async () => {
     if (onAccionDone) await onAccionDone();
     await refetchNotas();
+    await refetchHuellas();
   };
   const esCreditos = membresia?.tierTipo === 'creditos' || membresia?.tierTipo === 'hibrido';
   const bloqueado = !!socio.bloqueado_hasta && new Date(socio.bloqueado_hasta) > new Date();
@@ -194,6 +199,10 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
         <AccionBtn onClick={() => setModalAbierto('editar_contacto')}>Editar contacto</AccionBtn>
         <AccionBtn onClick={() => setModalAbierto('enviar_aviso')}>Enviar aviso</AccionBtn>
         <AccionBtn onClick={() => setModalAbierto('reset_password')}>Resetear contraseña</AccionBtn>
+        {/* El label dice el estado: así recepción no abre el modal para averiguarlo. */}
+        <AccionBtn onClick={() => setModalAbierto('huella')}>
+          {huellas.length > 0 ? `Huella (${huellas.length})` : 'Registrar huella'}
+        </AccionBtn>
       </div>
 
       {/* MEMBRESÍA */}
@@ -482,6 +491,15 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
       )}
       {modalAbierto === 'reset_password' && (
         <ResetPasswordModal
+          isOpen
+          socioId={socio.id}
+          socioNombre={socioNombre}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
+      {modalAbierto === 'huella' && (
+        <HuellaModal
           isOpen
           socioId={socio.id}
           socioNombre={socioNombre}

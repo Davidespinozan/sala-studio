@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { AlertTriangle, ArrowRight, CalendarCheck, Check, ChevronRight, CreditCard, LifeBuoy, Plus, RotateCcw, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CalendarCheck, Check, ChevronRight, CreditCard, Fingerprint, LifeBuoy, Plus, RotateCcw, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Avatar } from '@shared/components/Avatar';
 import { useAuth } from '@shared/hooks/useAuth';
@@ -12,6 +12,8 @@ import type { Database } from '@shared/types/database';
 import { useMembresiaActual, membresiaEstado } from '@member/hooks/useMembresiaActual';
 import { PlanTipoToggle, type VistaPlan } from '@shared/components/PlanTipoToggle';
 import { ActivarAvisosPush } from '@shared/components/ActivarAvisosPush';
+import { useHuellasSocio } from '@shared/hooks/useHuellasSocio';
+import { nombreDedo } from '@shared/lib/dedos';
 import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { iniciarCheckout } from '@shared/lib/checkout';
 import { backendPost } from '@shared/lib/backend';
@@ -212,6 +214,10 @@ export default function Perfil() {
           </div>
         </section>
 
+        {/* Su huella. Solo aparece si la dio: al que nunca puso el dedo no le
+            sirve de nada leer sobre esto. */}
+        {usuario?.id && <MiHuella usuarioId={usuario.id} tenantNombre={tenant.nombre} />}
+
         {/* Ajustes */}
         <section>
           <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>AJUSTES</p>
@@ -241,6 +247,103 @@ export default function Perfil() {
         </button>
       </div>
     </div>
+  );
+}
+
+/**
+ * La huella del socio, en su app.
+ *
+ * Es SU dedo: tiene que poder ver qué guardó el gimnasio y borrarlo sin pedirle
+ * permiso a nadie. Borrarlo acá borra la plantilla de verdad (no la esconde), y
+ * el lector deja de reconocerlo en la próxima sincronización.
+ */
+function MiHuella({ usuarioId, tenantNombre }: { usuarioId: string; tenantNombre: string }) {
+  const { huellas, refetch } = useHuellasSocio(usuarioId);
+  const [borrando, setBorrando] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (huellas.length === 0) return null;
+
+  async function borrar() {
+    setBorrando(true);
+    setError(null);
+    try {
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
+        fn: string,
+        params?: Record<string, unknown>
+      ) => Promise<{ error: { message: string } | null }>;
+
+      // Sin p_usuario_id, la función usa el del que llama: es su propia huella.
+      const { error: err } = await rpc('revocar_huella_socio', {});
+      if (err) throw new Error(err.message.replace(/^[A-Z_]+:\s*/, ''));
+      await refetch();
+      setConfirmando(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No pudimos borrar tu huella');
+    } finally {
+      setBorrando(false);
+    }
+  }
+
+  return (
+    <section style={{ marginBottom: '24px' }}>
+      <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>TU HUELLA</p>
+      <div className="ek-card ek-card--md">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Fingerprint size={20} strokeWidth={2} style={{ color: 'var(--sala-primary)', flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>
+              {huellas.length === 1
+                ? `Tenés ${nombreDedo(huellas[0].dedo).toLowerCase()} registrado`
+                : `Tenés ${huellas.length} dedos registrados`}
+            </p>
+            <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
+              Entrás a {tenantNombre} apoyando el dedo, sin sacar el celular.
+            </p>
+          </div>
+        </div>
+
+        {confirmando ? (
+          <div style={{ marginTop: '14px' }}>
+            <p style={{ margin: '0 0 10px', fontSize: '12.5px', lineHeight: 1.5 }}>
+              Si la borrás, {tenantNombre} deja de tenerla y vas a tener que volver al mostrador
+              si querés usarla otra vez. Vas a poder seguir entrando con tu código QR.
+            </p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                className="ek-cta ek-cta--secondary"
+                style={{ flex: 1, fontSize: '13px' }}
+                onClick={() => setConfirmando(false)}
+                disabled={borrando}
+              >
+                Mejor no
+              </button>
+              <button
+                className="ek-cta"
+                style={{ flex: 1, fontSize: '13px' }}
+                onClick={() => void borrar()}
+                disabled={borrando}
+              >
+                {borrando ? 'Borrando…' : 'Sí, borrarla'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            className="ek-cta ek-cta--secondary ek-cta--full"
+            style={{ marginTop: '14px', fontSize: '13px' }}
+            onClick={() => setConfirmando(true)}
+          >
+            Borrar mi huella
+          </button>
+        )}
+
+        {error && (
+          <p style={{ margin: '10px 0 0', fontSize: '12px', color: 'var(--sala-error)' }}>{error}</p>
+        )}
+      </div>
+    </section>
   );
 }
 
