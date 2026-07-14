@@ -13,12 +13,21 @@ type ReglasDraft = {
   timezone: string;
 };
 
+/**
+ * Tienen que coincidir con los defaults de los RPCs, o la pantalla le miente al
+ * dueño sobre lo que su gym está haciendo.
+ *
+ * Los dos primeros eran 24 horas y 7 días, y castigaban al gym que no tocaba
+ * nada: no dejaban reservar la clase de mañana, y bloqueaban una semana a socios
+ * que sí habían ido pero a los que nadie les hizo check-in. Un default es lo que
+ * el sistema decide por vos cuando no dijiste nada — y decidía en contra.
+ */
 const DEFAULT: ReglasDraft = {
-  anticipacion_min_horas: 24,
+  anticipacion_min_horas: 0, // sin umbral: se reserva hasta que arranca la clase
   duracion_default_min: 60,
   permitir_continuas: false,
   cancelacion_min_horas: 4, // debe coincidir con el default del RPC cancelar_reserva_atomic
-  no_show_bloqueo_dias: 7,
+  no_show_bloqueo_dias: 0, // registrar la falta, no castigar. Castigar se elige.
   timezone: DEFAULT_TIMEZONE
 };
 
