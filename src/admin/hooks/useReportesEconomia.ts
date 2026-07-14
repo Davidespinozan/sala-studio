@@ -53,7 +53,7 @@ const LIFESPAN_TOPE_MESES = 36;
  * veces al mes). Sin esto, un plan quincenal aportaba al MRR la mitad de lo que
  * factura de verdad.
  */
-function precioMensual(t: TierRow): number {
+export function precioMensual(t: TierRow): number {
   if (t.periodo === 'anual') return Math.round(t.precio_centavos / 12);
   if (t.periodo === 'quincenal') return t.precio_centavos * 2;
   return t.precio_centavos;

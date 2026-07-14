@@ -70,7 +70,7 @@ export function contrastRatio(hexA: string, hexB: string): number {
 const NEUTRAL_DARK = '#0A0F0C';
 
 /** Mezcla en sRGB, misma fórmula que color-mix(in srgb, a pct%, b). */
-function mixHex(hexA: string, pctA: number, hexB: string): string {
+export function mixHex(hexA: string, pctA: number, hexB: string): string {
   const a = hexToRgb(hexA);
   const b = hexToRgb(hexB);
   if (!a || !b) return hexA;
@@ -91,7 +91,7 @@ function mixHex(hexA: string, pctA: number, hexB: string): string {
  * Solo si la marca es clara se baja el porcentaje, y únicamente lo mínimo
  * necesario para que el texto siga legible.
  */
-function pickImmersiveMix(primary: string): {
+export function pickImmersiveMix(primary: string): {
   top: number;
   bottom: number;
   mutedOpacity: number;

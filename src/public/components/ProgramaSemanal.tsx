@@ -1,3 +1,5 @@
+import { agruparPorClase, formatearHora, esManana } from '../lib/programa';
+
 export interface HorarioPublico {
   id: string;
   recurso_id?: string;
@@ -11,14 +13,6 @@ export interface HorarioPublico {
    *  directamente falso para la mitad de la semana. */
   cupo_max?: number | null;
   foto_url: string | null;
-}
-
-/** "05:00" → "5:00", "16:00" → "4:00". Sin AM/PM: la franja lo dice. */
-function formatearHora(hhmm: string): string {
-  const [hStr, mStr] = hhmm.split(':');
-  const h = Number(hStr);
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}:${mStr}`;
 }
 
 /** dow según la DB: 0=domingo … 6=sábado. La semana se lee de lunes a domingo. */
@@ -45,29 +39,13 @@ export function ProgramaSemanal({ horarios }: { horarios: HorarioPublico[] }) {
   return (
     <div className="landing-programa">
       {DIAS_SEMANA.map(({ dow, label }) => {
-        const delDia = horarios.filter((h) => h.dias_semana.includes(dow));
-        if (delDia.length === 0) return null;
-
-        const porClase = new Map<
-          string,
-          { nombre: string; enfoque: string | null; cupo: number | null; horas: string[] }
-        >();
-        for (const h of delDia) {
-          const clave = `${h.nombre}|${h.descripcion ?? ''}`;
-          const entrada = porClase.get(clave) ?? {
-            nombre: h.nombre,
-            enfoque: h.descripcion,
-            cupo: h.cupo_max ?? null,
-            horas: []
-          };
-          entrada.horas.push(h.hora_inicio.slice(0, 5));
-          porClase.set(clave, entrada);
-        }
+        const clases = agruparPorClase(horarios, dow);
+        if (clases.length === 0) return null;
 
         return (
           <div key={dow} className="landing-programa-dia">
             <p className="landing-programa-dia-label">{label}</p>
-            {[...porClase.values()].map((c) => (
+            {clases.map((c) => (
               <div key={c.nombre} className="landing-programa-clase">
                 <p className="landing-programa-nombre">{c.nombre}</p>
                 {c.enfoque && <p className="landing-programa-enfoque">{c.enfoque}</p>}
@@ -78,9 +56,7 @@ export function ProgramaSemanal({ horarios }: { horarios: HorarioPublico[] }) {
                     chip: con 10 franjas, repetir el sufijo diez veces es ruido —
                     el bloque ya dice de qué parte del día se trata. */}
                 {(['am', 'pm'] as const).map((franja) => {
-                  const horas = c.horas
-                    .filter((h) => (franja === 'am' ? Number(h.slice(0, 2)) < 12 : Number(h.slice(0, 2)) >= 12))
-                    .sort();
+                  const horas = c.horas.filter((h) => (franja === 'am' ? esManana(h) : !esManana(h)));
                   if (horas.length === 0) return null;
                   return (
                     <div key={franja} className="landing-programa-franja">
