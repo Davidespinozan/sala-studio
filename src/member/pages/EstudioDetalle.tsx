@@ -173,20 +173,6 @@ export default function EstudioDetalle() {
         </div>
       )}
 
-      {(recurso.capacidad_personas ?? 0) > 0 && (
-        <div className="ek-stat-card" style={{ marginBottom: '24px' }}>
-          <p className="ek-eyebrow" style={{ marginBottom: '6px' }}>CAPACIDAD</p>
-          <p className="ek-kpi">
-            {recurso.capacidad_personas}{' '}
-            <span style={{
-              fontSize: '15px',
-              fontWeight: 500,
-              color: 'var(--ek-ink-muted)',
-              letterSpacing: 'normal'
-            }}>personas</span>
-          </p>
-        </div>
-      )}
 
       {equipo.length > 0 && (
         <div className="ek-card" style={{ marginBottom: '24px' }}>

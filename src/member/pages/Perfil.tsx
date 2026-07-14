@@ -7,6 +7,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { useLandingConfig } from '@shared/hooks/useLandingConfig';
 import { supabase } from '@shared/lib/supabase';
+import { gymCobraOnline } from '@shared/lib/cobrosDelGym';
 import type { Database } from '@shared/types/database';
 import { useMembresiaActual, membresiaEstado } from '@member/hooks/useMembresiaActual';
 import { PlanTipoToggle, type VistaPlan } from '@shared/components/PlanTipoToggle';
@@ -94,6 +95,7 @@ function useTiersDelTenant() {
 export default function Perfil() {
   const { authUser, usuario, signOut } = useAuth();
   const tenant = useTenant();
+  const cobraOnline = gymCobraOnline(tenant);
   const { sesionesEsteMes } = useStatsDelMes(usuario?.id);
   const { membresia, isLoading: loadingMembresia } = useMembresiaActual(usuario?.id);
   const { tiers } = useTiersDelTenant();
@@ -176,13 +178,15 @@ export default function Perfil() {
           </div>
         )}
 
-        <MetodoPago />
+        {/* Un gym que cobra en efectivo no tiene tarjetas que gestionar: mostrarle
+            "Método de pago" al socio es ofrecerle un botón que no lleva a ningún lado. */}
+        {cobraOnline && <MetodoPago />}
         <PlanActualYOpciones membresia={membresia} tiers={tiers} tenantNombre={tenant.nombre} />
         <HistorialPagos />
         {membresia && !membresia.cancelada_at && (
           <CancelarSuscripcion tenantNombre={tenant.nombre} />
         )}
-        <FaqPlan />
+        <FaqPlan cobraOnline={cobraOnline} tenantNombre={tenant.nombre} />
 
         {/* Stat del mes */}
         <section style={{ marginTop: '32px', marginBottom: '24px' }}>
@@ -1120,31 +1124,48 @@ function CancelarSuscripcion({ tenantNombre }: { tenantNombre: string }) {
 // FAQ del plan
 // ============================================================================
 
-const FAQ_PLAN: Array<{ q: string; a: string }> = [
-  {
-    q: '¿Cuándo se hace el cobro?',
-    a: 'Si es mensualidad, al renovar en la fecha que ves arriba. Si es un paquete de clases, pagas una vez y se descuenta una clase por reserva.'
-  },
-  {
-    q: '¿Qué pasa si cancelo?',
-    a: 'Conservas el acceso hasta el final del período ya pagado. Después, tu plan no se renueva. (Los paquetes no se cancelan: se agotan al usar las clases.)'
-  },
-  {
-    q: '¿Puedo cambiar de plan cuando quiera?',
-    a: 'Sí, desde las opciones de plan acá mismo.'
-  },
-  {
-    q: '¿Cómo agrego o cambio mi tarjeta?',
-    a: 'Desde "Método de pago", acá en tu perfil.'
-  }
-];
+/**
+ * Las respuestas dependen de CÓMO cobra el gym. Antes eran una constante que
+ * afirmaba "podés cambiar de plan cuando quieras desde acá mismo" y "agregá tu
+ * tarjeta en Método de pago": falso para todo gym que cobra en efectivo, que es
+ * la mayoría de los que arrancan.
+ */
+function faqDelPlan(cobraOnline: boolean, tenantNombre: string): Array<{ q: string; a: string }> {
+  const faq = [
+    {
+      q: '¿Cuándo se hace el cobro?',
+      a: cobraOnline
+        ? 'Si es mensualidad, al renovar en la fecha que ves arriba. Si es un paquete de clases, pagas una vez y se descuenta una clase por reserva.'
+        : `El cobro se hace en el mostrador de ${tenantNombre}. Si es mensualidad, al renovar en la fecha que ves arriba; si es un paquete, pagas una vez y se descuenta una clase por reserva.`
+    },
+    {
+      q: '¿Qué pasa si cancelo?',
+      a: 'Conservas el acceso hasta el final del período ya pagado. Después, tu plan no se renueva. (Los paquetes no se cancelan: se agotan al usar las clases.)'
+    },
+    {
+      q: '¿Puedo cambiar de plan cuando quiera?',
+      a: cobraOnline
+        ? 'Sí, desde las opciones de plan acá mismo.'
+        : `Sí. Pedilo en el mostrador de ${tenantNombre} y te lo cambian ahí.`
+    }
+  ];
 
-function FaqPlan() {
+  if (cobraOnline) {
+    faq.push({
+      q: '¿Cómo agrego o cambio mi tarjeta?',
+      a: 'Desde "Método de pago", acá en tu perfil.'
+    });
+  }
+
+  return faq;
+}
+
+function FaqPlan({ cobraOnline, tenantNombre }: { cobraOnline: boolean; tenantNombre: string }) {
   return (
     <section style={{ marginTop: '32px' }}>
       <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>PREGUNTAS FRECUENTES</p>
       <div className="ek-stack-sm">
-        {FAQ_PLAN.map((f) => (
+        {faqDelPlan(cobraOnline, tenantNombre).map((f) => (
           <FaqItem key={f.q} q={f.q} a={f.a} />
         ))}
       </div>

@@ -232,11 +232,11 @@ export default function Estudios() {
                   fontSize: '12px',
                   color: 'rgba(255, 255, 255, 0.5)'
                 }}>
-                  <span>
-                    {(r.capacidad_personas ?? 0) > 0
-                      ? `Hasta ${r.capacidad_personas} personas`
-                      : 'Capacidad por confirmar'}
-                  </span>
+                  {/* Acá salía la capacidad de la SALA, leída de una columna legacy que
+                      quedó en 0: todo gym real veía "Capacidad por confirmar". Y aunque
+                      tuviera valor, mentiría: el cupo lo fija cada CLASE (un gym puede
+                      tener 15 entre semana y 20 el sábado en la misma sala). */}
+                  <span />
                   <span style={{ color: 'rgba(255, 255, 255, 0.9)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     Ver detalle
                     <ArrowRight size={14} strokeWidth={2.25} />

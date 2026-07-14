@@ -1,3 +1,4 @@
+import { formatearPrecioTier, sufijoPeriodoTier } from '@shared/lib/precioTier';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ArrowRight, Check, Dumbbell, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -827,19 +828,6 @@ export function SeccionPostHero({ data }: { data: LandingPostHero }) {
   );
 }
 
-/** Precio del tier en su moneda (Intl con código ISO en mayúsculas). Cae a un
- *  formato simple si la moneda no es válida. */
-function formatearPrecioTier(centavos: number, moneda: string): string {
-  try {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: (moneda || 'MXN').toUpperCase(),
-      maximumFractionDigits: 0
-    }).format(centavos / 100);
-  } catch {
-    return `$${Math.round(centavos / 100).toLocaleString('es-MX')}`;
-  }
-}
 
 export default function Landing() {
   const [estudioAbierto, setEstudioAbierto] = useState<EstudioInfo | null>(null);
@@ -1321,13 +1309,7 @@ export default function Landing() {
                   }}>
                     {formatearPrecioTier(tier.precio_centavos, tier.moneda)}
                     <span style={{ fontSize: '16px', color: esDestacado ? 'rgba(255, 255, 255, 0.5)' : 'var(--sala-text-tertiary)', fontWeight: 500 }}>
-                      {tier.tipo === 'creditos' || tier.tipo === 'hibrido'
-                        ? ` · ${tier.clases_incluidas ?? 0} clases`
-                        : tier.periodo === 'anual'
-                          ? '/año'
-                          : tier.periodo === 'quincenal'
-                            ? '/quincena'
-                            : '/mes'}
+                      {sufijoPeriodoTier(tier)}
                     </span>
                   </p>
                   <p style={{

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Check } from 'lucide-react';
+import { usePlanesDelTenant } from '@shared/hooks/usePlanesDelTenant';
 
 interface MiembroData {
   id: string;
@@ -46,6 +47,7 @@ const AUTO_CLOSE_MS = 15_000;
 
 export function CheckInDetail({ kind, miembro, recurso, reserva, stats, errorMessage, onClose }: Props) {
   const [secondsLeft, setSecondsLeft] = useState(Math.ceil(AUTO_CLOSE_MS / 1000));
+  const { nombrePlan } = usePlanesDelTenant();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -84,8 +86,13 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, errorMes
     hour: '2-digit', minute: '2-digit', hour12: false
   });
 
-  const tierLabel = miembro.membresia_tier === 'pro' ? 'PRO' : miembro.membresia_tier === 'basica' ? 'BÁSICA' : 'SIN PLAN';
-  const tierColor = miembro.membresia_tier === 'pro' ? 'var(--sala-primary)' : 'var(--sala-text-secondary)';
+  // El nombre REAL del plan del socio. Antes esto comparaba contra los slugs de
+  // los planes de ejemplo del onboarding ('pro' / 'basica'), así que en un gym
+  // cuyos planes se llaman "Mensual" o "Anual" TODO socio con membresía activa
+  // salía como "SIN PLAN" — y a un "sin plan" la recepción lo rebota en la puerta.
+  const nombre = nombrePlan(miembro.membresia_tier);
+  const tierLabel = nombre ?? 'SIN PLAN';
+  const tierColor = nombre ? 'var(--sala-primary)' : 'var(--sala-text-secondary)';
 
   return (
     <div className="rec-detail rec-detail--success">

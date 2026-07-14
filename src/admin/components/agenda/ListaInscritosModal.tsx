@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Pencil } from 'lucide-react';
 import { Check, AlertTriangle, Ban, RotateCcw } from 'lucide-react';
 import { useAuth } from '@shared/hooks/useAuth';
+import { usePlanesDelTenant } from '@shared/hooks/usePlanesDelTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { estadoCupos, type Clase } from '@member/logic/claseAdapter';
 import {
@@ -30,6 +31,9 @@ interface Props {
 /** Modal admin: lista de inscritos a una clase + acciones por reserva.
  *  S4.3: agrega editar y cancelar la clase puntual. */
 export function ListaInscritosModal({ clase, onClose }: Props) {
+  // Una sola consulta para todo el modal: si cada fila resolviera su propio plan,
+  // sería una consulta por inscrito.
+  const { nombrePlan } = usePlanesDelTenant();
   const { usuario: currentUser } = useAuth();
   const toast = useToast();
   // claseActual: copia local que se actualiza si el admin edita la clase.
@@ -385,6 +389,7 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
               <InscritoRow
                 key={r.reservaId}
                 inscrito={r}
+                nombrePlan={nombrePlan}
                 actioning={actioningId === r.reservaId}
                 onAsistencia={() => handleAsistencia(r)}
                 onNoShow={() => handleNoShow(r)}
@@ -422,6 +427,7 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
                 <EsperaRow
                   key={e.listaEsperaId}
                   espera={e}
+                  nombrePlan={nombrePlan}
                   puedePromover={cuposLibres > 0 && !esCancelada}
                   promoting={promovingId === e.listaEsperaId}
                   onPromover={() => handlePromover(e)}
@@ -558,12 +564,14 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
 
 function InscritoRow({
   inscrito,
+  nombrePlan,
   actioning,
   onAsistencia,
   onNoShow,
   onCancelar
 }: {
   inscrito: InscritoAdmin;
+  nombrePlan: (slug: string | null | undefined) => string | null;
   actioning: boolean;
   onAsistencia: () => void;
   onNoShow: () => void;
@@ -595,12 +603,10 @@ function InscritoRow({
     }
   };
   const st = statusConfig[inscrito.status];
-  const planLabel =
-    inscrito.planSlug === 'pro'
-      ? 'Ilimitado'
-      : inscrito.planSlug === 'basica'
-        ? 'Drop-In'
-        : '—';
+  // El nombre real del plan. Antes esto traducía los slugs de los planes de
+  // EJEMPLO ('pro' → "Ilimitado"), así que un gym con sus propios planes veía
+  // "—" en cada persona de la lista.
+  const planLabel = nombrePlan(inscrito.planSlug) ?? '—';
 
   // Acciones disponibles según status
   const items: Array<{ label: string; icon: ReactNode; onClick: () => void; danger?: boolean; divider?: boolean; disabled?: boolean }> = [];
@@ -696,21 +702,18 @@ function InscritoRow({
 
 function EsperaRow({
   espera,
+  nombrePlan,
   puedePromover,
   promoting,
   onPromover
 }: {
   espera: EnEsperaAdmin;
+  nombrePlan: (slug: string | null | undefined) => string | null;
   puedePromover: boolean;
   promoting: boolean;
   onPromover: () => void;
 }) {
-  const planLabel =
-    espera.planSlug === 'pro'
-      ? 'Ilimitado'
-      : espera.planSlug === 'basica'
-        ? 'Drop-In'
-        : '—';
+  const planLabel = nombrePlan(espera.planSlug) ?? '—';
 
   return (
     <div

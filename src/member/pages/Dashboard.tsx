@@ -296,7 +296,7 @@ export default function Dashboard() {
                 weekday: 'long', day: 'numeric', month: 'long'
               })}
             </strong>
-            . Si tienes dudas, contacta a SALA.
+            . Si tienes dudas, contacta a {tenant.nombre}.
           </p>
         </div>
       )}

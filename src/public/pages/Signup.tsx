@@ -1,30 +1,24 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { ArrowLeft, Check, Star } from 'lucide-react';
-import { useNavigate, useSearchParams, Link, Navigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { PasswordInput } from '@shared/components/PasswordInput';
 import { validarPassword } from '../lib/onboardingLogic';
-
-type Tier = 'basica' | 'pro';
-
-interface PlanInfo {
-  nombre: string;
-  precio: number;
-  tier: Tier;
-  beneficios: string[];
-  esPaquete: boolean;
-  clases: number | null;
-}
+import { formatearPrecioTier, sufijoPeriodoTier } from '@shared/lib/precioTier';
 
 interface TierRow {
   id: string;
   slug: string;
   nombre: string;
   precio_centavos: number;
+  moneda: string;
+  periodo: string;
   tipo: string;
   clases_incluidas: number | null;
   beneficios: unknown;
+  reglas: unknown;
+  orden: number | null;
 }
 
 function parseBeneficios(raw: unknown): string[] {
@@ -42,37 +36,65 @@ function parseBeneficios(raw: unknown): string[] {
   return [];
 }
 
-function useTierPorSlug(slug: string) {
+/** ¿El gym marcó este plan como el recomendado? */
+function esRecomendado(tier: TierRow): boolean {
+  const reglas = tier.reglas as Record<string, unknown> | null;
+  return reglas?.recomendado === true;
+}
+
+/**
+ * El plan que se le va a mostrar al socio.
+ *
+ * Antes esto buscaba UN slug (`?tier=` o, si no venía, 'basica' clavado) y si no
+ * lo encontraba hacía `<Navigate to="/" />`: en un gym cuyos planes no se llaman
+ * 'basica'/'pro', entrar a /signup sin parámetro EXPULSABA al socio al inicio, en
+ * silencio, sin poder registrarse nunca. Ahora se traen los planes del gym y se
+ * elige: el del link, si existe; si no, el que el dueño marcó como recomendado; y
+ * si no marcó ninguno, el más barato. Solo devuelve null si el gym no tiene ni un
+ * plan activo, que es el único caso en el que de verdad no hay nada que mostrar.
+ */
+function useTierParaSignup(slugPedido: string | null) {
   const tenant = useTenant();
   const [tier, setTier] = useState<TierRow | null>(null);
+  const [sinPlanes, setSinPlanes] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     async function load() {
       // El filtro tenant_id es la PRIMERA línea de defensa para lecturas
-      // anónimas: la RLS read_public no puede scopear por tenant (anon no
-      // tiene JWT, get_my_tenant_id() es NULL). Además es lo que hace que
-      // maybeSingle() sea seguro: sin él, dos tenants con el mismo slug de
-      // tier (basica/pro) devolverían múltiples filas y romperían la query.
+      // anónimas: la RLS read_public no puede scopear por tenant (anon no tiene
+      // JWT, get_my_tenant_id() es NULL).
       const { data, error } = await supabase
         .from('tiers')
-        .select('id, slug, nombre, precio_centavos, tipo, clases_incluidas, beneficios')
+        .select('id, slug, nombre, precio_centavos, moneda, periodo, tipo, clases_incluidas, beneficios, reglas, orden')
         .eq('tenant_id', tenant.id)
-        .eq('slug', slug)
         .eq('activo', true)
-        .maybeSingle();
+        .order('precio_centavos', { ascending: true });
 
       if (!mounted) return;
-      if (error) console.error('[useTierPorSlug]', error);
-      else setTier(data as TierRow | null);
+
+      if (error) {
+        console.error('[useTierParaSignup]', error);
+        setIsLoading(false);
+        return;
+      }
+
+      const planes = (data ?? []) as TierRow[];
+      setSinPlanes(planes.length === 0);
+      setTier(
+        planes.find((t) => t.slug === slugPedido) ??
+          planes.find(esRecomendado) ??
+          planes[0] ??
+          null
+      );
       setIsLoading(false);
     }
     load();
     return () => { mounted = false; };
-  }, [slug, tenant.id]);
+  }, [slugPedido, tenant.id]);
 
-  return { tier, isLoading };
+  return { tier, sinPlanes, isLoading };
 }
 
 function useSucursalesSignup() {
@@ -104,8 +126,8 @@ export default function Signup() {
   const navigate = useNavigate();
   const tenant = useTenant();
   const [searchParams] = useSearchParams();
-  const tierParam = (searchParams.get('tier') as Tier) || 'basica';
-  const { tier: tierRow, isLoading: tierLoading } = useTierPorSlug(tierParam);
+  const tierParam = searchParams.get('tier');
+  const { tier: plan, sinPlanes, isLoading: tierLoading } = useTierParaSignup(tierParam);
   const sucursales = useSucursalesSignup();
   const multisede = sucursales.length > 1;
 
@@ -118,21 +140,15 @@ export default function Signup() {
   const [error, setError] = useState<string | null>(null);
   const [acepta, setAcepta] = useState(false);
 
-  const plan: PlanInfo | null = tierRow
-    ? {
-        nombre: tierRow.nombre,
-        precio: Math.round(tierRow.precio_centavos / 100),
-        tier: tierRow.slug as Tier,
-        beneficios: parseBeneficios(tierRow.beneficios).slice(0, 4),
-        esPaquete: tierRow.tipo === 'creditos' || tierRow.tipo === 'hibrido',
-        clases: tierRow.clases_incluidas
-      }
-    : null;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
+    if (!plan) {
+      setError('No pudimos cargar el plan. Recargá la página.');
+      return;
+    }
     if (!acepta) {
       setError('Debes aceptar los términos y el aviso de privacidad para continuar.');
       return;
@@ -162,7 +178,7 @@ export default function Signup() {
           nombre,
           email,
           password,
-          tier: plan!.tier,
+          tier: plan.slug,
           slug: tenant.slug, // el socio se da de alta en ESTE gimnasio (subdominio)
           sucursal_id: multisede ? sucursalId : null
         })
@@ -199,8 +215,26 @@ export default function Signup() {
   }
 
   if (!plan) {
-    return <Navigate to="/" replace />;
+    // El gym todavía no publicó ningún plan. Antes acá se caía un <Navigate to="/">
+    // también cuando el plan existía pero tenía otro slug: el socio rebotaba al
+    // inicio sin explicación y no se podía registrar nunca.
+    return (
+      <div style={{ maxWidth: '480px', margin: '80px auto', padding: '0 24px', textAlign: 'center' }}>
+        <h1 className="ek-h3" style={{ marginBottom: '8px' }}>Todavía no hay planes disponibles</h1>
+        <p style={{ color: 'var(--ek-ink-muted)', fontSize: '14px', marginBottom: '24px' }}>
+          {sinPlanes
+            ? `${tenant.nombre} todavía no publicó sus planes. Escribinos y te avisamos apenas estén.`
+            : 'No pudimos cargar los planes. Recargá la página.'}
+        </p>
+        <Link to="/" className="ek-btn ek-btn--ghost">Volver al inicio</Link>
+      </div>
+    );
   }
+
+  const destacado = esRecomendado(plan);
+  const precio = formatearPrecioTier(plan.precio_centavos, plan.moneda);
+  const sufijo = sufijoPeriodoTier(plan);
+  const beneficios = parseBeneficios(plan.beneficios).slice(0, 4);
 
   return (
     <div style={{
@@ -219,19 +253,20 @@ export default function Signup() {
         gap: '5px'
       }}>
         <ArrowLeft size={14} strokeWidth={2.25} />
-        Volver a SALA
+        Volver a {tenant.nombre}
       </Link>
 
       {/* Plan resumen */}
       <div className="ek-card" style={{
         padding: '24px',
         marginBottom: '32px',
-        borderColor: plan.tier === 'pro' ? 'var(--ek-mustard)' : 'var(--ek-line)'
+        borderColor: destacado ? 'var(--ek-mustard)' : 'var(--ek-line)'
       }}>
+        {/* El nombre REAL del plan del gym. Antes decía "MEMBRESÍA BÁSICA" encima
+            de cualquier plan que no tuviera el slug 'pro'. */}
         <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '8px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-          {plan.tier === 'pro'
-            ? <><Star size={12} strokeWidth={2.5} fill="currentColor" /> PRO · MEMBRESÍA</>
-            : 'MEMBRESÍA BÁSICA'}
+          {destacado && <Star size={12} strokeWidth={2.5} fill="currentColor" />}
+          {plan.nombre.toUpperCase()}
         </p>
         <p style={{
           fontFamily: 'var(--ek-font-display)',
@@ -241,13 +276,13 @@ export default function Signup() {
           letterSpacing: '-0.03em',
           lineHeight: 1
         }}>
-          ${plan.precio.toLocaleString('es-MX')}
+          {precio}
           <span style={{ fontSize: '14px', color: 'var(--ek-ink-muted)', fontWeight: 500 }}>
-            {plan.esPaquete ? ` · ${plan.clases ?? 0} clases` : '/mes'}
+            {sufijo}
           </span>
         </p>
         <ul style={{ listStyle: 'none', padding: 0, margin: '16px 0 0 0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {plan.beneficios.map((b) => (
+          {beneficios.map((b) => (
             <li key={b} style={{ display: 'flex', gap: '8px', fontSize: '13px', alignItems: 'flex-start' }}>
               <Check size={15} strokeWidth={2.5} style={{ color: 'var(--ek-mustard)', flexShrink: 0, marginTop: '1px' }} />{b}
             </li>
@@ -385,9 +420,7 @@ export default function Signup() {
         >
           {isProcessing
             ? 'Activando tu cuenta…'
-            : plan.esPaquete
-              ? `Crear cuenta — $${plan.precio.toLocaleString('es-MX')} · ${plan.clases ?? 0} clases`
-              : `Activar mi plan — $${plan.precio.toLocaleString('es-MX')}/mes`
+            : `Activar mi plan — ${precio}${sufijo}`
           }
         </button>
 
