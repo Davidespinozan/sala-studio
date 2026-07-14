@@ -133,6 +133,8 @@ interface HorarioPublico {
   dias_semana: number[];
   hora_inicio: string;
   duracion_minutos: number;
+  /** Cupo de ESTA clase. null = el default de la sala. */
+  cupo_max: number | null;
   foto_url: string | null;
 }
 
@@ -153,7 +155,7 @@ function useProgramaSemanal() {
     (async () => {
       const { data, error } = await supabase
         .from('horarios_recurrentes')
-        .select('id, recurso_id, nombre, descripcion, dias_semana, hora_inicio, duracion_minutos, foto_url')
+        .select('id, recurso_id, nombre, descripcion, dias_semana, hora_inicio, duracion_minutos, cupo_max, foto_url')
         // Igual que el resto de lecturas anónimas: el filtro de tenant es la
         // primera línea de defensa (anon no tiene JWT, la RLS no puede scopear).
         .eq('tenant_id', tenant.id)
@@ -878,12 +880,6 @@ export default function Landing() {
   const { hero, secciones, post_hero, cta_final, faq, whatsappUrl, mostrarInstructores } = useLandingConfig();
   const ctaWhatsappUrl = whatsappUrl();
 
-  // Nada hardcodeado: el rango de precios sale de los tiers reales (más caro /
-  // más barato), no de los slugs 'pro'/'basica'. El plan "destacado" = el más caro.
-  const precios = tiers.map((t) => t.precio_centavos);
-  const precioPro = precios.length ? Math.max(...precios) : undefined;
-  const precioBasica = precios.length ? Math.min(...precios) : undefined;
-
   // Membresías (acceso por tiempo) y paquetes (bolsa de clases) son dos modelos
   // distintos: mostrarlos en la misma grilla amontonaba las tarjetas y el socio
   // no sabía qué estaba comparando. Se separan por pestaña, como en ekko.
@@ -913,12 +909,11 @@ export default function Landing() {
   const aEstudioInfo = (r: EstudioPublico): EstudioInfo => {
     // "Exclusiva" = la sala restringe a algún plan (cualquier slug).
     const esExclusivo = (r.tiers_permitidos?.length ?? 0) > 0;
-    const tier: 'basica' | 'pro' = esExclusivo ? 'pro' : 'basica';
     return {
       id: r.id,
       slug: r.slug,
       nombre: r.nombre,
-      tier,
+      exclusiva: esExclusivo,
       // El cupo real es cupo_max_default (lo que el admin edita en Salas).
       // capacidad_personas es legacy y queda en 0 → decía "por confirmar" aunque
       // el gym SÍ hubiera cargado la capacidad.
@@ -932,8 +927,6 @@ export default function Landing() {
       estiloVisual: r.estilo_visual ?? '',
       equipoIncluido: r.equipo_incluido ?? [],
       fotoUrl: r.foto_url ?? undefined,
-      precioPro: precioPro ? Math.round(precioPro / 100) : undefined,
-      precioBasica: precioBasica ? Math.round(precioBasica / 100) : undefined
     };
   };
 
@@ -1068,7 +1061,7 @@ export default function Landing() {
                     textTransform: 'uppercase'
                   }}
                 >
-                  {s.tier === 'pro' ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> EXCLUSIVA</> : 'ABIERTA'}
+                  {s.exclusiva ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> EXCLUSIVA</> : 'ABIERTA'}
                 </span>
                 <div style={{ position: 'relative', zIndex: 1 }}>
                   <h3 style={{

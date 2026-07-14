@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Check, Star } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 import { ProgramaSemanal, type HorarioPublico } from './ProgramaSemanal';
 
@@ -9,15 +8,16 @@ export interface EstudioInfo {
   id: string;
   slug: string;
   nombre: string;
-  tier: 'basica' | 'pro';
+  /** true = la sala restringe a ciertos planes. Antes esto era tier:'pro'|'basica',
+   *  slugs de los planes de EJEMPLO: un gym con otros planes veía badges y un CTA
+   *  que llevaban a un plan inexistente (/signup?tier=pro). */
+  exclusiva: boolean;
   capacidad: string;
   contenido: string[];
   descripcion: string;
   estiloVisual: string;
   equipoIncluido: string[];
   fotoUrl?: string;
-  precioPro?: number;
-  precioBasica?: number;
 }
 
 interface Props {
@@ -31,6 +31,13 @@ interface Props {
 }
 
 export default function EstudioModal({ estudio, horarios = [], mostrarPrograma = true, onClose }: Props) {
+  // ¿Todas las clases de esta sala tienen el mismo cupo?
+  const cuposDeLaSala = new Set(
+    horarios
+      .filter((h) => h.recurso_id === estudio?.id && h.cupo_max != null)
+      .map((h) => h.cupo_max)
+  );
+  const cupoUniforme = cuposDeLaSala.size <= 1;
   useEffect(() => {
     if (!estudio) return;
 
@@ -49,7 +56,7 @@ export default function EstudioModal({ estudio, horarios = [], mostrarPrograma =
 
   if (!estudio) return null;
 
-  const esPro = estudio.tier === 'pro';
+  const esPro = estudio.exclusiva;
 
   return (
     <div
@@ -148,7 +155,7 @@ export default function EstudioModal({ estudio, horarios = [], mostrarPrograma =
             className={esPro ? 'ek-badge ek-badge--outline' : 'ek-badge'}
             style={{ position: 'absolute', top: '16px', left: '16px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
           >
-            {esPro ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> PRO</> : 'BÁSICA'}
+            {esPro ? <><Star size={11} strokeWidth={2.5} fill="currentColor" /> EXCLUSIVA</> : 'ABIERTA'}
           </span>
         </div>
 
@@ -190,7 +197,11 @@ export default function EstudioModal({ estudio, horarios = [], mostrarPrograma =
           </div>
           )}
 
-          {estudio.capacidad && (
+          {/* La capacidad solo se anuncia si TODAS las clases de la sala comparten
+              el mismo cupo. Si varía (15 entre semana, 20 el sábado), un único
+              "Hasta 20 personas" es falso la mitad de la semana → lo dice cada
+              clase en el programa, que es donde el cupo realmente vive. */}
+          {estudio.capacidad && cupoUniforme && (
           <div className="ek-stat-card" style={{ marginBottom: '20px' }}>
             <p className="ek-eyebrow" style={{ marginBottom: '4px' }}>CAPACIDAD</p>
             <p style={{
@@ -261,15 +272,17 @@ export default function EstudioModal({ estudio, horarios = [], mostrarPrograma =
           </div>
           )}
 
-          <Link
-            to={`/signup?tier=${estudio.tier}`}
+          {/* Antes: "Quiero la Pro" → /signup?tier=pro. Ese slug es de los planes
+              de ejemplo; en un gym real el botón llevaba a un plan que no existe.
+              Ahora lleva a la sección de planes del propio gym. */}
+          <a
+            href="#membresias"
+            onClick={onClose}
             className="ek-cta ek-cta--full"
-            style={{ padding: '16px', fontSize: '15px', textAlign: 'center' }}
+            style={{ padding: '16px', fontSize: '15px', textAlign: 'center', textDecoration: 'none' }}
           >
-            {esPro
-              ? `Quiero la Pro${estudio.precioPro ? ` · $${estudio.precioPro.toLocaleString('es-MX')}/mes` : ''}`
-              : `Empezar con Básica${estudio.precioBasica ? ` · $${estudio.precioBasica.toLocaleString('es-MX')}/mes` : ''}`}
-          </Link>
+            Ver planes
+          </a>
         </div>
       </div>
     </div>

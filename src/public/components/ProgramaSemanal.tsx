@@ -6,6 +6,10 @@ export interface HorarioPublico {
   dias_semana: number[];
   hora_inicio: string;
   duracion_minutos: number;
+  /** Cupo de ESTA clase. El cupo NO es de la sala: puede variar por día (15
+   *  entre semana, 20 el sábado), así que anunciarlo en la ficha de la sala era
+   *  directamente falso para la mitad de la semana. */
+  cupo_max?: number | null;
   foto_url: string | null;
 }
 
@@ -46,13 +50,14 @@ export function ProgramaSemanal({ horarios }: { horarios: HorarioPublico[] }) {
 
         const porClase = new Map<
           string,
-          { nombre: string; enfoque: string | null; horas: string[] }
+          { nombre: string; enfoque: string | null; cupo: number | null; horas: string[] }
         >();
         for (const h of delDia) {
           const clave = `${h.nombre}|${h.descripcion ?? ''}`;
           const entrada = porClase.get(clave) ?? {
             nombre: h.nombre,
             enfoque: h.descripcion,
+            cupo: h.cupo_max ?? null,
             horas: []
           };
           entrada.horas.push(h.hora_inicio.slice(0, 5));
@@ -66,6 +71,9 @@ export function ProgramaSemanal({ horarios }: { horarios: HorarioPublico[] }) {
               <div key={c.nombre} className="landing-programa-clase">
                 <p className="landing-programa-nombre">{c.nombre}</p>
                 {c.enfoque && <p className="landing-programa-enfoque">{c.enfoque}</p>}
+                {c.cupo != null && (
+                  <p className="landing-programa-cupo">{c.cupo} lugares</p>
+                )}
                 {/* Separadas en MAÑANA y TARDE en vez de colgarle AM/PM a cada
                     chip: con 10 franjas, repetir el sufijo diez veces es ruido —
                     el bloque ya dice de qué parte del día se trata. */}

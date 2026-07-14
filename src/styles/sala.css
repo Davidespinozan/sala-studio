@@ -486,6 +486,14 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   margin: 3px 0 0;
 }
 
+/* El cupo es de la CLASE (15 entre semana, 20 el sábado), no de la sala. */
+.landing-programa-cupo {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sala-text-tertiary);
+  margin: 4px 0 0;
+}
+
 /* Mañana / Tarde: separar las franjas evita colgarle AM/PM a cada uno de los 10
    chips (ruido) y aun así se entiende de un vistazo cuál es cuál. */
 .landing-programa-franja {
