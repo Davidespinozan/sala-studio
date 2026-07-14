@@ -90,7 +90,10 @@ export function GestionarMembresiaModal({
     setSaving(true);
     const { data, error } = await gestionarMembresiaSocio({
       usuario_id: usuarioId,
-      tier_id: selTierId
+      tier_id: selTierId,
+      // La pantalla YA le mostró al admin "el socio pierde N clases" (ver preview).
+      // Confirmamos esa pérdida contra la base, que sin esto rechaza el cambio.
+      confirmar_perdida: (preview?.creditosPerdidos ?? 0) > 0
     });
     setSaving(false);
     if (error || !data) {

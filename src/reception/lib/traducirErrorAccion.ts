@@ -47,6 +47,10 @@ export const ERROR_CODE_MAP: Record<string, string> = {
   SOCIO_YA_BLOQUEADO: 'El socio ya estaba bloqueado',
   SOCIO_NO_BLOQUEADO: 'El socio no estaba bloqueado',
 
+  // Créditos del socio
+  CREDITOS_SE_PIERDEN:
+    'Ese cambio le borra al socio las clases que ya pagó. Confirmá la pérdida para continuar',
+
   // Motivo (validación)
   MOTIVO_REQUERIDO: 'El motivo es obligatorio para esta acción',
 };

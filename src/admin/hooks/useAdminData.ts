@@ -641,12 +641,19 @@ export async function gestionarMembresiaSocio(params: {
   usuario_id: string;
   tier_id: string;
   motivo?: string;
+  /**
+   * Cambiar de paquete a mensualidad (o al revés) BORRA las clases sin usar del
+   * socio. La base se niega a hacerlo si nadie lo confirmó: hay que mandar esto en
+   * true, y solo después de habérselo mostrado a quien aprieta el botón.
+   */
+  confirmar_perdida?: boolean;
 }): Promise<{ data: GestionarMembresiaResult | null; error: string | null }> {
   const { data, error } = await supabase.rpc('gestionar_membresia_socio', {
     p_usuario_id: params.usuario_id,
     p_tier_id: params.tier_id,
-    p_motivo: params.motivo
-  });
+    p_motivo: params.motivo,
+    p_confirmar_perdida: params.confirmar_perdida ?? false
+  } as never);
   if (error) return { data: null, error: error.message };
   return { data: data as unknown as GestionarMembresiaResult, error: null };
 }
