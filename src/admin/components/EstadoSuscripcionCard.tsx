@@ -109,7 +109,7 @@ export function EstadoSuscripcionCard({
     setCancelando(true);
     try {
       if (esDemo) {
-        const { error } = await cancelarSuscripcion(suscripcion.id);
+        const { error } = await cancelarSuscripcion();
         if (error) throw new Error(error);
         toast.success('Suscripción cancelada. (modo demo)');
       } else {

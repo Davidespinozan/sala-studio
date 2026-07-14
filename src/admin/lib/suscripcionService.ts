@@ -58,37 +58,29 @@ export async function abrirPortalSaas(returnPath?: string): Promise<{ url: strin
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// MOCK DE PAGO — leer antes de tocar
+// MOCK DE PAGO — SOLO PARA EL TENANT DEMO
 // ════════════════════════════════════════════════════════════════════════════
-// Hoy `crearSuscripcion()` SIMULA el pago: escribe directo la fila de
-// suscripciones_saas con estado 'trial' e ids 'mock_*'. NO cobra nada.
+// `crearSuscripcion()` simula el pago del demo: deja la suscripción en 'trial'
+// con ids 'mock_*'. NO cobra nada. Un gym real NO pasa por acá — va a Stripe
+// (iniciarCheckoutSaas → suscribir-saas), y la fila la escribe el webhook.
 //
-// Para enchufar Stripe real (S7 real) se cambia SOLO el cuerpo de
-// `crearSuscripcion` — la firma y el resto de la app quedan igual:
-//   1. Llamar a una Edge Function que cree un Stripe Checkout Session
-//      (mode: 'subscription', trial_period_days: TRIAL_DIAS, price del
-//      tier/moneda, customer del tenant).
-//   2. Redirigir al admin a session.url; al volver, Stripe confirma el pago.
-//   3. La fila de suscripciones_saas la crea/actualiza el WEBHOOK de Stripe
-//      (checkout.session.completed / customer.subscription.updated), no el
-//      cliente. Los campos stripe_customer_id / stripe_subscription_id se
-//      llenan con los ids reales.
+// El demo NO escribe la tabla: llama a una RPC que valida en el servidor que el
+// tenant sea el demo. Antes escribía `suscripciones_saas` directo, lo que
+// obligaba a darle a TODO admin permiso de escritura sobre su propia suscripción
+// al SaaS — o sea, la posibilidad de ponerse estado 'activa' y precio 0 con un
+// PATCH desde el navegador. Hoy la tabla es de solo lectura para el gym.
 //
-// `useSuscripcion` y toda la UI leen suscripciones_saas igual — no se enteran
-// de si el pago fue mock o real. Ese es el punto del aislamiento.
+// `useSuscripcion` y toda la UI leen suscripciones_saas igual — no se enteran de
+// si el pago fue mock o real. Ese es el punto del aislamiento.
 //
-// PRECIOS: en Stripe habrá 9 Prices (3 tiers × 3 monedas). A cada gym se le
-// asigna el Price de SU moneda de mercado — la que devuelve monedaDelTenant()
-// según su timezone. Son precios fijos independientes: NO hay conversión
-// automática entre monedas ni el usuario elige moneda.
+// PRECIOS: en Stripe hay 9 Prices (3 tiers × 3 monedas). A cada gym se le asigna
+// el Price de SU moneda de mercado — la que devuelve monedaDelTenant() según su
+// timezone. Son precios fijos independientes: NO hay conversión automática entre
+// monedas ni el usuario elige moneda.
 // ════════════════════════════════════════════════════════════════════════════
 
 /** true mientras el pago sea simulado. La UI lo usa para marcar "MODO DEMO". */
 export const PAGO_ES_MOCK = true;
-
-function mockId(prefix: string): string {
-  return `${prefix}_${Math.random().toString(36).slice(2, 12)}`;
-}
 
 export interface CrearSuscripcionParams {
   tenantId: string;
@@ -97,49 +89,33 @@ export interface CrearSuscripcionParams {
 }
 
 /**
- * Crea o cambia la suscripción del tenant. MOCK: escribe la fila directamente
- * con estado 'trial'. Ver el bloque de comentarios de arriba para Stripe real.
+ * Crea o cambia la suscripción del tenant. MOCK: pasa por una RPC que valida en
+ * el SERVIDOR que el tenant sea el demo. Antes esto escribía la tabla directo,
+ * lo que implicaba dejarle a todo admin permiso de escritura sobre su propia
+ * suscripción al SaaS — o sea, poder ponerse el plan gratis desde el navegador.
+ * La tabla ahora es de solo lectura para el gym; la escribe Stripe.
  */
 export async function crearSuscripcion(
   params: CrearSuscripcionParams
 ): Promise<{ error: string | null }> {
-  const { tenantId, tier, moneda } = params;
+  const { tier, moneda } = params;
 
-  const ahora = Date.now();
-  const finTrial = new Date(ahora + TRIAL_DIAS * 24 * 60 * 60 * 1000).toISOString();
-
-  const { error } = await supabase.from('suscripciones_saas').upsert(
-    {
-      tenant_id: tenantId,
-      tier,
-      moneda,
-      estado: 'trial',
-      trial_termina: finTrial,
-      // Durante el trial, el próximo cobro cae al terminar el trial.
-      periodo_actual_termina: finTrial,
-      precio_centavos: precioCentavos(tier, moneda),
-      stripe_customer_id: mockId('mock_cus'),
-      stripe_subscription_id: mockId('mock_sub'),
-      cancelada_at: null
-    },
-    { onConflict: 'tenant_id' }
-  );
+  // RPC nueva: aún no está en los tipos generados de Supabase.
+  const { error } = await supabase.rpc('demo_suscripcion_mock' as never, {
+    p_tier: tier,
+    p_moneda: moneda,
+    p_precio_centavos: precioCentavos(tier, moneda),
+    p_trial_dias: TRIAL_DIAS
+  } as never);
 
   return { error: error?.message ?? null };
 }
 
 /**
- * Cancela la suscripción. MOCK: marca estado 'cancelada'. Con Stripe real,
- * esto llamaría a stripe.subscriptions.cancel() y el webhook actualizaría la
- * fila.
+ * Cancela la suscripción del demo. Un gym real cancela por Stripe
+ * (`cambiarCancelacionSaas`), y el webhook sincroniza la fila.
  */
-export async function cancelarSuscripcion(
-  suscripcionId: string
-): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from('suscripciones_saas')
-    .update({ estado: 'cancelada', cancelada_at: new Date().toISOString() })
-    .eq('id', suscripcionId);
-
+export async function cancelarSuscripcion(): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('demo_suscripcion_cancelar' as never);
   return { error: error?.message ?? null };
 }

@@ -84,7 +84,7 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
   async function handleAsistencia(r: InscritoAdmin) {
     if (!currentUser) return;
     setActioningId(r.reservaId);
-    const { error } = await marcarAsistenciaAdmin(r.reservaId, currentUser.id);
+    const { error } = await marcarAsistenciaAdmin(r.reservaId);
     setActioningId(null);
     if (error) {
       toast.error('No pudimos marcar la asistencia. Prueba de nuevo.');

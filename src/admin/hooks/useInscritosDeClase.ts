@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { traducirErrorRPC } from '@member/logic/reservaLogic';
+import { translateActionError } from '@reception/lib/traducirErrorAccion';
 
 export interface InscritoAdmin {
   reservaId: string;
@@ -83,33 +84,36 @@ export function useInscritosDeClase(claseId: string | null) {
 
 // ============================================================================
 // Mutations (admin acciones rápidas)
+// ----------------------------------------------------------------------------
+// Todas pasan por RPC. Antes hacían UPDATE directo a `reservas` y por eso la
+// MISMA acción daba resultados distintos según la pantalla: cancelar desde acá
+// quemaba el crédito del socio, y cancelar desde su ficha se lo devolvía. Igual
+// el no-show, que no entraba al ledger y dejaba los reportes mintiendo.
 // ============================================================================
 
-export async function marcarAsistenciaAdmin(reservaId: string, byUsuarioId: string) {
-  return supabase
-    .from('reservas')
-    .update({
-      status: 'completada',
-      check_in_at: new Date().toISOString(),
-      check_in_by: byUsuarioId,
-      check_in_method: 'manual'
-    } as never)
-    .eq('id', reservaId);
+/** Corrección de la lista después del hecho (el socio fue y nadie lo checó). */
+export async function marcarAsistenciaAdmin(reservaId: string) {
+  return supabase.rpc('admin_marcar_asistencia' as never, {
+    p_reserva_id: reservaId,
+    p_motivo: 'Marcado presente desde la agenda.'
+  } as never);
 }
 
+/** Registra la falta en el ledger y aplica el bloqueo que el gym haya elegido. */
 export async function marcarNoShowAdmin(reservaId: string) {
-  return supabase.from('reservas').update({ status: 'no_show' }).eq('id', reservaId);
+  return supabase.rpc('recepcion_marcar_no_show' as never, {
+    p_reserva_id: reservaId,
+    p_motivo: 'Marcado como inasistencia desde la agenda.'
+  } as never);
 }
 
+/** Cancela y DEVUELVE el crédito (1 + invitados): la cancela el gym, no el socio. */
 export async function cancelarReservaAdminQuick(reservaId: string) {
-  return supabase
-    .from('reservas')
-    .update({
-      status: 'cancelada',
-      cancelada_at: new Date().toISOString(),
-      cancelada_motivo: 'Cancelada por admin desde agenda.'
-    } as never)
-    .eq('id', reservaId);
+  return supabase.rpc('cancelar_reserva_admin' as never, {
+    p_reserva_id: reservaId,
+    p_motivo: 'Cancelada por admin desde la agenda.',
+    p_notificar: true
+  } as never);
 }
 
 // ============================================================================
@@ -221,33 +225,25 @@ export async function promoverManualEspera(
   return { error: error ? traducirErrorRPC(error.message) : null };
 }
 
+/**
+ * Inscribe a un socio en una clase desde la agenda del admin.
+ *
+ * Pasa por `recepcion_crear_reserva`, la misma RPC del walk-in de mostrador.
+ * Antes hacía un INSERT directo a `reservas`, que no valida NADA: no miraba el
+ * cupo (una sala de 12 podía terminar con 15 inscritos), no debitaba el crédito
+ * (clase gratis: el gym perdía el ingreso del paquete) y dejaba entrar a socios
+ * con la membresía vencida. Todas esas reglas viven en la RPC, no en la tabla.
+ */
 export async function inscribirMiembroManual(params: {
-  tenantId: string;
   claseId: string;
-  recursoId: string;
   usuarioId: string;
-  slotInicio: Date;
-  slotFin: Date;
-  duracionMin: number;
-}) {
-  // Folio único basado en timestamp + random para reservas creadas por admin.
-  // S4.2: incluye clase_id para mantener integridad con la nueva tabla.
-  const stamp = Date.now().toString(36).toUpperCase();
-  const rand = Math.floor(Math.random() * 1000)
-    .toString()
-    .padStart(3, '0');
-  const folio = `SAL-ADM-${stamp}-${rand}`;
-
-  return supabase.from('reservas').insert({
-    tenant_id: params.tenantId,
-    recurso_id: params.recursoId,
-    usuario_id: params.usuarioId,
-    slot_inicio: params.slotInicio.toISOString(),
-    slot_fin: params.slotFin.toISOString(),
-    duracion_min: params.duracionMin,
-    folio,
-    status: 'confirmada',
-    invitados_count: 0,
-    clase_id: params.claseId
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('recepcion_crear_reserva' as never, {
+    p_usuario_id: params.usuarioId,
+    p_clase_id: params.claseId,
+    p_invitados: 0,
+    p_motivo: 'Inscripción manual desde la agenda del admin.'
   } as never);
+
+  return { error: error ? translateActionError(error.message) : null };
 }

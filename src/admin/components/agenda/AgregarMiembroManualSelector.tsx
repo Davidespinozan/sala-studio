@@ -67,20 +67,15 @@ export function AgregarMiembroManualSelector({
     }
     setAgregandoId(m.id);
     const { error } = await inscribirMiembroManual({
-      tenantId: tenant.id,
       claseId: clase.claseId,
-      recursoId: clase.recursoId,
-      usuarioId: m.id,
-      slotInicio: clase.slotInicio,
-      slotFin: clase.slotFin,
-      duracionMin: clase.duracionMinutos
+      usuarioId: m.id
     });
     setAgregandoId(null);
     if (error) {
-      const msg = error.message?.includes('duplicate') || error.message?.includes('unique')
-        ? `${m.nombre ?? m.email} ya está inscrito.`
-        : `No pudimos inscribir a ${m.nombre ?? m.email}. Prueba de nuevo.`;
-      toast.error(msg);
+      // El error viene de la RPC ya traducido: dice POR QUÉ no se pudo (sin cupo,
+      // sin créditos, membresía vencida). Antes esto no se podía saber, porque la
+      // inscripción no validaba nada y siempre "funcionaba".
+      toast.error(`${m.nombre ?? m.email}: ${error}`);
       return;
     }
     // Toast contextual según anticipación al inicio de la clase

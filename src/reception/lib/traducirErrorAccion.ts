@@ -19,6 +19,24 @@ export const ERROR_CODE_MAP: Record<string, string> = {
   RESERVA_YA_CANCELADA: 'Esta reserva ya estaba cancelada',
   RESERVA_NO_CANCELABLE: 'Esta reserva ya no se puede cancelar',
 
+  // Crear reserva por un socio (walk-in de mostrador / inscripción desde la
+  // agenda). En tercera persona: quien lee no es el socio, es quien lo atiende.
+  CUPO_LLENO: 'La clase está llena',
+  YA_RESERVADO: 'El socio ya está inscrito en esta clase',
+  SIN_MEMBRESIA: 'El socio no tiene una membresía activa',
+  MEMBRESIA_VENCIDA: 'La membresía del socio venció',
+  MEMBRESIA_CONGELADA: 'La membresía del socio está pausada',
+  SIN_CREDITOS: 'El socio se quedó sin clases en su paquete',
+  TIER_NO_PERMITIDO: 'El plan del socio no incluye esta sala',
+  SUCURSAL_NO_INCLUIDA: 'El plan del socio no cubre esta sede',
+  USUARIO_BLOQUEADO: 'El socio tiene una restricción activa',
+  INVITADOS_NO_INCLUIDOS: 'El plan del socio no incluye invitados',
+  INVITADOS_INVALIDOS: 'Número de invitados inválido',
+  CLASE_NO_PROGRAMADA: 'Esa clase ya no está programada',
+  CLASE_NO_EXISTE: 'No encontramos esa clase',
+  RECURSO_INACTIVO: 'Esa sala no está disponible',
+  SUCURSAL_DIFERENTE: 'Esa reserva es de otra sede',
+
   // Check-in
   YA_CHECK_IN: 'Este miembro ya hizo check-in',
   CHECK_IN_NO_EXISTE: 'No encontramos ese check-in',

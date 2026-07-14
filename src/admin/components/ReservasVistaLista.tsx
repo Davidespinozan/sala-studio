@@ -206,7 +206,7 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
   async function handleMarcarAsistencia(r: ReservaListada) {
     if (!currentUser) return;
     setActioning(true);
-    const { error } = await marcarAsistenciaAdmin(r.id, currentUser.id);
+    const { error } = await marcarAsistenciaAdmin(r.id);
     setActioning(false);
     if (error) {
       toast.error('No pudimos marcar la asistencia. Prueba de nuevo.');
