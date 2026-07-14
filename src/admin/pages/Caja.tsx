@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banknote, CreditCard, ArrowLeftRight, Gift, Globe } from 'lucide-react';
+import { Banknote, CreditCard, ArrowLeftRight, Gift, Globe, Undo2 } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useToast } from '@shared/hooks/useToast';
+import { translateActionError } from '@reception/lib/traducirErrorAccion';
 
 /**
  * CAJA — el dinero que entró de verdad.
@@ -11,8 +13,10 @@ import { useTenant } from '@shared/hooks/useTenant';
  * la caja. Ahora `pagos` registra cada cobro (plan, paquete, inscripción) con su
  * método y quién lo cobró; esta pantalla lo lee.
  *
- * Es SOLO LECTURA: los pagos son un ledger append-only (no se editan ni se
- * borran; una corrección es otro asiento).
+ * El ledger es append-only: un cobro no se edita ni se borra. Devolver dinero no
+ * es corregir el cobro, es asentar un REEMBOLSO: una fila nueva, negativa, que
+ * apunta al cobro que revierte. El original queda intacto y auditable, y la caja
+ * lo resta sola.
  */
 
 type Metodo = 'efectivo' | 'tarjeta' | 'transferencia' | 'stripe' | 'cortesia';
@@ -25,6 +29,7 @@ interface PagoRow {
   moneda: string;
   metodo: Metodo;
   notas: string | null;
+  revierte_pago_id: string | null;
   socio: { nombre: string | null } | null;
   cobrador: { nombre: string | null } | null;
   tier: { nombre: string | null } | null;
@@ -42,6 +47,7 @@ const CONCEPTO_LABEL: Record<string, string> = {
   plan: 'Plan',
   paquete: 'Paquete',
   inscripcion: 'Inscripción',
+  reembolso: 'Reembolso',
   otro: 'Otro'
 };
 
@@ -84,9 +90,12 @@ function hora(iso: string): string {
 
 export default function Caja() {
   const tenant = useTenant();
+  const toast = useToast();
   const [rango, setRango] = useState<Rango>('hoy');
   const [pagos, setPagos] = useState<PagoRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [devolviendo, setDevolviendo] = useState<PagoRow | null>(null);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,7 +104,7 @@ export default function Caja() {
       const { data, error } = await supabase
         .from('pagos')
         .select(
-          'id, created_at, concepto, monto_centavos, moneda, metodo, notas, socio:usuarios!pagos_usuario_id_fkey(nombre), cobrador:usuarios!pagos_cobrado_por_fkey(nombre), tier:tiers(nombre)'
+          'id, created_at, concepto, monto_centavos, moneda, metodo, notas, revierte_pago_id, socio:usuarios!pagos_usuario_id_fkey(nombre), cobrador:usuarios!pagos_cobrado_por_fkey(nombre), tier:tiers(nombre)'
         )
         .eq('tenant_id', tenant.id)
         .gte('created_at', desdeISO(rango))
@@ -106,17 +115,32 @@ export default function Caja() {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [tenant.id, rango]);
+  }, [tenant.id, rango, reload]);
 
-  // Totales por método. La cortesía NO suma: es dinero que no entró.
+  // Totales por método. La cortesía NO suma: es dinero que no entró. Los
+  // reembolsos son negativos, así que restan solos — sin ninguna cuenta especial.
   const totales = useMemo(() => {
     const porMetodo: Record<string, number> = {};
     let cobrado = 0;
+    let devuelto = 0;
     for (const p of pagos) {
       porMetodo[p.metodo] = (porMetodo[p.metodo] ?? 0) + p.monto_centavos;
       if (p.metodo !== 'cortesia') cobrado += p.monto_centavos;
+      if (p.concepto === 'reembolso') devuelto += -p.monto_centavos;
     }
-    return { porMetodo, cobrado };
+    return { porMetodo, cobrado, devuelto };
+  }, [pagos]);
+
+  // Cuánto se devolvió ya de cada cobro, para no ofrecer devolver de más. Solo
+  // cuenta lo del periodo cargado; el tope REAL lo pone la RPC, que mira todo.
+  const devueltoPorPago = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of pagos) {
+      if (p.revierte_pago_id) {
+        m.set(p.revierte_pago_id, (m.get(p.revierte_pago_id) ?? 0) + -p.monto_centavos);
+      }
+    }
+    return m;
   }, [pagos]);
 
   const moneda = pagos[0]?.moneda ?? 'MXN';
@@ -186,8 +210,18 @@ export default function Caja() {
         >
           {money(totales.cobrado, moneda)}
         </p>
+        {/* El total es NETO. Si hubo devoluciones hay que decirlo, o el dueño ve un
+            número más chico del que esperaba y no sabe por qué. */}
         <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', margin: '0 0 18px' }}>
-          {pagos.length} {pagos.length === 1 ? 'cobro' : 'cobros'} · las cortesías no suman (no entró dinero).
+          {pagos.length} {pagos.length === 1 ? 'movimiento' : 'movimientos'} · las cortesías no suman (no entró dinero).
+          {totales.devuelto > 0 && (
+            <>
+              {' · '}
+              <span style={{ color: 'var(--sala-error)' }}>
+                {money(totales.devuelto, moneda)} devueltos, ya descontados
+              </span>
+            </>
+          )}
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
@@ -233,8 +267,14 @@ export default function Caja() {
         <div className="ek-card" style={{ padding: 0, overflow: 'hidden' }}>
           {pagos.map((p, i) => {
             const meta = METODO_META[p.metodo] ?? METODO_META.efectivo;
-            const Icon = meta.Icon;
+            const esReembolso = p.concepto === 'reembolso';
+            const Icon = esReembolso ? Undo2 : meta.Icon;
             const esCortesia = p.metodo === 'cortesia';
+            // Devolver tiene sentido solo sobre un COBRO que movió dinero y del
+            // que quede algo sin devolver.
+            const yaDevuelto = devueltoPorPago.get(p.id) ?? 0;
+            const puedeDevolver =
+              !esReembolso && !esCortesia && p.monto_centavos - yaDevuelto > 0;
             return (
               <div
                 key={p.id}
@@ -255,8 +295,8 @@ export default function Caja() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    background: 'var(--sala-primary-light)',
-                    color: 'var(--sala-primary)'
+                    background: esReembolso ? 'var(--sala-error-light, var(--sala-surface))' : 'var(--sala-primary-light)',
+                    color: esReembolso ? 'var(--sala-error)' : 'var(--sala-primary)'
                   }}
                 >
                   <Icon size={16} strokeWidth={2.25} />
@@ -272,9 +312,32 @@ export default function Caja() {
                   </p>
                   <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
                     {hora(p.created_at)} · {meta.label}
-                    {p.cobrador?.nombre ? ` · cobró ${p.cobrador.nombre}` : ''}
+                    {p.cobrador?.nombre
+                      ? ` · ${esReembolso ? 'devolvió' : 'cobró'} ${p.cobrador.nombre}`
+                      : ''}
                   </p>
+                  {esReembolso && p.notas && (
+                    <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sala-text-secondary)' }}>
+                      {p.notas}
+                    </p>
+                  )}
+                  {!esReembolso && yaDevuelto > 0 && (
+                    <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sala-error)' }}>
+                      Devuelto: {money(yaDevuelto, p.moneda)}
+                    </p>
+                  )}
                 </div>
+
+                {puedeDevolver && (
+                  <button
+                    type="button"
+                    onClick={() => setDevolviendo(p)}
+                    className="ek-cta ek-cta--secondary"
+                    style={{ minHeight: '32px', padding: '0 12px', fontSize: '12px', flexShrink: 0 }}
+                  >
+                    Devolver
+                  </button>
+                )}
 
                 <p
                   style={{
@@ -282,7 +345,11 @@ export default function Caja() {
                     fontWeight: 700,
                     fontSize: '15px',
                     whiteSpace: 'nowrap',
-                    color: esCortesia ? 'var(--sala-text-tertiary)' : 'var(--sala-text-primary)',
+                    color: esReembolso
+                      ? 'var(--sala-error)'
+                      : esCortesia
+                        ? 'var(--sala-text-tertiary)'
+                        : 'var(--sala-text-primary)',
                     textDecoration: esCortesia ? 'line-through' : 'none'
                   }}
                 >
@@ -293,6 +360,147 @@ export default function Caja() {
           })}
         </div>
       )}
+
+      {devolviendo && (
+        <DevolverModal
+          pago={devolviendo}
+          yaDevuelto={devueltoPorPago.get(devolviendo.id) ?? 0}
+          onClose={() => setDevolviendo(null)}
+          onHecho={(msg) => {
+            setDevolviendo(null);
+            toast.success(msg);
+            setReload((n) => n + 1);
+          }}
+          onError={(msg) => toast.error(msg)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// Devolver dinero
+// ============================================================================
+
+function DevolverModal({
+  pago,
+  yaDevuelto,
+  onClose,
+  onHecho,
+  onError
+}: {
+  pago: PagoRow;
+  yaDevuelto: number;
+  onClose: () => void;
+  onHecho: (msg: string) => void;
+  onError: (msg: string) => void;
+}) {
+  const disponible = pago.monto_centavos - yaDevuelto;
+  const [monto, setMonto] = useState(String(Math.round(disponible / 100)));
+  const [motivo, setMotivo] = useState('');
+  const [enviando, setEnviando] = useState(false);
+
+  const montoCentavos = Math.round(Number(monto) * 100);
+  const montoValido =
+    Number.isFinite(montoCentavos) && montoCentavos > 0 && montoCentavos <= disponible;
+  const motivoValido = motivo.trim().length >= 3;
+
+  async function devolver() {
+    setEnviando(true);
+    const { data, error } = await supabase.rpc('registrar_reembolso' as never, {
+      p_pago_id: pago.id,
+      p_monto_centavos: montoCentavos,
+      p_motivo: motivo.trim()
+    } as never);
+
+    if (error) {
+      setEnviando(false);
+      onError(translateActionError(error.message));
+      return;
+    }
+
+    const res = data as { requiere_accion_en_stripe?: boolean } | null;
+    onHecho(
+      res?.requiere_accion_en_stripe
+        ? 'Reembolso registrado. Ojo: el dinero se devuelve desde Stripe.'
+        : 'Reembolso registrado.'
+    );
+  }
+
+  return (
+    <div className="ek-modal-backdrop" onClick={onClose}>
+      <div className="ek-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+        <div className="ek-modal-handle" />
+        <h3 className="ek-h3" style={{ marginBottom: '4px' }}>Devolver dinero</h3>
+        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 20px', lineHeight: 1.5 }}>
+          {pago.socio?.nombre ?? 'El socio'} · {CONCEPTO_LABEL[pago.concepto] ?? pago.concepto}
+          {' · '}{money(pago.monto_centavos, pago.moneda)}
+          {yaDevuelto > 0 && ` (ya se devolvieron ${money(yaDevuelto, pago.moneda)})`}
+        </p>
+
+        {pago.metodo === 'stripe' && (
+          <p style={{
+            fontSize: '12px',
+            lineHeight: 1.5,
+            padding: '10px 12px',
+            marginBottom: '16px',
+            borderRadius: 'var(--ek-r-card)',
+            background: 'var(--sala-surface)',
+            color: 'var(--sala-text-secondary)'
+          }}>
+            Este cobro fue online. Esto lo <strong>asienta en la caja</strong>, pero el dinero se
+            devuelve desde Stripe: hacelo también allá.
+          </p>
+        )}
+
+        <div className="ek-form-field">
+          <label className="ek-label">Monto a devolver</label>
+          <input
+            type="number"
+            value={monto}
+            onChange={(e) => setMonto(e.target.value)}
+            className="ek-input"
+            min={1}
+            max={Math.round(disponible / 100)}
+          />
+          <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
+            Se puede devolver hasta {money(disponible, pago.moneda)}. Podés devolver una parte.
+          </p>
+        </div>
+
+        <div className="ek-form-field" style={{ marginTop: '12px' }}>
+          <label className="ek-label">Motivo</label>
+          <input
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            className="ek-input"
+            placeholder="Cobro duplicado, el socio se arrepintió…"
+          />
+          <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
+            Obligatorio: sin motivo, el movimiento no se puede auditar después.
+          </p>
+        </div>
+
+        <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '16px 0 0', lineHeight: 1.5 }}>
+          El cobro original no se toca: queda registrado, y este reembolso se asienta aparte.
+          Tampoco se da de baja el plan — eso se hace desde la ficha del socio.
+        </p>
+
+        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+          <button type="button" onClick={onClose} className="ek-cta ek-cta--secondary" style={{ flex: 1 }}>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={devolver}
+            disabled={!montoValido || !motivoValido || enviando}
+            className="ek-cta"
+            style={{ flex: 1 }}
+          >
+            {enviando ? 'Devolviendo…' : 'Devolver'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

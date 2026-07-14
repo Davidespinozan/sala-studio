@@ -78,8 +78,12 @@ BEGIN
 
   SELECT * INTO v_miembro FROM usuarios WHERE id = v_reserva.usuario_id;
 
+  -- 'clase.marcar_asistencia' es la acción que la bitácora ya acepta. Acá decía
+  -- 'asistencia.admin', que NO está en el CHECK de auditoria_recepcion: la función
+  -- se creaba igual y reventaba recién al usarla. Lo arregla 20260716100000, que
+  -- además agrega el test que compara todas las acciones contra la lista.
   PERFORM _audrec_log(
-    'asistencia.admin', 'reserva', p_reserva_id, v_reserva.usuario_id, v_miembro.nombre,
+    'clase.marcar_asistencia', 'reserva', p_reserva_id, v_reserva.usuario_id, v_miembro.nombre,
     format('Asistencia marcada por admin en la clase de %s.%s',
            to_char(v_reserva.slot_inicio, 'DD/MM HH24:MI'),
            CASE WHEN p_motivo IS NOT NULL AND length(trim(p_motivo)) > 0
