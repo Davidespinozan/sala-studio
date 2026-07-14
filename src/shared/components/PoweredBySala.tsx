@@ -24,22 +24,22 @@ interface Props {
    *     primarios validados en scripts/validate-sidebar-contrast.mjs).
    */
   tone?: 'light' | 'dark';
+  /** Suma la atribución a STRYV (la implementación). Solo en la web pública. */
+  conStryv?: boolean;
 }
 
-export function PoweredBySala({ align = 'center', tone = 'light' }: Props = {}) {
+export function PoweredBySala({ align = 'center', tone = 'light', conStryv = false }: Props = {}) {
   const tenant = useTenant();
   const branding = (tenant.branding ?? {}) as Record<string, unknown>;
 
   if (branding.hide_powered_by === true) return null;
 
   const isDark = tone === 'dark';
+  const colorBase = isDark ? 'rgba(255, 255, 255, 0.60)' : 'var(--sala-text-tertiary)';
+  const linkStyle = { color: 'inherit', textDecoration: 'none', fontWeight: 600 } as const;
 
   return (
-    <a
-      href="https://salastudio.app/para-gimnasios"
-      target="_blank"
-      rel="noopener noreferrer"
-      title="Conoce SALA — crea tu propio gym"
+    <div
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -47,9 +47,8 @@ export function PoweredBySala({ align = 'center', tone = 'light' }: Props = {}) 
         gap: '6px',
         padding: '12px 0',
         fontSize: '11px',
-        color: isDark ? 'rgba(255, 255, 255, 0.60)' : 'var(--sala-text-tertiary)',
-        letterSpacing: '0.02em',
-        textDecoration: 'none'
+        color: colorBase,
+        letterSpacing: '0.02em'
       }}
     >
       {/* Isotipo a opacidad plena: bajarla lo dejaba lavado/"sucio" sobre el
@@ -59,8 +58,33 @@ export function PoweredBySala({ align = 'center', tone = 'light' }: Props = {}) 
         <SalaLogo variant="isotipo" height={17} />
       </span>
       <span>
-        Powered by <strong style={{ fontWeight: 600 }}>SALA</strong>
+        Powered by{' '}
+        <a
+          href="https://salastudio.app/para-gimnasios"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Conoce SALA — crea tu propio gym"
+          style={linkStyle}
+        >
+          SALA
+        </a>
+        {/* STRYV solo en la web PÚBLICA del gym: adentro de la app la gente ya es
+            cliente, ahí una marca de implementación no le habla a nadie. */}
+        {conStryv && (
+          <>
+            {' · por '}
+            <a
+              href="https://stryvstudio.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="STRYV — implementación digital"
+              style={linkStyle}
+            >
+              STRYV
+            </a>
+          </>
+        )}
       </span>
-    </a>
+    </div>
   );
 }

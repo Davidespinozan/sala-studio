@@ -231,7 +231,7 @@ export default function Footer() {
         >
           © {new Date().getFullYear()} {tenant.nombre || 'SALA Studio'}. {footer.copyright}
         </p>
-        <PoweredBySala align="left" tone="dark" />
+        <PoweredBySala align="left" tone="dark" conStryv />
       </div>
       </div>
     </footer>
