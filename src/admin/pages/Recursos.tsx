@@ -307,6 +307,13 @@ export default function Recursos() {
       {modal?.mode === 'edit' && (
         <EditarRecursoModal
           recurso={modal.recurso}
+          // Diseñar el mapa cierra el form y abre el builder: son dos modales, no
+          // uno adentro del otro. Al guardar el mapa se vuelve a la lista.
+          onDisenarMapa={() => {
+            const r = modal.recurso;
+            setModal(null);
+            setMapaRecurso(r);
+          }}
           onClose={() => setModal(null)}
           onSaved={async () => {
             await refetch();
@@ -318,6 +325,7 @@ export default function Recursos() {
       {modal?.mode === 'create' && (
         <EditarRecursoModal
           recurso={null}
+          onDisenarMapa={() => {}}
           onClose={() => setModal(null)}
           onSaved={async () => {
             await refetch();
@@ -577,10 +585,12 @@ function RecursoArchivedRow({
 
 function EditarRecursoModal({
   recurso,
+  onDisenarMapa,
   onClose,
   onSaved
 }: {
   recurso: Recurso | null;
+  onDisenarMapa: () => void;
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
@@ -598,6 +608,7 @@ function EditarRecursoModal({
   const [tiersPermitidos, setTiersPermitidos] = useState<string[]>(
     recurso?.tiers_permitidos ?? []
   );
+  const mapaDeLaSala = recurso ? getLayout(recurso) : null;
   const [fotoUrl, setFotoUrl] = useState<string>(recurso?.foto_url ?? '');
   const [cupoMaxDefault, setCupoMaxDefault] = useState<number>(
     recurso?.cupo_max_default ?? 12
@@ -758,6 +769,66 @@ function EditarRecursoModal({
             {tiersPermitidos.length === 0
               ? 'Sin planes seleccionados: la sala queda abierta a cualquier plan.'
               : 'Solo los miembros con estos planes podrán reservar esta sala.'}
+          </p>
+        </div>
+
+        {/* MAPA DE LA SALA — vivía escondido en el menú de tres puntos, pero es una
+            decisión sobre CÓMO funciona la sala, no una acción suelta. Y cambia las
+            reglas de reserva, así que hay que decirlo antes de que alguien lo active
+            sin saber lo que hace. */}
+        <div className="ek-form-field" style={{ marginTop: '16px' }}>
+          <label className="ek-label">Lugares asignados (mapa de la sala)</label>
+
+          {mapaDeLaSala ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px 14px',
+              borderRadius: 'var(--ek-r-card)',
+              border: '1px solid var(--sala-border)',
+              background: 'var(--sala-surface)'
+            }}>
+              <Map size={18} strokeWidth={2} style={{ color: 'var(--sala-primary)', flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--sala-text-primary)' }}>
+                  {mapaDeLaSala.lugares.length} lugares dibujados
+                </p>
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
+                  El socio elige su lugar al reservar.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onDisenarMapa}
+                className="ek-cta ek-cta--secondary"
+                style={{ minHeight: '34px', padding: '0 14px', fontSize: '13px', flexShrink: 0 }}
+              >
+                Editar mapa
+              </button>
+            </div>
+          ) : esCreacion ? (
+            <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', lineHeight: 1.5, margin: 0 }}>
+              Guardá la sala y después vas a poder dibujarle un mapa, si lo necesita.
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={onDisenarMapa}
+              className="ek-cta ek-cta--secondary ek-cta--full"
+              style={{ minHeight: '38px' }}
+            >
+              Diseñar mapa de lugares
+            </button>
+          )}
+
+          <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '8px', lineHeight: 1.55 }}>
+            Solo para salas donde cada persona tiene una posición fija: bicis de cycling,
+            camas de reformer, mats numerados. <strong>Cambia las reglas de la sala:</strong> el
+            cupo pasa a ser la cantidad de lugares del mapa (deja de mandar el cupo de la
+            clase) y no se pueden llevar invitados, porque cada persona ocupa su propio lugar.
+            Si tu sala funciona por cupo —15 lugares un día, 20 otro— no le pongas mapa.
+            {!esCreacion && ' El editor del mapa se abre aparte: guardá primero lo que hayas cambiado acá.'}
           </p>
         </div>
 
