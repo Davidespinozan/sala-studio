@@ -316,33 +316,6 @@ function InstructorLandingCard({ instructor }: { instructor: InstructorPublico }
         >
           {instructor.nombre}
         </h3>
-        {/* Especialidades como CHIPS: antes iban en una línea con ellipsis, así que
-            "Entrenamiento funcional · Cardio" se cortaba en "ENTRENAMIENTO FUNCIONAL …"
-            y no se leía ninguna completa. */}
-        {instructor.especialidades.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '8px' }}>
-            {instructor.especialidades.slice(0, 3).map((e) => (
-              <span
-                key={e}
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  color: 'rgba(255, 255, 255, 0.92)',
-                  background: 'rgba(255, 255, 255, 0.14)',
-                  border: '0.5px solid rgba(255, 255, 255, 0.22)',
-                  borderRadius: '999px',
-                  padding: '4px 9px',
-                  backdropFilter: 'blur(6px)',
-                  WebkitBackdropFilter: 'blur(6px)'
-                }}
-              >
-                {e}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
