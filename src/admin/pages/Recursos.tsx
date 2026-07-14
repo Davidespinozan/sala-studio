@@ -62,11 +62,11 @@ function useTiersDelTenant(): TierOption[] {
         .order('orden', { ascending: true });
 
       if (error) {
+        // Antes acá caíamos a ['basica','pro'] —los planes de EJEMPLO—, así que
+        // un gym con otros planes veía dos que no existen y podía restringir una
+        // sala a slugs fantasma: nadie podría reservarla. Mejor lista vacía.
         console.error('[useTiersDelTenant]', error);
-        setTiers([
-          { slug: 'basica', nombre: 'Básica' },
-          { slug: 'pro', nombre: 'Pro' }
-        ]);
+        setTiers([]);
       } else {
         setTiers(data ?? []);
       }
@@ -755,7 +755,9 @@ function EditarRecursoModal({
             onChange={setTiersPermitidos}
           />
           <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
-            Solo los miembros con estos planes podrán reservar esta sala.
+            {tiersPermitidos.length === 0
+              ? 'Sin planes seleccionados: la sala queda abierta a cualquier plan.'
+              : 'Solo los miembros con estos planes podrán reservar esta sala.'}
           </p>
         </div>
 
