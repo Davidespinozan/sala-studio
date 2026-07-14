@@ -486,13 +486,27 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   margin: 3px 0 0;
 }
 
+/* Mañana / Tarde: separar las franjas evita colgarle AM/PM a cada uno de los 10
+   chips (ruido) y aun así se entiende de un vistazo cuál es cuál. */
+.landing-programa-franja {
+  margin-top: 10px;
+}
+.landing-programa-franja-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sala-text-tertiary);
+  margin-bottom: 5px;
+}
+
 /* Las horas, como chips: son 10 por día. En lista vertical la sección se volvía
    una pared que repetía el mismo nombre diez veces. */
 .landing-programa-horas {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 10px;
 }
 
 .landing-programa-hora {
@@ -566,8 +580,10 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
    frena en 340px para que la foto no se deforme. */
 .landing-instructores-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 18px;
+  /* DOS por fila en móvil: a una sola columna, el retrato 3:4 ocupaba toda la
+     pantalla del teléfono y se veía gigante. */
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
   justify-content: center;
   max-width: 1060px;
   margin: 0 auto;

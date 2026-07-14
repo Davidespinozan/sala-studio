@@ -23,11 +23,14 @@ export interface EstudioInfo {
 interface Props {
   /** Horarios recurrentes del gym; el modal filtra los de esta sala. */
   horarios?: HorarioPublico[];
+  /** false cuando el programa ya se muestra en la página (gym de una sola sala):
+   *  repetirlo acá adentro sería mostrar dos veces lo mismo. */
+  mostrarPrograma?: boolean;
   estudio: EstudioInfo | null;
   onClose: () => void;
 }
 
-export default function EstudioModal({ estudio, horarios = [], onClose }: Props) {
+export default function EstudioModal({ estudio, horarios = [], mostrarPrograma = true, onClose }: Props) {
   useEffect(() => {
     if (!estudio) return;
 
@@ -204,6 +207,7 @@ export default function EstudioModal({ estudio, horarios = [], onClose }: Props)
 
           {/* El programa ES de la sala: qué se entrena cada día acá adentro. */}
           {(() => {
+            if (!mostrarPrograma) return null;
             const delEstudio = horarios.filter((h) => h.recurso_id === estudio.id);
             if (delEstudio.length === 0) return null;
             return (

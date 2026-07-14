@@ -9,6 +9,14 @@ export interface HorarioPublico {
   foto_url: string | null;
 }
 
+/** "05:00" → "5:00", "16:00" → "4:00". Sin AM/PM: la franja lo dice. */
+function formatearHora(hhmm: string): string {
+  const [hStr, mStr] = hhmm.split(':');
+  const h = Number(hStr);
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${mStr}`;
+}
+
 /** dow según la DB: 0=domingo … 6=sábado. La semana se lee de lunes a domingo. */
 const DIAS_SEMANA: { dow: number; label: string }[] = [
   { dow: 1, label: 'Lunes' },
@@ -58,11 +66,27 @@ export function ProgramaSemanal({ horarios }: { horarios: HorarioPublico[] }) {
               <div key={c.nombre} className="landing-programa-clase">
                 <p className="landing-programa-nombre">{c.nombre}</p>
                 {c.enfoque && <p className="landing-programa-enfoque">{c.enfoque}</p>}
-                <div className="landing-programa-horas">
-                  {c.horas.sort().map((h) => (
-                    <span key={h} className="landing-programa-hora">{h}</span>
-                  ))}
-                </div>
+                {/* Separadas en MAÑANA y TARDE en vez de colgarle AM/PM a cada
+                    chip: con 10 franjas, repetir el sufijo diez veces es ruido —
+                    el bloque ya dice de qué parte del día se trata. */}
+                {(['am', 'pm'] as const).map((franja) => {
+                  const horas = c.horas
+                    .filter((h) => (franja === 'am' ? Number(h.slice(0, 2)) < 12 : Number(h.slice(0, 2)) >= 12))
+                    .sort();
+                  if (horas.length === 0) return null;
+                  return (
+                    <div key={franja} className="landing-programa-franja">
+                      <span className="landing-programa-franja-label">
+                        {franja === 'am' ? 'Mañana' : 'Tarde'}
+                      </span>
+                      <div className="landing-programa-horas">
+                        {horas.map((h) => (
+                          <span key={h} className="landing-programa-hora">{formatearHora(h)}</span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
