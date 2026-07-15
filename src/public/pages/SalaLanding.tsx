@@ -56,7 +56,8 @@ const shot = (key: keyof typeof SHOTS): string | undefined => (USAR_SHOTS ? SHOT
 const SALA_CONTACTO = {
   instagram: 'https://www.instagram.com/salastudio.app/',
   whatsapp: 'https://wa.me/17373683464',
-  email: 'hola@salastudio.app'
+  email: 'hola@salastudio.app',
+  stryvEmail: 'stryv.studio@gmail.com'
 } as const;
 
 /**
@@ -1074,13 +1075,20 @@ function Footer({ onBuscar }: { onBuscar: () => void }) {
         <div>
           <p className="ek-eyebrow" style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', margin: '0 0 8px' }}>CONTACTO</p>
           <a href={`mailto:${SALA_CONTACTO.email}`} style={linkStyle}>{SALA_CONTACTO.email}</a>
+          <a href={`mailto:${SALA_CONTACTO.stryvEmail}`} style={linkStyle}>{SALA_CONTACTO.stryvEmail}</a>
           <a href={SALA_CONTACTO.whatsapp} target="_blank" rel="noopener noreferrer" style={linkStyle}>WhatsApp</a>
           <a href={SALA_CONTACTO.instagram} target="_blank" rel="noopener noreferrer" style={linkStyle}>Instagram</a>
         </div>
       </div>
       <div style={{ borderTop: '1px solid var(--sala-border)' }}>
         <p style={{ maxWidth: '1100px', margin: '0 auto', padding: '16px clamp(16px, 5vw, 48px)', fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
-          © 2026 SALA Studio · Un producto de Stryv
+          © 2026 SALA Studio · Un producto de{' '}
+          <a
+            href={`mailto:${SALA_CONTACTO.stryvEmail}`}
+            style={{ color: 'var(--sala-text-secondary)', textDecoration: 'underline' }}
+          >
+            Stryv
+          </a>
         </p>
       </div>
     </footer>
