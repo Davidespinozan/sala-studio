@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useSucursal } from '../providers/SucursalProvider';
 
 /**
  * Rendimiento por SALA y por INSTRUCTOR (últimos 90 días): qué recurso/profe
@@ -74,6 +75,7 @@ function aFilas(map: Map<string, Acc>): RendimientoFila[] {
 
 export function useReportesRecursos() {
   const tenant = useTenant();
+  const { sucursalFiltro } = useSucursal();
   const [data, setData] = useState<ReportesRecursosData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -86,13 +88,18 @@ export function useReportesRecursos() {
       const hace90ISO = new Date(ahora - VENTANA_DIAS * DIA_MS).toISOString();
       const hace90Fecha = hace90ISO.slice(0, 10);
 
+      let clasesQ = supabase
+        .from('clases')
+        .select('id, cupo_max, recurso:recursos(nombre), instructor:instructores(nombre)')
+        .eq('tenant_id', tenant.id)
+        .neq('status', 'cancelada')
+        .gte('fecha', hace90Fecha);
+      // Con las clases ya scopeadas por sede, las reservas de otras sedes se
+      // descartan solas: la agregación las busca por claseById.
+      if (sucursalFiltro) clasesQ = clasesQ.eq('sucursal_id', sucursalFiltro);
+
       const [clasesRes, reservasRes] = await Promise.all([
-        supabase
-          .from('clases')
-          .select('id, cupo_max, recurso:recursos(nombre), instructor:instructores(nombre)')
-          .eq('tenant_id', tenant.id)
-          .neq('status', 'cancelada')
-          .gte('fecha', hace90Fecha),
+        clasesQ,
         supabase
           .from('reservas')
           .select('clase_id, status')
@@ -158,7 +165,7 @@ export function useReportesRecursos() {
     return () => {
       mounted = false;
     };
-  }, [tenant.id]);
+  }, [tenant.id, sucursalFiltro]);
 
   return { data, isLoading };
 }

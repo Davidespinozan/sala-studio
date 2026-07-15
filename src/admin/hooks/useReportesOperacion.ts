@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useSucursal } from '../providers/SucursalProvider';
 
 /**
  * Operación: conversión de lista de espera (últimos 90 días) y créditos sin usar
@@ -32,6 +33,7 @@ interface MembresiaRow {
 
 export function useReportesOperacion() {
   const tenant = useTenant();
+  const { sucursalFiltro } = useSucursal();
   const [data, setData] = useState<ReportesOperacionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -45,23 +47,33 @@ export function useReportesOperacion() {
       const nowISO = new Date(ahora).toISOString();
       const venceISO = new Date(ahora + VENCE_DIAS * DIA_MS).toISOString();
 
-      const [esperaRes, memRes] = await Promise.all([
-        supabase
-          .from('lista_espera')
-          .select('status')
-          .eq('tenant_id', tenant.id)
-          .gte('created_at', hace90ISO),
-        supabase
-          .from('membresias')
-          .select('creditos_restantes, periodo_actual_fin')
-          .eq('tenant_id', tenant.id)
-          .in('status', STATUS_VIGENTES)
-          .gt('creditos_restantes', 0)
-      ]);
+      // lista_espera no tiene sede: se filtra por la sede de la clase.
+      const esperaQ = sucursalFiltro
+        ? supabase
+            .from('lista_espera')
+            .select('status, clase:clases!inner(sucursal_id)')
+            .eq('tenant_id', tenant.id)
+            .eq('clase.sucursal_id', sucursalFiltro)
+            .gte('created_at', hace90ISO)
+        : supabase
+            .from('lista_espera')
+            .select('status')
+            .eq('tenant_id', tenant.id)
+            .gte('created_at', hace90ISO);
+
+      let memQ = supabase
+        .from('membresias')
+        .select('creditos_restantes, periodo_actual_fin')
+        .eq('tenant_id', tenant.id)
+        .in('status', STATUS_VIGENTES)
+        .gt('creditos_restantes', 0);
+      if (sucursalFiltro) memQ = memQ.eq('sucursal_id', sucursalFiltro);
+
+      const [esperaRes, memRes] = await Promise.all([esperaQ, memQ]);
 
       if (!mounted) return;
 
-      const espera = (esperaRes.data ?? []) as EsperaRow[];
+      const espera = (esperaRes.data ?? []) as unknown as EsperaRow[];
       const mems = (memRes.data ?? []) as MembresiaRow[];
 
       // ── Lista de espera: conversión = promovidos / resueltos (prom + cancel) ──
@@ -106,7 +118,7 @@ export function useReportesOperacion() {
     return () => {
       mounted = false;
     };
-  }, [tenant.id]);
+  }, [tenant.id, sucursalFiltro]);
 
   return { data, isLoading };
 }

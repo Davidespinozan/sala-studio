@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useSucursal } from '../providers/SucursalProvider';
 import { getTenantTimezone } from '@shared/lib/timezone';
 
 /**
@@ -32,6 +33,7 @@ const DOW_MAP: Record<string, number> = {
 
 export function useReportesHeatmap() {
   const tenant = useTenant();
+  const { sucursalFiltro } = useSucursal();
   const tz = getTenantTimezone(tenant);
   const [data, setData] = useState<ReportesHeatmapData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,16 +44,25 @@ export function useReportesHeatmap() {
 
     async function load() {
       const desdeISO = new Date(Date.now() - VENTANA_DIAS * DIA_MS).toISOString();
-      const { data: rows } = await supabase
-        .from('reservas')
-        .select('slot_inicio')
-        .eq('tenant_id', tenant.id)
-        .in('status', ['confirmada', 'completada'])
-        .gte('slot_inicio', desdeISO);
+      const reservasQ = sucursalFiltro
+        ? supabase
+            .from('reservas')
+            .select('slot_inicio, recurso:recursos!inner(sucursal_id)')
+            .eq('tenant_id', tenant.id)
+            .eq('recurso.sucursal_id', sucursalFiltro)
+            .in('status', ['confirmada', 'completada'])
+            .gte('slot_inicio', desdeISO)
+        : supabase
+            .from('reservas')
+            .select('slot_inicio')
+            .eq('tenant_id', tenant.id)
+            .in('status', ['confirmada', 'completada'])
+            .gte('slot_inicio', desdeISO);
+      const { data: rows } = await reservasQ;
 
       if (!mounted) return;
 
-      const reservas = (rows ?? []) as { slot_inicio: string }[];
+      const reservas = (rows ?? []) as unknown as { slot_inicio: string }[];
 
       // Formatter reutilizable: extrae día de la semana + hora local del tenant.
       const fmt = new Intl.DateTimeFormat('en-US', {
@@ -101,7 +112,7 @@ export function useReportesHeatmap() {
     return () => {
       mounted = false;
     };
-  }, [tenant.id, tz]);
+  }, [tenant.id, tz, sucursalFiltro]);
 
   return { data, isLoading };
 }

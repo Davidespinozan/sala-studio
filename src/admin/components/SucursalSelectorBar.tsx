@@ -1,13 +1,14 @@
-import { useSucursal } from '../providers/SucursalProvider';
+import { useSucursal, TODAS_SEDES } from '../providers/SucursalProvider';
 
 /**
- * Barra global de sucursal. Se muestra arriba del contenido del admin y
- * decide qué sucursal ven todas las páginas (Salas, Instructores, Horarios,
- * Agenda). Para tenants de una sola sucursal queda oculta — el scoping es
- * transparente.
+ * Barra global de sucursal. Se muestra arriba del contenido del admin.
+ * Gestión (Salas, Instructores, Horarios, Agenda) trabaja sobre la sede
+ * elegida; "Todas las sedes" agrega los reportes/caja al gimnasio entero (y
+ * la gestión sigue en la última sede real elegida). Para tenants de una sola
+ * sucursal queda oculta — el scoping es transparente.
  */
 export function SucursalSelectorBar() {
-  const { sucursales, sucursalId, setSucursalActivaId, multisede } = useSucursal();
+  const { sucursales, sucursalId, esTodas, setSucursalActivaId, multisede } = useSucursal();
 
   if (!multisede) return null;
 
@@ -45,7 +46,7 @@ export function SucursalSelectorBar() {
       </label>
       <select
         id="sucursal-selector"
-        value={sucursalId ?? ''}
+        value={esTodas ? TODAS_SEDES : sucursalId ?? ''}
         onChange={(e) => setSucursalActivaId(e.target.value)}
         style={{
           appearance: 'auto',
@@ -66,6 +67,8 @@ export function SucursalSelectorBar() {
             {s.nombre}
           </option>
         ))}
+        {/* Agrega los reportes y la caja al gimnasio entero. */}
+        <option value={TODAS_SEDES}>Todas las sedes</option>
       </select>
     </div>
   );

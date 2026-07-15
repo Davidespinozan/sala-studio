@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useSucursal } from '../providers/SucursalProvider';
 import {
   getTenantTimezone,
   hoyEnTimezone,
@@ -213,15 +214,22 @@ function agregarMetricas(
     .sort((a, b) => b.cantidad - a.cantidad);
 
   // ── Bloque 3: reservas ──
-  const confirmadas = reservasEnPeriodo.filter(
-    (r) => r.status === 'confirmada' || r.status === 'completada'
-  ).length;
+  // "Total" cuenta las reservas que OCURRIERON: confirmadas + completadas +
+  // no-show. Las canceladas se muestran aparte (bucket propio) y NO entran al
+  // total ni a la gráfica — así este número cuadra con el del Dashboard, que
+  // también las excluye. Antes el total las sumaba y los dos no coincidían.
   const canceladas = reservasEnPeriodo.filter(
     (r) => r.status === 'cancelada' || r.status === 'cancelada_admin'
   ).length;
+  const reservasReales = reservasEnPeriodo.filter(
+    (r) => r.status !== 'cancelada' && r.status !== 'cancelada_admin'
+  );
+  const confirmadas = reservasReales.filter(
+    (r) => r.status === 'confirmada' || r.status === 'completada'
+  ).length;
 
   const countPorFecha = new Map<string, number>();
-  for (const r of reservasEnPeriodo) {
+  for (const r of reservasReales) {
     const fecha = claseById.get(r.clase_id!)!.fecha;
     countPorFecha.set(fecha, (countPorFecha.get(fecha) ?? 0) + 1);
   }
@@ -235,11 +243,11 @@ function agregarMetricas(
     ocupacion: { promedioPct, totalClases: clases.length, asistenciaPct, noShows, porSala },
     miembros: { activos, altasNuevas, bajas, total: usuarios.length, porPlan },
     reservas: {
-      total: reservasEnPeriodo.length,
+      total: reservasReales.length,
       confirmadas,
       canceladas,
       promedioPorDia:
-        rango.dias > 0 ? Math.round((reservasEnPeriodo.length / rango.dias) * 10) / 10 : 0,
+        rango.dias > 0 ? Math.round((reservasReales.length / rango.dias) * 10) / 10 : 0,
       porDia
     }
   };
@@ -253,6 +261,7 @@ function agregarMetricas(
  */
 export function useReportes(periodo: PeriodoReporte) {
   const tenant = useTenant();
+  const { sucursalFiltro } = useSucursal();
   const tz = getTenantTimezone(tenant);
   const [data, setData] = useState<ReportesData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -264,24 +273,35 @@ export function useReportes(periodo: PeriodoReporte) {
     async function fetchDatosRango(rango: RangoReporte) {
       const desdeInstante = instanteDeClase(rango.desde, '00:00', tz).toISOString();
       const hastaInstante = instanteDeClase(rango.hasta, '23:59', tz).toISOString();
-      const [clasesRes, reservasRes] = await Promise.all([
-        supabase
-          .from('clases')
-          .select('id, fecha, cupo_max, recurso:recursos(nombre)')
-          .eq('tenant_id', tenant.id)
-          .neq('status', 'cancelada')
-          .gte('fecha', rango.desde)
-          .lte('fecha', rango.hasta),
-        supabase
-          .from('reservas')
-          .select('id, status, clase_id')
-          .eq('tenant_id', tenant.id)
-          .gte('slot_inicio', desdeInstante)
-          .lte('slot_inicio', hastaInstante)
-      ]);
+
+      let clasesQ = supabase
+        .from('clases')
+        .select('id, fecha, cupo_max, recurso:recursos(nombre)')
+        .eq('tenant_id', tenant.id)
+        .neq('status', 'cancelada')
+        .gte('fecha', rango.desde)
+        .lte('fecha', rango.hasta);
+      // clases.sucursal_id existe; reservas se filtra por la sede de su recurso.
+      let reservasQ = sucursalFiltro
+        ? supabase
+            .from('reservas')
+            .select('id, status, clase_id, recurso:recursos!inner(sucursal_id)')
+            .eq('tenant_id', tenant.id)
+            .eq('recurso.sucursal_id', sucursalFiltro)
+            .gte('slot_inicio', desdeInstante)
+            .lte('slot_inicio', hastaInstante)
+        : supabase
+            .from('reservas')
+            .select('id, status, clase_id')
+            .eq('tenant_id', tenant.id)
+            .gte('slot_inicio', desdeInstante)
+            .lte('slot_inicio', hastaInstante);
+      if (sucursalFiltro) clasesQ = clasesQ.eq('sucursal_id', sucursalFiltro);
+
+      const [clasesRes, reservasRes] = await Promise.all([clasesQ, reservasQ]);
       return {
         clases: (clasesRes.data ?? []) as unknown as ClaseRow[],
-        reservas: (reservasRes.data ?? []) as ReservaRow[],
+        reservas: (reservasRes.data ?? []) as unknown as ReservaRow[],
         desdeInstante,
         hastaInstante
       };
@@ -294,11 +314,13 @@ export function useReportes(periodo: PeriodoReporte) {
       const diasActual = diasEntre(rangoActual.desde, rangoActual.hasta) + 1;
       const diasAnterior = diasEntre(rangoAnterior.desde, rangoAnterior.hasta) + 1;
 
-      const usuariosRes = await supabase
+      let usuariosQ = supabase
         .from('usuarios')
         .select('id, status, created_at, membresia_tier')
         .eq('tenant_id', tenant.id)
         .eq('rol', 'miembro');
+      if (sucursalFiltro) usuariosQ = usuariosQ.eq('sucursal_id', sucursalFiltro);
+      const usuariosRes = await usuariosQ;
       const usuarios = (usuariosRes.data ?? []) as UsuarioRow[];
 
       const [datosAct, datosAnt] = await Promise.all([
@@ -333,7 +355,7 @@ export function useReportes(periodo: PeriodoReporte) {
     return () => {
       mounted = false;
     };
-  }, [tenant.id, tz, periodo]);
+  }, [tenant.id, tz, periodo, sucursalFiltro]);
 
   return { data, isLoading };
 }

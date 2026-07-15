@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useSucursal } from '../providers/SucursalProvider';
 import { getTenantTimezone, hoyEnTimezone, instanteDeClase } from '@shared/lib/timezone';
 import {
   calcularRango,
@@ -103,6 +104,7 @@ function statusEnFecha(entries: HistorialRow[], fechaISO: string): string | null
  */
 export function useReportesAvanzados(periodo: PeriodoReporte) {
   const tenant = useTenant();
+  const { sucursalFiltro } = useSucursal();
   const tz = getTenantTimezone(tenant);
   const [data, setData] = useState<ReportesAvanzadosData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -118,30 +120,45 @@ export function useReportesAvanzados(periodo: PeriodoReporte) {
       const rangoAnterior = calcularRangoAnterior(periodo, rangoActual, hoy);
       const riesgoDesdeISO = new Date(Date.now() - RIESGO_LOOKBACK_DIAS * DIA_MS).toISOString();
 
+      let miembrosQ = supabase
+        .from('usuarios')
+        .select('id, nombre, email, created_at, status')
+        .eq('tenant_id', tenant.id)
+        .eq('rol', 'miembro');
+      if (sucursalFiltro) miembrosQ = miembrosQ.eq('sucursal_id', sucursalFiltro);
+
+      // El historial no tiene sede, pero solo se consulta para socios de
+      // `miembros` (ya filtrados), así que queda scopeado de forma natural.
+      const reservasQ = sucursalFiltro
+        ? supabase
+            .from('reservas')
+            .select('usuario_id, slot_inicio, recurso:recursos!inner(sucursal_id)')
+            .eq('tenant_id', tenant.id)
+            .eq('recurso.sucursal_id', sucursalFiltro)
+            .in('status', ['confirmada', 'completada'])
+            .gte('slot_inicio', riesgoDesdeISO)
+        : supabase
+            .from('reservas')
+            .select('usuario_id, slot_inicio')
+            .eq('tenant_id', tenant.id)
+            .in('status', ['confirmada', 'completada'])
+            .gte('slot_inicio', riesgoDesdeISO);
+
       const [historialRes, miembrosRes, reservasRes] = await Promise.all([
         supabase
           .from('usuario_status_historial')
           .select('usuario_id, status_nuevo, changed_at')
           .eq('tenant_id', tenant.id)
           .order('changed_at', { ascending: true }),
-        supabase
-          .from('usuarios')
-          .select('id, nombre, email, created_at, status')
-          .eq('tenant_id', tenant.id)
-          .eq('rol', 'miembro'),
-        supabase
-          .from('reservas')
-          .select('usuario_id, slot_inicio')
-          .eq('tenant_id', tenant.id)
-          .in('status', ['confirmada', 'completada'])
-          .gte('slot_inicio', riesgoDesdeISO)
+        miembrosQ,
+        reservasQ
       ]);
 
       if (!mounted) return;
 
       const historial = (historialRes.data ?? []) as HistorialRow[];
       const miembros = (miembrosRes.data ?? []) as MiembroRow[];
-      const reservas = (reservasRes.data ?? []) as { usuario_id: string; slot_inicio: string }[];
+      const reservas = (reservasRes.data ?? []) as unknown as { usuario_id: string; slot_inicio: string }[];
 
       const miembroIds = new Set(miembros.map((m) => m.id));
 
@@ -286,7 +303,7 @@ export function useReportesAvanzados(periodo: PeriodoReporte) {
     return () => {
       mounted = false;
     };
-  }, [tenant.id, tz, periodo]);
+  }, [tenant.id, tz, periodo, sucursalFiltro]);
 
   return { data, isLoading };
 }

@@ -4,6 +4,7 @@ import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { translateActionError } from '@reception/lib/traducirErrorAccion';
+import { useSucursal } from '../providers/SucursalProvider';
 
 /**
  * CAJA — el dinero que entró de verdad.
@@ -91,17 +92,22 @@ function hora(iso: string): string {
 export default function Caja() {
   const tenant = useTenant();
   const toast = useToast();
+  const { sucursalFiltro, sucursalActiva } = useSucursal();
   const [rango, setRango] = useState<Rango>('hoy');
   const [pagos, setPagos] = useState<PagoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [devolviendo, setDevolviendo] = useState<PagoRow | null>(null);
   const [reload, setReload] = useState(0);
 
+  // sucursalFiltro es null en "Todas las sedes" o en un gym de una sola sede:
+  // ahí no filtramos (y así no perdemos los cobros online, que llegan sin sede).
+  const filtrarSede = !!sucursalFiltro;
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     (async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from('pagos')
         .select(
           'id, created_at, concepto, monto_centavos, moneda, metodo, notas, revierte_pago_id, socio:usuarios!pagos_usuario_id_fkey(nombre), cobrador:usuarios!pagos_cobrado_por_fkey(nombre), tier:tiers(nombre)'
@@ -109,13 +115,15 @@ export default function Caja() {
         .eq('tenant_id', tenant.id)
         .gte('created_at', desdeISO(rango))
         .order('created_at', { ascending: false });
+      if (sucursalFiltro) q = q.eq('sucursal_id', sucursalFiltro);
+      const { data, error } = await q;
       if (cancelled) return;
       if (error) console.error('[Caja]', error);
       setPagos((data ?? []) as unknown as PagoRow[]);
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [tenant.id, rango, reload]);
+  }, [tenant.id, rango, reload, sucursalFiltro]);
 
   // Totales por método. La cortesía NO suma: es dinero que no entró. Los
   // reembolsos son negativos, así que restan solos — sin ninguna cuenta especial.
@@ -160,9 +168,14 @@ export default function Caja() {
       >
         Caja
       </h1>
-      <p style={{ fontSize: '14px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '20px' }}>
+      <p style={{ fontSize: '14px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: filtrarSede ? '8px' : '20px' }}>
         El dinero que entró de verdad: cobros de mostrador y online.
       </p>
+      {filtrarSede && (
+        <p style={{ fontSize: '12.5px', color: 'var(--ek-ink-faint)', margin: '0 0 20px' }}>
+          Mostrando los cobros de <strong>{sucursalActiva?.nombre}</strong>, la sede elegida arriba.
+        </p>
+      )}
 
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
         {RANGOS.map((r) => {

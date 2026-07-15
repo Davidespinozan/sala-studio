@@ -16,6 +16,8 @@ import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { useDashboardData, type DashboardData } from '../hooks/useAdminData';
+import { useDineroMes } from '../hooks/useDineroMes';
+import { formatearMoneda } from '@shared/lib/dinero';
 import { useGymSetup, gymOperativo } from '../hooks/useGymSetup';
 import ChecklistActivacion from '../components/ChecklistActivacion';
 import CentroPendientes from '../components/CentroPendientes';
@@ -465,10 +467,13 @@ function Grafica30Dias({ data }: { data: Array<{ fecha: string; count: number }>
 // ============================================================================
 
 function SeccionDinero() {
-  const toast = useToast();
+  const { data, isLoading } = useDineroMes();
+  const ahora = new Date();
+  const mes = `${nombreMes(ahora).charAt(0).toUpperCase() + nombreMes(ahora).slice(1)} ${ahora.getFullYear()}`;
+
   return (
     <section style={{ marginBottom: '24px' }}>
-      <SectionHeader title="DINERO" subtitle="Pendiente Stripe" />
+      <SectionHeader title="DINERO" subtitle={mes} />
       <div
         style={{
           display: 'grid',
@@ -477,15 +482,33 @@ function SeccionDinero() {
           marginBottom: '14px'
         }}
       >
-        <DisabledCard label="FACTURADO ESTE MES" />
-        <DisabledCard label="COBROS FALLIDOS" />
+        <DineroCard
+          label="COBRADO ESTE MES"
+          valor={data ? formatearMoneda(data.cobradoCentavos, data.moneda) : '—'}
+          sub={
+            data
+              ? `${data.transacciones} ${data.transacciones === 1 ? 'cobro' : 'cobros'}${
+                  data.devueltoCentavos > 0
+                    ? ` · ${formatearMoneda(data.devueltoCentavos, data.moneda)} devueltos`
+                    : ''
+                }`
+              : 'Cargando…'
+          }
+          loading={isLoading}
+        />
+        <DineroCard
+          label="DEVUELTO ESTE MES"
+          valor={data ? formatearMoneda(data.devueltoCentavos, data.moneda) : '—'}
+          sub="Reembolsos del mes"
+          loading={isLoading}
+        />
       </div>
       <div
         style={{
           background: 'var(--ek-bg-soft)',
-          border: '0.5px dashed var(--ek-mustard-dim)',
+          border: '0.5px solid var(--ek-line)',
           borderRadius: 'var(--ek-r-md)',
-          padding: '16px 18px',
+          padding: '14px 18px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -494,37 +517,35 @@ function SeccionDinero() {
         }}
       >
         <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0 }}>
-          Conecta Stripe para ver tus métricas financieras.
+          El detalle de cada cobro, por método y con las devoluciones, está en Caja.
         </p>
-        <button
-          type="button"
-          disabled
-          onClick={() =>
-            toast.info('Conexión con Stripe próximamente. Quédate atento.')
-          }
+        <Link
+          to="/admin/caja"
           className="ek-cta ek-cta--secondary"
-          style={{ padding: '10px 18px', fontSize: '12px', opacity: 0.6, cursor: 'not-allowed' }}
+          style={{ padding: '10px 18px', fontSize: '12px', whiteSpace: 'nowrap' }}
         >
-          + Conectar Stripe (próximamente)
-        </button>
+          Ver Caja
+        </Link>
       </div>
     </section>
   );
 }
 
-function DisabledCard({ label }: { label: string }) {
+function DineroCard({
+  label,
+  valor,
+  sub,
+  loading
+}: {
+  label: string;
+  valor: string;
+  sub: string;
+  loading: boolean;
+}) {
   return (
     <div
       className="ek-card"
-      title="Disponible al conectar Stripe"
-      style={{
-        padding: '20px',
-        opacity: 0.5,
-        cursor: 'not-allowed',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px'
-      }}
+      style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}
     >
       <p className="ek-eyebrow" style={{ fontSize: '10px', margin: 0 }}>{label}</p>
       <p
@@ -534,14 +555,14 @@ function DisabledCard({ label }: { label: string }) {
           fontWeight: 700,
           letterSpacing: '-0.03em',
           lineHeight: 1,
-          margin: 0
+          margin: 0,
+          opacity: loading ? 0.4 : 1,
+          fontVariantNumeric: 'tabular-nums'
         }}
       >
-        —
+        {valor}
       </p>
-      <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', margin: 0 }}>
-        Conecta Stripe para ver
-      </p>
+      <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', margin: 0 }}>{sub}</p>
     </div>
   );
 }

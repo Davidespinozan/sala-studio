@@ -23,6 +23,7 @@ import {
   type MiembroRiesgo
 } from '../hooks/useReportesAvanzados';
 import { useReportesEconomia, type ReportesEconomiaData } from '../hooks/useReportesEconomia';
+import { useReportesCobrado, type ReportesCobradoData } from '../hooks/useReportesCobrado';
 import { useReportesEngagement, type ReportesEngagementData } from '../hooks/useReportesEngagement';
 import { useReportesHeatmap, type ReportesHeatmapData } from '../hooks/useReportesHeatmap';
 import { useReportesRecursos, type ReportesRecursosData, type RendimientoFila } from '../hooks/useReportesRecursos';
@@ -81,6 +82,7 @@ export default function Reportes() {
   const { data, isLoading } = useReportes(periodo);
   const { data: avanzado, isLoading: avLoading } = useReportesAvanzados(periodo);
   const { data: economia } = useReportesEconomia();
+  const { data: cobrado } = useReportesCobrado(periodo);
   const { data: engagement } = useReportesEngagement();
   const { data: heatmap } = useReportesHeatmap();
   const { data: recursos } = useReportesRecursos();
@@ -132,6 +134,12 @@ export default function Reportes() {
         <p className="adm-body">Cargando métricas…</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          {cobrado && (
+            <BloqueCobrado
+              c={cobrado}
+              periodoLabel={PERIODO_OPTIONS.find((o) => o.value === periodo)?.label ?? ''}
+            />
+          )}
           {economia && <BloqueEconomia eco={economia} />}
           {engagement && <BloqueEngagement eng={engagement} />}
           <BloqueOcupacion data={data} />
@@ -176,18 +184,63 @@ export default function Reportes() {
 // Bloques básicos (con comparación de período)
 // ============================================================================
 
+function BloqueCobrado({ c, periodoLabel }: { c: ReportesCobradoData; periodoLabel: string }) {
+  const { salvia } = useChartColors();
+  const m = c.moneda;
+  const datos = c.porConcepto.map((p) => ({ concepto: p.concepto, monto: Math.round(p.centavos / 100) }));
+  return (
+    <Bloque titulo={`Cobrado · ${periodoLabel.toLowerCase()} (${m.toUpperCase()})`}>
+      <KpiRow>
+        <KpiCard
+          label="Cobrado · lo que entró"
+          valor={fmtDinero(c.cobradoCentavos, m)}
+          nota={`${c.transacciones} ${c.transacciones === 1 ? 'cobro' : 'cobros'} · neto de devoluciones`}
+          ayuda="El dinero REAL que entró en el período, leído del libro de Caja: efectivo, tarjeta, transferencia y Stripe. Descuenta reembolsos y no cuenta cortesías. Este es el número que cuadra con tu caja."
+        />
+        <KpiCard
+          label="Devuelto · reembolsos"
+          valor={fmtDinero(c.devueltoCentavos, m)}
+          nota="ya restado del cobrado"
+          ayuda="Lo que devolviste a socios en el período. Ya está descontado del cobrado, así que el neto no lo cuenta dos veces."
+        />
+        <KpiCard
+          label="Ticket promedio"
+          valor={c.transacciones > 0 ? fmtDinero(Math.round(c.cobradoCentavos / c.transacciones), m) : '—'}
+          nota="cobrado ÷ cobros"
+          ayuda="Cuánto entra por cobro en promedio (cobrado neto ÷ número de cobros del período)."
+        />
+      </KpiRow>
+      <ChartCard titulo="Cobrado por concepto">
+        {datos.length === 0 ? (
+          <EmptyChart mensaje="Sin cobros en este período." />
+        ) : (
+          <ResponsiveContainer width="100%" height={Math.max(160, datos.length * 46)}>
+            <BarChart layout="vertical" data={datos} margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--sala-border)" />
+              <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => fmtDinero(Number(v) * 100, m)} />
+              <YAxis type="category" dataKey="concepto" width={96} tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(v) => fmtDinero(Number(v) * 100, m)} />
+              <Bar dataKey="monto" name="Cobrado" radius={[0, 6, 6, 0]} fill={salvia} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </ChartCard>
+    </Bloque>
+  );
+}
+
 function BloqueEconomia({ eco }: { eco: ReportesEconomiaData }) {
   const { salvia } = useChartColors();
   const m = eco.moneda;
   const datosPlan = eco.ingresoPorPlan.map((p) => ({ plan: p.plan, mrr: Math.round(p.mrrCentavos / 100) }));
   return (
-    <Bloque titulo={`Economía · hoy (${m.toUpperCase()})`}>
+    <Bloque titulo={`Proyección · ingreso contratado (${m.toUpperCase()})`}>
       <KpiRow>
         <KpiCard
-          label="MRR · ingreso recurrente"
+          label="MRR · proyectado"
           valor={fmtDinero(eco.mrrCentavos, m)}
-          nota="membresías activas × precio mensual"
-          ayuda="Ingreso recurrente mensual: lo que tus membresías activas facturan cada mes. Es el pulso financiero del gym. Es ingreso contratado (según el precio de cada plan), no cobro real."
+          nota="socios activos × precio de lista"
+          ayuda="PROYECCIÓN, no lo cobrado: lo que tus membresías activas facturarían al mes a precio de lista. No descuenta cortesías, descuentos ni mora. Para el dinero que realmente entró, mirá el bloque 'Cobrado' de arriba."
         />
         <KpiCard
           label="ARR · anualizado"
@@ -575,6 +628,7 @@ function BloqueReservas({ data }: { data: ReportesData }) {
           label="Total de reservas"
           valor={r.total}
           comparar={comp ? { actual: r.total, anterior: comp.total } : undefined}
+          ayuda="Las reservas que ocurrieron: confirmadas, completadas y las que faltaron (no-show). NO cuenta las canceladas — esas van en su propia tarjeta. Es el mismo criterio que 'Reservas' en el panel de inicio."
         />
         <KpiCard
           label="Confirmadas"

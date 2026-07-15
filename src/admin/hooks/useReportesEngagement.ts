@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useSucursal } from '../providers/SucursalProvider';
 
 /**
  * Engagement del gym (snapshot, ventanas fijas):
@@ -42,6 +43,7 @@ interface ReservaRow {
 
 export function useReportesEngagement() {
   const tenant = useTenant();
+  const { sucursalFiltro } = useSucursal();
   const [data, setData] = useState<ReportesEngagementData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -56,24 +58,35 @@ export function useReportesEngagement() {
       const hace30ISO = new Date(ahora - VENTANA_DAU * DIA_MS).toISOString();
       const hace90ISO = new Date(ahora - VENTANA_COHORTE * DIA_MS).toISOString();
 
-      const [miembrosRes, reservasRes] = await Promise.all([
-        supabase
-          .from('usuarios')
-          .select('id, created_at, status')
-          .eq('tenant_id', tenant.id)
-          .eq('rol', 'miembro'),
-        supabase
-          .from('reservas')
-          .select('usuario_id, slot_inicio, created_at, status')
-          .eq('tenant_id', tenant.id)
-          .in('status', ['confirmada', 'completada'])
-          .gte('slot_inicio', desdeReservasISO)
-      ]);
+      let miembrosQ = supabase
+        .from('usuarios')
+        .select('id, created_at, status')
+        .eq('tenant_id', tenant.id)
+        .eq('rol', 'miembro');
+      if (sucursalFiltro) miembrosQ = miembrosQ.eq('sucursal_id', sucursalFiltro);
+
+      // reservas de la sede = reservas cuyo recurso es de esa sede.
+      const reservasQ = sucursalFiltro
+        ? supabase
+            .from('reservas')
+            .select('usuario_id, slot_inicio, created_at, status, recurso:recursos!inner(sucursal_id)')
+            .eq('tenant_id', tenant.id)
+            .eq('recurso.sucursal_id', sucursalFiltro)
+            .in('status', ['confirmada', 'completada'])
+            .gte('slot_inicio', desdeReservasISO)
+        : supabase
+            .from('reservas')
+            .select('usuario_id, slot_inicio, created_at, status')
+            .eq('tenant_id', tenant.id)
+            .in('status', ['confirmada', 'completada'])
+            .gte('slot_inicio', desdeReservasISO);
+
+      const [miembrosRes, reservasRes] = await Promise.all([miembrosQ, reservasQ]);
 
       if (!mounted) return;
 
       const miembros = (miembrosRes.data ?? []) as MiembroRow[];
-      const reservas = (reservasRes.data ?? []) as ReservaRow[];
+      const reservas = (reservasRes.data ?? []) as unknown as ReservaRow[];
 
       const activosSet = new Set(miembros.filter((m) => m.status === 'activo').map((m) => m.id));
       const activosTotal = activosSet.size;
@@ -132,7 +145,7 @@ export function useReportesEngagement() {
     return () => {
       mounted = false;
     };
-  }, [tenant.id]);
+  }, [tenant.id, sucursalFiltro]);
 
   return { data, isLoading };
 }
