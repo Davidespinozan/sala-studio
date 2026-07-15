@@ -6,6 +6,8 @@ import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { DemoBanner } from '@shared/components/DemoBanner';
 import { ModoDemoBanner } from '@shared/components/ModoDemoBanner';
 import { BurbujasContacto } from './components/BurbujasContacto';
+import { PwaInstallBanner } from '@shared/components/PwaInstallBanner';
+import { useTenant } from '@shared/hooks/useTenant';
 import { TenantLogo } from '@shared/components/TenantLogo';
 
 const Landing = lazy(() => import('./pages/Landing'));
@@ -16,6 +18,7 @@ const Terminos = lazy(() => import('./pages/Terminos'));
 
 export default function PublicLayout() {
   const { authUser, signOut } = useAuth();
+  const tenant = useTenant();
   const location = useLocation();
   const enLogin = location.pathname === '/login';
   const enLanding = location.pathname === '/';
@@ -87,6 +90,11 @@ export default function PublicLayout() {
           final para encontrarlo. En login/signup no aparece: ahí el visitante ya
           está en una tarea concreta y la burbuja solo estorba. */}
       {!enLogin && <BurbujasContacto />}
+
+      {/* Instalar la app: en la landing del tenant, para el visitante que llega
+          desde un ad y aún no la agregó a su inicio. El banner ya se gatea solo
+          (móvil, no instalada, no descartada). Con la marca del gym. */}
+      {enLanding && <PwaInstallBanner appNombre={tenant.nombre} />}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Upload, X } from 'lucide-react';
+import { Download, Upload, X } from 'lucide-react';
 
 /**
  * Banner sticky-bottom que invita al socio a instalar la app como PWA.
@@ -103,7 +103,7 @@ function dismissedRecently(): boolean {
   return Date.now() - d.getTime() < RESHOW_DAYS * 24 * 60 * 60 * 1000;
 }
 
-export function PwaInstallBanner() {
+export function PwaInstallBanner({ appNombre }: { appNombre?: string } = {}) {
   const [visible, setVisible] = useState(false);
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [platform, setPlatform] = useState<Platform>('other');
@@ -199,6 +199,26 @@ export function PwaInstallBanner() {
         zIndex: 60
       }}
     >
+      {/* Insignia en el color primario del tenant: es lo que le da "su marca"
+          al banner (el resto de la tarjeta es neutro para no pelearse con el
+          fondo claro/oscuro). */}
+      <div
+        aria-hidden="true"
+        style={{
+          flexShrink: 0,
+          width: '40px',
+          height: '40px',
+          borderRadius: '10px',
+          background: 'var(--grad-primary, var(--sala-primary))',
+          color: 'var(--sala-text-on-primary, #fff)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Download size={20} strokeWidth={2.25} />
+      </div>
+
       <div style={{ flex: 1, minWidth: 0 }}>
         <p
           style={{
@@ -211,7 +231,7 @@ export function PwaInstallBanner() {
             letterSpacing: '-0.01em'
           }}
         >
-          Instala la app
+          {appNombre ? `Instala la app de ${appNombre}` : 'Instala la app'}
         </p>
         <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', margin: 0, lineHeight: 1.4 }}>
           {platform === 'ios-safari' && (

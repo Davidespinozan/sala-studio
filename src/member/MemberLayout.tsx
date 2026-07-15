@@ -2,6 +2,7 @@ import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useRef } from 'react';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
+import { useTenant } from '@shared/hooks/useTenant';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { DemoBanner } from '@shared/components/DemoBanner';
 import EstadoMembresiaBanner from './components/EstadoMembresiaBanner';
@@ -39,6 +40,7 @@ function mensajeStatus(status: string): string {
 
 export default function MemberLayout() {
   const { authUser, usuario, isLoading, signOut } = useAuth();
+  const tenant = useTenant();
   const toast = useToast();
   const location = useLocation();
   const yaCerrado = useRef(false);
@@ -113,7 +115,7 @@ export default function MemberLayout() {
       <PoweredBySala />
 
       <BottomNav />
-      <PwaInstallBanner />
+      <PwaInstallBanner appNombre={tenant.nombre} />
     </div>
     </MemberSucursalProvider>
     </TenantGuard>
