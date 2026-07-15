@@ -151,6 +151,11 @@ function translateError(code: string, fallback: string): string {
     DEMASIADO_TEMPRANO: 'Es muy temprano para el check-in',
     DEMASIADO_TARDE: 'El check-in ya cerró',
     SUCURSAL_DIFERENTE: 'Esta reserva es de otra sede',
+    // El QR es automático: si la membresía está muerta, no entra solo. La salida
+    // es el mostrador (check-in manual, que la recepción decide con criterio).
+    MEMBRESIA_VENCIDA: 'Membresía vencida. Pasá al mostrador para renovar o registrar la entrada.',
+    MEMBRESIA_CONGELADA: 'Membresía pausada. Pasá al mostrador.',
+    SIN_MEMBRESIA: 'Sin membresía activa. Pasá al mostrador.',
     NO_AUTORIZADO: 'No autorizado',
     QR_INVALIDO: 'QR inválido',
     QR_EXPIRADO: 'QR expirado'

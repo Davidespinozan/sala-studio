@@ -15,6 +15,8 @@ interface VerifyResponse {
     miembro: any;
     recurso: any;
     stats?: { check_ins_hoy: number; check_ins_semana: number };
+    /** 'ok' | 'vencida' | 'congelada' | 'sin_membresia' — lo calcula el RPC. */
+    membresia_estado?: string;
   };
   error?: string;
   message?: string;
@@ -138,6 +140,11 @@ export default function Scanner() {
             recurso={detail.kind === 'success' ? detail.data?.recurso : undefined}
             reserva={detail.kind === 'success' ? detail.data?.reserva : undefined}
             stats={detail.kind === 'success' ? detail.data?.stats : undefined}
+            membresiaEstado={
+              detail.kind === 'success'
+                ? (detail.data?.membresia_estado as 'ok' | 'vencida' | 'congelada' | 'sin_membresia' | undefined)
+                : undefined
+            }
             errorMessage={detail.kind === 'error' ? detail.message : undefined}
             onClose={closeDetail}
           />

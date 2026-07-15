@@ -33,19 +33,34 @@ interface StatsData {
   check_ins_semana: number;
 }
 
+/** Estado de la membresía al momento de entrar (lo calcula el RPC de check-in). */
+type MembresiaEstado = 'ok' | 'vencida' | 'congelada' | 'sin_membresia';
+
 interface Props {
   kind: 'success' | 'error';
   miembro?: MiembroData;
   recurso?: RecursoData;
   reserva?: ReservaData;
   stats?: StatsData;
+  /**
+   * Estado de la membresía. Por QR siempre llega 'ok' (si no, ni se completa el
+   * check-in). Por check-in MANUAL puede llegar muerta: la recepción entró con
+   * criterio y la pantalla se lo tiene que decir para que cobre o avise.
+   */
+  membresiaEstado?: MembresiaEstado;
   errorMessage?: string;
   onClose: () => void;
 }
 
+const MEMBRESIA_AVISO: Record<Exclude<MembresiaEstado, 'ok'>, string> = {
+  vencida: 'VENCIDA',
+  congelada: 'PAUSADA',
+  sin_membresia: 'SIN MEMBRESÍA',
+};
+
 const AUTO_CLOSE_MS = 15_000;
 
-export function CheckInDetail({ kind, miembro, recurso, reserva, stats, errorMessage, onClose }: Props) {
+export function CheckInDetail({ kind, miembro, recurso, reserva, stats, membresiaEstado, errorMessage, onClose }: Props) {
   const [secondsLeft, setSecondsLeft] = useState(Math.ceil(AUTO_CLOSE_MS / 1000));
   const { nombrePlan } = usePlanesDelTenant();
 
@@ -94,6 +109,12 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, errorMes
   const tierLabel = nombre ?? 'SIN PLAN';
   const tierColor = nombre ? 'var(--sala-primary)' : 'var(--sala-text-secondary)';
 
+  // Membresía muerta que igual entró (solo pasa por check-in manual). No es un
+  // "SIN PLAN" cosmético: es una entrada que la recepción autorizó a mano y que
+  // probablemente haya que cobrar. Va en rojo, aparte, para que no pase de largo.
+  const membresiaMuerta =
+    membresiaEstado && membresiaEstado !== 'ok' ? MEMBRESIA_AVISO[membresiaEstado] : null;
+
   return (
     <div className="rec-detail rec-detail--success">
       <p className="rec-detail-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Check size={15} strokeWidth={2.5} />CHECK-IN OK</p>
@@ -123,10 +144,34 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, errorMes
       <div className="rec-detail-divider" />
 
       <div className="rec-detail-grid">
-        <Cell label="MEMBRESÍA" value={tierLabel} color={tierColor} />
+        <Cell
+          label="MEMBRESÍA"
+          value={membresiaMuerta ? `${tierLabel} · ${membresiaMuerta}` : tierLabel}
+          color={membresiaMuerta ? 'var(--sala-error)' : tierColor}
+        />
         <Cell label="CHECK-IN HOY" value={`${stats?.check_ins_hoy ?? 1}`} />
         <Cell label="CHECK-IN SEMANA" value={`${stats?.check_ins_semana ?? 1}`} />
       </div>
+
+      {membresiaMuerta && (
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            marginTop: '10px',
+            padding: '10px 12px',
+            borderRadius: 'var(--ek-r-card)',
+            border: '1px solid var(--sala-error)',
+            background: 'var(--sala-surface)',
+          }}
+        >
+          <AlertTriangle size={16} strokeWidth={2} style={{ color: 'var(--sala-error)', flexShrink: 0, marginTop: '1px' }} />
+          <p style={{ margin: 0, fontSize: '12.5px', lineHeight: 1.5 }}>
+            Entró con la membresía <strong>{membresiaMuerta.toLowerCase()}</strong>. Si corresponde,
+            cobrale la renovación en caja.
+          </p>
+        </div>
+      )}
 
       {miembro.notas_admin && (
         <>
