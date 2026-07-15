@@ -90,6 +90,7 @@ export default function AjustesMarca() {
   const [persisted, setPersisted] = useState<BrandingDraft>(EMPTY);
   const [originalJson, setOriginalJson] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   // Imagen de fondo de la pantalla "Mi QR" del socio (config.member.qr_bg_url).
   // Se guarda al instante (en su propio config, no en branding).
@@ -130,9 +131,13 @@ export default function AjustesMarca() {
       .eq('id', tenant.id)
       .single();
     if (error) {
+      // Sin esto, un fallo de carga dejaba el formulario en blanco y el admin
+      // podía Guardar encima de su marca real creyendo que estaba vacía.
       console.error('[AjustesMarca]', error);
+      setLoadError(true);
       return;
     }
+    setLoadError(false);
     const parsed = readBranding(data?.branding);
     setDraft(parsed);
     setPersisted(parsed);
@@ -241,9 +246,39 @@ export default function AjustesMarca() {
       >
         Marca
       </h1>
-      <p style={{ fontSize: '14px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '28px' }}>
+      <p style={{ fontSize: '14px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: loadError ? '16px' : '28px' }}>
         Personaliza la identidad visual de tu marca.
       </p>
+
+      {loadError && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            flexWrap: 'wrap',
+            padding: '14px 16px',
+            marginBottom: '24px',
+            borderRadius: 'var(--ek-r-md)',
+            border: '1px solid var(--sala-error)',
+            background: 'var(--sala-surface)'
+          }}
+        >
+          <p style={{ fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
+            No pudimos cargar tu marca. <strong>No guardes todavía</strong> — guardarías sobre tus
+            datos reales. Reintentá la carga.
+          </p>
+          <button
+            type="button"
+            onClick={() => void loadBranding()}
+            className="ek-cta ek-cta--secondary"
+            style={{ fontSize: '12px', whiteSpace: 'nowrap' }}
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       <Section
         title="LOGO PRINCIPAL (HORIZONTAL)"
@@ -353,7 +388,7 @@ export default function AjustesMarca() {
         <button
           type="button"
           onClick={handleSave}
-          disabled={!dirty || isSaving}
+          disabled={!dirty || isSaving || loadError}
           className="ek-cta"
           style={{ padding: '14px 28px', fontSize: '14px' }}
         >
