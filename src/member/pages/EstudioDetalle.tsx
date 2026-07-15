@@ -104,7 +104,7 @@ export default function EstudioDetalle() {
             color: 'var(--ek-ink-faint)',
             letterSpacing: '0.2em',
             fontWeight: 600
-          }}>FOTO PRÓXIMAMENTE</span>
+          }}>SIN FOTO</span>
         )}
 
         <span

@@ -157,7 +157,7 @@ export function AgendaSemanal({ clases, inicioSemana, hoyISO, onClickClase, onCl
                     type="button"
                     onClick={() => onClickSlotVacio(d, hora)}
                     aria-label={`Crear clase a las ${hora}:00`}
-                    title="Crear clase manual (próximamente)"
+                    title="Crear clase manual"
                     style={{
                       width: '100%',
                       flex: 1,

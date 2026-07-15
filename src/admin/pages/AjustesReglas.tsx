@@ -124,6 +124,10 @@ export default function AjustesReglas() {
       toast.error('La ventana de cancelación debe ser un número positivo.');
       return;
     }
+    if (!Number.isFinite(draft.no_show_bloqueo_dias) || draft.no_show_bloqueo_dias < 0) {
+      toast.error('El bloqueo por inasistencia no puede ser negativo.');
+      return;
+    }
 
     // Merge no destructivo: solo escribimos los campos consumidos.
     // Los campos DEAD (cupos_por_recurso, etc) se preservan en BD.

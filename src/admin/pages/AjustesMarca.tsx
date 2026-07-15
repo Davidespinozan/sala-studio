@@ -807,24 +807,16 @@ function TipografiaEditor({
 function Section({
   title,
   description,
-  proximamente,
   children
 }: {
   title: string;
   description: string;
-  /** Si está, muestra un badge "Próximamente" + nota explicativa. */
-  proximamente?: string;
   children: React.ReactNode;
 }) {
   return (
     <section
       className="ek-card"
-      style={{
-        padding: '24px',
-        marginBottom: '20px',
-        display: 'block',
-        opacity: proximamente ? 0.7 : 1
-      }}
+      style={{ padding: '24px', marginBottom: '20px', display: 'block' }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
         <p
@@ -833,40 +825,10 @@ function Section({
         >
           {title}
         </p>
-        {proximamente && (
-          <span
-            style={{
-              fontSize: '10px',
-              fontWeight: 700,
-              letterSpacing: '0.10em',
-              textTransform: 'uppercase',
-              color: 'var(--sala-warning)',
-              background: 'var(--sala-warning-bg)',
-              padding: '3px 8px',
-              borderRadius: '999px',
-              border: '1px solid var(--sala-warning-glow)'
-            }}
-          >
-            Próximamente
-          </span>
-        )}
       </div>
-      <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: proximamente ? '8px' : '18px' }}>
+      <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '18px' }}>
         {description}
       </p>
-      {proximamente && (
-        <p
-          style={{
-            fontSize: '12px',
-            color: 'var(--sala-warning)',
-            margin: 0,
-            marginBottom: '14px',
-            fontStyle: 'italic'
-          }}
-        >
-          ⏳ {proximamente}
-        </p>
-      )}
       {children}
     </section>
   );

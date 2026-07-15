@@ -74,6 +74,7 @@ export default function Reservar() {
   const [clasesDelDia, setClasesDelDia] = useState<Clase[]>([]);
   const [misReservasIds, setMisReservasIds] = useState<Map<string, string>>(new Map());
   const [loadingDia, setLoadingDia] = useState(false);
+  const [errorDia, setErrorDia] = useState(false);
 
   // Modal de reserva
   const [claseAReservar, setClaseAReservar] = useState<Clase | null>(null);
@@ -114,8 +115,16 @@ export default function Reservar() {
       });
       if (!mounted) return;
       if (error) {
+        // Sin esto el día se veía vacío igual que "no hay clases", y el socio no
+        // sabía si no había nada o si falló la carga.
         console.error('[Reservar:expandir_clases]', error, { fechaSel });
+        setClasesDelDia([]);
+        setMisReservasIds(new Map());
+        setErrorDia(true);
+        setLoadingDia(false);
+        return;
       }
+      setErrorDia(false);
 
       const rows = (data ?? []) as ClaseExpansionRow[];
       const mapped = rows
@@ -348,6 +357,8 @@ export default function Reservar() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {loadingDia ? (
           <SkeletonRows />
+        ) : errorDia ? (
+          <ErrorDia />
         ) : clases.length === 0 ? (
           <EmptyDia />
         ) : (
@@ -494,6 +505,37 @@ function EmptyDia() {
       </p>
       <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0 }}>
         Prueba con otro día de la semana.
+      </p>
+    </div>
+  );
+}
+
+function ErrorDia() {
+  return (
+    <div
+      style={{
+        padding: '48px 20px',
+        textAlign: 'center',
+        background: 'var(--sala-surface)',
+        border: '1px solid var(--sala-error)',
+        borderRadius: '14px'
+      }}
+    >
+      <p
+        style={{
+          fontFamily: 'var(--ek-font-display)',
+          fontSize: '18px',
+          fontWeight: 600,
+          letterSpacing: '-0.02em',
+          color: 'var(--sala-text-primary)',
+          margin: 0,
+          marginBottom: '4px'
+        }}
+      >
+        No pudimos cargar las clases
+      </p>
+      <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0 }}>
+        Revisá tu conexión y probá cambiando de día, o volvé a entrar en un momento.
       </p>
     </div>
   );

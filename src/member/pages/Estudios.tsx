@@ -15,6 +15,7 @@ export default function Estudios() {
   const { toggle, isFavorito, count } = useFavoritos();
   const [recursos, setRecursos] = useState<Recurso[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [soloFavoritas, setSoloFavoritas] = useState(false);
 
   useEffect(() => {
@@ -30,8 +31,13 @@ export default function Estudios() {
       const { data, error } = await q.order('nombre');
 
       if (!mounted) return;
-      if (error) console.error('[Estudios]', error);
-      else setRecursos(data ?? []);
+      if (error) {
+        console.error('[Estudios]', error);
+        setError(true);
+      } else {
+        setRecursos(data ?? []);
+        setError(false);
+      }
       setIsLoading(false);
     }
     load();
@@ -67,12 +73,35 @@ export default function Estudios() {
         </div>
       )}
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-        gap: '16px'
-      }}>
-        {(soloFavoritas ? recursos.filter((r) => isFavorito(r.id)) : recursos).map((r) => {
+      {(() => {
+        const visibles = soloFavoritas ? recursos.filter((r) => isFavorito(r.id)) : recursos;
+        if (error) {
+          return (
+            <EstadoVacio
+              titulo="No pudimos cargar las salas"
+              detalle="Revisá tu conexión y volvé a entrar. Si sigue, avisale al gimnasio."
+            />
+          );
+        }
+        if (visibles.length === 0) {
+          return (
+            <EstadoVacio
+              titulo={soloFavoritas ? 'Todavía no tenés favoritas' : 'Todavía no hay salas'}
+              detalle={
+                soloFavoritas
+                  ? 'Tocá el corazón en una sala para guardarla acá.'
+                  : 'El gimnasio todavía no publicó sus salas. Volvé pronto.'
+              }
+            />
+          );
+        }
+        return (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '16px'
+          }}>
+        {visibles.map((r) => {
           // Nada hardcodeado: "restringida" = limita a algún plan (cualquier
           // slug), no por comparar contra 'pro'/'basica'.
           const esRestringido = (r.tiers_permitidos?.length ?? 0) > 0;
@@ -246,7 +275,28 @@ export default function Estudios() {
             </Link>
           );
         })}
-      </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+function EstadoVacio({ titulo, detalle }: { titulo: string; detalle: string }) {
+  return (
+    <div
+      style={{
+        textAlign: 'center',
+        padding: '48px 24px',
+        border: '1px dashed var(--sala-border)',
+        borderRadius: 'var(--ek-r-card)',
+      }}
+    >
+      <Dumbbell size={40} strokeWidth={1.25} style={{ color: 'var(--sala-text-tertiary)', marginBottom: '12px' }} />
+      <p style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>{titulo}</p>
+      <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '6px 0 0', lineHeight: 1.5 }}>
+        {detalle}
+      </p>
     </div>
   );
 }
