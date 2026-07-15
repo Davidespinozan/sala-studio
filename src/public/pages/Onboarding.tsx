@@ -28,7 +28,10 @@ import {
   type OnboardingState
 } from '../lib/onboardingLogic';
 
-const PASOS = ['Cuenta', 'Tu gym', 'Plan', 'Setup', 'Pago'];
+// 4 pasos reales: el paso 3 (índice 3) renderiza el pago. Antes había una
+// etiqueta "Setup" fantasma que corría todo: el pago aparecía bajo el título
+// "Setup" y el pill "Pago" no se encendía nunca.
+const PASOS = ['Cuenta', 'Tu gym', 'Plan', 'Pago'];
 
 const ESTADO_INICIAL: OnboardingState = {
   cuenta: { nombre: '', email: '', emailConfirm: '', password: '', passwordConfirm: '' },
