@@ -72,24 +72,19 @@ export const handler: Handler = async (event) => {
 
     let accountId = tenant?.stripe_account_id ?? null;
     if (!accountId) {
-      // `controller` en vez de `type: 'express'`: mismo dashboard Express para el
-      // gym, PERO define quién paga qué. SALA no quiere pagar por conectar gyms:
-      //   · fees.payer = 'account'  → las fees de Stripe las paga el GYM, no SALA.
-      //   · losses.payments = 'stripe' → los contracargos/pérdidas NO recaen en
-      //     SALA (la plataforma no queda responsable del dinero del gym).
-      //   · requirement_collection = 'stripe' → Stripe hospeda el onboarding (KYC).
-      // (La comisión por transacción ya la paga el gym por usar direct charges;
-      //  esto cubre además la fee de plataforma de las cuentas Express.)
+      // Cuenta Express: dashboard simple para el gym + login link (Cobros lo usa).
+      // NOTA sobre fees: con direct charges, la comisión POR TRANSACCIÓN (2.9%+…)
+      // ya la paga el gym, no SALA. Lo único que SALA podría pagar es la fee de
+      // plataforma de Connect (~por cuenta activa). Intentar moverla al gym con
+      // `controller.fees.payer='account'` + dashboard express NO es una combinación
+      // válida en Stripe (devuelve 500 al crear). Para que el gym pague TODO habría
+      // que usar cuentas Standard, pero eso rompe el login link de Cobros y cambia
+      // la experiencia del gym. Decisión pendiente con David — ver chat del cutover.
       const account = await stripe.accounts.create({
+        type: 'express',
         country,
         email: authUser.email ?? undefined,
         metadata: { app: 'sala', tenant_id: admin.tenant_id },
-        controller: {
-          stripe_dashboard: { type: 'express' },
-          fees: { payer: 'account' },
-          losses: { payments: 'stripe' },
-          requirement_collection: 'stripe'
-        },
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true }
