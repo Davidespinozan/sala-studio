@@ -6,6 +6,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { PasswordInput } from '@shared/components/PasswordInput';
 import { validarPassword } from '../lib/onboardingLogic';
 import { formatearPrecioTier, sufijoPeriodoTier } from '@shared/lib/precioTier';
+import { gymCobraOnline } from '@shared/lib/cobrosDelGym';
 
 interface TierRow {
   id: string;
@@ -235,6 +236,9 @@ export default function Signup() {
   const precio = formatearPrecioTier(plan.precio_centavos, plan.moneda);
   const sufijo = sufijoPeriodoTier(plan);
   const beneficios = parseBeneficios(plan.beneficios).slice(0, 4);
+  // ¿Este gym terminó el onboarding de Connect? Decide si al socio le vamos a
+  // pedir la tarjeta o si el gym le cobra por fuera.
+  const cobraOnline = gymCobraOnline(tenant);
 
   return (
     <div style={{
@@ -368,6 +372,11 @@ export default function Signup() {
           </div>
         )}
 
+        {/* Qué pasa después de registrarse. Este cartel decía SIEMPRE "no te
+            pedimos tarjeta" —resto de cuando no había cobro online—, así que en
+            un gym con cobros activos le mentía al socio: leía "sin cargo" y
+            enseguida le aparecía el checkout pidiéndole la tarjeta. Ahora
+            depende de si ESTE gym cobra online y de si el plan tiene precio. */}
         <div
           style={{
             marginTop: '20px',
@@ -378,8 +387,23 @@ export default function Signup() {
           }}
         >
           <p style={{ fontSize: '13px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
-            <strong>Sin cargo por ahora.</strong> Activas tu plan al instante; el gimnasio
-            coordina el pago contigo. No te pedimos tarjeta.
+            {cobraOnline && plan.precio_centavos > 0 ? (
+              <>
+                <strong>Pagás al terminar.</strong> Creás tu cuenta y enseguida te pedimos la
+                tarjeta para activar tu plan de {precio}. El cobro lo procesa {tenant.nombre} de
+                forma segura.
+              </>
+            ) : plan.precio_centavos > 0 ? (
+              <>
+                <strong>Sin cargo por ahora.</strong> Activás tu cuenta al instante y{' '}
+                {tenant.nombre} coordina el pago con vos. No te pedimos tarjeta acá.
+              </>
+            ) : (
+              <>
+                <strong>Este plan es gratis.</strong> Activás tu cuenta al instante y no te pedimos
+                tarjeta.
+              </>
+            )}
           </p>
         </div>
 
