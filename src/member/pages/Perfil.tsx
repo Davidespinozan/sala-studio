@@ -797,17 +797,14 @@ function PlanActualYOpciones({
 
       {abierto && (
         <div
-          className="ek-backdrop"
+          className="ek-modal-backdrop"
           role="dialog"
           aria-modal="true"
           aria-label="Cambiar de plan"
           onClick={() => setAbierto(false)}
         >
-          <div
-            className="ek-card"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '440px', width: '100%', maxHeight: '86vh', overflowY: 'auto' }}
-          >
+          <div className="ek-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ek-modal-handle" />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
               <p className="ek-eyebrow">{tieneMembresia ? 'CAMBIAR DE PLAN' : 'ELEGIR UN PLAN'}</p>
               <button
@@ -854,8 +851,9 @@ function PlanActualYOpciones({
       )}
 
       {confirmarPerdida && (
-        <div className="ek-backdrop" role="dialog" aria-modal="true" onClick={() => setConfirmarPerdida(null)}>
-          <div className="ek-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px', width: '100%' }}>
+        <div className="ek-modal-backdrop" role="dialog" aria-modal="true" onClick={() => setConfirmarPerdida(null)}>
+          <div className="ek-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ek-modal-handle" />
             <p className="ek-eyebrow" style={{ color: 'var(--sala-error)', marginBottom: '8px' }}>
               PERDÉS TUS CLASES
             </p>
