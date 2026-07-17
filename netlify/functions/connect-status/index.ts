@@ -73,11 +73,68 @@ export const handler: Handler = async (event) => {
       .update({ stripe_charges_enabled: chargesEnabled, stripe_details_submitted: detailsSubmitted })
       .eq('id', admin.tenant_id);
 
+    // ── Datos enriquecidos: el dueño quiere VER sus cobros, no solo un
+    //    "activo/inactivo". Cada bloque va en su propio try: si Stripe rechaza
+    //    uno (permisos, cuenta a medio verificar), el resto del estado igual se
+    //    devuelve y la página no se cae por un dato de adorno.
+    const businessName =
+      account.business_profile?.name ||
+      (account.settings?.dashboard?.display_name ?? null);
+
+    // Cuenta bancaria de depósito (la default, si hay).
+    let bank: { bank_name: string | null; last4: string | null } | null = null;
+    try {
+      const banks = await stripe.accounts.listExternalAccounts(accountId, {
+        object: 'bank_account',
+        limit: 1
+      });
+      const b = banks.data[0] as { bank_name?: string | null; last4?: string | null } | undefined;
+      if (b) bank = { bank_name: b.bank_name ?? null, last4: b.last4 ?? null };
+    } catch (e) {
+      console.error('[connect-status] bank', e instanceof Error ? e.message : e);
+    }
+
+    // Balance de la cuenta CONECTADA (el dinero es del gym, no de SALA).
+    let balance: { disponible_centavos: number; pendiente_centavos: number; moneda: string } | null = null;
+    try {
+      // OJO: la cuenta va en las OPCIONES (2º arg), no en los params. Metida en
+      // el 1º, Stripe la ignora y devuelve el balance de la PLATAFORMA — le
+      // mostraríamos al gym plata que no es suya.
+      const bal = await stripe.balance.retrieve({}, { stripeAccount: accountId });
+      const disp = bal.available?.[0];
+      const pend = bal.pending?.[0];
+      balance = {
+        disponible_centavos: disp?.amount ?? 0,
+        pendiente_centavos: pend?.amount ?? 0,
+        moneda: (disp?.currency ?? pend?.currency ?? account.default_currency ?? 'mxn').toUpperCase()
+      };
+    } catch (e) {
+      console.error('[connect-status] balance', e instanceof Error ? e.message : e);
+    }
+
+    // Link de un solo uso al panel Express de Stripe: ahí el gym ve TODO lo suyo
+    // (cobros, depósitos, disputas, reportes) sin que lo repliquemos acá.
+    let dashboard_url: string | null = null;
+    try {
+      const link = await stripe.accounts.createLoginLink(accountId);
+      dashboard_url = link.url ?? null;
+    } catch (e) {
+      console.error('[connect-status] loginLink', e instanceof Error ? e.message : e);
+    }
+
     return ok({
       connected: true,
       charges_enabled: chargesEnabled,
       details_submitted: detailsSubmitted,
-      payouts_enabled: account.payouts_enabled === true
+      payouts_enabled: account.payouts_enabled === true,
+      account_id: accountId,
+      business_name: businessName,
+      email: account.email ?? null,
+      pais: account.country ?? null,
+      payout_interval: account.settings?.payouts?.schedule?.interval ?? null,
+      bank,
+      balance,
+      dashboard_url
     });
   } catch (err) {
     console.error('[connect-status]', err instanceof Error ? err.message : err);

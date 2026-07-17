@@ -17,6 +17,23 @@ export interface ConnectEstado {
   payouts_enabled: boolean;
   /** 'stripe_pendiente' cuando Stripe aún no está conectado. */
   reason?: string;
+
+  // ── Enriquecidos: solo vienen cuando connected. Cada uno puede faltar (el
+  //    backend los pide a Stripe por separado y tolera que alguno falle).
+  /** acct_… de la cuenta conectada del gym. */
+  account_id?: string | null;
+  business_name?: string | null;
+  email?: string | null;
+  /** Código de país ISO (MX, US…). */
+  pais?: string | null;
+  /** daily | weekly | monthly | manual */
+  payout_interval?: string | null;
+  /** Cuenta bancaria donde Stripe le deposita. */
+  bank?: { bank_name: string | null; last4: string | null } | null;
+  /** Plata del GYM en Stripe: lo liberado y lo que todavía está en camino. */
+  balance?: { disponible_centavos: number; pendiente_centavos: number; moneda: string } | null;
+  /** Link de un solo uso al panel Express de Stripe del gym. */
+  dashboard_url?: string | null;
 }
 
 export async function obtenerEstadoConnect(): Promise<ConnectEstado> {

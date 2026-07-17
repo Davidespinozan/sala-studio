@@ -14,7 +14,13 @@ const PAIS_POR_MONEDA: Record<string, string> = { mxn: 'MX', usd: 'US', eur: 'ES
  * onboarding y dispara el flujo hospedado de Stripe. Inerte hasta conectar Stripe
  * (muestra "pago en camino"); en el DEMO solo informa.
  */
-export function ActivarCobrosCard() {
+export function ActivarCobrosCard({
+  onEstado
+}: {
+  /** El padre (Cobros) usa el estado para pintar el detalle de la cuenta sin
+   *  volver a pedirlo a Stripe. */
+  onEstado?: (estado: ConnectEstado | null) => void;
+} = {}) {
   const tenant = useTenant();
   const toast = useToast();
   const esDemo = esTenantDemo(tenant.slug);
@@ -25,13 +31,16 @@ export function ActivarCobrosCard() {
   const refrescar = useCallback(async () => {
     setCargando(true);
     try {
-      setEstado(await obtenerEstadoConnect());
+      const e = await obtenerEstadoConnect();
+      setEstado(e);
+      onEstado?.(e);
     } catch {
       setEstado(null);
+      onEstado?.(null);
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [onEstado]);
 
   useEffect(() => {
     if (esDemo) return;
