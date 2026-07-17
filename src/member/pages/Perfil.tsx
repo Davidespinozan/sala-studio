@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { AlertTriangle, ArrowRight, CalendarCheck, Check, ChevronRight, CreditCard, Fingerprint, LifeBuoy, Plus, RotateCcw, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CalendarCheck, ChevronRight, CreditCard, Fingerprint, LifeBuoy, Plus, RotateCcw, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Avatar } from '@shared/components/Avatar';
 import { useAuth } from '@shared/hooks/useAuth';
@@ -14,6 +14,7 @@ import { PlanTipoToggle, type VistaPlan } from '@shared/components/PlanTipoToggl
 import { ActivarAvisosPush } from '@shared/components/ActivarAvisosPush';
 import { useHuellasSocio } from '@shared/hooks/useHuellasSocio';
 import { nombreDedo } from '@shared/lib/dedos';
+import { sufijoPeriodoTier } from '@shared/lib/precioTier';
 import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { iniciarCheckout } from '@shared/lib/checkout';
 import { backendPost } from '@shared/lib/backend';
@@ -819,13 +820,19 @@ function PlanActualYOpciones({
               </button>
             </div>
 
+            <p style={{ margin: '0 0 16px', fontSize: '13.5px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
+              {tieneMembresia
+                ? 'Elegí tu nuevo plan. Pagás de forma segura sin salir de la app.'
+                : 'Elegí un plan para empezar. Pagás de forma segura sin salir de la app.'}
+            </p>
+
             {hayAmbosTipos && (
               <div style={{ marginBottom: '16px' }}>
                 <PlanTipoToggle value={vista} onChange={setVistaPlan} />
               </div>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {planesVisibles.map((tier) => (
                 <PlanOptionCard
                   key={tier.id}
@@ -837,6 +844,11 @@ function PlanActualYOpciones({
                 />
               ))}
             </div>
+
+            <p style={{ margin: '14px 0 0', fontSize: '12px', color: 'var(--sala-text-tertiary)', lineHeight: 1.5 }}>
+              El cobro lo procesa Stripe de forma segura. Si cambiás a mitad de período, el ajuste
+              proporcional cae en tu próximo cobro.
+            </p>
           </div>
         </div>
       )}
@@ -915,95 +927,90 @@ function PlanOptionCard({
         (b) => b && typeof b.label === 'string' && b.incluido !== false
       )
     : [];
+  // Un solo renglón de detalle (el 1er beneficio) en vez de una lista: la fila
+  // tiene que quedar compacta y a la misma altura que las demás.
+  const detalle = beneficios[0]?.label ?? null;
 
   return (
     <div
-      className="ek-card"
+      className="ek-card ek-card--md"
       style={{
-        position: 'relative',
         display: 'flex',
-        flexDirection: 'column',
-        border: esActual ? '2px solid var(--sala-primary)' : '1px solid var(--sala-border)',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+        border: esActual ? '1.5px solid var(--sala-primary)' : '1px solid var(--sala-border)',
         background: esActual ? 'var(--sala-primary-light)' : 'var(--sala-surface)'
       }}
     >
-      {esActual && (
-        <span
-          style={{
-            position: 'absolute',
-            top: '12px',
-            right: '12px',
-            padding: '4px 10px',
-            borderRadius: '999px',
-            background: 'var(--sala-primary)',
-            color: 'var(--sala-text-on-primary)',
-            fontSize: '10px',
-            fontWeight: 800,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase'
-          }}
-        >
-          Actual
-        </span>
-      )}
-
-      <h3
-        style={{
-          fontSize: '12px',
-          fontWeight: 700,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: 'var(--sala-text-secondary)',
-          margin: 0
-        }}
-      >
-        {tier.nombre}
-      </h3>
-      <p
-        style={{
-          fontFamily: 'var(--ek-font-display)',
-          fontSize: '26px',
-          fontWeight: 700,
-          letterSpacing: '-0.03em',
-          margin: '6px 0 0',
-          color: 'var(--sala-text-primary)'
-        }}
-      >
-        {formatearPrecio(tier.precio_centavos, tier.moneda)}
-      </p>
-
-      {!esActual && beneficios.length > 0 && (
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: '14px 0 0',
-            padding: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '7px'
-          }}
-        >
-          {beneficios.slice(0, 3).map((b, i) => (
-            <li
-              key={i}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--sala-text-primary)' }}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '3px' }}>
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: 'var(--sala-text-secondary)'
+            }}
+          >
+            {tier.nombre}
+          </span>
+          {esActual && (
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 800,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                color: 'var(--sala-text-on-primary)',
+                background: 'var(--sala-primary)',
+                padding: '2px 8px',
+                borderRadius: '999px'
+              }}
             >
-              <Check size={15} strokeWidth={2.5} style={{ color: 'var(--sala-primary)', flexShrink: 0, marginTop: '1px' }} />
-              {b.label}
-            </li>
-          ))}
-        </ul>
-      )}
+              Actual
+            </span>
+          )}
+        </div>
+        <p style={{ margin: 0, fontWeight: 700, fontSize: '17px', color: 'var(--sala-text-primary)' }}>
+          {formatearPrecio(tier.precio_centavos, tier.moneda)}
+          <span style={{ color: 'var(--sala-text-tertiary)', fontWeight: 500, fontSize: '13px' }}>
+            {sufijoPeriodoTier(tier)}
+          </span>
+        </p>
+        {detalle && (
+          <p
+            style={{
+              margin: '2px 0 0',
+              fontSize: '12px',
+              color: 'var(--sala-text-tertiary)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {detalle}
+          </p>
+        )}
+      </div>
 
       {!esActual && (
         <button
           type="button"
           onClick={onCambiar}
           disabled={enProceso}
-          className="ek-cta ek-lift ek-cta--full"
-          style={{ marginTop: 'auto', paddingTop: '12px', paddingBottom: '12px', fontSize: '13px', opacity: enProceso ? 0.6 : 1 }}
+          className="ek-cta ek-lift"
+          style={{
+            padding: '10px 14px',
+            fontSize: '13px',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            gap: '6px',
+            opacity: enProceso ? 0.6 : 1
+          }}
         >
-          {enProceso ? 'Procesando…' : tieneMembresia ? 'Cambiar' : 'Suscribirme'}
+          {enProceso ? 'Procesando…' : tieneMembresia ? 'Elegir este' : 'Suscribirme'}
           {!enProceso && <ArrowRight size={15} strokeWidth={2.25} />}
         </button>
       )}
