@@ -112,14 +112,19 @@ export const handler: Handler = async (event) => {
       console.error('[connect-status] balance', e instanceof Error ? e.message : e);
     }
 
-    // Link de un solo uso al panel Express de Stripe: ahí el gym ve TODO lo suyo
-    // (cobros, depósitos, disputas, reportes) sin que lo repliquemos acá.
+    // Cómo abre el gym su panel de Stripe (ve cobros, depósitos, disputas). Las
+    // cuentas Standard tienen su propio dashboard completo → link normal. Solo las
+    // Express usan login link de un solo uso (createLoginLink FALLA en Standard).
     let dashboard_url: string | null = null;
-    try {
-      const link = await stripe.accounts.createLoginLink(accountId);
-      dashboard_url = link.url ?? null;
-    } catch (e) {
-      console.error('[connect-status] loginLink', e instanceof Error ? e.message : e);
+    if (account.type === 'express') {
+      try {
+        const link = await stripe.accounts.createLoginLink(accountId);
+        dashboard_url = link.url ?? null;
+      } catch (e) {
+        console.error('[connect-status] loginLink', e instanceof Error ? e.message : e);
+      }
+    } else {
+      dashboard_url = 'https://dashboard.stripe.com/';
     }
 
     return ok({
