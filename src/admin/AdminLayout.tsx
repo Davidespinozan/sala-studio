@@ -1,6 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { useAdminGuard } from './hooks/useAdminGuard';
+import { useSuscripcion } from './hooks/useSuscripcion';
+import { motivoBloqueoSaas } from './lib/accesoSaas';
+import { SuscripcionBloqueada } from './components/SuscripcionBloqueada';
+import { useTenant } from '@shared/hooks/useTenant';
+import { esTenantDemo } from '@shared/lib/demoAuth';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { AppShell } from '@shared/components/AppShell';
 import { TenantGuard } from '@shared/components/TenantGuard';
@@ -34,8 +39,18 @@ const Cobros = lazy(() => import('./pages/Cobros'));
 
 export default function AdminLayout() {
   const { isLoading } = useAdminGuard();
+  const tenant = useTenant();
+  const { suscripcion, isLoading: subLoading } = useSuscripcion();
 
-  if (isLoading) return <LoadingScreen />;
+  if (isLoading || subLoading) return <LoadingScreen />;
+
+  // PAYWALL: si la suscripción del gym al SaaS está muerta, se reemplaza TODO el
+  // panel. El demo se exime; motivoBloqueoSaas falla ABIERTO (solo bloquea con
+  // señal clara). Socios y recepción NO se tocan — esto es solo el panel del dueño.
+  const motivoBloqueo = esTenantDemo(tenant.slug) ? null : motivoBloqueoSaas(suscripcion);
+  if (motivoBloqueo) {
+    return <SuscripcionBloqueada motivo={motivoBloqueo} suscripcion={suscripcion} />;
+  }
 
   return (
     <TenantGuard>
