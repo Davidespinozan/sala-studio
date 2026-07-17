@@ -34,7 +34,7 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [{ data: tiersData }, { data: socioData }] = await Promise.all([
+      const [{ data: tiersData }, { data: socioData, error: socioError }] = await Promise.all([
         supabase
           .from('tiers')
           .select('id, nombre, precio_centavos, inscripcion_centavos, moneda')
@@ -48,6 +48,11 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
       ]);
       if (cancelled) return;
       setTiers((tiersData ?? []) as TierOption[]);
+      // Sin este log, el fallo era MUDO: la columna estaba fuera del GRANT de
+      // authenticated, la query moría por permisos, socioData quedaba null y
+      // esto daba `false` — o sea, "no pagó la inscripción" para todos. La
+      // pantalla le sumaba la inscripción a socios que ya la habían pagado.
+      if (socioError) console.error('[AsignarPlanModal] inscripcion_pagada_at:', socioError.message);
       setYaPagoInscripcion(socioData?.inscripcion_pagada_at != null);
     })();
     return () => {
