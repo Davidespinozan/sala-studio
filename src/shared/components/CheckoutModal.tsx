@@ -63,10 +63,15 @@ export function CheckoutModal({
           toast.error('Ya tenés una mensualidad activa. Cancelala antes de comprar un paquete.');
           onClose();
         } else {
+          console.error('[CheckoutModal] respuesta inesperada:', res);
           toast.error('No pudimos abrir el pago. Probá de nuevo.');
           onClose();
         }
-      } catch {
+      } catch (e) {
+        // El motivo real (401 'Sin perfil', 403, etc.) se perdía acá: al socio
+        // le mostramos algo amable, pero sin esto quedaba INVISIBLE también para
+        // nosotros y un fallo de permisos parecía "probá de nuevo".
+        console.error('[CheckoutModal]', e);
         if (!cancelado) {
           toast.error('No pudimos abrir el pago. Probá de nuevo.');
           onClose();

@@ -44,11 +44,15 @@ export const handler: Handler = async (event) => {
     const { data: { user: authUser }, error: userErr } = await asUser.auth.getUser();
     if (userErr || !authUser) return unauthorized('Token inválido');
 
-    const { data: socio } = await asUser
+    // `stripe_customer_id` está REVOCADA para authenticated (20260709160000):
+    // pedirla con el token del socio rompe la query por permisos y esto
+    // devolvía 'Sin perfil'. Se lee abajo con service_role.
+    const { data: socio, error: socioErr } = await asUser
       .from('usuarios')
-      .select('id, tenant_id, rol, stripe_customer_id')
+      .select('id, tenant_id, rol')
       .eq('auth_id', authUser.id)
       .maybeSingle();
+    if (socioErr) console.error('[metodo-pago] socio:', socioErr.message);
     if (!socio) return forbidden('Sin perfil');
 
     if (!process.env.STRIPE_SECRET_KEY) {
@@ -62,7 +66,13 @@ export const handler: Handler = async (event) => {
       .eq('id', socio.tenant_id)
       .maybeSingle();
     const acct = tenant?.stripe_account_id ?? null;
-    const customerId = socio.stripe_customer_id;
+
+    const { data: privados } = await admin
+      .from('usuarios')
+      .select('stripe_customer_id')
+      .eq('id', socio.id)
+      .maybeSingle();
+    const customerId = (privados?.stripe_customer_id as string | null) ?? null;
 
     if (!acct) return ok({ card: null });
 

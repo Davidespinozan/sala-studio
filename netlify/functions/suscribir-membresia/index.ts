@@ -58,15 +58,33 @@ export const handler: Handler = async (event) => {
     const { data: { user: authUser }, error: userErr } = await asUser.auth.getUser();
     if (userErr || !authUser) return unauthorized('Token inválido');
 
-    const { data: socio } = await asUser
+    // OJO: con el token del socio (RLS) solo se pueden leer las columnas que
+    // authenticated tiene GRANTeadas. `stripe_customer_id` e
+    // `inscripcion_pagada_at` están REVOCADAS (20260709160000) → pedirlas acá
+    // hacía fallar la query entera por permisos, socio quedaba null y esto
+    // devolvía 401 'Sin perfil': NINGÚN socio podía pagar. Las privadas se leen
+    // abajo con service_role.
+    const { data: socio, error: socioErr } = await asUser
       .from('usuarios')
-      .select('id, tenant_id, rol, stripe_customer_id, inscripcion_pagada_at')
+      .select('id, tenant_id, rol')
       .eq('auth_id', authUser.id)
       .maybeSingle();
+    // El error se logueaba en ningún lado: por eso el permission denied fue
+    // invisible hasta que alguien miró la RLS a mano.
+    if (socioErr) console.error('[suscribir-membresia] socio:', socioErr.message);
     if (!socio) return unauthorized('Sin perfil');
     if (socio.rol !== 'miembro') return badRequest('Solo un socio puede comprar membresía');
 
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+
+    // Columnas privadas del socio (solo service_role las puede leer).
+    const { data: privados } = await admin
+      .from('usuarios')
+      .select('stripe_customer_id, inscripcion_pagada_at')
+      .eq('id', socio.id)
+      .maybeSingle();
+    const stripeCustomerId = (privados?.stripe_customer_id as string | null) ?? null;
+    const inscripcionPagadaAt = (privados?.inscripcion_pagada_at as string | null) ?? null;
 
     // 2) Tenant (gate del demo + cuenta conectada del gym).
     const { data: tenant } = await admin
@@ -101,7 +119,7 @@ export const handler: Handler = async (event) => {
     // Va como segundo ítem del checkout (Stripe lo carga en la PRIMERA factura y
     // no lo repite en las renovaciones).
     const inscripcionCentavos =
-      socio.inscripcion_pagada_at == null && Number.isInteger(tier.inscripcion_centavos)
+      inscripcionPagadaAt == null && Number.isInteger(tier.inscripcion_centavos)
         ? Math.max(tier.inscripcion_centavos as number, 0)
         : 0;
 
@@ -141,7 +159,7 @@ export const handler: Handler = async (event) => {
     const customerId = await getOrCreateSocioCustomer(
       stripe,
       admin,
-      { id: socio.id, email: authUser.email ?? null, stripe_customer_id: socio.stripe_customer_id },
+      { id: socio.id, email: authUser.email ?? null, stripe_customer_id: stripeCustomerId },
       acct
     );
 
