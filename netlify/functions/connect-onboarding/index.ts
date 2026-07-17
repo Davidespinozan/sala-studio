@@ -72,11 +72,24 @@ export const handler: Handler = async (event) => {
 
     let accountId = tenant?.stripe_account_id ?? null;
     if (!accountId) {
+      // `controller` en vez de `type: 'express'`: mismo dashboard Express para el
+      // gym, PERO define quién paga qué. SALA no quiere pagar por conectar gyms:
+      //   · fees.payer = 'account'  → las fees de Stripe las paga el GYM, no SALA.
+      //   · losses.payments = 'stripe' → los contracargos/pérdidas NO recaen en
+      //     SALA (la plataforma no queda responsable del dinero del gym).
+      //   · requirement_collection = 'stripe' → Stripe hospeda el onboarding (KYC).
+      // (La comisión por transacción ya la paga el gym por usar direct charges;
+      //  esto cubre además la fee de plataforma de las cuentas Express.)
       const account = await stripe.accounts.create({
-        type: 'express',
         country,
         email: authUser.email ?? undefined,
         metadata: { app: 'sala', tenant_id: admin.tenant_id },
+        controller: {
+          stripe_dashboard: { type: 'express' },
+          fees: { payer: 'account' },
+          losses: { payments: 'stripe' },
+          requirement_collection: 'stripe'
+        },
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true }
