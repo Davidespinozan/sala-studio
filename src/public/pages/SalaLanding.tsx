@@ -352,7 +352,12 @@ function Hero() {
                 </a>
               </div>
               <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.5)', margin: '18px 0 0' }}>
-                {TRIAL_DIAS} días gratis · sin tarjeta · cancela cuando quieras
+                {/* Decía "sin tarjeta", pero el alta SÍ pide tarjeta (con el
+                    trial de {TRIAL_DIAS} días). Prometer lo contrario y mostrar
+                    un formulario de tarjeta al final se lee como engaño justo
+                    cuando pagaste el clic. "Hoy no se te cobra nada" da la misma
+                    tranquilidad y es verdad. */}
+                {TRIAL_DIAS} días gratis · hoy no se te cobra nada · cancela cuando quieras
               </p>
             </div>
 

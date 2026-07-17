@@ -653,19 +653,28 @@ function PasoPagoConTarjeta({
         </p>
       </div>
 
+      {/* La tarjeta se pide acá: sin ella el trial no se convierte solo al día
+          {TRIAL_DIAS} y el gym queda usando SALA sin forma de cobrarle. Por eso
+          ya NO hay un "configurar después" a mano: era la salida por default y
+          dejaba el alta sin ingreso.
+          El escape existe SOLO si el checkout no cargó (Stripe caído, claves
+          sin configurar): el gym ya está creado a esta altura, dejarlo atrapado
+          en esta pantalla sería peor que perder la tarjeta. */}
       {error ? (
-        <p style={{ color: 'var(--sala-error)', fontSize: '14px', lineHeight: 1.5 }}>{error}</p>
+        <>
+          <p style={{ color: 'var(--sala-error)', fontSize: '14px', lineHeight: 1.5 }}>{error}</p>
+          <button
+            type="button"
+            onClick={onListo}
+            className="ek-cta ek-cta--secondary"
+            style={{ alignSelf: 'flex-start' }}
+          >
+            Continuar y configurar el pago después
+          </button>
+        </>
       ) : (
         <CheckoutSaasEmbedded tier={tier} moneda={moneda} onComplete={onListo} onError={setError} />
       )}
-
-      <button
-        type="button"
-        onClick={onListo}
-        style={{ background: 'none', border: 'none', color: 'var(--ek-ink-muted)', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit', alignSelf: 'flex-start' }}
-      >
-        Configurar el pago después
-      </button>
     </div>
   );
 }
