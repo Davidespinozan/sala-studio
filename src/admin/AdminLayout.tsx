@@ -2,8 +2,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { useAdminGuard } from './hooks/useAdminGuard';
 import { useSuscripcion } from './hooks/useSuscripcion';
-import { motivoBloqueoSaas } from './lib/accesoSaas';
+import { estadoAccesoSaas, type MotivoBloqueo } from './lib/accesoSaas';
 import { SuscripcionBloqueada } from './components/SuscripcionBloqueada';
+import { AvisoSuscripcion } from './components/AvisoSuscripcion';
 import { useTenant } from '@shared/hooks/useTenant';
 import { esTenantDemo } from '@shared/lib/demoAuth';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
@@ -44,12 +45,16 @@ export default function AdminLayout() {
 
   if (isLoading || subLoading) return <LoadingScreen />;
 
-  // PAYWALL: si la suscripción del gym al SaaS está muerta, se reemplaza TODO el
-  // panel. El demo se exime; motivoBloqueoSaas falla ABIERTO (solo bloquea con
-  // señal clara). Socios y recepción NO se tocan — esto es solo el panel del dueño.
-  const motivoBloqueo = esTenantDemo(tenant.slug) ? null : motivoBloqueoSaas(suscripcion);
-  if (motivoBloqueo) {
-    return <SuscripcionBloqueada motivo={motivoBloqueo} suscripcion={suscripcion} />;
+  // PAYWALL con gracia. El demo se exime; estadoAccesoSaas falla ABIERTO.
+  //   'bloqueo' → se reemplaza TODO el panel (ya pasó la gracia).
+  //   'aviso'   → sigue operando, con un banner y los días que le quedan.
+  // Socios y recepción NO se tocan: esto es solo el panel del dueño.
+  const acceso = esTenantDemo(tenant.slug)
+    ? { nivel: 'ok' as const, motivo: null, diasParaCorte: null }
+    : estadoAccesoSaas(suscripcion);
+
+  if (acceso.nivel === 'bloqueo') {
+    return <SuscripcionBloqueada motivo={acceso.motivo as MotivoBloqueo} suscripcion={suscripcion} />;
   }
 
   return (
@@ -57,6 +62,7 @@ export default function AdminLayout() {
     <ModoDemoBanner />
     <SucursalProvider>
       <AppShell sidebar={({ onNavigate }) => <Sidebar onNavigate={onNavigate} />} roleLabel="ADMIN">
+        <AvisoSuscripcion acceso={acceso} />
         <SucursalSelectorBar />
 
         <main className="adm-main">
