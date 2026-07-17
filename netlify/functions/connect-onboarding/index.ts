@@ -72,19 +72,21 @@ export const handler: Handler = async (event) => {
 
     let accountId = tenant?.stripe_account_id ?? null;
     if (!accountId) {
-      // Cuenta STANDARD (no Express) POR DECISIÓN: SALA no paga NINGUNA fee de los
-      // pagos de los gyms — el retainer mensual cubre infraestructura, no Stripe.
-      // Con Standard, Stripe no le cobra fee de plataforma a SALA: el gym paga todo
-      // (procesamiento + lo que Stripe cobre). El costo es que el gym usa su propio
-      // dashboard completo de Stripe (no el simple de Express) y el "abrir mi Stripe"
-      // de Cobros va a su login normal, no a un login link (ver connect-status).
-      // No se piden capabilities: las cuentas Standard las administra el propio gym
-      // al completar su onboarding.
+      // Cuenta Express: onboarding hospedado por Stripe (Account Links) + login link
+      // para Cobros. Con direct charges, la comisión POR TRANSACCIÓN de cada cobro
+      // socio→gym la paga el GYM (sale de su dinero), nunca SALA. Lo único que Stripe
+      // podría cobrarle a SALA es la fee de cuenta de Connect (por país; puede ser $0
+      // en MX). Standard la elimina pero exige OAuth (Account Links NO funciona en
+      // Standard → 500). Si esa fee resulta real y molesta, migrar a Standard+OAuth.
       const account = await stripe.accounts.create({
-        type: 'standard',
+        type: 'express',
         country,
         email: authUser.email ?? undefined,
-        metadata: { app: 'sala', tenant_id: admin.tenant_id }
+        metadata: { app: 'sala', tenant_id: admin.tenant_id },
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true }
+        }
       });
       accountId = account.id;
       await adminDb.from('tenants').update({ stripe_account_id: accountId }).eq('id', admin.tenant_id);
