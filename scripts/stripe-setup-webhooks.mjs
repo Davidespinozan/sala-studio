@@ -83,7 +83,11 @@ async function main() {
   }
 
   const hostArg = process.argv.find((a) => a.startsWith('--host='));
-  const host = hostArg ? hostArg.slice('--host='.length) : 'salastudio.app';
+  // CON www. El apex (salastudio.app) responde 308 hacia www, y Stripe NO sigue
+  // redirecciones: el evento se pierde en el 308 y la suscripción del gym nunca
+  // se actualiza — sin ningún error visible. Ya nos costó que ningún pago se
+  // registrara. La verificación de abajo es la red de seguridad.
+  const host = hostArg ? hostArg.slice('--host='.length) : 'www.salastudio.app';
 
   const stripe = new Stripe(key);
   const webhooks = definirWebhooks(host);
@@ -96,6 +100,31 @@ async function main() {
   for await (const ep of stripe.webhookEndpoints.list({ limit: 100 })) existentes.push(ep);
 
   const secretos = []; // { envVar, secret|null, url, yaExistia }
+
+  // ── Red de seguridad: la URL tiene que responder DIRECTO, sin redirección.
+  // Stripe no sigue 3xx; un endpoint que redirige acepta la creación igual y
+  // después descarta todos los eventos en silencio.
+  for (const w of webhooks) {
+    let estado;
+    try {
+      const r = await fetch(w.url, { method: 'POST', redirect: 'manual' });
+      estado = r.status;
+    } catch (e) {
+      morir(`No pude alcanzar ${w.url}\n  ${e?.message ?? e}`);
+    }
+    if (estado >= 300 && estado < 400) {
+      morir(
+        `${w.url} responde ${estado} (REDIRECCIÓN).\n` +
+        '  Stripe no sigue redirecciones: los eventos se perderían en silencio.\n' +
+        '  Usá el host definitivo (probá con/sin "www"):  --host=www.tu-dominio.com'
+      );
+    }
+    if (estado === 404) {
+      morir(`${w.url} responde 404: esa función no existe o no está deployada.`);
+    }
+    console.log(`  ✓ ${w.url} responde ${estado} (sin redirección)`);
+  }
+  console.log('');
 
   for (const w of webhooks) {
     const previo = existentes.find((e) => e.url === w.url);
