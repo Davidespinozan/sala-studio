@@ -113,6 +113,13 @@ export const handler: Handler = async (event) => {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
+    // Si el slug lo tiene un alta ABANDONADA (nunca llegó a Stripe + trial
+    // vencido hace rato), se le corre el slug a ese tenant muerto para que este
+    // gym pueda tomarlo. Sin esto, un abandono dejaba el subdominio quemado
+    // para siempre. No borra datos: solo renombra. Ver migración 20260718120000.
+    const { error: libErr } = await admin.rpc('liberar_slug_abandonado', { p_slug: slug });
+    if (libErr) console.error('[onboarding-crear-gym] liberar_slug_abandonado:', libErr);
+
     // Pre-chequeo de slug (UX/feedback rápido; el constraint UNIQUE de la BD
     // es el guard real ante una carrera).
     const { data: existente } = await admin
