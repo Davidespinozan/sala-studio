@@ -160,7 +160,12 @@ export const handler: Handler = async (event) => {
         metadata: { app: 'sala', tenant_id: admin.tenant_id, tier: body.tier!, moneda: body.moneda!, ciclo }
       },
       metadata: { app: 'sala', tenant_id: admin.tenant_id },
-      billing_address_collection: 'auto' as const
+      billing_address_collection: 'auto' as const,
+      // En baseParams (no solo en el de redirect): el checkout EMBEBIDO del
+      // registro no mostraba el campo de código promocional, así que un gym con
+      // descuento pactado no podía aplicarlo durante el alta — el unico momento
+      // en que la mayoria va a pagar.
+      allow_promotion_codes: true
     };
 
     // Embedded → modal en SALA (alta del gym). SaaS = cuenta plataforma, sin Connect.
@@ -175,7 +180,6 @@ export const handler: Handler = async (event) => {
 
     const session = await stripe.checkout.sessions.create({
       ...baseParams,
-      allow_promotion_codes: true,
       success_url: `${origin}${returnPath}?checkout=success`,
       cancel_url: `${origin}${returnPath}?checkout=cancel`
     });
