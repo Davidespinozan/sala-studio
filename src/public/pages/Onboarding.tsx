@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { PasswordInput } from '@shared/components/PasswordInput';
 import { CheckoutSaasEmbedded } from '@public/components/CheckoutSaasEmbedded';
 import { TIMEZONE_OPTIONS } from '@shared/lib/timezone';
-import { MARKETING_DOMAIN } from '@shared/providers/TenantProvider';
+import { MARKETING_DOMAIN, isMarketingRoot } from '@shared/providers/TenantProvider';
 import {
   PLANES_SAAS,
   TIERS_ORDEN,
@@ -296,6 +296,56 @@ function PasoCuenta({
   onEmailTomado: (tomado: boolean) => void;
 }) {
   const [emailTomado, setEmailTomado] = useState(false);
+  // "Retomá donde quedaste": si el email ya tiene cuenta, en vez de mandarlo a
+  // un login (SALA no tiene: el login es de cada gym) lo autenticamos acá mismo
+  // y lo llevamos a SU subdominio. El slug se resuelve recién después de que la
+  // contraseña valida — así nunca se expone el mapa email→gym.
+  const [passRetomar, setPassRetomar] = useState('');
+  const [entrando, setEntrando] = useState(false);
+  const [errorRetomar, setErrorRetomar] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  async function retomarMiGym() {
+    setEntrando(true);
+    setErrorRetomar(null);
+    try {
+      const email = value.email.trim().toLowerCase();
+      const { error: loginErr } = await supabase.auth.signInWithPassword({
+        email,
+        password: passRetomar
+      });
+      if (loginErr) {
+        setErrorRetomar('Contraseña incorrecta. Probá de nuevo o recuperá tu acceso.');
+        return;
+      }
+
+      const { data: auth } = await supabase.auth.getUser();
+      const authId = auth.user?.id;
+      const { data: u } = await supabase
+        .from('usuarios')
+        .select('tenant_id, rol')
+        .eq('auth_id', authId ?? '')
+        .maybeSingle();
+      const destino =
+        u?.rol === 'recepcionista' ? '/recepcion' : u?.rol === 'miembro' ? '/app' : '/admin';
+
+      const { data: t } = await supabase
+        .from('tenants')
+        .select('slug')
+        .eq('id', u?.tenant_id ?? '')
+        .maybeSingle();
+
+      // En producción el gym vive en su subdominio; en local/preview no hay
+      // subdominios, así que navegamos relativo.
+      if (t?.slug && isMarketingRoot()) {
+        window.location.href = `https://${t.slug}.${MARKETING_DOMAIN}${destino}`;
+      } else {
+        navigate(destino, { replace: true });
+      }
+    } finally {
+      setEntrando(false);
+    }
+  }
 
   // Chequeo debounced: ¿ese email ya tiene cuenta?
   useEffect(() => {
@@ -356,25 +406,42 @@ function PasoCuenta({
           }}
         >
           <p style={{ margin: '0 0 10px', fontSize: '13.5px', lineHeight: 1.5, color: 'var(--sala-text-primary)' }}>
-            <strong>Ya tenés una cuenta con ese email.</strong> Si ya empezaste a crear tu gym,
-            iniciá sesión y seguí donde quedaste — no hace falta empezar de nuevo.
+            <strong>Ya tenés una cuenta con ese email.</strong> Tu gym ya está creado — poné tu
+            contraseña y te llevamos ahí para que termines de configurar el pago. No hace falta
+            empezar de nuevo.
           </p>
-          {/* Iniciar sesión ya funciona desde acá: useRoleRedirect detecta que
-              estamos en el dominio raíz y manda al subdominio DEL GYM. Antes
-              caía en /admin de salastudio.app (otra pared) y el que abandonaba
-              el alta no tenía forma de volver a entrar a pagar. */}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <Link to="/login" className="ek-cta" style={{ fontSize: '13px', padding: '8px 16px' }}>
-              Iniciar sesión
-            </Link>
-            <Link
-              to="/recuperar"
-              className="ek-cta ek-cta--secondary"
-              style={{ fontSize: '13px', padding: '8px 16px' }}
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+              <PasswordInput
+                value={passRetomar}
+                onChange={setPassRetomar}
+                autoComplete="current-password"
+              />
+            </div>
+            <button
+              type="button"
+              className="ek-cta"
+              style={{ fontSize: '13px', padding: '10px 16px', flexShrink: 0 }}
+              disabled={entrando || passRetomar.length === 0}
+              onClick={retomarMiGym}
             >
-              Olvidé mi contraseña
-            </Link>
+              {entrando ? 'Entrando…' : 'Ir a mi gym'}
+            </button>
           </div>
+
+          {errorRetomar && (
+            <p className="ek-error-text" style={{ margin: '8px 0 0', fontSize: '12.5px' }}>
+              {errorRetomar}
+            </p>
+          )}
+
+          <Link
+            to="/recuperar"
+            style={{ display: 'inline-block', marginTop: '8px', fontSize: '12.5px', color: 'var(--sala-text-secondary)' }}
+          >
+            Olvidé mi contraseña
+          </Link>
         </div>
       )}
 
