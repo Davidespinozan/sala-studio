@@ -61,17 +61,17 @@ export function estadoAccesoSaas(
       // tarjeta. Se bloquea de entrada y se le pide elegir plan + tarjeta; la
       // prueba corre igual, pero recién desde que hay con qué cobrarle.
       //
-      // Solo cuando NUNCA se llegó a Stripe (null). Los 'mock_' del checkout
-      // viejo se respetan a propósito: ahí viven el tenant demo y gyms REALES
-      // anteriores a Stripe (ej. numawellness), y bloquearlos les cerraría el
-      // panel a clientes que no hicieron nada malo.
+      // Los 'mock_' (placeholders del checkout viejo) cuentan como SIN tarjeta:
+      // nunca hubo un medio de pago de verdad. El tenant DEMO no se ve afectado
+      // porque AdminLayout lo exime antes de llamar acá.
       //
       // GRACIA CORTA tras el alta: el `stripe_subscription_id` lo escribe el
       // WEBHOOK, unos segundos después de pagar. Sin esta ventana, un gym que
       // acaba de poner la tarjeta y entra al panel enseguida vería "activá tu
       // plan" habiendo pagado — falso y alarmante. Preferimos dejar pasar unos
       // minutos a un alta sin pagar que asustar a uno que sí pagó.
-      if (suscripcion.stripe_subscription_id == null) {
+      const subId = suscripcion.stripe_subscription_id;
+      if (subId == null || subId.startsWith('mock_')) {
         const creada = ms(suscripcion.created_at);
         const reciente = creada != null && ahora - creada < GRACIA_ALTA_MS;
         if (!reciente) {

@@ -76,12 +76,13 @@ describe('estadoAccesoSaas — sin tarjeta no hay prueba', () => {
     expect(r.motivo).toBe('sin_tarjeta');
   });
 
-  it('los mock_ legacy NO se bloquean (demo y gyms reales pre-Stripe)', () => {
+  it('los mock_ del checkout viejo TAMBIÉN se bloquean: nunca hubo tarjeta real', () => {
     const r = estadoAccesoSaas(
       sub({ estado: 'trial', trial_termina: enDias(10), stripe_subscription_id: 'mock_sub_123' }),
       AHORA
     );
-    expect(r.nivel).toBe('ok');
+    expect(r.nivel).toBe('bloqueo');
+    expect(r.motivo).toBe('sin_tarjeta');
   });
 
   it('con tarjeta, el trial vigente sigue dando acceso', () => {
