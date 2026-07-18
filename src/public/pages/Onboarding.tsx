@@ -71,6 +71,9 @@ export default function Onboarding() {
   // Disponibilidad del subdominio, reportada por PasoGym: frena el "Continuar"
   // ahí mismo en vez de dejar llenar todo y rechazar al final.
   const [slugDisp, setSlugDisp] = useState<Disponibilidad>('idle');
+  // Ídem para el email: si ya tiene cuenta, se corta en el paso 1 y se le
+  // ofrece iniciar sesión, en vez de rebotarlo recién al crear el gym.
+  const [emailTomado, setEmailTomado] = useState(false);
 
   function avanzar(validacion: { ok: boolean; error?: string }) {
     if (!validacion.ok) {
@@ -161,6 +164,7 @@ export default function Onboarding() {
           <PasoCuenta
             value={state.cuenta}
             onChange={(cuenta) => setState((s) => ({ ...s, cuenta }))}
+            onEmailTomado={setEmailTomado}
           />
         )}
         {paso === 1 && (
@@ -206,7 +210,14 @@ export default function Onboarding() {
         )}
         {paso === 0 && (
           <button type="button" className="ek-cta" style={{ flex: 1 }}
-            onClick={() => avanzar(validarPasoCuenta(state.cuenta))}>
+            disabled={emailTomado}
+            onClick={() =>
+              avanzar(
+                emailTomado
+                  ? { ok: false, error: 'Ya tenés una cuenta con ese email. Iniciá sesión.' }
+                  : validarPasoCuenta(state.cuenta)
+              )
+            }>
             Continuar
           </button>
         )}
@@ -274,11 +285,43 @@ function Progreso({ pasoActual }: { pasoActual: number }) {
 
 function PasoCuenta({
   value,
-  onChange
+  onChange,
+  onEmailTomado
 }: {
   value: OnboardingState['cuenta'];
   onChange: (v: OnboardingState['cuenta']) => void;
+  /** Le avisa al wizard que ese email YA tiene cuenta, para ofrecer iniciar
+   *  sesión acá mismo. Antes se enteraba al final del alta: llenaba todo el
+   *  wizard y terminaba en un callejón sin salida. */
+  onEmailTomado: (tomado: boolean) => void;
 }) {
+  const [emailTomado, setEmailTomado] = useState(false);
+
+  // Chequeo debounced: ¿ese email ya tiene cuenta?
+  useEffect(() => {
+    const email = value.email.trim().toLowerCase();
+    // Sin un email con forma válida no molestamos al backend.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailTomado(false);
+      return;
+    }
+    let cancelado = false;
+    const t = setTimeout(async () => {
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
+        n: string, a: Record<string, unknown>
+      ) => Promise<{ data: boolean | null; error: { message: string } | null }>;
+      const { data, error } = await rpc('email_tiene_cuenta', { p_email: email });
+      if (cancelado) return;
+      // Si el RPC falla no bloqueamos el alta: el backend igual valida.
+      setEmailTomado(error ? false : data === true);
+    }, 450);
+    return () => { cancelado = true; clearTimeout(t); };
+  }, [value.email]);
+
+  useEffect(() => {
+    onEmailTomado(emailTomado);
+  }, [emailTomado, onEmailTomado]);
+
   return (
     <div className="ek-stack-md">
       <p className="ek-body-muted" style={{ margin: 0 }}>
@@ -302,6 +345,31 @@ function PasoCuenta({
           autoComplete="email"
         />
       </Campo>
+      {emailTomado && (
+        <div
+          role="status"
+          style={{
+            padding: '12px 14px',
+            borderRadius: 'var(--ek-r-xs)',
+            border: '1px solid var(--sala-accent)',
+            background: 'var(--sala-accent-light)'
+          }}
+        >
+          <p style={{ margin: '0 0 8px', fontSize: '13.5px', lineHeight: 1.5, color: 'var(--sala-text-primary)' }}>
+            <strong>Ya tenés una cuenta con ese email.</strong> Si ya empezaste a crear tu gym,
+            entrá desde la dirección de tu gym (<em>tu-gym</em>.salastudio.app) y terminá ahí de
+            configurar el pago — no hace falta empezar de nuevo.
+          </p>
+          {/* A /recuperar y NO a /login: el login redirige a /admin del dominio
+              ACTUAL (salastudio.app), no al subdominio del gym, así que lo
+              dejaría en otra pared. Recuperar acceso sí funciona desde acá y le
+              llega el mail de Supabase con el link correcto. */}
+          <Link to="/recuperar" className="ek-cta" style={{ fontSize: '13px', padding: '8px 16px' }}>
+            Recuperar mi acceso
+          </Link>
+        </div>
+      )}
+
       <Campo label="Confirmar email" hint="Escribilo de nuevo para evitar errores.">
         <input
           type="email"
