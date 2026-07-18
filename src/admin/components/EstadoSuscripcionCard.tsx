@@ -1,8 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { CreditCard, AlertTriangle } from 'lucide-react';
 import { useToast } from '@shared/hooks/useToast';
 import { useTenant } from '@shared/hooks/useTenant';
 import { esTenantDemo } from '@shared/lib/demoAuth';
-import { cancelarSuscripcion, cambiarCancelacionSaas, abrirPortalSaas } from '../lib/suscripcionService';
+import {
+  cancelarSuscripcion,
+  cambiarCancelacionSaas,
+  abrirPortalSaas,
+  obtenerTarjetaSaas,
+  type TarjetaSaas
+} from '../lib/suscripcionService';
 import {
   PLANES_SAAS,
   TIERS_ORDEN,
@@ -51,6 +58,27 @@ export function EstadoSuscripcionCard({
   const [cancelando, setCancelando] = useState(false);
   const [reactivando, setReactivando] = useState(false);
   const [abriendoPortal, setAbriendoPortal] = useState(false);
+  const [tarjeta, setTarjeta] = useState<TarjetaSaas | null>(null);
+
+  // La suscripción nunca llegó a Stripe (o es un placeholder del checkout mock)
+  // → no existe ninguna tarjeta. El dato ya está en el front, sin pedir nada.
+  const subId = suscripcion?.stripe_subscription_id ?? null;
+  const sinTarjeta = !subId || subId.startsWith('mock_');
+
+  // Si sí hay suscripción real, traemos la tarjeta para mostrarla (como ekko).
+  useEffect(() => {
+    if (esDemo || sinTarjeta) { setTarjeta(null); return; }
+    let cancelado = false;
+    void (async () => {
+      try {
+        const { card } = await obtenerTarjetaSaas();
+        if (!cancelado) setTarjeta(card);
+      } catch {
+        if (!cancelado) setTarjeta(null); // dato de adorno: nunca rompe la página
+      }
+    })();
+    return () => { cancelado = true; };
+  }, [esDemo, sinTarjeta, subId]);
 
   // Sin plan vigente → prompt para elegir uno.
   if (!suscripcion || suscripcion.estado === 'cancelada') {
@@ -340,6 +368,48 @@ export function EstadoSuscripcionCard({
               texto={`Estás cerca del límite de tu plan (${uso.miembrosActuales}/${uso.limite}). Pensá en subir de plan pronto.`}
             />
           )}
+        </div>
+      )}
+
+      {/* MEDIO DE PAGO. Antes no se mostraba nunca: un gym que jamás completó el
+          checkout veía lo mismo que uno que sí pagó ("Prueba gratis" y los días
+          restantes), y se enteraba de que no tenía tarjeta el día que el paywall
+          lo cortaba. Ahora se dice explícito, y si falta se avisa antes. */}
+      {!esDemo && (
+        <div style={{ borderTop: '1px solid var(--sala-border)', paddingTop: '14px', marginBottom: '14px' }}>
+          {sinTarjeta ? (
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+              <AlertTriangle
+                size={17}
+                strokeWidth={2.25}
+                style={{ color: 'var(--sala-accent)', flexShrink: 0, marginTop: '1px' }}
+                aria-hidden="true"
+              />
+              <div style={{ minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: '13.5px', fontWeight: 600, color: 'var(--sala-text-primary)' }}>
+                  No tenés una tarjeta registrada
+                </p>
+                <p style={{ margin: '3px 0 0', fontSize: '12.5px', lineHeight: 1.5, color: 'var(--sala-text-secondary)' }}>
+                  {suscripcion.estado === 'trial'
+                    ? 'Cuando termine tu prueba vas a perder el acceso al panel. Elegí tu plan abajo para agregarla.'
+                    : 'Agregá una tarjeta para mantener tu plan activo.'}
+                </p>
+              </div>
+            </div>
+          ) : tarjeta?.last4 ? (
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <CreditCard size={17} strokeWidth={2} style={{ color: 'var(--sala-text-secondary)', flexShrink: 0 }} aria-hidden="true" />
+              <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--sala-text-primary)' }}>
+                <span style={{ textTransform: 'capitalize' }}>{tarjeta.brand ?? 'Tarjeta'}</span>
+                {' •••• '}{tarjeta.last4}
+                {tarjeta.exp_month && tarjeta.exp_year && (
+                  <span style={{ color: 'var(--sala-text-tertiary)', fontSize: '12.5px' }}>
+                    {`  ·  vence ${String(tarjeta.exp_month).padStart(2, '0')}/${String(tarjeta.exp_year).slice(-2)}`}
+                  </span>
+                )}
+              </p>
+            </div>
+          ) : null}
         </div>
       )}
 

@@ -47,6 +47,18 @@ export async function cambiarCancelacionSaas(reactivar: boolean): Promise<Cancel
   return backendPost<CancelacionSaasResult>('cancelar-saas', { reactivar });
 }
 
+export interface TarjetaSaas {
+  brand: string | null;
+  last4: string | null;
+  exp_month: number | null;
+  exp_year: number | null;
+}
+
+/** La tarjeta con la que el gym le paga a SALA. null = no hay ninguna cargada. */
+export async function obtenerTarjetaSaas(): Promise<{ card: TarjetaSaas | null; reason?: string }> {
+  return backendPost<{ card: TarjetaSaas | null; reason?: string }>('metodo-pago-saas', {});
+}
+
 /**
  * Abre el Stripe Customer Portal de la suscripción del gym a SALA (gestionar
  * tarjeta, ver facturas, cancelar). Redirige si hay url.
