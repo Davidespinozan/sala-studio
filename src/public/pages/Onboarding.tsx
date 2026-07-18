@@ -68,6 +68,9 @@ export default function Onboarding() {
   const [resultado, setResultado] = useState<{ slug: string } | null>(null);
   // Slug del gym ya creado + logueado → habilita el paso "Pago" (tarjeta real).
   const [creadoSlug, setCreadoSlug] = useState<string | null>(null);
+  // Disponibilidad del subdominio, reportada por PasoGym: frena el "Continuar"
+  // ahí mismo en vez de dejar llenar todo y rechazar al final.
+  const [slugDisp, setSlugDisp] = useState<Disponibilidad>('idle');
 
   function avanzar(validacion: { ok: boolean; error?: string }) {
     if (!validacion.ok) {
@@ -164,6 +167,7 @@ export default function Onboarding() {
           <PasoGym
             value={state.gym}
             onChange={(gym) => setState((s) => ({ ...s, gym }))}
+            onDisponibilidad={setSlugDisp}
           />
         )}
         {paso === 2 && (
@@ -208,8 +212,15 @@ export default function Onboarding() {
         )}
         {paso === 1 && (
           <button type="button" className="ek-cta" style={{ flex: 1 }}
-            onClick={() => avanzar(validarPasoGym(state.gym))}>
-            Continuar
+            disabled={slugDisp === 'tomado' || slugDisp === 'checking'}
+            onClick={() =>
+              avanzar(
+                slugDisp === 'tomado'
+                  ? { ok: false, error: 'Ese subdominio ya está en uso. Elegí otro.' }
+                  : validarPasoGym(state.gym)
+              )
+            }>
+            {slugDisp === 'checking' ? 'Verificando subdominio…' : 'Continuar'}
           </button>
         )}
         {paso === 2 && (
@@ -326,13 +337,23 @@ type Disponibilidad = 'idle' | 'checking' | 'disponible' | 'tomado' | 'invalido'
 
 function PasoGym({
   value,
-  onChange
+  onChange,
+  onDisponibilidad
 }: {
   value: OnboardingState['gym'];
   onChange: (v: OnboardingState['gym']) => void;
+  /** Le avisa al wizard si el slug está libre, para poder frenar el "Continuar".
+   *  Antes `disp` moría acá dentro: se podía completar TODO el alta con un
+   *  subdominio que la pantalla ya marcaba como tomado, y el rechazo llegaba
+   *  recién al final (al crear el gym), con todos los datos ya cargados. */
+  onDisponibilidad: (d: Disponibilidad) => void;
 }) {
   const [slugTocado, setSlugTocado] = useState(value.slug.length > 0);
   const [disp, setDisp] = useState<Disponibilidad>('idle');
+
+  useEffect(() => {
+    onDisponibilidad(disp);
+  }, [disp, onDisponibilidad]);
 
   // Autosugerir slug desde el nombre del gym mientras no se haya tocado.
   function setNombre(gymNombre: string) {
