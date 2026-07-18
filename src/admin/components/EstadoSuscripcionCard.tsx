@@ -59,26 +59,35 @@ export function EstadoSuscripcionCard({
   const [reactivando, setReactivando] = useState(false);
   const [abriendoPortal, setAbriendoPortal] = useState(false);
   const [tarjeta, setTarjeta] = useState<TarjetaSaas | null>(null);
+  const [cargandoTarjeta, setCargandoTarjeta] = useState(true);
 
-  // La suscripción nunca llegó a Stripe (o es un placeholder del checkout mock)
-  // → no existe ninguna tarjeta. El dato ya está en el front, sin pedir nada.
+  // La FUENTE DE VERDAD de si hay tarjeta es STRIPE, no nuestra base. El
+  // `customer` de Stripe se crea ANTES del checkout, asi que la tarjeta puede
+  // existir aunque `stripe_subscription_id` siga vacío (el webhook la escribe
+  // unos segundos después, o puede haber fallado). Preguntarle a la base daba el
+  // falso "no tenés tarjeta registrada" a gente que sí había pagado.
   const subId = suscripcion?.stripe_subscription_id ?? null;
-  const sinTarjeta = !subId || subId.startsWith('mock_');
 
-  // Si sí hay suscripción real, traemos la tarjeta para mostrarla (como ekko).
   useEffect(() => {
-    if (esDemo || sinTarjeta) { setTarjeta(null); return; }
+    if (esDemo) { setTarjeta(null); setCargandoTarjeta(false); return; }
     let cancelado = false;
+    setCargandoTarjeta(true);
     void (async () => {
       try {
         const { card } = await obtenerTarjetaSaas();
         if (!cancelado) setTarjeta(card);
       } catch {
-        if (!cancelado) setTarjeta(null); // dato de adorno: nunca rompe la página
+        if (!cancelado) setTarjeta(null);
+      } finally {
+        if (!cancelado) setCargandoTarjeta(false);
       }
     })();
     return () => { cancelado = true; };
-  }, [esDemo, sinTarjeta, subId]);
+  }, [esDemo, subId]);
+
+  // Solo afirmamos "no hay tarjeta" cuando Stripe ya respondió que no hay.
+  // Mientras carga no se muestra nada: mejor un hueco que una acusación falsa.
+  const sinTarjeta = !cargandoTarjeta && !tarjeta?.last4;
 
   // Sin plan vigente → prompt para elegir uno.
   if (!suscripcion || suscripcion.estado === 'cancelada') {
