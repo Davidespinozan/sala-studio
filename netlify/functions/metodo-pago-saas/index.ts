@@ -101,7 +101,29 @@ export const handler: Handler = async (event) => {
       pm = list.data[0] ?? null;
     }
 
-    if (!pm?.card) return ok({ card: null });
+    // PRÓXIMO COBRO: el monto REAL que Stripe va a cobrar, ya con descuentos y
+    // prorrateos aplicados. Sin esto la pantalla muestra el precio de lista, que
+    // MIENTE en cuanto hay un cupón (un gym con descuento pactado veria $1,900
+    // cuando en realidad paga $1,000). En trial, la fecha es el fin de la prueba.
+    //
+    // OJO: el metodo es `createPreview`. `retrieveUpcoming` figura en los tipos
+    // del SDK pero NO existe en runtime (undefined) — usarlo revienta.
+    let proximo_cobro: { fecha: string | null; monto_centavos: number; moneda: string } | null = null;
+    try {
+      const prev: any = await stripe.invoices.createPreview({ customer: customerId });
+      const epoch: number | null = prev?.next_payment_attempt ?? prev?.period_end ?? null;
+      proximo_cobro = {
+        fecha: epoch ? new Date(epoch * 1000).toISOString() : null,
+        monto_centavos: typeof prev?.amount_due === 'number' ? prev.amount_due : 0,
+        moneda: (prev?.currency ?? 'mxn') as string
+      };
+    } catch (e) {
+      // Sin suscripción activa Stripe tira error: no es un fallo, es que no hay
+      // nada por cobrar. Se omite el dato y la página sigue.
+      console.error('[metodo-pago-saas] preview', e instanceof Error ? e.message : e);
+    }
+
+    if (!pm?.card) return ok({ card: null, proximo_cobro });
 
     return ok({
       card: {
@@ -109,7 +131,8 @@ export const handler: Handler = async (event) => {
         last4: pm.card.last4 ?? null,
         exp_month: pm.card.exp_month ?? null,
         exp_year: pm.card.exp_year ?? null
-      }
+      },
+      proximo_cobro
     });
   } catch (err) {
     console.error('[metodo-pago-saas]', err instanceof Error ? err.message : err);

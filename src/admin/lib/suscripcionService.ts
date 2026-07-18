@@ -54,9 +54,25 @@ export interface TarjetaSaas {
   exp_year: number | null;
 }
 
-/** La tarjeta con la que el gym le paga a SALA. null = no hay ninguna cargada. */
-export async function obtenerTarjetaSaas(): Promise<{ card: TarjetaSaas | null; reason?: string }> {
-  return backendPost<{ card: TarjetaSaas | null; reason?: string }>('metodo-pago-saas', {});
+export interface ProximoCobroSaas {
+  /** ISO. null si Stripe no informó fecha. */
+  fecha: string | null;
+  /** Monto REAL a cobrar, ya con descuentos aplicados (puede ser 0). */
+  monto_centavos: number;
+  moneda: string;
+}
+
+/** La tarjeta con la que el gym le paga a SALA + su próximo cobro real. */
+export async function obtenerTarjetaSaas(): Promise<{
+  card: TarjetaSaas | null;
+  proximo_cobro?: ProximoCobroSaas | null;
+  reason?: string;
+}> {
+  return backendPost<{
+    card: TarjetaSaas | null;
+    proximo_cobro?: ProximoCobroSaas | null;
+    reason?: string;
+  }>('metodo-pago-saas', {});
 }
 
 /**

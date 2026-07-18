@@ -8,7 +8,8 @@ import {
   cambiarCancelacionSaas,
   abrirPortalSaas,
   obtenerTarjetaSaas,
-  type TarjetaSaas
+  type TarjetaSaas,
+  type ProximoCobroSaas
 } from '../lib/suscripcionService';
 import {
   PLANES_SAAS,
@@ -59,6 +60,7 @@ export function EstadoSuscripcionCard({
   const [reactivando, setReactivando] = useState(false);
   const [abriendoPortal, setAbriendoPortal] = useState(false);
   const [tarjeta, setTarjeta] = useState<TarjetaSaas | null>(null);
+  const [proximoCobro, setProximoCobro] = useState<ProximoCobroSaas | null>(null);
   const [cargandoTarjeta, setCargandoTarjeta] = useState(true);
 
   // La FUENTE DE VERDAD de si hay tarjeta es STRIPE, no nuestra base. El
@@ -74,10 +76,13 @@ export function EstadoSuscripcionCard({
     setCargandoTarjeta(true);
     void (async () => {
       try {
-        const { card } = await obtenerTarjetaSaas();
-        if (!cancelado) setTarjeta(card);
+        const { card, proximo_cobro } = await obtenerTarjetaSaas();
+        if (!cancelado) {
+          setTarjeta(card);
+          setProximoCobro(proximo_cobro ?? null);
+        }
       } catch {
-        if (!cancelado) setTarjeta(null);
+        if (!cancelado) { setTarjeta(null); setProximoCobro(null); }
       } finally {
         if (!cancelado) setCargandoTarjeta(false);
       }
@@ -419,6 +424,21 @@ export function EstadoSuscripcionCard({
               </p>
             </div>
           ) : null}
+
+          {/* PRÓXIMO COBRO: el monto REAL de Stripe, con descuentos ya aplicados.
+              El precio de lista de arriba miente en cuanto hay un cupón (un gym
+              con descuento pactado veía $1,900 cuando paga $1,000), y durante la
+              prueba lo que corresponde mostrar es $0. */}
+          {proximoCobro && (
+            <p style={{ margin: '8px 0 0 27px', fontSize: '12.5px', color: 'var(--sala-text-secondary)' }}>
+              Próximo cobro:{' '}
+              <strong style={{ color: 'var(--sala-text-primary)' }}>
+                {formatPrecio(proximoCobro.monto_centavos, proximoCobro.moneda as 'mxn' | 'usd' | 'eur')}
+              </strong>
+              {proximoCobro.fecha && ` · ${formatFecha(proximoCobro.fecha)}`}
+              {proximoCobro.monto_centavos === 0 && ' (sin cargo)'}
+            </p>
+          )}
         </div>
       )}
 
