@@ -355,18 +355,26 @@ function PasoCuenta({
             background: 'var(--sala-accent-light)'
           }}
         >
-          <p style={{ margin: '0 0 8px', fontSize: '13.5px', lineHeight: 1.5, color: 'var(--sala-text-primary)' }}>
+          <p style={{ margin: '0 0 10px', fontSize: '13.5px', lineHeight: 1.5, color: 'var(--sala-text-primary)' }}>
             <strong>Ya tenés una cuenta con ese email.</strong> Si ya empezaste a crear tu gym,
-            entrá desde la dirección de tu gym (<em>tu-gym</em>.salastudio.app) y terminá ahí de
-            configurar el pago — no hace falta empezar de nuevo.
+            iniciá sesión y seguí donde quedaste — no hace falta empezar de nuevo.
           </p>
-          {/* A /recuperar y NO a /login: el login redirige a /admin del dominio
-              ACTUAL (salastudio.app), no al subdominio del gym, así que lo
-              dejaría en otra pared. Recuperar acceso sí funciona desde acá y le
-              llega el mail de Supabase con el link correcto. */}
-          <Link to="/recuperar" className="ek-cta" style={{ fontSize: '13px', padding: '8px 16px' }}>
-            Recuperar mi acceso
-          </Link>
+          {/* Iniciar sesión ya funciona desde acá: useRoleRedirect detecta que
+              estamos en el dominio raíz y manda al subdominio DEL GYM. Antes
+              caía en /admin de salastudio.app (otra pared) y el que abandonaba
+              el alta no tenía forma de volver a entrar a pagar. */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <Link to="/login" className="ek-cta" style={{ fontSize: '13px', padding: '8px 16px' }}>
+              Iniciar sesión
+            </Link>
+            <Link
+              to="/recuperar"
+              className="ek-cta ek-cta--secondary"
+              style={{ fontSize: '13px', padding: '8px 16px' }}
+            >
+              Olvidé mi contraseña
+            </Link>
+          </div>
         </div>
       )}
 

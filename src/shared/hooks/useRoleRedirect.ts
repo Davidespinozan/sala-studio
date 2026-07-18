@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
 import { isAdminPreview, latchAdminPreview } from '@shared/lib/adminPreview';
+import { isMarketingRoot, MARKETING_DOMAIN } from '@shared/providers/TenantProvider';
+import { supabase } from '@shared/lib/supabase';
 
 // Flag de módulo: durante el alta de socio que va a pagar, suprimimos el
 // redirect por rol para que el auto-login NO lo tire a /app (que mostraría
@@ -45,8 +47,37 @@ export function useRoleRedirect(redirectPaths: string[] = ['/', '/login', '/sign
     // redirect saque al visitante a /app aunque quede una sesión.
     if (new URLSearchParams(location.search).get('demo') === 'login-preview') return;
 
-    if (usuario.rol === 'admin') navigate('/admin', { replace: true });
-    else if (usuario.rol === 'recepcionista') navigate('/recepcion', { replace: true });
-    else navigate('/app', { replace: true });
+    const destino =
+      usuario.rol === 'admin' ? '/admin'
+        : usuario.rol === 'recepcionista' ? '/recepcion'
+          : '/app';
+
+    // Si entró por el dominio RAÍZ de SALA (salastudio.app), navegar a /admin
+    // acá NO lo lleva a su panel: su gym vive en {slug}.salastudio.app. Ese era
+    // el callejón sin salida del que abandonaba el alta en el paso del pago —
+    // volvía, no se acordaba de su subdominio, y no habia forma de entrar a
+    // pagar. Lo mandamos a SU gym.
+    //
+    // El slug se resuelve recién ACÁ, ya autenticado: es la unica forma de
+    // decirle cuál es su gym sin exponer públicamente el mapa email→gym.
+    if (isMarketingRoot() && usuario.tenant_id) {
+      let cancelado = false;
+      void (async () => {
+        const { data } = await supabase
+          .from('tenants')
+          .select('slug')
+          .eq('id', usuario.tenant_id)
+          .maybeSingle();
+        if (cancelado) return;
+        if (data?.slug) {
+          window.location.href = `https://${data.slug}.${MARKETING_DOMAIN}${destino}`;
+        } else {
+          navigate(destino, { replace: true }); // sin slug: mejor algo que nada
+        }
+      })();
+      return () => { cancelado = true; };
+    }
+
+    navigate(destino, { replace: true });
   }, [usuario, isLoading, location.pathname, location.search, navigate, redirectPaths]);
 }
