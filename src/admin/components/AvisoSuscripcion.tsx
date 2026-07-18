@@ -35,6 +35,14 @@ function mensaje(motivo: MotivoSaas, dias: number): { texto: string; cta: string
         cta: 'Actualizar pago',
         grave: true
       };
+    case 'sin_tarjeta':
+      // No llega acá (sin tarjeta es SIEMPRE bloqueo, nunca aviso), pero el
+      // switch tiene que cubrirlo para no romper si algún día se ablanda.
+      return {
+        texto: 'Falta registrar tu tarjeta para activar tu plan.',
+        cta: 'Agregar tarjeta',
+        grave: true
+      };
   }
 }
 

@@ -12,8 +12,10 @@ function sub(over: Partial<SuscripcionSaas>): SuscripcionSaas {
     trial_termina: null,
     periodo_actual_termina: null,
     precio_centavos: 390000,
-    stripe_customer_id: null,
-    stripe_subscription_id: null,
+    stripe_customer_id: 'cus_real',
+    // Por defecto, suscripción que SÍ llegó a Stripe (hay tarjeta). Los casos
+    // sin tarjeta lo pisan con null a propósito.
+    stripe_subscription_id: 'sub_real',
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
     cancelada_at: null,
@@ -34,6 +36,65 @@ describe('estadoAccesoSaas — falla ABIERTO', () => {
   });
   it('pausada → ok', () => {
     expect(estadoAccesoSaas(sub({ estado: 'pausada' }), AHORA).nivel).toBe('ok');
+  });
+});
+
+describe('estadoAccesoSaas — sin tarjeta no hay prueba', () => {
+  it('trial SIN suscripción en Stripe → BLOQUEO inmediato, aunque le sobren días', () => {
+    const r = estadoAccesoSaas(
+      sub({ estado: 'trial', trial_termina: enDias(30), stripe_subscription_id: null }),
+      AHORA
+    );
+    expect(r.nivel).toBe('bloqueo');
+    expect(r.motivo).toBe('sin_tarjeta');
+  });
+
+  it('recién dada de alta NO se bloquea: el webhook todavía puede estar en camino', () => {
+    const r = estadoAccesoSaas(
+      sub({
+        estado: 'trial',
+        trial_termina: enDias(7),
+        stripe_subscription_id: null,
+        created_at: new Date(AHORA - 60_000).toISOString() // hace 1 minuto
+      }),
+      AHORA
+    );
+    expect(r.nivel).toBe('ok');
+  });
+
+  it('pasada esa ventana, sin tarjeta SÍ se bloquea', () => {
+    const r = estadoAccesoSaas(
+      sub({
+        estado: 'trial',
+        trial_termina: enDias(7),
+        stripe_subscription_id: null,
+        created_at: new Date(AHORA - 60 * 60_000).toISOString() // hace 1 hora
+      }),
+      AHORA
+    );
+    expect(r.nivel).toBe('bloqueo');
+    expect(r.motivo).toBe('sin_tarjeta');
+  });
+
+  it('los mock_ legacy NO se bloquean (demo y gyms reales pre-Stripe)', () => {
+    const r = estadoAccesoSaas(
+      sub({ estado: 'trial', trial_termina: enDias(10), stripe_subscription_id: 'mock_sub_123' }),
+      AHORA
+    );
+    expect(r.nivel).toBe('ok');
+  });
+
+  it('con tarjeta, el trial vigente sigue dando acceso', () => {
+    const r = estadoAccesoSaas(
+      sub({ estado: 'trial', trial_termina: enDias(10), stripe_subscription_id: 'sub_real' }),
+      AHORA
+    );
+    expect(r.nivel).toBe('ok');
+  });
+
+  it('una suscripción ACTIVA sin sub_id no se bloquea (la regla es solo del trial)', () => {
+    const r = estadoAccesoSaas(sub({ estado: 'activa', stripe_subscription_id: null }), AHORA);
+    expect(r.nivel).toBe('ok');
   });
 });
 

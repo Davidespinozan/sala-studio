@@ -1,9 +1,9 @@
 import type { SuscripcionSaas } from '../hooks/useSuscripcion';
 
 export type NivelAcceso = 'ok' | 'aviso' | 'bloqueo';
-export type MotivoSaas = 'trial_por_vencer' | 'trial_vencido' | 'cancelada' | 'vencida';
+export type MotivoSaas = 'trial_por_vencer' | 'trial_vencido' | 'cancelada' | 'vencida' | 'sin_tarjeta';
 /** Solo estos motivos pueden llegar a BLOQUEO (el paywall). */
-export type MotivoBloqueo = 'trial_vencido' | 'cancelada' | 'vencida';
+export type MotivoBloqueo = 'trial_vencido' | 'cancelada' | 'vencida' | 'sin_tarjeta';
 
 export interface EstadoAccesoSaas {
   nivel: NivelAcceso;
@@ -17,6 +17,8 @@ export const PREAVISO_DIAS = 3;
 /** Ventana de gracia TRAS el vencimiento antes de cortar el acceso. */
 export const GRACIA_DIAS = 5;
 const DIA_MS = 86_400_000;
+/** Margen tras el alta para que el webhook de Stripe escriba la suscripción. */
+const GRACIA_ALTA_MS = 15 * 60_000;
 
 const OK: EstadoAccesoSaas = { nivel: 'ok', motivo: null, diasParaCorte: null };
 
@@ -54,6 +56,29 @@ export function estadoAccesoSaas(
       return OK;
 
     case 'trial': {
+      // SIN TARJETA NO HAY PRUEBA. Un trial sin medio de pago es un lead que se
+      // pierde en silencio: llega al día 7, se corta, y nunca nadie registró una
+      // tarjeta. Se bloquea de entrada y se le pide elegir plan + tarjeta; la
+      // prueba corre igual, pero recién desde que hay con qué cobrarle.
+      //
+      // Solo cuando NUNCA se llegó a Stripe (null). Los 'mock_' del checkout
+      // viejo se respetan a propósito: ahí viven el tenant demo y gyms REALES
+      // anteriores a Stripe (ej. numawellness), y bloquearlos les cerraría el
+      // panel a clientes que no hicieron nada malo.
+      //
+      // GRACIA CORTA tras el alta: el `stripe_subscription_id` lo escribe el
+      // WEBHOOK, unos segundos después de pagar. Sin esta ventana, un gym que
+      // acaba de poner la tarjeta y entra al panel enseguida vería "activá tu
+      // plan" habiendo pagado — falso y alarmante. Preferimos dejar pasar unos
+      // minutos a un alta sin pagar que asustar a uno que sí pagó.
+      if (suscripcion.stripe_subscription_id == null) {
+        const creada = ms(suscripcion.created_at);
+        const reciente = creada != null && ahora - creada < GRACIA_ALTA_MS;
+        if (!reciente) {
+          return { nivel: 'bloqueo', motivo: 'sin_tarjeta', diasParaCorte: 0 };
+        }
+      }
+
       const fin = ms(suscripcion.trial_termina);
       if (fin == null) return OK; // sin fecha → no sabemos → no molestamos
       const corte = fin + GRACIA_DIAS * DIA_MS;

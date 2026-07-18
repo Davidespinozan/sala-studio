@@ -8,18 +8,28 @@ import type { SuscripcionSaas } from '../hooks/useSuscripcion';
 import type { MotivoBloqueo } from '../lib/accesoSaas';
 
 const TITULO: Record<MotivoBloqueo, string> = {
+  sin_tarjeta: 'Activá tu plan para empezar',
   trial_vencido: 'Tu prueba gratis terminó',
   cancelada: 'Tu plan está cancelado',
   vencida: 'Tu plan está pausado por falta de pago'
 };
 
 const DETALLE: Record<MotivoBloqueo, string> = {
+  sin_tarjeta:
+    'Falta registrar tu tarjeta. Tus 7 días de prueba arrancan al agregarla y hoy no se te cobra nada — podés cancelar antes de que termine.',
   trial_vencido:
     'Se acabaron tus días de prueba. Activá tu plan para seguir gestionando tu gimnasio.',
   cancelada:
     'Cancelaste tu suscripción y el período ya terminó. Reactivala cuando quieras para volver a entrar.',
   vencida:
     'No pudimos cobrar tu plan. Actualizá el pago para recuperar el acceso a tu panel.'
+};
+
+const CTA: Record<MotivoBloqueo, string> = {
+  sin_tarjeta: 'Agregar mi tarjeta',
+  trial_vencido: 'Reactivar mi plan',
+  cancelada: 'Reactivar mi plan',
+  vencida: 'Actualizar pago'
 };
 
 /**
@@ -137,7 +147,7 @@ export function SuscripcionBloqueada({
           className="ek-cta ek-cta--full"
           style={{ opacity: procesando ? 0.6 : 1 }}
         >
-          {procesando ? 'Abriendo…' : motivo === 'vencida' ? 'Actualizar pago' : 'Reactivar mi plan'}
+          {procesando ? 'Abriendo…' : CTA[motivo]}
         </button>
 
         <button
