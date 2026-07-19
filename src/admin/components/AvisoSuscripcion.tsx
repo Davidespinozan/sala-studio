@@ -17,21 +17,25 @@ function mensaje(motivo: MotivoSaas, dias: number): { texto: string; cta: string
         cta: 'Activar mi plan',
         grave: false
       };
+    // OJO CON EL TONO: estos textos NO deben leerse como días regalados. Decir
+    // "podés seguir usando el panel 12 días más" es avisarle al que no quiere
+    // pagar que tiene barra libre. Es una cuenta regresiva, no una concesión:
+    // los únicos días gratis del producto son los de la prueba.
     case 'trial_vencido':
       return {
-        texto: `Tu prueba terminó. Te quedan ${d} para activar tu plan antes de que se corte el acceso a tu panel.`,
+        texto: `Tu prueba terminó. El acceso a tu panel se corta en ${d}: activá tu plan para no perderlo.`,
         cta: 'Activar mi plan',
         grave: true
       };
     case 'cancelada':
       return {
-        texto: `Tu plan está cancelado. Podés seguir usando el panel ${d} más; reactivá para no perder el acceso.`,
+        texto: `Tu plan está cancelado. El acceso a tu panel se corta en ${d}.`,
         cta: 'Reactivar mi plan',
         grave: true
       };
     case 'vencida':
       return {
-        texto: `No pudimos cobrar tu plan. Actualizá el pago en los próximos ${d} o se cortará el acceso a tu panel.`,
+        texto: `No pudimos cobrar tu plan. El acceso se corta en ${d} y el período sigue corriendo: al regularizar se factura completo.`,
         cta: 'Actualizar pago',
         grave: true
       };
