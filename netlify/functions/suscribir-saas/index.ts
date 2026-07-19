@@ -31,7 +31,10 @@ import {
  * se toca el estado. El precio se resuelve por lookup_key (nunca price_id).
  */
 
-const TRIAL_DIAS = 7;
+// (La duración de la prueba NO se define acá: la fija el alta al crear el tenant
+//  en `suscripciones_saas.trial_termina`, y este checkout se ancla a esa fecha.
+//  Ver `trialEndEpoch` más abajo — es lo que impide regalar 7 días nuevos en
+//  cada suscripción.)
 
 interface Body {
   tier?: string;
@@ -107,7 +110,7 @@ export const handler: Handler = async (event) => {
     //     sin trial nuevo, y sincronizamos el snapshot.
     const { data: subActual } = await adminDb
       .from('suscripciones_saas')
-      .select('stripe_subscription_id, estado')
+      .select('stripe_subscription_id, estado, trial_termina')
       .eq('tenant_id', admin.tenant_id)
       .maybeSingle();
 
@@ -139,6 +142,16 @@ export const handler: Handler = async (event) => {
       }
     }
 
+    // Ventana de prueba REMANENTE, anclada al alta. Stripe rechaza un trial_end
+    // en el pasado o demasiado cerca: si quedan menos de ~2 minutos, se cobra ya.
+    const trialFinMs = subActual?.trial_termina
+      ? new Date(subActual.trial_termina as string).getTime()
+      : null;
+    const trialEndEpoch =
+      trialFinMs != null && !Number.isNaN(trialFinMs) && trialFinMs > Date.now() + 120_000
+        ? Math.floor(trialFinMs / 1000)
+        : null;
+
     // 3) URLs de retorno (al panel de suscripción del admin).
     const origin =
       event.headers.origin ||
@@ -156,7 +169,15 @@ export const handler: Handler = async (event) => {
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
-        trial_period_days: TRIAL_DIAS,
+        // LA PRUEBA ES UNA SOLA Y ARRANCA EN EL ALTA, no en el checkout. Antes
+        // acá iba `trial_period_days: 7` fijo, que se otorgaba en CADA sesión:
+        // un gym podía suscribirse, usar los 7 días gratis, cancelar antes del
+        // cobro y volver a suscribirse para otros 7 — indefinidamente.
+        //
+        // Se ancla al `trial_termina` que fijó el alta (`trial_end`, fecha
+        // absoluta): si se suscribe el día 5, le quedan 2 días, no 7 nuevos. Y
+        // si esa fecha ya pasó, NO hay trial: se le cobra de una.
+        ...(trialEndEpoch ? { trial_end: trialEndEpoch } : {}),
         metadata: { app: 'sala', tenant_id: admin.tenant_id, tier: body.tier!, moneda: body.moneda!, ciclo }
       },
       metadata: { app: 'sala', tenant_id: admin.tenant_id },
