@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { estadoAccesoSaas, GRACIA_DIAS, PREAVISO_DIAS } from '../accesoSaas';
+import {
+  estadoAccesoSaas,
+  GRACIA_TRIAL_DIAS,
+  GRACIA_CANCELADA_DIAS,
+  GRACIA_VENCIDA_DIAS,
+  PREAVISO_DIAS
+} from '../accesoSaas';
 import type { SuscripcionSaas } from '../../hooks/useSuscripcion';
 
 function sub(over: Partial<SuscripcionSaas>): SuscripcionSaas {
@@ -114,11 +120,11 @@ describe('estadoAccesoSaas — trial (preaviso → gracia → corte)', () => {
     const r = estadoAccesoSaas(sub({ estado: 'trial', trial_termina: enDias(-1) }), AHORA);
     expect(r.nivel).toBe('aviso');
     expect(r.motivo).toBe('trial_vencido');
-    expect(r.diasParaCorte).toBe(GRACIA_DIAS - 1);
+    expect(r.diasParaCorte).toBe(GRACIA_TRIAL_DIAS - 1);
   });
 
   it('trial vencido hace más que la gracia → BLOQUEO', () => {
-    const r = estadoAccesoSaas(sub({ estado: 'trial', trial_termina: enDias(-(GRACIA_DIAS + 1)) }), AHORA);
+    const r = estadoAccesoSaas(sub({ estado: 'trial', trial_termina: enDias(-(GRACIA_TRIAL_DIAS + 1)) }), AHORA);
     expect(r.nivel).toBe('bloqueo');
     expect(r.motivo).toBe('trial_vencido');
   });
@@ -135,12 +141,12 @@ describe('estadoAccesoSaas — vencida (pago falló)', () => {
     expect(r.motivo).toBe('vencida');
   });
   it('vencida pasada la gracia → bloqueo', () => {
-    const r = estadoAccesoSaas(sub({ estado: 'vencida', periodo_actual_termina: enDias(-(GRACIA_DIAS + 1)) }), AHORA);
+    const r = estadoAccesoSaas(sub({ estado: 'vencida', periodo_actual_termina: enDias(-(GRACIA_VENCIDA_DIAS + 1)) }), AHORA);
     expect(r.nivel).toBe('bloqueo');
   });
   it('vencida sin ninguna fecha (ni updated_at útil) → bloqueo', () => {
     const r = estadoAccesoSaas(
-      sub({ estado: 'vencida', periodo_actual_termina: null, updated_at: enDias(-(GRACIA_DIAS + 2)) }),
+      sub({ estado: 'vencida', periodo_actual_termina: null, updated_at: enDias(-(GRACIA_VENCIDA_DIAS + 2)) }),
       AHORA
     );
     expect(r.nivel).toBe('bloqueo');
@@ -154,11 +160,38 @@ describe('estadoAccesoSaas — cancelada', () => {
     expect(r.motivo).toBe('cancelada');
   });
   it('cancelada, período terminado hace más que la gracia → bloqueo', () => {
-    const r = estadoAccesoSaas(sub({ estado: 'cancelada', periodo_actual_termina: enDias(-(GRACIA_DIAS + 1)) }), AHORA);
+    const r = estadoAccesoSaas(sub({ estado: 'cancelada', periodo_actual_termina: enDias(-(GRACIA_CANCELADA_DIAS + 1)) }), AHORA);
     expect(r.nivel).toBe('bloqueo');
   });
   it('cancelada sin fecha de período → bloqueo', () => {
     const r = estadoAccesoSaas(sub({ estado: 'cancelada', periodo_actual_termina: null }), AHORA);
     expect(r.nivel).toBe('bloqueo');
+  });
+
+  it('NO regala días: al terminar lo que pagó, se corta el mismo día', () => {
+    // Un día DESPUÉS del período pagado ya no hay acceso. Con la gracia vieja de
+    // 5 días uniformes, este caso seguía abierto y el cartel llegaba a ofrecer
+    // "12 días más" a alguien que pidió irse.
+    const r = estadoAccesoSaas(sub({ estado: 'cancelada', periodo_actual_termina: enDias(-1) }), AHORA);
+    expect(r.nivel).toBe('bloqueo');
+  });
+});
+
+describe('estadoAccesoSaas — los únicos días gratis son los de la prueba', () => {
+  it('el trial vencido da 1 día de margen, no 5', () => {
+    const r = estadoAccesoSaas(sub({ estado: 'trial', trial_termina: enDias(-1) }), AHORA);
+    // Vencido hace 1 día con 1 día de gracia → el corte es HOY: quedan 0.
+    expect(r.diasParaCorte).toBe(0);
+    expect(GRACIA_TRIAL_DIAS).toBe(1);
+  });
+
+  it('cancelar no suma ningún día sobre lo pagado', () => {
+    expect(GRACIA_CANCELADA_DIAS).toBe(0);
+  });
+
+  it('el pago fallido SÍ conserva aire: es un cliente que paga', () => {
+    expect(GRACIA_VENCIDA_DIAS).toBe(5);
+    const r = estadoAccesoSaas(sub({ estado: 'vencida', periodo_actual_termina: enDias(-2) }), AHORA);
+    expect(r.nivel).toBe('aviso');
   });
 });

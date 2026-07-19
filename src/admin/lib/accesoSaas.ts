@@ -14,8 +14,18 @@ export interface EstadoAccesoSaas {
 
 /** Cuántos días ANTES de que venza el trial se empieza a avisar. */
 export const PREAVISO_DIAS = 3;
-/** Ventana de gracia TRAS el vencimiento antes de cortar el acceso. */
-export const GRACIA_DIAS = 5;
+// GRACIA POR CASO. Antes era un único 5 para las tres situaciones, y eso
+// regalaba días a quien no correspondía: al que canceló se le sumaban 5 días
+// sobre lo que ya había pagado (el cartel llegaba a decir "12 días más"), y al
+// que nunca puso tarjeta, 5 días de barra libre. Los únicos días gratis del
+// producto son los de la prueba.
+
+/** Prueba vencida sin tarjeta. Mínimo: el que no pagó en 7 días no paga en 12. */
+export const GRACIA_TRIAL_DIAS = 1;
+/** Canceló: pidió irse. Llega hasta donde pagó, ni un día más. */
+export const GRACIA_CANCELADA_DIAS = 0;
+/** Le falló el pago: ES cliente y suele ser una tarjeta vencida. Merece aire. */
+export const GRACIA_VENCIDA_DIAS = 5;
 const DIA_MS = 86_400_000;
 /** Margen tras el alta para que el webhook de Stripe escriba la suscripción. */
 const GRACIA_ALTA_MS = 15 * 60_000;
@@ -81,7 +91,7 @@ export function estadoAccesoSaas(
 
       const fin = ms(suscripcion.trial_termina);
       if (fin == null) return OK; // sin fecha → no sabemos → no molestamos
-      const corte = fin + GRACIA_DIAS * DIA_MS;
+      const corte = fin + GRACIA_TRIAL_DIAS * DIA_MS;
 
       if (ahora <= fin) {
         // Trial vigente: avisar solo si está por vencer (para que ponga tarjeta).
@@ -99,7 +109,7 @@ export function estadoAccesoSaas(
       const fin = ms(suscripcion.periodo_actual_termina);
       // Sin fecha de período: ya no hay acceso pagado → corte.
       if (fin == null) return { nivel: 'bloqueo', motivo: 'cancelada', diasParaCorte: 0 };
-      const corte = fin + GRACIA_DIAS * DIA_MS;
+      const corte = fin + GRACIA_CANCELADA_DIAS * DIA_MS;
       // Canceló pero pagó hasta 'fin' (o dentro de la gracia): sigue, avisado.
       if (ahora <= corte) return { nivel: 'aviso', motivo: 'cancelada', diasParaCorte: diasHasta(corte, ahora) };
       return { nivel: 'bloqueo', motivo: 'cancelada', diasParaCorte: 0 };
@@ -110,7 +120,7 @@ export function estadoAccesoSaas(
       // (o, si no hay, cuándo pasó a vencida).
       const fin = ms(suscripcion.periodo_actual_termina) ?? ms(suscripcion.updated_at);
       if (fin == null) return { nivel: 'bloqueo', motivo: 'vencida', diasParaCorte: 0 };
-      const corte = fin + GRACIA_DIAS * DIA_MS;
+      const corte = fin + GRACIA_VENCIDA_DIAS * DIA_MS;
       if (ahora <= corte) return { nivel: 'aviso', motivo: 'vencida', diasParaCorte: diasHasta(corte, ahora) };
       return { nivel: 'bloqueo', motivo: 'vencida', diasParaCorte: 0 };
     }
