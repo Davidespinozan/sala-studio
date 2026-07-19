@@ -62,17 +62,35 @@ export interface ProximoCobroSaas {
   moneda: string;
 }
 
-/** La tarjeta con la que el gym le paga a SALA + su próximo cobro real. */
-export async function obtenerTarjetaSaas(): Promise<{
+export interface DescuentoSaas {
+  percent_off: number | null;
+  amount_off: number | null;
+  moneda: string | null;
+  /** 'once' | 'repeating' | 'forever' */
+  duracion: string | null;
+}
+
+export interface CobroPasadoSaas {
+  fecha: string | null;
+  monto_centavos: number;
+  moneda: string;
+  estado: string | null;
+  /** Link a la factura de Stripe (comprobante descargable). */
+  url: string | null;
+}
+
+export interface FacturacionSaas {
   card: TarjetaSaas | null;
   proximo_cobro?: ProximoCobroSaas | null;
+  descuento?: DescuentoSaas | null;
+  pagos?: CobroPasadoSaas[];
   reason?: string;
-}> {
-  return backendPost<{
-    card: TarjetaSaas | null;
-    proximo_cobro?: ProximoCobroSaas | null;
-    reason?: string;
-  }>('metodo-pago-saas', {});
+}
+
+/** Todo lo de facturación del gym con SALA: tarjeta, próximo cobro, descuento
+ *  vigente e historial de cargos. */
+export async function obtenerTarjetaSaas(): Promise<FacturacionSaas> {
+  return backendPost<FacturacionSaas>('metodo-pago-saas', {});
 }
 
 /**

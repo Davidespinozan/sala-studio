@@ -9,7 +9,9 @@ import {
   abrirPortalSaas,
   obtenerTarjetaSaas,
   type TarjetaSaas,
-  type ProximoCobroSaas
+  type ProximoCobroSaas,
+  type DescuentoSaas,
+  type CobroPasadoSaas
 } from '../lib/suscripcionService';
 import {
   PLANES_SAAS,
@@ -61,6 +63,8 @@ export function EstadoSuscripcionCard({
   const [abriendoPortal, setAbriendoPortal] = useState(false);
   const [tarjeta, setTarjeta] = useState<TarjetaSaas | null>(null);
   const [proximoCobro, setProximoCobro] = useState<ProximoCobroSaas | null>(null);
+  const [descuento, setDescuento] = useState<DescuentoSaas | null>(null);
+  const [pagos, setPagos] = useState<CobroPasadoSaas[]>([]);
   const [cargandoTarjeta, setCargandoTarjeta] = useState(true);
 
   // La FUENTE DE VERDAD de si hay tarjeta es STRIPE, no nuestra base. El
@@ -76,13 +80,15 @@ export function EstadoSuscripcionCard({
     setCargandoTarjeta(true);
     void (async () => {
       try {
-        const { card, proximo_cobro } = await obtenerTarjetaSaas();
+        const { card, proximo_cobro, descuento: desc, pagos: pgs } = await obtenerTarjetaSaas();
         if (!cancelado) {
           setTarjeta(card);
           setProximoCobro(proximo_cobro ?? null);
+          setDescuento(desc ?? null);
+          setPagos(pgs ?? []);
         }
       } catch {
-        if (!cancelado) { setTarjeta(null); setProximoCobro(null); }
+        if (!cancelado) { setTarjeta(null); setProximoCobro(null); setDescuento(null); setPagos([]); }
       } finally {
         if (!cancelado) setCargandoTarjeta(false);
       }
@@ -438,6 +444,64 @@ export function EstadoSuscripcionCard({
               {proximoCobro.fecha && ` · ${formatFecha(proximoCobro.fecha)}`}
               {proximoCobro.monto_centavos === 0 && ' (sin cargo)'}
             </p>
+          )}
+
+          {/* DESCUENTO vigente. Sin esto, un gym con precio pactado no entiende
+              por qué paga distinto al precio de lista, ni puede saber si su
+              descuento sigue vivo o ya se le venció. */}
+          {descuento && (
+            <p style={{ margin: '4px 0 0 27px', fontSize: '12.5px', color: 'var(--sala-success)' }}>
+              Descuento aplicado:{' '}
+              <strong>
+                {descuento.percent_off != null
+                  ? `${descuento.percent_off}%`
+                  : descuento.amount_off != null
+                    ? formatPrecio(descuento.amount_off, (descuento.moneda ?? 'mxn') as 'mxn' | 'usd' | 'eur')
+                    : '—'}
+              </strong>
+              {descuento.duracion === 'forever'
+                ? ' · permanente'
+                : descuento.duracion === 'once'
+                  ? ' · solo el primer cobro'
+                  : ''}
+            </p>
+          )}
+
+          {/* CARGOS PASADOS: lo que ya se le cobró, con link al comprobante de
+              Stripe para que lo descargue sin tener que pedírtelo. */}
+          {pagos.length > 0 && (
+            <div style={{ marginTop: '14px' }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--sala-text-tertiary)', margin: '0 0 8px' }}>
+                Cargos anteriores
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {pagos.map((p, i) => (
+                  <div
+                    key={`${p.fecha ?? i}-${i}`}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', fontSize: '12.5px' }}
+                  >
+                    <span style={{ color: 'var(--sala-text-secondary)' }}>
+                      {p.fecha ? formatFecha(p.fecha) : '—'}
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                      <strong style={{ color: 'var(--sala-text-primary)' }}>
+                        {formatPrecio(p.monto_centavos, p.moneda as 'mxn' | 'usd' | 'eur')}
+                      </strong>
+                      {p.url && (
+                        <a
+                          href={p.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: 'var(--sala-text-secondary)', fontSize: '12px' }}
+                        >
+                          Ver factura
+                        </a>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}

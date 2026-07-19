@@ -76,11 +76,12 @@ export const handler: Handler = async (event) => {
     // La tarjeta que Stripe usará para cobrar: primero la de la suscripción,
     // después la default del customer, y si no hay ninguna, la primera listada.
     let pmId: string | null = null;
+    let subObj: any = null;
 
     if (subId && !subId.startsWith('mock_')) {
       try {
-        const sub = await stripe.subscriptions.retrieve(subId);
-        const dpm = (sub as any)?.default_payment_method;
+        subObj = await stripe.subscriptions.retrieve(subId);
+        const dpm = subObj?.default_payment_method;
         if (dpm) pmId = typeof dpm === 'string' ? dpm : dpm.id;
       } catch (e) {
         console.error('[metodo-pago-saas] sub', e instanceof Error ? e.message : e);
@@ -123,7 +124,51 @@ export const handler: Handler = async (event) => {
       console.error('[metodo-pago-saas] preview', e instanceof Error ? e.message : e);
     }
 
-    if (!pm?.card) return ok({ card: null, proximo_cobro });
+    // DESCUENTO activo. Sin esto el gym con precio pactado no ve por qué paga
+    // distinto al precio de lista — y no tiene forma de saber si su descuento
+    // sigue vigente. Stripe cambió la forma con el tiempo: `discounts[]` en las
+    // versiones nuevas, `discount` en las viejas. Se leen las dos.
+    let descuento:
+      | { percent_off: number | null; amount_off: number | null; moneda: string | null; duracion: string | null }
+      | null = null;
+    try {
+      const d = subObj?.discounts?.[0] ?? subObj?.discount ?? null;
+      const cup = d?.coupon ?? null;
+      if (cup) {
+        descuento = {
+          percent_off: cup.percent_off ?? null,
+          amount_off: cup.amount_off ?? null,
+          moneda: cup.currency ?? null,
+          duracion: cup.duration ?? null
+        };
+      }
+    } catch (e) {
+      console.error('[metodo-pago-saas] descuento', e instanceof Error ? e.message : e);
+    }
+
+    // CARGOS PASADOS: lo que ya se le cobró. Se devuelve el link a la factura de
+    // Stripe para que pueda descargar su comprobante sin pedírtelo a vos.
+    let pagos: Array<{
+      fecha: string | null;
+      monto_centavos: number;
+      moneda: string;
+      estado: string | null;
+      url: string | null;
+    }> = [];
+    try {
+      const invs = await stripe.invoices.list({ customer: customerId, limit: 12 });
+      pagos = invs.data.map((i: any) => ({
+        fecha: i.created ? new Date(i.created * 1000).toISOString() : null,
+        monto_centavos: typeof i.amount_paid === 'number' ? i.amount_paid : 0,
+        moneda: (i.currency ?? 'mxn') as string,
+        estado: i.status ?? null,
+        url: i.hosted_invoice_url ?? i.invoice_pdf ?? null
+      }));
+    } catch (e) {
+      console.error('[metodo-pago-saas] invoices', e instanceof Error ? e.message : e);
+    }
+
+    if (!pm?.card) return ok({ card: null, proximo_cobro, descuento, pagos });
 
     return ok({
       card: {
@@ -132,7 +177,9 @@ export const handler: Handler = async (event) => {
         exp_month: pm.card.exp_month ?? null,
         exp_year: pm.card.exp_year ?? null
       },
-      proximo_cobro
+      proximo_cobro,
+      descuento,
+      pagos
     });
   } catch (err) {
     console.error('[metodo-pago-saas]', err instanceof Error ? err.message : err);
