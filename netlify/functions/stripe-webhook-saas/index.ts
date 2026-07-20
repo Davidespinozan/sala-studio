@@ -137,6 +137,49 @@ export const handler: Handler = async (event) => {
           .from('suscripciones_saas')
           .update({ payment_past_due: pastDue, last_event_at: eventAt })
           .eq('tenant_id', sus.tenant_id);
+
+        // Registrar el COBRO en el libro contable. Hasta acá el monto llegaba
+        // en el evento y se descartaba: lo que SALA factura existía solo dentro
+        // de Stripe, y no había forma de responder "cuánto cobré este mes".
+        // Solo los pagos exitosos: un cobro fallido no es un movimiento de
+        // dinero, es un cambio de estado (ya cubierto por payment_past_due).
+        if (!pastDue) {
+          const centavos = typeof inv.amount_paid === 'number' ? inv.amount_paid : 0;
+          if (centavos > 0) {
+            // La fecha del pago, no la del webhook: si Stripe reintenta la
+            // entrega dos días después, el ingreso sigue perteneciendo al día
+            // en que se cobró (y por lo tanto al mes correcto).
+            const pagadoEn =
+              typeof inv.status_transitions?.paid_at === 'number'
+                ? new Date(inv.status_transitions.paid_at * 1000).toISOString()
+                : eventAt;
+
+            const { error: errMov } = await admin.from('movimientos_dinero').insert({
+              negocio: 'sala',
+              ocurrido_en: pagadoEn,
+              monto_centavos: centavos,
+              moneda: (inv.currency || 'mxn').toUpperCase(),
+              concepto: 'suscripcion',
+              metodo: 'stripe',
+              // Llave de idempotencia: Stripe reintenta, y sin esto cada
+              // reintento sumaría el ingreso otra vez, en silencio.
+              referencia_externa: inv.id,
+              tenant_id: sus.tenant_id,
+              metadata: {
+                stripe_event: stripeEvent.id,
+                stripe_subscription: typeof inv.subscription === 'string' ? inv.subscription : null,
+                periodo_inicio: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
+                periodo_fin: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
+                numero_factura: inv.number ?? null
+              }
+            });
+
+            // 23505 = ya estaba registrado. Es el caso ESPERADO en un reintento,
+            // no un error: se ignora. Cualquier otro código sí se propaga, para
+            // que Stripe reintente y el cobro no se pierda.
+            if (errMov && errMov.code !== '23505') throw errMov;
+          }
+        }
         break;
       }
 
