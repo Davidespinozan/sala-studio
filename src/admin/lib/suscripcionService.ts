@@ -20,12 +20,16 @@ export interface CheckoutSaasResult {
 export async function iniciarCheckoutSaas(params: {
   tier: TierSaas;
   moneda: MonedaSaas;
+  /** El ciclo que YA tiene el gym. Estaba clavado en 'mensual', asi que un gym
+   *  con plan anual que cambiaba de tier terminaba pasado a mensual sin
+   *  pedirlo — perdiendo su descuento y adelantandole el cobro. */
+  ciclo?: 'mensual' | 'anual';
   returnPath?: string;
 }): Promise<CheckoutSaasResult> {
   const res = await backendPost<CheckoutSaasResult>('suscribir-saas', {
     tier: params.tier,
     moneda: params.moneda,
-    ciclo: 'mensual',
+    ciclo: params.ciclo ?? 'mensual',
     return_path: params.returnPath
   });
   if (res.url) window.location.href = res.url;

@@ -60,7 +60,7 @@ export default function Suscripcion() {
     }
     setProcesando(tier);
     try {
-      const res = await iniciarCheckoutSaas({ tier, moneda, returnPath: window.location.pathname });
+      const res = await iniciarCheckoutSaas({ tier, moneda, ciclo: suscripcion?.ciclo === 'anual' ? 'anual' : 'mensual', returnPath: window.location.pathname });
       if (res.url) return; // redirigiendo a Stripe
       if (res.reason === 'stripe_pendiente') {
         toast.success('Pago en camino — estamos conectando Stripe. Te avisamos.');

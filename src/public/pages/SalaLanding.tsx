@@ -909,7 +909,7 @@ function Pricing({ moneda }: { moneda: MonedaSaas }) {
               </ul>
 
               <Link
-                to={`${REGISTRO}?plan=${tier}`}
+                to={`${REGISTRO}?plan=${tier}${anual ? "&ciclo=anual" : ""}`}
                 className={destacado ? 'ek-cta ek-lift ek-cta--full' : 'ek-cta ek-cta--secondary ek-lift ek-cta--full'}
                 style={{ marginTop: '22px' }}
               >

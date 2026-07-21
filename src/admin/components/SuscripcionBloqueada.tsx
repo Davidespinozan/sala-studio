@@ -58,7 +58,7 @@ export function SuscripcionBloqueada({
   async function reactivar() {
     setProcesando(true);
     try {
-      const res = await iniciarCheckoutSaas({ tier, moneda, returnPath: '/admin/suscripcion' });
+      const res = await iniciarCheckoutSaas({ tier, moneda, ciclo: suscripcion?.ciclo === 'anual' ? 'anual' : 'mensual', returnPath: '/admin/suscripcion' });
       if (res.url) return; // redirigiendo a Stripe
       if (res.reason === 'stripe_pendiente') {
         toast.error('Estamos conectando Stripe. Probá en un rato.');

@@ -63,6 +63,10 @@ export default function Onboarding() {
       : null;
     return { ...ESTADO_INICIAL, tier };
   });
+  // El ciclo viaja desde la landing (?ciclo=anual). Si no viene, mensual —que
+  // es lo que se muestra por defecto allá. Cualquier otro valor se ignora en
+  // vez de confiar en lo que traiga la URL.
+  const ciclo: 'mensual' | 'anual' = searchParams.get('ciclo') === 'anual' ? 'anual' : 'mensual';
   const [errorPaso, setErrorPaso] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [resultado, setResultado] = useState<{ slug: string } | null>(null);
@@ -837,7 +841,7 @@ function PasoPagoConTarjeta({
           </button>
         </>
       ) : (
-        <CheckoutSaasEmbedded tier={tier} moneda={moneda} onComplete={onListo} onError={setError} />
+        <CheckoutSaasEmbedded tier={tier} moneda={moneda} ciclo={ciclo} onComplete={onListo} onError={setError} />
       )}
     </div>
   );

@@ -1,7 +1,8 @@
 // ════════════════════════════════════════════════════════════════════════════
 // Crea en Stripe los 9 Prices del SaaS (3 tiers × 3 monedas), mensuales, con sus
-// lookup_keys estables (sala_<tier>_<moneda>_mensual). Idempotente: si el
-// lookup_key ya existe, lo salta. Un Product por tier; 3 Prices por Product.
+// lookup_keys estables (sala_<tier>_<moneda>_<ciclo>). Idempotente: si el
+// lookup_key ya existe, lo salta. Un Product por tier; 6 Prices por Product
+// (3 monedas x mensual/anual).
 //
 // USO (modo test):
 //   STRIPE_SECRET_KEY=sk_test_xxx node scripts/stripe-crear-precios-saas.mjs
@@ -26,6 +27,10 @@ const stripe = new Stripe(key);
 const MODO = key.startsWith('sk_live') ? 'LIVE' : 'TEST';
 
 // Espejo de planesSaas.ts — precios MENSUALES en unidades enteras.
+// El ANUAL sale de multiplicar por 10 (dos meses gratis), que es exactamente
+// lo que promete la landing: `anual ? fmt(mensual * 10) : fmt(mensual)`.
+// Si algún día ese descuento cambia, tiene que cambiar en los dos lados.
+const MESES_ANUAL = 10;
 const PLANES = {
   starter:  { nombre: 'SALA Starter',  precios: { mxn: 1900, usd: 129, eur: 119 } },
   pro:      { nombre: 'SALA Pro',      precios: { mxn: 3900, usd: 279, eur: 269 } },
@@ -47,24 +52,27 @@ async function main() {
   for (const [tier, plan] of Object.entries(PLANES)) {
     const product = await getOrCreateProduct(tier, plan.nombre);
     for (const moneda of MONEDAS) {
-      const lookupKey = `sala_${tier}_${moneda}_mensual`;
+      for (const ciclo of ['mensual', 'anual']) {
+      const lookupKey = `sala_${tier}_${moneda}_${ciclo}`;
       const existing = await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 });
       if (existing.data[0]) {
         console.log(`  · ${lookupKey.padEnd(28)} ya existe (${existing.data[0].id})`);
         saltados++;
         continue;
       }
+      const unidades = ciclo === 'anual' ? plan.precios[moneda] * MESES_ANUAL : plan.precios[moneda];
       const price = await stripe.prices.create({
         product: product.id,
         currency: moneda,
-        unit_amount: plan.precios[moneda] * 100, // unidades → centavos
-        recurring: { interval: 'month' },
+        unit_amount: unidades * 100, // unidades → centavos
+        recurring: { interval: ciclo === 'anual' ? 'year' : 'month' },
         lookup_key: lookupKey,
         transfer_lookup_key: true,
-        metadata: { app: 'sala', tier, moneda, ciclo: 'mensual' }
+        metadata: { app: 'sala', tier, moneda, ciclo }
       });
-      console.log(`  ✓ ${lookupKey.padEnd(28)} creado (${price.id}) — ${plan.precios[moneda]} ${moneda.toUpperCase()}`);
+      console.log(`  ✓ ${lookupKey.padEnd(28)} creado (${price.id}) — ${unidades} ${moneda.toUpperCase()}`);
       creados++;
+      }
     }
   }
 

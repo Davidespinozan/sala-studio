@@ -20,11 +20,16 @@ interface SesionResult {
 export function CheckoutSaasEmbedded({
   tier,
   moneda,
+  // El ciclo lo ELIGE el cliente en la landing. Estaba clavado en 'mensual',
+  // asi que el toggle "Anual · 2 MESES GRATIS" cobraba el precio mensual: se
+  // prometia un descuento imposible de comprar.
+  ciclo = 'mensual',
   onComplete,
   onError
 }: {
   tier: string;
   moneda: string;
+  ciclo?: 'mensual' | 'anual';
   onComplete: () => void;
   onError: (msg: string) => void;
 }) {
@@ -38,7 +43,7 @@ export function CheckoutSaasEmbedded({
         const res = await backendPost<SesionResult>('suscribir-saas', {
           tier,
           moneda,
-          ciclo: 'mensual',
+          ciclo,
           embedded: true
         });
         if (cancelado) return;
@@ -55,7 +60,7 @@ export function CheckoutSaasEmbedded({
     })();
     return () => { cancelado = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tier, moneda]);
+  }, [tier, moneda, ciclo]);
 
   const stripePromise = useMemo(() => (PK ? loadStripe(PK) : null), []);
 
