@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
+import { backendPost } from '@shared/lib/backend';
 import { useToast } from '@shared/hooks/useToast';
 import { useTenant } from '@shared/hooks/useTenant';
 import { entregaOpciones } from '@shared/lib/tiendaConfig';
@@ -27,6 +29,7 @@ const fmt = (c: number, m = 'MXN') =>
 
 export default function Tienda() {
   const toast = useToast();
+  const navigate = useNavigate();
   const tenant = useTenant();
   const entrega = entregaOpciones(tenant.config as Record<string, unknown> | null);
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -40,16 +43,19 @@ export default function Tienda() {
   const [entregaTipo, setEntregaTipo] = useState<'recepcion' | 'tienda' | 'llevar'>(opcionesEntrega[0] ?? 'recepcion');
   const [ubicacion, setUbicacion] = useState('');
 
+  async function recargarProductos() {
+    const { data } = await (supabase as any)
+      .from('productos')
+      .select('id, nombre, categoria, precio_centavos, moneda, foto_url')
+      .eq('activo', true)
+      .order('nombre');
+    setProductos((data as Producto[]) ?? []);
+    setCargando(false);
+  }
+
   useEffect(() => {
-    void (async () => {
-      const { data } = await (supabase as any)
-        .from('productos')
-        .select('id, nombre, categoria, precio_centavos, moneda, foto_url')
-        .eq('activo', true)
-        .order('nombre');
-      setProductos((data as Producto[]) ?? []);
-      setCargando(false);
-    })();
+    void recargarProductos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const agregar = (id: string) => setCarrito((c) => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
@@ -74,10 +80,58 @@ export default function Tienda() {
       return;
     }
     setComprando(true);
-    // El cobro con la tarjeta guardada (Stripe Connect) es el próximo paso.
-    await new Promise((r) => setTimeout(r, 400));
-    setComprando(false);
-    toast.info('El pago desde tu app llega muy pronto — con la tarjeta que ya tenés guardada.');
+    try {
+      const r = await backendPost<{ paid: boolean; reason?: string; mensaje?: string }>('comprar-producto', {
+        items: items.map((x) => ({ producto_id: x.prod.id, cantidad: x.cant })),
+        entrega_tipo: entregaTipo,
+        entrega_ubicacion: entregaTipo === 'llevar' ? ubicacion.trim() : undefined
+      });
+
+      if (r.paid) {
+        toast.success(
+          entregaTipo === 'recepcion' ? '¡Listo! Pasá a recepción a recogerlo.'
+          : entregaTipo === 'tienda' ? '¡Listo! Pasá a la tienda a recogerlo.'
+          : '¡Listo! Te lo llevamos.'
+        );
+        setCarrito({});
+        setEnCheckout(false);
+        return;
+      }
+
+      // No se cobró: cada motivo, su mensaje. 'sin_tarjeta' manda a agregar una.
+      switch (r.reason) {
+        case 'sin_tarjeta':
+          toast.info('Agregá una tarjeta para comprar desde la app.');
+          navigate('/app/perfil');
+          break;
+        case 'suspendido':
+          toast.error('Tu cuenta está suspendida. Hablá con el gym.');
+          break;
+        case 'sin_stock':
+          toast.error('Se agotó algo de tu carrito. Ajustalo e intentá de nuevo.');
+          void recargarProductos();
+          break;
+        case 'rechazada':
+          toast.error(r.mensaje || 'Tu tarjeta fue rechazada.');
+          break;
+        case 'requiere_autenticacion':
+          toast.error('Tu banco pide confirmar el pago. Actualizá tu tarjeta en el perfil.');
+          break;
+        case 'no_disponible':
+          toast.error('La compra desde la app no está disponible ahora.');
+          break;
+        case 'cobros_no_activos':
+        case 'stripe_pendiente':
+          toast.info('El gym todavía no tiene los cobros activos.');
+          break;
+        default:
+          toast.error('No pudimos completar la compra. Intentá de nuevo.');
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No pudimos completar la compra.');
+    } finally {
+      setComprando(false);
+    }
   }
 
   if (cargando) return <div className="ek-container" style={{ paddingTop: '12px' }}><p className="ek-body-muted">Cargando la tienda…</p></div>;

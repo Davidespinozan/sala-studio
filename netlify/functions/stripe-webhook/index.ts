@@ -246,6 +246,42 @@ export const handler: Handler = async (event) => {
         break;
       }
 
+      case 'payment_intent.succeeded': {
+        // Red de seguridad de la TIENDA: el cobro del socio lo asienta la función
+        // comprar-producto de forma síncrona; esto solo cubre el hueco de que la
+        // función muriera entre cobrar y registrar. registrar_venta_online es
+        // idempotente por el id del PaymentIntent, así que reintentar es inocuo.
+        const pi = stripeEvent.data.object as any;
+        if (pi?.metadata?.app !== 'sala' || pi?.metadata?.tipo !== 'tienda') break;
+
+        let items: unknown = [];
+        try { items = JSON.parse(pi.metadata.items ?? '[]'); } catch { items = []; }
+        // Carrito que no cupo en el metadata → el registro síncrono ya lo hizo;
+        // no hay nada que re-armar acá.
+        if (!Array.isArray(items) || items.length === 0) break;
+
+        const { error } = await admin.rpc('registrar_venta_online', {
+          p_tenant_id: pi.metadata.tenant_id,
+          p_usuario_id: pi.metadata.usuario_id,
+          p_sucursal_id: pi.metadata.sucursal_id ?? null,
+          p_items: items,
+          p_referencia: pi.id,
+          p_entrega_tipo: pi.metadata.entrega_tipo,
+          p_entrega_ubicacion: pi.metadata.entrega_ubicacion ?? null
+        });
+        if (error) {
+          // Permanente (se agotó entre el cobro y este reintento, producto
+          // inválido, etc.): no reventamos el webhook — reintentar no lo arregla.
+          // El dinero está cobrado; queda MUY visible para resolver a mano.
+          if (/SIN_STOCK|PRODUCTO_INVALIDO|ENTREGA_INVALIDA|SIN_ITEMS/.test(error.message)) {
+            console.error('[webhook-socio] tienda cobrada pero NO registrada pi=', pi.id, error.message);
+            break;
+          }
+          throw error; // transitorio → que Stripe reintente
+        }
+        break;
+      }
+
       case 'account.updated': {
         // El estado de la cuenta conectada del gym cambió (verificación, etc.) →
         // mantenemos charges_enabled/details_submitted frescos en tenants. El
