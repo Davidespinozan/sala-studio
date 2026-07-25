@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { backendPost } from '@shared/lib/backend';
 import { useToast } from '@shared/hooks/useToast';
 import { useModulo } from '@shared/hooks/useModulo';
 import { useTenantRefetch } from '@shared/hooks/useTenant';
+import GestionTienda from './GestionTienda';
 
 /* ══════════════════════════════════════════════════════════════════════════
    TIENDA — la puerta del complemento.
@@ -16,7 +16,9 @@ import { useTenantRefetch } from '@shared/hooks/useTenant';
    ══════════════════════════════════════════════════════════════════════════ */
 export default function Tienda() {
   const activa = useModulo('tienda');
-  return activa ? <TiendaActiva /> : <ActivarTienda />;
+  // Contratada → la gestión (cargar productos, stock, reportes).
+  // Sin contratar → la página que la ofrece y la activa.
+  return activa ? <GestionTienda /> : <ActivarTienda />;
 }
 
 // ── El gym todavía no la tiene: la página de venta ──────────────────────────
@@ -94,27 +96,6 @@ function ActivarTienda() {
           recargá la página.
         </p>
       )}
-    </div>
-  );
-}
-
-// ── El gym ya la tiene ──────────────────────────────────────────────────────
-function TiendaActiva() {
-  return (
-    <div className="adm-page" style={{ maxWidth: 640 }}>
-      <p className="ek-eyebrow">TIENDA</p>
-      <h1 className="ek-h1" style={{ marginBottom: 8 }}>Tu tienda está activa</h1>
-      <p className="ek-body-muted" style={{ marginTop: 0 }}>
-        El punto de venta —productos, cobro, stock y reportes— llega en la próxima
-        entrega. Ya quedaste habilitado; no tenés que volver a activarlo.
-      </p>
-      <p className="ek-body-muted" style={{ fontSize: 13, marginTop: 20 }}>
-        ¿Querés darlo de baja? Escribinos desde{' '}
-        <Link to="/admin/suscripcion" style={{ color: 'var(--sala-primary)' }}>
-          tu suscripción
-        </Link>
-        .
-      </p>
     </div>
   );
 }
