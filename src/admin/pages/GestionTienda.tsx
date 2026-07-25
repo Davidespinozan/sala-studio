@@ -230,7 +230,7 @@ export default function GestionTienda() {
               {([
                 ['recepcion', 'Recoge en recepción'],
                 ['tienda', 'Recoge en la tienda'],
-                ['llevar', 'Se lo llevan (cancha, sala…)']
+                ['llevar', 'Se lo llevan (a su sala)']
               ] as const).map(([k, label]) => (
                 <button
                   key={k}

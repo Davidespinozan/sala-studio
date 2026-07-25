@@ -113,8 +113,8 @@ export default function Tienda() {
 
         {entregaTipo === 'llevar' && (
           <div style={{ marginBottom: 20 }}>
-            <label className="ek-body-muted" style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>¿Dónde estás?</label>
-            <input className="ek-input" value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} placeholder="Cancha 3, Sala de spinning…" />
+            <label className="ek-body-muted" style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>¿Dónde te lo llevamos?</label>
+            <input className="ek-input" value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} placeholder="Sala de spinning, recepción…" />
           </div>
         )}
 
