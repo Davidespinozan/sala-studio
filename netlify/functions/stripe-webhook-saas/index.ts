@@ -31,8 +31,25 @@ function periodEndISO(sub: any): string | null {
   const item = sub?.items?.data?.[0];
   return epochToISO(sub?.current_period_end ?? item?.current_period_end ?? null);
 }
+// ¿Este renglón es el complemento Tienda? Se distingue por su lookup_key
+// (sala_tienda_*) o su metadata. Con el add-on, la suscripción tiene DOS
+// renglones y hay que saber cuál es cuál.
+function esTienda(item: any): boolean {
+  const p = item?.price;
+  return typeof p?.lookup_key === 'string'
+    ? p.lookup_key.startsWith('sala_tienda')
+    : p?.metadata?.addon === 'tienda';
+}
+
+// El renglón del PLAN, no el del complemento. El precio/monto base tiene que
+// salir de acá, no de data[0], que con la tienda presente podría ser el add-on.
+function itemBase(sub: any): any {
+  const items = sub?.items?.data ?? [];
+  return items.find((i: any) => !esTienda(i)) ?? items[0] ?? null;
+}
+
 function priceOf(sub: any): { id: string | null; interval: string | null; amount: number | null } {
-  const price = sub?.items?.data?.[0]?.price ?? null;
+  const price = itemBase(sub)?.price ?? null;
   return {
     id: price?.id ?? null,
     interval: price?.recurring?.interval ?? null,
@@ -114,6 +131,16 @@ export const handler: Handler = async (event) => {
         if (typeof amount === 'number') row.precio_centavos = amount;
 
         await applyIfNewer(admin, tenantId, eventAt, row);
+
+        // Sincronizar el complemento TIENDA: prendido si su renglón está en la
+        // suscripción y esta está viva; apagado si se quitó o se canceló. El
+        // módulo es la fuente de verdad de qué ve el gym en el menú.
+        const items: any[] = sub?.items?.data ?? [];
+        const tiendaViva =
+          !deleted &&
+          ['active', 'trialing', 'past_due'].includes(sub.status) &&
+          items.some((i) => esTienda(i));
+        await sincronizarModulo(admin, tenantId, 'tienda', tiendaViva);
         break;
       }
 
@@ -195,6 +222,28 @@ export const handler: Handler = async (event) => {
 
   return { statusCode: 200, body: JSON.stringify({ received: true }) };
 };
+
+// Prende o apaga un módulo en `tenants.config.modulos`, PRESERVANDO el resto del
+// config (timezone, tema, reglas…). Read-modify-write: solo escribe si el valor
+// cambió, para no generar writes ni carreras por gusto. La lista blanca de
+// columnas de `tenants` no afecta acá: `config` ya existe y es jsonb.
+async function sincronizarModulo(
+  admin: SupabaseClient,
+  tenantId: string,
+  modulo: string,
+  activo: boolean
+): Promise<void> {
+  const { data } = await admin.from('tenants').select('config').eq('id', tenantId).maybeSingle();
+  const config = (data?.config ?? {}) as Record<string, unknown>;
+  const modulos = { ...((config.modulos ?? {}) as Record<string, unknown>) };
+  if (modulos[modulo] === activo) return; // ya está como debe: no tocar
+  modulos[modulo] = activo;
+  const { error } = await admin
+    .from('tenants')
+    .update({ config: { ...config, modulos } })
+    .eq('id', tenantId);
+  if (error) console.error('[webhook-saas] no se pudo sincronizar módulo', modulo, ':', error.message);
+}
 
 // Upsert por tenant_id, respetando el orden de eventos (no piso datos más nuevos).
 async function applyIfNewer(
