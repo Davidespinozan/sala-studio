@@ -1,8 +1,9 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { CalendarClock, CalendarDays, Users, Settings } from 'lucide-react';
+import { CalendarClock, CalendarDays, Users, Settings, ShoppingBag } from 'lucide-react';
 import { useReservasHoy } from './hooks/useReservasHoy';
 import { useAuth } from '@shared/hooks/useAuth';
+import { useModulo } from '@shared/hooks/useModulo';
 import { useToast } from '@shared/hooks/useToast';
 import { accesoRevocado } from '@shared/lib/accountStatus';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
@@ -15,6 +16,7 @@ import { MapPin } from 'lucide-react';
 import { ReceptionSucursalProvider, useReceptionSucursal } from './providers/ReceptionSucursalProvider';
 
 const Scanner = lazy(() => import('./pages/Scanner'));
+const PosVenta = lazy(() => import('./pos/PosVenta'));
 const Socios = lazy(() => import('./pages/Socios'));
 const SocioFicha = lazy(() => import('./pages/SocioFicha'));
 const Agenda = lazy(() => import('./pages/Agenda'));
@@ -37,6 +39,17 @@ export default function ReceptionLayout() {
   const location = useLocation();
   const toast = useToast();
   const yaCerrado = useRef(false);
+  const tieneTienda = useModulo('tienda');
+
+  // "Tienda" en el menú de recepción solo si el gym contrató el complemento.
+  // La recepcionista vende ahí; el candado/activación viven en el admin.
+  const secciones: AppNavSection[] = tieneTienda
+    ? [{ items: [
+        ...RECEPCION_SECTIONS[0].items.filter((i) => i.to !== '/recepcion/ajustes'),
+        { to: '/recepcion/tienda', label: 'Tienda', icon: <ShoppingBag size={18} /> },
+        { to: '/recepcion/ajustes', label: 'Ajustes', icon: <Settings size={18} /> }
+      ] }]
+    : RECEPCION_SECTIONS;
 
   // Acceso retirado (revocado/suspendido/cancelado) → toast + signOut. Igual que
   // MemberLayout: no navegamos a /login mientras `usuario` sigue en cache (haría
@@ -69,7 +82,7 @@ export default function ReceptionLayout() {
           roleLabel="RECEPCIÓN"
           sidebar={({ onNavigate }) => (
             <AppSidebar
-              sections={RECEPCION_SECTIONS}
+              sections={secciones}
               roleLabel="RECEPCIÓN"
               homePath="/recepcion"
               statusSlot={<ReceptionStatus />}
@@ -86,6 +99,7 @@ export default function ReceptionLayout() {
                 <Route path="/socios" element={<Socios />} />
                 <Route path="/socios/:id" element={<SocioFicha />} />
                 <Route path="/ajustes" element={<Ajustes />} />
+                <Route path="/tienda" element={tieneTienda ? <PosVenta /> : <Navigate to="/recepcion" replace />} />
               </Routes>
             </Suspense>
           </main>

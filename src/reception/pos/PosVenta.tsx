@@ -1,0 +1,195 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ShoppingBag } from 'lucide-react';
+import { supabase } from '@shared/lib/supabase';
+import { useToast } from '@shared/hooks/useToast';
+import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
+
+/* ══════════════════════════════════════════════════════════════════════════
+   POS — el motor de venta.
+   ──────────────────────────────────────────────────────────────────────────
+   La MISMA pieza se usa en dos superficies: dentro de recepción (el caso común,
+   la mercancía está en el mostrador) y en la estación standalone (modo kiosko).
+   Por eso vive en un componente aparte y no atado a una pantalla.
+
+   Vender = elegir productos, cobrar, y que la venta entre a la Caja con el stock
+   descontado — todo atómico, en la RPC `vender_productos`. El precio se congela
+   del catálogo en el momento de la venta.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+interface Producto {
+  id: string;
+  nombre: string;
+  precio_centavos: number;
+  moneda: string;
+  foto_url: string | null;
+}
+
+type Metodo = 'efectivo' | 'tarjeta' | 'transferencia';
+
+const fmt = (c: number, m = 'MXN') =>
+  (c / 100).toLocaleString('es-MX', { style: 'currency', currency: m, maximumFractionDigits: 0 });
+
+export default function PosVenta() {
+  const toast = useToast();
+  const { sucursalId } = useReceptionSucursal();
+
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [stock, setStock] = useState<Record<string, number>>({});
+  const [cargando, setCargando] = useState(true);
+  const [carrito, setCarrito] = useState<Record<string, number>>({}); // producto_id → cantidad
+  const [metodo, setMetodo] = useState<Metodo>('efectivo');
+  const [cobrando, setCobrando] = useState(false);
+
+  const cargar = useCallback(async () => {
+    setCargando(true);
+    const { data: prods } = await (supabase as any)
+      .from('productos')
+      .select('id, nombre, precio_centavos, moneda, foto_url')
+      .eq('activo', true)
+      .order('nombre');
+    setProductos((prods as Producto[]) ?? []);
+
+    let q = (supabase as any).from('producto_stock').select('producto_id, stock, sucursal_id');
+    if (sucursalId) q = q.eq('sucursal_id', sucursalId);
+    const { data: stk } = await q;
+    const mapa: Record<string, number> = {};
+    for (const r of (stk as { producto_id: string; stock: number }[]) ?? []) {
+      mapa[r.producto_id] = (mapa[r.producto_id] ?? 0) + Number(r.stock);
+    }
+    setStock(mapa);
+    setCargando(false);
+  }, [sucursalId]);
+
+  useEffect(() => { void cargar(); }, [cargar]);
+
+  const agregar = (id: string) => setCarrito((c) => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
+  const quitar = (id: string) =>
+    setCarrito((c) => {
+      const n = (c[id] ?? 0) - 1;
+      const next = { ...c };
+      if (n <= 0) delete next[id]; else next[id] = n;
+      return next;
+    });
+
+  const items = useMemo(
+    () => Object.entries(carrito).map(([id, cant]) => ({ prod: productos.find((p) => p.id === id)!, cant }))
+      .filter((x) => x.prod),
+    [carrito, productos]
+  );
+  const total = items.reduce((s, x) => s + x.prod.precio_centavos * x.cant, 0);
+  const moneda = items[0]?.prod.moneda ?? 'MXN';
+
+  async function cobrar() {
+    if (items.length === 0) return;
+    setCobrando(true);
+    const { error } = await supabase.rpc('vender_productos' as never, {
+      p_sucursal_id: sucursalId,
+      p_metodo: metodo,
+      p_items: items.map((x) => ({ producto_id: x.prod.id, cantidad: x.cant })),
+      p_usuario_id: null
+    } as never);
+    setCobrando(false);
+    if (error) return toast.error('No se pudo cobrar: ' + error.message);
+    toast.success(`Cobrado ${fmt(total, moneda)}`);
+    setCarrito({});
+    void cargar();
+  }
+
+  if (cargando) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--ek-ink-faint)' }}>Cargando la tienda…</div>;
+
+  if (productos.length === 0) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center' }}>
+        <ShoppingBag size={32} style={{ color: 'var(--ek-ink-faint)' }} />
+        <p className="ek-body-muted" style={{ marginTop: 12 }}>
+          Todavía no hay productos cargados. El admin los agrega desde su panel.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 300px', gap: 16, alignItems: 'start' }} className="pos-grid">
+      {/* Grilla de productos */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(120px,1fr))', gap: 10 }}>
+        {productos.map((p) => {
+          const s = stock[p.id] ?? 0;
+          return (
+            <button
+              key={p.id}
+              onClick={() => agregar(p.id)}
+              style={{
+                textAlign: 'left', background: 'var(--ek-bg)', border: '1px solid var(--ek-line)',
+                borderRadius: 12, padding: 10, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6
+              }}
+            >
+              {p.foto_url
+                ? <img src={p.foto_url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 8 }} />
+                : <div style={{ width: '100%', aspectRatio: '1', borderRadius: 8, background: 'var(--ek-bg-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ShoppingBag size={22} style={{ color: 'var(--ek-ink-faint)' }} /></div>}
+              <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>{p.nombre}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontWeight: 700 }}>{fmt(p.precio_centavos, p.moneda)}</span>
+                <span style={{ fontSize: 11, color: s <= 0 ? 'var(--ek-danger)' : 'var(--ek-ink-faint)' }}>{s} en stock</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Carrito */}
+      <div style={{ background: 'var(--ek-bg)', border: '1px solid var(--ek-line)', borderRadius: 16, padding: 16, position: 'sticky', top: 16 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ek-ink-faint)', marginBottom: 12 }}>La venta</div>
+
+        {items.length === 0 ? (
+          <p className="ek-body-muted" style={{ fontSize: 13 }}>Tocá un producto para agregarlo.</p>
+        ) : (
+          <div style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
+            {items.map((x) => (
+              <div key={x.prod.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.prod.nombre}</div>
+                  <div style={{ color: 'var(--ek-ink-faint)', fontSize: 12 }}>{fmt(x.prod.precio_centavos * x.cant, x.prod.moneda)}</div>
+                </div>
+                <button onClick={() => quitar(x.prod.id)} style={btnQty}>−</button>
+                <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 700 }}>{x.cant}</span>
+                <button onClick={() => agregar(x.prod.id)} style={btnQty}>＋</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ borderTop: '1px solid var(--ek-line)', paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <span style={{ color: 'var(--ek-ink-muted)' }}>Total</span>
+          <span style={{ fontSize: 22, fontWeight: 800 }}>{fmt(total, moneda)}</span>
+        </div>
+
+        <div style={{ display: 'flex', gap: 6, margin: '14px 0' }}>
+          {(['efectivo', 'tarjeta', 'transferencia'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMetodo(m)}
+              className="ek-btn-secondary"
+              style={{ flex: 1, fontSize: 12, padding: '7px 4px', ...(metodo === m ? { background: 'var(--sala-primary)', color: '#fff' } : {}) }}
+            >
+              {m === 'efectivo' ? 'Efectivo' : m === 'tarjeta' ? 'Tarjeta' : 'Transf.'}
+            </button>
+          ))}
+        </div>
+
+        <button
+          className="ek-cta"
+          onClick={cobrar}
+          disabled={items.length === 0 || cobrando}
+          style={{ width: '100%', minHeight: 48, justifyContent: 'center' }}
+        >
+          {cobrando ? 'Cobrando…' : items.length === 0 ? 'Cobrar' : `Cobrar ${fmt(total, moneda)}`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const btnQty: React.CSSProperties = {
+  width: 26, height: 26, borderRadius: 7, border: '1px solid var(--ek-line)',
+  background: 'var(--ek-bg-soft)', cursor: 'pointer', fontSize: 15, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center'
+};
