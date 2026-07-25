@@ -135,7 +135,7 @@ export default function VentasTienda({ sucursalId }: { sucursalId: string | null
                   </td>
                   <td style={td}>{v.items.map((it) => `${it.cantidad}× ${it.nombre}`).join(', ') || '—'}</td>
                   <td style={{ ...td, color: v.socio ? 'var(--ek-ink)' : 'var(--ek-ink-faint)' }}>{v.socio ?? 'Público'}</td>
-                  <td style={{ ...td, textTransform: 'capitalize' }}>{v.metodo}</td>
+                  <td style={{ ...td, textTransform: 'capitalize' }}>{v.metodo === 'tarjeta' ? 'Terminal' : v.metodo === 'stripe' ? 'App' : v.metodo}</td>
                   <td style={{ ...td, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmt(v.total, v.moneda)}</td>
                 </tr>
               ))}

@@ -237,7 +237,7 @@ export default function PosVenta() {
               className={metodo === m ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
               style={{ flex: 1, fontSize: 12, padding: '7px 4px' }}
             >
-              {m === 'efectivo' ? 'Efectivo' : m === 'tarjeta' ? 'Tarjeta' : 'Transf.'}
+              {m === 'efectivo' ? 'Efectivo' : m === 'tarjeta' ? 'Terminal' : 'Transf.'}
             </button>
           ))}
         </div>
