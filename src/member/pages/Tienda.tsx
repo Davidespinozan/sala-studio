@@ -66,12 +66,15 @@ export default function Tienda() {
     toast.info('El pago desde tu app llega muy pronto — con la tarjeta que ya tenés guardada.');
   }
 
-  if (cargando) return <div style={{ padding: 32, textAlign: 'center', color: 'var(--ek-ink-faint)' }}>Cargando la tienda…</div>;
+  if (cargando) return <div className="ek-container" style={{ paddingTop: '12px' }}><p className="ek-body-muted">Cargando la tienda…</p></div>;
 
   return (
-    <div style={{ paddingBottom: items.length > 0 ? 92 : 0 }}>
-      <h1 className="ek-h1" style={{ marginBottom: 4 }}>Tienda</h1>
-      <p className="ek-body-muted" style={{ marginTop: 0, marginBottom: 20 }}>Comprá desde tu móvil y retiralo en el gym.</p>
+    <div className="ek-container" style={{ paddingTop: '12px', paddingBottom: items.length > 0 ? 80 : 0 }}>
+      <div className="ek-stack-md" style={{ marginBottom: 20 }}>
+        <p className="ek-eyebrow">TIENDA</p>
+        <h1 className="ek-display-md" style={{ margin: 0 }}>Comprá desde tu móvil</h1>
+        <p className="ek-body-muted" style={{ margin: 0 }}>Elegí lo que quieras y retiralo en el gym.</p>
+      </div>
 
       {productos.length === 0 ? (
         <div className="ek-card" style={{ padding: 28, textAlign: 'center' }}>
