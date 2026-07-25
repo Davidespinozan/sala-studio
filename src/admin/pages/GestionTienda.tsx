@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
-import { useTenant } from '@shared/hooks/useTenant';
+import { backendPost } from '@shared/lib/backend';
+import { useTenant, useTenantRefetch } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { useSucursal } from '../providers/SucursalProvider';
 import ImageUploader from '../components/ImageUploader';
@@ -31,13 +32,16 @@ const fmt = (centavos: number, moneda = 'MXN') =>
 export default function GestionTienda() {
   const tenant = useTenant();
   const toast = useToast();
+  const refetchTenant = useTenantRefetch();
   const { sucursalId, sucursalActiva, multisede } = useSucursal();
 
   const [productos, setProductos] = useState<Producto[]>([]);
   const [stock, setStock] = useState<Record<string, number>>({});
+  const [ventasHoy, setVentasHoy] = useState({ total: 0, count: 0 });
   const [cargando, setCargando] = useState(true);
   const [editando, setEditando] = useState<Producto | 'nuevo' | null>(null);
   const [cargandoStock, setCargandoStock] = useState<Producto | null>(null);
+  const [cancelando, setCancelando] = useState(false);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -57,6 +61,22 @@ export default function GestionTienda() {
       mapa[row.producto_id] = (mapa[row.producto_id] ?? 0) + Number(row.stock);
     }
     setStock(mapa);
+
+    // Ventas de producto de HOY (desde las 00:00 local). Salen de la Caja
+    // (`pagos`, concepto 'producto'); el admin las puede leer (is_recepcionista
+    // incluye admin). Se filtra por sede si hay una elegida.
+    const inicioDia = new Date();
+    inicioDia.setHours(0, 0, 0, 0);
+    let vq = (supabase as any)
+      .from('pagos')
+      .select('monto_centavos')
+      .eq('concepto', 'producto')
+      .gte('created_at', inicioDia.toISOString());
+    if (sucursalId) vq = vq.eq('sucursal_id', sucursalId);
+    const { data: ventas } = await vq;
+    const filas = (ventas as { monto_centavos: number }[]) ?? [];
+    setVentasHoy({ total: filas.reduce((s, v) => s + Number(v.monto_centavos), 0), count: filas.length });
+
     setCargando(false);
   }, [sucursalId]);
 
@@ -68,6 +88,25 @@ export default function GestionTienda() {
     () => productos.filter((p) => p.activo && (stock[p.id] ?? 0) <= 3).length,
     [productos, stock]
   );
+
+  async function cancelarTienda() {
+    if (!confirm('¿Dar de baja la tienda? Dejás de pagar el complemento y desaparece del menú. Tus productos y ventas quedan guardados por si la reactivás.')) return;
+    setCancelando(true);
+    try {
+      await backendPost('complemento-saas', { modulo: 'tienda', accion: 'cancelar' });
+      toast.success('Tienda dada de baja. Puede tardar unos segundos en desaparecer.');
+      // El webhook apaga el módulo; se refresca el tenant para que la pantalla
+      // vuelva sola a la de activación.
+      for (const espera of [2000, 3000]) {
+        await new Promise((r) => setTimeout(r, espera));
+        await refetchTenant();
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo dar de baja');
+    } finally {
+      setCancelando(false);
+    }
+  }
 
   if (cargando) return <div className="adm-page"><p className="ek-body-muted">Cargando tu tienda…</p></div>;
 
@@ -84,6 +123,18 @@ export default function GestionTienda() {
           </p>
         </div>
         <button className="ek-cta" onClick={() => setEditando('nuevo')}>＋ Producto</button>
+      </div>
+
+      {/* Ventas de hoy — lo primero que el dueño quiere saber al abrir. */}
+      <div className="ek-card" style={{ display: 'flex', gap: 28, padding: '16px 22px', marginBottom: 16, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ek-ink-faint)' }}>Vendido hoy</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ek-ink)', marginTop: 2 }}>{fmt(ventasHoy.total)}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ek-ink-faint)' }}>Ventas</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ek-ink)', marginTop: 2 }}>{ventasHoy.count}</div>
+        </div>
       </div>
 
       {productos.length === 0 ? (
@@ -131,6 +182,17 @@ export default function GestionTienda() {
           </table>
         </div>
       )}
+
+      {/* Baja del complemento — discreta, al pie, con confirmación. */}
+      <div style={{ marginTop: 28, textAlign: 'center' }}>
+        <button
+          onClick={cancelarTienda}
+          disabled={cancelando}
+          style={{ background: 'none', border: 'none', color: 'var(--ek-ink-faint)', fontSize: 12.5, cursor: 'pointer', textDecoration: 'underline' }}
+        >
+          {cancelando ? 'Dando de baja…' : 'Dar de baja la tienda'}
+        </button>
+      </div>
 
       {editando && (
         <ProductoForm
