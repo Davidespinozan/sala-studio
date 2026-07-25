@@ -223,8 +223,8 @@ export default function PosVenta() {
             <button
               key={m}
               onClick={() => setMetodo(m)}
-              className="ek-btn-secondary"
-              style={{ flex: 1, fontSize: 12, padding: '7px 4px', ...(metodo === m ? { background: 'var(--sala-primary)', color: '#fff' } : {}) }}
+              className={metodo === m ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
+              style={{ flex: 1, fontSize: 12, padding: '7px 4px' }}
             >
               {m === 'efectivo' ? 'Efectivo' : m === 'tarjeta' ? 'Tarjeta' : 'Transf.'}
             </button>

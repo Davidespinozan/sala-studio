@@ -17,8 +17,7 @@ export default function TiendaRecepcion() {
           <button
             key={v}
             onClick={() => setVista(v)}
-            className="ek-btn-secondary"
-            style={vista === v ? { background: 'var(--sala-primary)', color: '#fff' } : {}}
+            className={vista === v ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
           >
             {v === 'vender' ? 'Vender' : 'Ventas'}
           </button>

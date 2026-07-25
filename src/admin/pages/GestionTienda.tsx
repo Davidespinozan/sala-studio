@@ -146,8 +146,7 @@ export default function GestionTienda() {
           <button
             key={v}
             onClick={() => setVista(v)}
-            className="ek-btn-secondary"
-            style={vista === v ? { background: 'var(--sala-primary)', color: '#fff' } : {}}
+            className={vista === v ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
           >
             {v === 'productos' ? 'Productos' : 'Ventas'}
           </button>
@@ -191,8 +190,8 @@ export default function GestionTienda() {
                       {s}
                     </td>
                     <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <button className="ek-btn-secondary" onClick={() => setCargandoStock(p)} style={btnMini}>Stock</button>
-                      <button className="ek-btn-secondary" onClick={() => setEditando(p)} style={btnMini}>Editar</button>
+                      <button className="ek-cta ek-cta--secondary" onClick={() => setCargandoStock(p)} style={btnMini}>Stock</button>
+                      <button className="ek-cta ek-cta--secondary" onClick={() => setEditando(p)} style={btnMini}>Editar</button>
                     </td>
                   </tr>
                 );
@@ -214,8 +213,7 @@ export default function GestionTienda() {
           <button
             onClick={toggleVentaSocio}
             disabled={guardandoAjuste}
-            className="ek-btn-secondary"
-            style={ventaSocio ? { background: 'var(--sala-primary)', color: '#fff' } : {}}
+            className={ventaSocio ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
           >
             {guardandoAjuste ? '…' : ventaSocio ? 'Activada' : 'Activar'}
           </button>
@@ -236,8 +234,7 @@ export default function GestionTienda() {
                   key={k}
                   onClick={() => toggleEntrega(k)}
                   disabled={guardandoAjuste}
-                  className="ek-btn-secondary"
-                  style={entrega[k] ? { background: 'var(--sala-primary)', color: '#fff' } : {}}
+                  className={entrega[k] ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
                 >
                   {entrega[k] ? '✓ ' : ''}{label}
                 </button>
@@ -335,7 +332,7 @@ export default function GestionTienda() {
           <span style={{ fontSize: 14 }}>Activo (se puede vender)</span>
         </label>
         <div style={acciones}>
-          <button className="ek-btn-secondary" onClick={onClose}>Cancelar</button>
+          <button className="ek-cta ek-cta--secondary" onClick={onClose}>Cancelar</button>
           <button className="ek-cta" onClick={guardar} disabled={guardando}>
             {guardando ? 'Guardando…' : 'Guardar'}
           </button>
@@ -380,8 +377,8 @@ export default function GestionTienda() {
             <button
               key={v}
               onClick={() => setTipo(v)}
-              className="ek-btn-secondary"
-              style={{ flex: 1, ...(tipo === v ? { background: 'var(--sala-primary)', color: '#fff' } : {}) }}
+              className={tipo === v ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
+              style={{ flex: 1 }}
             >
               {l}
             </button>
@@ -392,7 +389,7 @@ export default function GestionTienda() {
         <label style={lbl}>Motivo <span style={{ color: 'var(--ek-ink-faint)' }}>(opcional)</span></label>
         <input className="ek-input" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder={tipo === 'merma' ? 'Caducó' : 'Compra al proveedor'} />
         <div style={acciones}>
-          <button className="ek-btn-secondary" onClick={onClose}>Cancelar</button>
+          <button className="ek-cta ek-cta--secondary" onClick={onClose}>Cancelar</button>
           <button className="ek-cta" onClick={guardar} disabled={guardando}>
             {guardando ? 'Guardando…' : 'Registrar'}
           </button>

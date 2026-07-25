@@ -169,7 +169,7 @@ export default function Tienda() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
                   <span style={{ fontWeight: 700 }}>{fmt(p.precio_centavos, p.moneda)}</span>
                   {enCarrito === 0 ? (
-                    <button onClick={() => agregar(p.id)} className="ek-btn-secondary" style={{ padding: '5px 12px', fontSize: 13 }}>Agregar</button>
+                    <button onClick={() => agregar(p.id)} className="ek-cta ek-cta--secondary" style={{ padding: '6px 14px', fontSize: 13, minHeight: 0 }}>Agregar</button>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <button onClick={() => quitar(p.id)} style={btnQty}>−</button>
