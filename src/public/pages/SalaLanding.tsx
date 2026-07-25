@@ -10,6 +10,7 @@ import {
   Palette,
   QrCode,
   Search,
+  ShoppingBag,
   Star,
   Users,
   X,
@@ -105,6 +106,11 @@ const FEATURES: Array<{ icon: LucideIcon; titulo: string; texto: string }> = [
     icon: Building2,
     titulo: 'Multi-sucursal',
     texto: 'Maneja varias sedes desde una sola cuenta, con su agenda y su equipo.'
+  },
+  {
+    icon: ShoppingBag,
+    titulo: 'Tienda (complemento)',
+    texto: 'Vende agua, proteína o ropa desde tu recepción, con el stock y el corte de caja resueltos. Se activa cuando lo necesitas, sin cambiar de plan.'
   }
 ];
 
