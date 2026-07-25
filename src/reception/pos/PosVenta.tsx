@@ -39,6 +39,26 @@ export default function PosVenta() {
   const [carrito, setCarrito] = useState<Record<string, number>>({}); // producto_id → cantidad
   const [metodo, setMetodo] = useState<Metodo>('efectivo');
   const [cobrando, setCobrando] = useState(false);
+  // A quién se le vende. Opcional: default "Público" (venta a la calle).
+  const [socio, setSocio] = useState<{ id: string; nombre: string } | null>(null);
+  const [buscaSocio, setBuscaSocio] = useState('');
+  const [resultadosSocio, setResultadosSocio] = useState<{ id: string; nombre: string }[]>([]);
+
+  useEffect(() => {
+    const q = buscaSocio.trim();
+    if (socio || q.length < 2) { setResultadosSocio([]); return; }
+    let vivo = true;
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from('usuarios')
+        .select('id, nombre')
+        .eq('rol', 'miembro')
+        .ilike('nombre', `%${q}%`)
+        .limit(6);
+      if (vivo) setResultadosSocio((data as { id: string; nombre: string }[]) ?? []);
+    }, 250);
+    return () => { vivo = false; clearTimeout(t); };
+  }, [buscaSocio, socio]);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -86,12 +106,14 @@ export default function PosVenta() {
       p_sucursal_id: sucursalId,
       p_metodo: metodo,
       p_items: items.map((x) => ({ producto_id: x.prod.id, cantidad: x.cant })),
-      p_usuario_id: null
+      p_usuario_id: socio?.id ?? null
     } as never);
     setCobrando(false);
     if (error) return toast.error('No se pudo cobrar: ' + error.message);
-    toast.success(`Cobrado ${fmt(total, moneda)}`);
+    toast.success(`Cobrado ${fmt(total, moneda)}${socio ? ` · ${socio.nombre}` : ''}`);
     setCarrito({});
+    setSocio(null);
+    setBuscaSocio('');
     void cargar();
   }
 
@@ -157,6 +179,39 @@ export default function PosVenta() {
             ))}
           </div>
         )}
+
+        {/* A quién — opcional. Si no se elige, la venta es "al público". */}
+        <div style={{ marginBottom: 12, position: 'relative' }}>
+          {socio ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, background: 'var(--ek-bg-soft)', borderRadius: 8, padding: '7px 10px' }}>
+              <span style={{ flex: 1 }}>Socio: <b>{socio.nombre}</b></span>
+              <button onClick={() => setSocio(null)} style={{ background: 'none', border: 'none', color: 'var(--ek-ink-faint)', cursor: 'pointer', fontSize: 12 }}>quitar</button>
+            </div>
+          ) : (
+            <>
+              <input
+                className="ek-input"
+                value={buscaSocio}
+                onChange={(e) => setBuscaSocio(e.target.value)}
+                placeholder="¿Socio? (opcional) — buscá por nombre"
+                style={{ fontSize: 13 }}
+              />
+              {resultadosSocio.length > 0 && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 5, background: 'var(--ek-bg)', border: '1px solid var(--ek-line)', borderRadius: 8, marginTop: 4, boxShadow: '0 8px 24px rgba(0,0,0,.12)' }}>
+                  {resultadosSocio.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => { setSocio(r); setBuscaSocio(''); setResultadosSocio([]); }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '9px 12px', fontSize: 13, cursor: 'pointer' }}
+                    >
+                      {r.nombre}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         <div style={{ borderTop: '1px solid var(--ek-line)', paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <span style={{ color: 'var(--ek-ink-muted)' }}>Total</span>

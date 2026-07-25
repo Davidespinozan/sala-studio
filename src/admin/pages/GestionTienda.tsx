@@ -5,6 +5,7 @@ import { useTenant, useTenantRefetch } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { useSucursal } from '../providers/SucursalProvider';
 import ImageUploader from '../components/ImageUploader';
+import VentasTienda from '@shared/tienda/VentasTienda';
 
 /* ══════════════════════════════════════════════════════════════════════════
    ADMIN → TIENDA (gestión)
@@ -37,7 +38,7 @@ export default function GestionTienda() {
 
   const [productos, setProductos] = useState<Producto[]>([]);
   const [stock, setStock] = useState<Record<string, number>>({});
-  const [ventasHoy, setVentasHoy] = useState({ total: 0, count: 0 });
+  const [vista, setVista] = useState<'productos' | 'ventas'>('productos');
   const [cargando, setCargando] = useState(true);
   const [editando, setEditando] = useState<Producto | 'nuevo' | null>(null);
   const [cargandoStock, setCargandoStock] = useState<Producto | null>(null);
@@ -61,22 +62,6 @@ export default function GestionTienda() {
       mapa[row.producto_id] = (mapa[row.producto_id] ?? 0) + Number(row.stock);
     }
     setStock(mapa);
-
-    // Ventas de producto de HOY (desde las 00:00 local). Salen de la Caja
-    // (`pagos`, concepto 'producto'); el admin las puede leer (is_recepcionista
-    // incluye admin). Se filtra por sede si hay una elegida.
-    const inicioDia = new Date();
-    inicioDia.setHours(0, 0, 0, 0);
-    let vq = (supabase as any)
-      .from('pagos')
-      .select('monto_centavos')
-      .eq('concepto', 'producto')
-      .gte('created_at', inicioDia.toISOString());
-    if (sucursalId) vq = vq.eq('sucursal_id', sucursalId);
-    const { data: ventas } = await vq;
-    const filas = (ventas as { monto_centavos: number }[]) ?? [];
-    setVentasHoy({ total: filas.reduce((s, v) => s + Number(v.monto_centavos), 0), count: filas.length });
-
     setCargando(false);
   }, [sucursalId]);
 
@@ -122,22 +107,28 @@ export default function GestionTienda() {
             {stockBajo > 0 && <> · <span style={{ color: 'var(--ek-danger)' }}>{stockBajo} con poco stock</span></>}
           </p>
         </div>
-        <button className="ek-cta" onClick={() => setEditando('nuevo')}>＋ Producto</button>
+        {vista === 'productos' && (
+          <button className="ek-cta" onClick={() => setEditando('nuevo')}>＋ Producto</button>
+        )}
       </div>
 
-      {/* Ventas de hoy — lo primero que el dueño quiere saber al abrir. */}
-      <div className="ek-card" style={{ display: 'flex', gap: 28, padding: '16px 22px', marginBottom: 16, flexWrap: 'wrap' }}>
-        <div>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ek-ink-faint)' }}>Vendido hoy</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ek-ink)', marginTop: 2 }}>{fmt(ventasHoy.total)}</div>
-        </div>
-        <div>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ek-ink-faint)' }}>Ventas</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ek-ink)', marginTop: 2 }}>{ventasHoy.count}</div>
-        </div>
+      {/* Pestañas: administrar el catálogo o ver el historial de ventas. */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        {(['productos', 'ventas'] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setVista(v)}
+            className="ek-btn-secondary"
+            style={vista === v ? { background: 'var(--sala-primary)', color: '#fff' } : {}}
+          >
+            {v === 'productos' ? 'Productos' : 'Ventas'}
+          </button>
+        ))}
       </div>
 
-      {productos.length === 0 ? (
+      {vista === 'ventas' && <VentasTienda sucursalId={sucursalId} />}
+
+      {vista === 'productos' && (productos.length === 0 ? (
         <div className="ek-card" style={{ padding: 32, textAlign: 'center' }}>
           <p className="ek-body-muted" style={{ margin: 0 }}>
             Todavía no cargaste ningún producto. Empezá con lo que más vendés —agua, proteína—.
@@ -181,7 +172,7 @@ export default function GestionTienda() {
             </tbody>
           </table>
         </div>
-      )}
+      ))}
 
       {/* Baja del complemento — discreta, al pie, con confirmación. */}
       <div style={{ marginTop: 28, textAlign: 'center' }}>

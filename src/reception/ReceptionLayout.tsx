@@ -16,7 +16,7 @@ import { MapPin } from 'lucide-react';
 import { ReceptionSucursalProvider, useReceptionSucursal } from './providers/ReceptionSucursalProvider';
 
 const Scanner = lazy(() => import('./pages/Scanner'));
-const PosVenta = lazy(() => import('./pos/PosVenta'));
+const TiendaRecepcion = lazy(() => import('./pos/TiendaRecepcion'));
 const Socios = lazy(() => import('./pages/Socios'));
 const SocioFicha = lazy(() => import('./pages/SocioFicha'));
 const Agenda = lazy(() => import('./pages/Agenda'));
@@ -99,7 +99,7 @@ export default function ReceptionLayout() {
                 <Route path="/socios" element={<Socios />} />
                 <Route path="/socios/:id" element={<SocioFicha />} />
                 <Route path="/ajustes" element={<Ajustes />} />
-                <Route path="/tienda" element={tieneTienda ? <PosVenta /> : <Navigate to="/recepcion" replace />} />
+                <Route path="/tienda" element={tieneTienda ? <TiendaRecepcion /> : <Navigate to="/recepcion" replace />} />
               </Routes>
             </Suspense>
           </main>
