@@ -1904,7 +1904,15 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     flex-direction: column;
     gap: 4px;
     padding: 0 12px;
+    /* Sigue scrolleando con rueda y dedo, pero SIN la barra gris gorda pegada
+       al borde del sidebar, que se veía fea. El scroll es natural; solo se
+       oculta el indicador. */
     overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Edge/IE viejo */
+  }
+  .adm-sidebar-nav::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge nuevo */
   }
 
   /* Cuando una sección está expandida, sumamos un poco de aire abajo
@@ -2012,8 +2020,14 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     background: var(--grad-immersive);
     border-right: 0.5px solid rgba(255, 255, 255, 0.10);
     animation: ek-slide-in-left 0.25s var(--ease-premium);
+    /* Scroll natural con el dedo, sin la barra gris (mobile y tablet). */
     overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     z-index: 91;
+  }
+  .adm-drawer::-webkit-scrollbar {
+    display: none;
   }
 
   @keyframes ek-slide-in-left {
