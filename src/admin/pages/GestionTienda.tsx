@@ -6,6 +6,7 @@ import { useToast } from '@shared/hooks/useToast';
 import { useSucursal } from '../providers/SucursalProvider';
 import ImageUploader from '../components/ImageUploader';
 import VentasTienda from '@shared/tienda/VentasTienda';
+import { ventaSocioActiva, conVentaSocio } from '@shared/lib/tiendaConfig';
 
 /* ══════════════════════════════════════════════════════════════════════════
    ADMIN → TIENDA (gestión)
@@ -73,6 +74,24 @@ export default function GestionTienda() {
     () => productos.filter((p) => p.activo && (stock[p.id] ?? 0) <= 3).length,
     [productos, stock]
   );
+
+  const config = (tenant.config as Record<string, unknown> | null) ?? {};
+  const ventaSocio = ventaSocioActiva(config);
+  const [guardandoAjuste, setGuardandoAjuste] = useState(false);
+
+  async function toggleVentaSocio() {
+    setGuardandoAjuste(true);
+    const { error } = await (supabase as any)
+      .from('tenants')
+      .update({ config: conVentaSocio(config, !ventaSocio) })
+      .eq('id', tenant.id);
+    if (error) toast.error('No se pudo guardar: ' + error.message);
+    else {
+      toast.success(!ventaSocio ? 'Los socios ya pueden comprar desde su app' : 'Compra desde la app desactivada');
+      await refetchTenant();
+    }
+    setGuardandoAjuste(false);
+  }
 
   async function cancelarTienda() {
     if (!confirm('¿Dar de baja la tienda? Dejás de pagar el complemento y desaparece del menú. Tus productos y ventas quedan guardados por si la reactivás.')) return;
@@ -174,8 +193,26 @@ export default function GestionTienda() {
         </div>
       ))}
 
+      {/* Ajuste: venta desde la app del socio. */}
+      <div className="ek-card" style={{ marginTop: 24, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>Compra desde la app del socio</div>
+          <div className="ek-body-muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+            El socio compra desde su móvil con la tarjeta que ya tiene guardada. Ideal si vende sin recepción de por medio.
+          </div>
+        </div>
+        <button
+          onClick={toggleVentaSocio}
+          disabled={guardandoAjuste}
+          className="ek-btn-secondary"
+          style={ventaSocio ? { background: 'var(--sala-primary)', color: '#fff' } : {}}
+        >
+          {guardandoAjuste ? '…' : ventaSocio ? 'Activada' : 'Activar'}
+        </button>
+      </div>
+
       {/* Baja del complemento — discreta, al pie, con confirmación. */}
-      <div style={{ marginTop: 28, textAlign: 'center' }}>
+      <div style={{ marginTop: 20, textAlign: 'center' }}>
         <button
           onClick={cancelarTienda}
           disabled={cancelando}
