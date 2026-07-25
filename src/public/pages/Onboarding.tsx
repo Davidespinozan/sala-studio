@@ -189,6 +189,7 @@ export default function Onboarding() {
           <PasoPagoConTarjeta
             tier={state.tier}
             moneda={monedaPorTimezone(state.gym.timezone)}
+            ciclo={ciclo}
             onListo={() => setResultado({ slug: creadoSlug })}
           />
         )}
@@ -791,10 +792,12 @@ function PlanColumna({
 function PasoPagoConTarjeta({
   tier,
   moneda,
+  ciclo,
   onListo
 }: {
   tier: TierSaas;
   moneda: MonedaSaas;
+  ciclo: 'mensual' | 'anual';
   onListo: () => void;
 }) {
   const precioStr = `${formatPrecio(precioCentavos(tier, moneda), moneda)}/mes`;
