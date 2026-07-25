@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { ShoppingBag } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useToast } from '@shared/hooks/useToast';
+import { useTenant } from '@shared/hooks/useTenant';
+import { entregaOpciones } from '@shared/lib/tiendaConfig';
 
 /* ══════════════════════════════════════════════════════════════════════════
    TIENDA DEL SOCIO — comprá desde tu móvil.
@@ -25,10 +27,18 @@ const fmt = (c: number, m = 'MXN') =>
 
 export default function Tienda() {
   const toast = useToast();
+  const tenant = useTenant();
+  const entrega = entregaOpciones(tenant.config as Record<string, unknown> | null);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(true);
   const [carrito, setCarrito] = useState<Record<string, number>>({});
   const [comprando, setComprando] = useState(false);
+  const [enCheckout, setEnCheckout] = useState(false);
+  // Cómo quiere recibir lo que compra. Se inicializa con la primera opción que
+  // el gym tenga habilitada.
+  const opcionesEntrega = (['recepcion', 'tienda', 'llevar'] as const).filter((k) => entrega[k]);
+  const [entregaTipo, setEntregaTipo] = useState<'recepcion' | 'tienda' | 'llevar'>(opcionesEntrega[0] ?? 'recepcion');
+  const [ubicacion, setUbicacion] = useState('');
 
   useEffect(() => {
     void (async () => {
@@ -58,7 +68,11 @@ export default function Tienda() {
   const total = items.reduce((s, x) => s + x.prod.precio_centavos * x.cant, 0);
   const moneda = items[0]?.prod.moneda ?? 'MXN';
 
-  async function comprar() {
+  async function pagar() {
+    if (entregaTipo === 'llevar' && !ubicacion.trim()) {
+      toast.error('Decinos dónde estás para llevártelo');
+      return;
+    }
     setComprando(true);
     // El cobro con la tarjeta guardada (Stripe Connect) es el próximo paso.
     await new Promise((r) => setTimeout(r, 400));
@@ -67,6 +81,64 @@ export default function Tienda() {
   }
 
   if (cargando) return <div className="ek-container" style={{ paddingTop: '12px' }}><p className="ek-body-muted">Cargando la tienda…</p></div>;
+
+  // ── Checkout: cómo lo recibe + pagar ──────────────────────────────────────
+  if (enCheckout) {
+    const etiqueta: Record<string, string> = {
+      recepcion: 'Lo recojo en recepción',
+      tienda: 'Lo recojo en la tienda',
+      llevar: 'Que me lo lleven'
+    };
+    return (
+      <div className="ek-container" style={{ paddingTop: '12px' }}>
+        <button onClick={() => setEnCheckout(false)} style={{ background: 'none', border: 'none', color: 'var(--sala-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 12 }}>‹ Volver</button>
+        <div className="ek-stack-md" style={{ marginBottom: 20 }}>
+          <p className="ek-eyebrow">TU COMPRA</p>
+          <h1 className="ek-display-md" style={{ margin: 0 }}>¿Cómo lo recibís?</h1>
+        </div>
+
+        <div style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
+          {opcionesEntrega.map((k) => (
+            <button
+              key={k}
+              onClick={() => setEntregaTipo(k)}
+              className="ek-card"
+              style={{ textAlign: 'left', padding: '14px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: entregaTipo === k ? '2px solid var(--sala-primary)' : '1px solid var(--ek-line)' }}
+            >
+              <span style={{ fontWeight: 600 }}>{etiqueta[k]}</span>
+              {entregaTipo === k && <span style={{ color: 'var(--sala-primary)', fontWeight: 800 }}>✓</span>}
+            </button>
+          ))}
+        </div>
+
+        {entregaTipo === 'llevar' && (
+          <div style={{ marginBottom: 20 }}>
+            <label className="ek-body-muted" style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>¿Dónde estás?</label>
+            <input className="ek-input" value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} placeholder="Cancha 3, Sala de spinning…" />
+          </div>
+        )}
+
+        <div className="ek-card" style={{ padding: '14px 16px', marginBottom: 20 }}>
+          {items.map((x) => (
+            <div key={x.prod.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 6 }}>
+              <span>{x.cant}× {x.prod.nombre}</span>
+              <span style={{ fontWeight: 600 }}>{fmt(x.prod.precio_centavos * x.cant, x.prod.moneda)}</span>
+            </div>
+          ))}
+          <div style={{ borderTop: '1px solid var(--ek-line)', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 800 }}>
+            <span>Total</span><span>{fmt(total, moneda)}</span>
+          </div>
+        </div>
+
+        <button onClick={pagar} disabled={comprando} className="ek-cta" style={{ width: '100%', minHeight: 52 }}>
+          {comprando ? 'Procesando…' : `Pagar ${fmt(total, moneda)} con mi tarjeta`}
+        </button>
+        <p className="ek-body-muted" style={{ fontSize: 12, textAlign: 'center', marginTop: 10 }}>
+          Se cobra a la tarjeta que ya tenés guardada en el gym.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="ek-container" style={{ paddingTop: '12px', paddingBottom: items.length > 0 ? 80 : 0 }}>
@@ -116,12 +188,11 @@ export default function Tienda() {
       {items.length > 0 && (
         <div style={{ position: 'fixed', left: 0, right: 0, bottom: 72, padding: '0 16px', zIndex: 20 }}>
           <button
-            onClick={comprar}
-            disabled={comprando}
+            onClick={() => setEnCheckout(true)}
             className="ek-cta"
             style={{ width: '100%', maxWidth: 560, margin: '0 auto', minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', boxShadow: '0 8px 24px rgba(0,0,0,.18)' }}
           >
-            <span>{comprando ? 'Procesando…' : 'Comprar'}</span>
+            <span>Continuar</span>
             <span style={{ fontWeight: 800 }}>{fmt(total, moneda)}</span>
           </button>
         </div>
