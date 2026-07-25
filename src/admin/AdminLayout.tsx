@@ -28,6 +28,7 @@ const Sucursales = lazy(() => import('./pages/Sucursales'));
 const Lectores = lazy(() => import('./pages/Lectores'));
 const Reportes = lazy(() => import('./pages/Reportes'));
 const Caja = lazy(() => import('./pages/Caja'));
+const Tienda = lazy(() => import('./pages/Tienda'));
 const Bitacora = lazy(() => import('./pages/Bitacora'));
 const Equipo = lazy(() => import('./pages/Equipo'));
 const AjustesLanding = lazy(() => import('./pages/AjustesLanding'));
@@ -81,6 +82,7 @@ export default function AdminLayout() {
               <Route path="/lectores" element={<Lectores />} />
               <Route path="/reportes" element={<Reportes />} />
               <Route path="/caja" element={<Caja />} />
+              <Route path="/tienda" element={<Tienda />} />
               <Route path="/bitacora" element={<Bitacora />} />
               <Route path="/equipo" element={<Equipo />} />
               <Route path="/landing" element={<AjustesLanding />} />

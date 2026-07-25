@@ -1,4 +1,5 @@
 import { AppSidebar, type AppNavSection } from '@shared/components/AppSidebar';
+import { useModulo } from '@shared/hooks/useModulo';
 
 // Nav de ADMIN (datos específicos del rol). El sistema visual + comportamiento
 // de colapso viven en el AppSidebar compartido (src/shared/components).
@@ -68,6 +69,20 @@ const SECTIONS: AppNavSection[] = [
             <rect x="2" y="6" width="20" height="12" rx="2" />
             <circle cx="12" cy="12" r="2" />
             <path d="M6 12h.01M18 12h.01" />
+          </svg>
+        )
+      },
+      {
+        // Complemento: si el gym no lo tiene, el ítem lleva a la página que lo
+        // ofrece (con candado). Si lo tiene, a la tienda. El candado lo agrega
+        // el componente Sidebar según `useModulo('tienda')`.
+        to: '/admin/tienda',
+        label: 'Tienda',
+        icon: (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9l1.5-5h15L21 9" />
+            <path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9" />
+            <path d="M9 13h6" />
           </svg>
         )
       },
@@ -272,9 +287,24 @@ const SECTIONS: AppNavSection[] = [
 ];
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
+  const tieneTienda = useModulo('tienda');
+
+  // El candado 🔒 en "Tienda" cuando el gym no la contrató: se ve el ítem, se
+  // entiende que existe, y al tocarlo se llega a la página que la ofrece. Sin
+  // pop-ups ni banners en medio de la operación. Cuando la contrata, el candado
+  // desaparece y el ítem lleva a la tienda.
+  const sections = tieneTienda
+    ? SECTIONS
+    : SECTIONS.map((sec) => ({
+        ...sec,
+        items: sec.items.map((it) =>
+          it.to === '/admin/tienda' ? { ...it, badge: '🔒' } : it
+        )
+      }));
+
   return (
     <AppSidebar
-      sections={SECTIONS}
+      sections={sections}
       roleLabel="ADMIN"
       homePath="/admin"
       collapsible
