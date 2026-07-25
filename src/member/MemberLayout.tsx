@@ -19,6 +19,7 @@ import { MemberSucursalProvider } from './providers/MemberSucursalProvider';
 import { SucursalSwitcher } from './components/SucursalSwitcher';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Tienda = lazy(() => import('./pages/Tienda'));
 const Reservar = lazy(() => import('./pages/Reservar'));
 const MisReservas = lazy(() => import('./pages/MisReservas'));
 const Perfil = lazy(() => import('./pages/Perfil'));
@@ -107,6 +108,7 @@ export default function MemberLayout() {
             <Route path="/historial" element={<MisReservas />} />
             <Route path="/reservas" element={<MisReservas />} />
             <Route path="/perfil" element={<Perfil />} />
+            <Route path="/tienda" element={<Tienda />} />
             <Route path="/qr/:reservaId" element={<MiQR />} />
           </Routes>
         </Suspense>
