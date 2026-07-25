@@ -6,7 +6,7 @@ import { useToast } from '@shared/hooks/useToast';
 import { useSucursal } from '../providers/SucursalProvider';
 import ImageUploader from '../components/ImageUploader';
 import VentasTienda from '@shared/tienda/VentasTienda';
-import { ventaSocioActiva, conVentaSocio } from '@shared/lib/tiendaConfig';
+import { ventaSocioActiva, conVentaSocio, entregaOpciones, conEntrega, type OpcionesEntrega } from '@shared/lib/tiendaConfig';
 
 /* ══════════════════════════════════════════════════════════════════════════
    ADMIN → TIENDA (gestión)
@@ -77,20 +77,29 @@ export default function GestionTienda() {
 
   const config = (tenant.config as Record<string, unknown> | null) ?? {};
   const ventaSocio = ventaSocioActiva(config);
+  const entrega = entregaOpciones(config);
   const [guardandoAjuste, setGuardandoAjuste] = useState(false);
 
-  async function toggleVentaSocio() {
+  async function guardarConfig(next: Record<string, unknown>, msg: string) {
     setGuardandoAjuste(true);
-    const { error } = await (supabase as any)
-      .from('tenants')
-      .update({ config: conVentaSocio(config, !ventaSocio) })
-      .eq('id', tenant.id);
+    const { error } = await (supabase as any).from('tenants').update({ config: next }).eq('id', tenant.id);
     if (error) toast.error('No se pudo guardar: ' + error.message);
-    else {
-      toast.success(!ventaSocio ? 'Los socios ya pueden comprar desde su app' : 'Compra desde la app desactivada');
-      await refetchTenant();
-    }
+    else { toast.success(msg); await refetchTenant(); }
     setGuardandoAjuste(false);
+  }
+
+  const toggleVentaSocio = () =>
+    guardarConfig(conVentaSocio(config, !ventaSocio),
+      !ventaSocio ? 'Los socios ya pueden comprar desde su app' : 'Compra desde la app desactivada');
+
+  function toggleEntrega(k: keyof OpcionesEntrega) {
+    const next = { ...entrega, [k]: !entrega[k] };
+    // No dejar al socio sin ninguna forma de recibir lo que compra.
+    if (!next.recepcion && !next.tienda && !next.llevar) {
+      toast.error('Dejá al menos una forma de entrega');
+      return;
+    }
+    guardarConfig(conEntrega(config, next), 'Formas de entrega actualizadas');
   }
 
   async function cancelarTienda() {
@@ -194,21 +203,48 @@ export default function GestionTienda() {
       ))}
 
       {/* Ajuste: venta desde la app del socio. */}
-      <div className="ek-card" style={{ marginTop: 24, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>Compra desde la app del socio</div>
-          <div className="ek-body-muted" style={{ fontSize: 12.5, marginTop: 2 }}>
-            El socio compra desde su móvil con la tarjeta que ya tiene guardada. Ideal si vende sin recepción de por medio.
+      <div className="ek-card" style={{ marginTop: 24, padding: '16px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>Compra desde la app del socio</div>
+            <div className="ek-body-muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+              El socio compra desde su móvil con la tarjeta que ya tiene guardada. Ideal si vende sin recepción de por medio.
+            </div>
           </div>
+          <button
+            onClick={toggleVentaSocio}
+            disabled={guardandoAjuste}
+            className="ek-btn-secondary"
+            style={ventaSocio ? { background: 'var(--sala-primary)', color: '#fff' } : {}}
+          >
+            {guardandoAjuste ? '…' : ventaSocio ? 'Activada' : 'Activar'}
+          </button>
         </div>
-        <button
-          onClick={toggleVentaSocio}
-          disabled={guardandoAjuste}
-          className="ek-btn-secondary"
-          style={ventaSocio ? { background: 'var(--sala-primary)', color: '#fff' } : {}}
-        >
-          {guardandoAjuste ? '…' : ventaSocio ? 'Activada' : 'Activar'}
-        </button>
+
+        {/* Con la compra desde la app prendida: cómo recibe el socio lo que
+            compra. El admin habilita las que apliquen a su negocio. */}
+        {ventaSocio && (
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--ek-line)' }}>
+            <div className="ek-body-muted" style={{ fontSize: 12.5, marginBottom: 10 }}>¿Cómo recibe el socio lo que compra?</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {([
+                ['recepcion', 'Recoge en recepción'],
+                ['tienda', 'Recoge en la tienda'],
+                ['llevar', 'Se lo llevan (cancha, sala…)']
+              ] as const).map(([k, label]) => (
+                <button
+                  key={k}
+                  onClick={() => toggleEntrega(k)}
+                  disabled={guardandoAjuste}
+                  className="ek-btn-secondary"
+                  style={entrega[k] ? { background: 'var(--sala-primary)', color: '#fff' } : {}}
+                >
+                  {entrega[k] ? '✓ ' : ''}{label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Baja del complemento — discreta, al pie, con confirmación. */}

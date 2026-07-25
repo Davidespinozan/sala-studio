@@ -25,3 +25,29 @@ export function conVentaSocio(
   const tienda = { ...((base.tienda ?? {}) as Record<string, unknown>), venta_socio: activo };
   return { ...base, tienda };
 }
+
+/** Cómo puede recibir el socio lo que compra desde la app. El admin habilita
+ *  las que apliquen a su negocio. `recepcion` es el default: si nada está
+ *  configurado, al menos se puede recoger en el mostrador. */
+export type OpcionesEntrega = { recepcion: boolean; tienda: boolean; llevar: boolean };
+
+export function entregaOpciones(config: Record<string, unknown> | null | undefined): OpcionesEntrega {
+  const e = ((config?.tienda as Record<string, unknown>)?.entrega ?? {}) as Record<string, unknown>;
+  const definido = 'recepcion' in e || 'tienda' in e || 'llevar' in e;
+  return {
+    // Sin configurar → recepción prendida (el fallback razonable). Configurado →
+    // lo que diga, respetando que se pueda apagar recepción si el gym solo lleva.
+    recepcion: definido ? e.recepcion === true : true,
+    tienda: e.tienda === true,
+    llevar: e.llevar === true
+  };
+}
+
+export function conEntrega(
+  config: Record<string, unknown> | null | undefined,
+  opciones: OpcionesEntrega
+): Record<string, unknown> {
+  const base = config ?? {};
+  const tienda = { ...((base.tienda ?? {}) as Record<string, unknown>), entrega: opciones };
+  return { ...base, tienda };
+}
