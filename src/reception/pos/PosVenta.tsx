@@ -38,6 +38,7 @@ export default function PosVenta() {
   const [cargando, setCargando] = useState(true);
   const [carrito, setCarrito] = useState<Record<string, number>>({}); // producto_id → cantidad
   const [metodo, setMetodo] = useState<Metodo>('efectivo');
+  const [recibido, setRecibido] = useState(''); // con cuánto paga (efectivo)
   const [cobrando, setCobrando] = useState(false);
   // A quién se le vende. Opcional: default "Público" (venta a la calle).
   const [socio, setSocio] = useState<{ id: string; nombre: string } | null>(null);
@@ -99,8 +100,15 @@ export default function PosVenta() {
   const total = items.reduce((s, x) => s + x.prod.precio_centavos * x.cant, 0);
   const moneda = items[0]?.prod.moneda ?? 'MXN';
 
+  // Vuelto: solo aplica al efectivo. Si no pusieron con cuánto paga, se asume
+  // pago justo (cambio 0).
+  const recibidoCent = Math.round((Number(recibido) || 0) * 100);
+  const vuelto = metodo === 'efectivo' && recibidoCent > total ? recibidoCent - total : 0;
+  const faltaEfectivo = metodo === 'efectivo' && recibido !== '' && recibidoCent < total;
+
   async function cobrar() {
     if (items.length === 0) return;
+    if (faltaEfectivo) return toast.error('Lo que te dieron no alcanza el total');
     setCobrando(true);
     const { error } = await supabase.rpc('vender_productos' as never, {
       p_sucursal_id: sucursalId,
@@ -110,10 +118,13 @@ export default function PosVenta() {
     } as never);
     setCobrando(false);
     if (error) return toast.error('No se pudo cobrar: ' + error.message);
-    toast.success(`Cobrado ${fmt(total, moneda)}${socio ? ` · ${socio.nombre}` : ''}`);
+    // Al cobrar en efectivo con vuelto, lo primero que la recepcionista necesita
+    // es cuánto cambio dar — se lo dejamos bien grande en el aviso.
+    toast.success(vuelto > 0 ? `Cobrado ${fmt(total, moneda)} · Cambio ${fmt(vuelto, moneda)}` : `Cobrado ${fmt(total, moneda)}${socio ? ` · ${socio.nombre}` : ''}`);
     setCarrito({});
     setSocio(null);
     setBuscaSocio('');
+    setRecibido('');
     void cargar();
   }
 
@@ -230,6 +241,45 @@ export default function PosVenta() {
             </button>
           ))}
         </div>
+
+        {/* Efectivo: con cuánto paga → cuánto cambio dar. */}
+        {metodo === 'efectivo' && total > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <input
+              className="ek-input"
+              type="number"
+              inputMode="numeric"
+              value={recibido}
+              onChange={(e) => setRecibido(e.target.value)}
+              placeholder="¿Con cuánto paga? (dejá vacío si es justo)"
+              style={{ fontSize: 13 }}
+            />
+            <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+              {[...new Set([Math.ceil(total / 100), 50, 100, 200, 500].filter((n) => n >= total / 100))]
+                .sort((a, b) => a - b)
+                .slice(0, 4)
+                .map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setRecibido(String(n))}
+                    className="ek-cta ek-cta--secondary"
+                    style={{ flex: 1, fontSize: 12, padding: '6px 4px', minHeight: 0 }}
+                  >
+                    {n === Math.ceil(total / 100) ? 'Justo' : `$${n}`}
+                  </button>
+                ))}
+            </div>
+            {vuelto > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 15 }}>
+                <span style={{ color: 'var(--ek-ink-muted)' }}>Cambio</span>
+                <b style={{ color: 'var(--ek-ok, #34d399)' }}>{fmt(vuelto, moneda)}</b>
+              </div>
+            )}
+            {faltaEfectivo && (
+              <div style={{ marginTop: 8, fontSize: 13, color: 'var(--ek-danger)' }}>Falta {fmt(total - recibidoCent, moneda)}</div>
+            )}
+          </div>
+        )}
 
         <button
           className="ek-cta"
