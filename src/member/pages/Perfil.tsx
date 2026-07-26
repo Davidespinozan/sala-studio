@@ -7,7 +7,8 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { useLandingConfig } from '@shared/hooks/useLandingConfig';
 import { supabase } from '@shared/lib/supabase';
-import { gymCobraOnline } from '@shared/lib/cobrosDelGym';
+import { socioPuedePagarEnApp } from '@shared/lib/cobrosDelGym';
+import { ventaSocioActiva } from '@shared/lib/tiendaConfig';
 import type { Database } from '@shared/types/database';
 import { useMembresiaActual, membresiaEstado } from '@member/hooks/useMembresiaActual';
 import { PlanTipoToggle, type VistaPlan } from '@shared/components/PlanTipoToggle';
@@ -19,6 +20,7 @@ import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { iniciarCheckout } from '@shared/lib/checkout';
 import { backendPost } from '@shared/lib/backend';
 import { CheckoutModal } from '@shared/components/CheckoutModal';
+import ContactoGymCTA from '../components/ContactoGymCTA';
 
 type Tier = Database['public']['Tables']['tiers']['Row'];
 
@@ -98,7 +100,12 @@ function useTiersDelTenant() {
 export default function Perfil() {
   const { authUser, usuario, signOut } = useAuth();
   const tenant = useTenant();
-  const cobraOnline = gymCobraOnline(tenant);
+  // ¿El socio puede pagar su MEMBRESÍA desde la app? (Connect listo + autoservicio
+  // prendido). numa lo apaga: cobra en recepción, la app es solo para reservar.
+  const cobraOnline = socioPuedePagarEnApp(tenant);
+  // La tarjeta guardada también la usa la Tienda: si el gym vende productos al
+  // socio, hay que dejar "Método de pago" aunque las membresías sean solo-recepción.
+  const puedeGuardarTarjeta = cobraOnline || ventaSocioActiva(tenant.config as Record<string, unknown> | null);
   const { sesionesEsteMes } = useStatsDelMes(usuario?.id);
   const { membresia, isLoading: loadingMembresia } = useMembresiaActual(usuario?.id);
   const { tiers } = useTiersDelTenant();
@@ -181,10 +188,11 @@ export default function Perfil() {
           </div>
         )}
 
-        {/* Un gym que cobra en efectivo no tiene tarjetas que gestionar: mostrarle
-            "Método de pago" al socio es ofrecerle un botón que no lleva a ningún lado. */}
-        {cobraOnline && <MetodoPago />}
-        <PlanActualYOpciones membresia={membresia} tiers={tiers} tenantNombre={tenant.nombre} />
+        {/* Un gym que cobra 100% en efectivo y sin Tienda no tiene tarjetas que
+            gestionar: mostrarle "Método de pago" es un botón que no lleva a ningún
+            lado. Se muestra si puede pagar membresía online O comprar en la Tienda. */}
+        {puedeGuardarTarjeta && <MetodoPago />}
+        <PlanActualYOpciones membresia={membresia} tiers={tiers} tenantNombre={tenant.nombre} puedePagar={cobraOnline} />
         <HistorialPagos />
         {membresia && !membresia.cancelada_at && (
           <CancelarSuscripcion tenantNombre={tenant.nombre} />
@@ -718,11 +726,15 @@ function PlanHero({
 function PlanActualYOpciones({
   membresia,
   tiers,
-  tenantNombre
+  tenantNombre,
+  puedePagar
 }: {
   membresia: ReturnType<typeof useMembresiaActual>['membresia'];
   tiers: Tier[];
   tenantNombre: string;
+  /** ¿El socio puede pagar/cambiar de plan solo? Si no (gym solo-recepción), el
+   *  cambio de plan se coordina con el gym, no hay checkout. */
+  puedePagar: boolean;
 }) {
   const toast = useToast();
   const [enProceso, setEnProceso] = useState(false);
@@ -733,6 +745,26 @@ function PlanActualYOpciones({
   const [confirmarPerdida, setConfirmarPerdida] = useState<Tier | null>(null);
 
   if (tiers.length === 0) return null;
+
+  // Gym que cobra en recepción: nada de checkout. El cambio de plan se coordina
+  // con el gym (mismo camino de salida que el resto de la app en este modo).
+  if (!puedePagar) {
+    return (
+      <section style={{ marginTop: '20px' }}>
+        <div className="ek-card" style={{ padding: '16px 18px' }}>
+          <div style={{ fontWeight: 600, fontSize: '14px' }}>Tu plan lo gestionás en recepción</div>
+          <div style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '4px 0 12px', lineHeight: 1.5 }}>
+            Para cambiar o renovar tu plan, hablá con {tenantNombre}.
+          </div>
+          <ContactoGymCTA
+            mensaje="Hola, quiero cambiar o renovar mi plan."
+            label={`Escribile a ${tenantNombre}`}
+            variant="secondary"
+          />
+        </div>
+      </section>
+    );
+  }
 
   const tieneMembresia = !!membresia;
   const esPaquete = (t: Tier) => t.tipo === 'creditos' || t.tipo === 'hibrido';

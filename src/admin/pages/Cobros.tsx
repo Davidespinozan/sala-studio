@@ -1,6 +1,10 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { formatearMoneda } from '@shared/lib/dinero';
+import { supabase } from '@shared/lib/supabase';
+import { useTenant, useTenantRefetch } from '@shared/hooks/useTenant';
+import { useToast } from '@shared/hooks/useToast';
+import { autoservicioActivo, conAutoservicio } from '@shared/lib/cobrosConfig';
 import { ActivarCobrosCard } from '../components/ActivarCobrosCard';
 import type { ConnectEstado } from '../lib/connectService';
 
@@ -88,6 +92,27 @@ export default function Cobros() {
 
   const conectado = estado?.connected === true;
 
+  // Autoservicio: ¿los socios pagan solos (app/landing) o cobrás 100% en
+  // recepción? Vive en tenants.config.cobros.autoservicio.
+  const tenant = useTenant();
+  const refetchTenant = useTenantRefetch();
+  const toast = useToast();
+  const config = (tenant.config as Record<string, unknown> | null) ?? {};
+  const autoservicio = autoservicioActivo(config);
+  const [guardandoAuto, setGuardandoAuto] = useState(false);
+
+  async function toggleAutoservicio() {
+    setGuardandoAuto(true);
+    const next = conAutoservicio(config, !autoservicio);
+    const { error } = await (supabase as any).from('tenants').update({ config: next }).eq('id', tenant.id);
+    if (error) toast.error('No se pudo guardar: ' + error.message);
+    else {
+      toast.success(!autoservicio ? 'Los socios ya pueden pagar en la app' : 'Ahora cobrás solo en recepción');
+      await refetchTenant();
+    }
+    setGuardandoAuto(false);
+  }
+
   return (
     <div className="adm-page">
       <p className="ek-eyebrow" style={{ marginBottom: '4px' }}>CUENTA</p>
@@ -110,6 +135,30 @@ export default function Cobros() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <ActivarCobrosCard onEstado={recibirEstado} />
+
+        {/* Autoservicio: el interruptor "la app es para reservar, el pago es en
+            recepción". Apagado = landing informativa + app sin cobro. */}
+        <Bloque titulo="CÓMO PAGAN TUS SOCIOS">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--sala-text-primary)' }}>
+                Los socios pagan en la app
+              </div>
+              <div style={{ fontSize: '12.5px', color: 'var(--sala-text-secondary)', marginTop: '3px', lineHeight: 1.5 }}>
+                {autoservicio
+                  ? 'Tus socios compran y renuevan su membresía desde la app y la landing.'
+                  : 'Cobrás todo en recepción. La landing queda informativa y la app no pide pago — el socio solo crea su cuenta y reserva.'}
+              </div>
+            </div>
+            <button
+              onClick={toggleAutoservicio}
+              disabled={guardandoAuto}
+              className={autoservicio ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
+            >
+              {guardandoAuto ? '…' : autoservicio ? 'Activado' : 'Desactivado'}
+            </button>
+          </div>
+        </Bloque>
 
         {conectado && (
           <>

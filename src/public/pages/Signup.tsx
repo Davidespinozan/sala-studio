@@ -6,7 +6,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { PasswordInput } from '@shared/components/PasswordInput';
 import { validarPassword } from '../lib/onboardingLogic';
 import { formatearPrecioTier, sufijoPeriodoTier } from '@shared/lib/precioTier';
-import { gymCobraOnline } from '@shared/lib/cobrosDelGym';
+import { socioPuedePagarEnApp } from '@shared/lib/cobrosDelGym';
 
 interface TierRow {
   id: string;
@@ -236,9 +236,10 @@ export default function Signup() {
   const precio = formatearPrecioTier(plan.precio_centavos, plan.moneda);
   const sufijo = sufijoPeriodoTier(plan);
   const beneficios = parseBeneficios(plan.beneficios).slice(0, 4);
-  // ¿Este gym terminó el onboarding de Connect? Decide si al socio le vamos a
-  // pedir la tarjeta o si el gym le cobra por fuera.
-  const cobraOnline = gymCobraOnline(tenant);
+  // ¿Al socio le vamos a pedir la tarjeta, o el gym le cobra por fuera? Connect
+  // listo Y autoservicio prendido. numa: autoservicio off → siempre "sin cargo,
+  // coordina el pago con el gym".
+  const cobraOnline = socioPuedePagarEnApp(tenant);
 
   return (
     <div style={{

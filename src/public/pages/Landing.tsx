@@ -11,6 +11,7 @@ import {
   type LandingSeccionHeading
 } from '@shared/hooks/useLandingConfig';
 import { useTenant } from '@shared/hooks/useTenant';
+import { autoservicioActivo } from '@shared/lib/cobrosConfig';
 import EstudioModal, { type EstudioInfo } from '../components/EstudioModal';
 import { ProgramaSemanal } from '../components/ProgramaSemanal';
 import Footer from '../components/Footer';
@@ -840,6 +841,11 @@ export default function Landing() {
   const { sucursales } = useSucursalesPublicas();
   const { hero, secciones, post_hero, cta_final, faq, whatsappUrl, mostrarInstructores } = useLandingConfig();
   const ctaWhatsappUrl = whatsappUrl();
+  // ¿El gym vende en autoservicio? Si lo apagó (numa: cobra en recepción), la
+  // landing es informativa: los planes se muestran, pero el CTA no vende — crea
+  // la cuenta y el pago se coordina en el mostrador.
+  const tenant = useTenant();
+  const autoservicio = autoservicioActivo(tenant.config as Record<string, unknown> | null);
 
   // Membresías (acceso por tiempo) y paquetes (bolsa de clases) son dos modelos
   // distintos: mostrarlos en la misma grilla amontonaba las tarjetas y el socio
@@ -1355,12 +1361,19 @@ export default function Landing() {
                     }
                     style={{ marginTop: '28px' }}
                   >
-                    {`Empezar con ${tier.nombre}`}
+                    {autoservicio ? `Empezar con ${tier.nombre}` : 'Crear mi cuenta'}
                   </Link>
                 </div>
               );
             })}
           </div>
+        )}
+
+        {/* Solo-recepción: se dice claro que el pago no es online. */}
+        {!autoservicio && !tiersLoading && planesVisibles.length > 0 && (
+          <p style={{ textAlign: 'center', marginTop: '28px', fontSize: '14px', color: 'var(--sala-text-secondary)', lineHeight: 1.55 }}>
+            El pago de tu membresía se realiza en recepción. Creá tu cuenta para reservar tus clases.
+          </p>
         )}
       </section>
 

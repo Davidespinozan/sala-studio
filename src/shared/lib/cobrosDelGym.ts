@@ -16,3 +16,19 @@
 export function gymCobraOnline(tenant: unknown): boolean {
   return (tenant as { stripe_charges_enabled?: boolean } | null)?.stripe_charges_enabled === true;
 }
+
+import { autoservicioActivo } from './cobrosConfig';
+
+/**
+ * ¿El SOCIO puede pagar por su cuenta desde la app/landing?
+ *
+ * Dos condiciones: (1) el gym cobra online (Connect listo) y (2) el gym tiene el
+ * autoservicio prendido. numa cobra 100% en recepción → lo apaga, y aunque algún
+ * día active Connect (p. ej. por la Tienda), las membresías siguen sin venderse
+ * solas. Es el interruptor de "la app es para reservar, el pago es en el
+ * mostrador". Las superficies de cobro de membresía se gatean con esto.
+ */
+export function socioPuedePagarEnApp(tenant: unknown): boolean {
+  const config = (tenant as { config?: Record<string, unknown> } | null)?.config ?? null;
+  return gymCobraOnline(tenant) && autoservicioActivo(config);
+}

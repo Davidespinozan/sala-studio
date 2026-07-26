@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useLandingConfig } from '@shared/hooks/useLandingConfig';
-import { gymCobraOnline } from '@shared/lib/cobrosDelGym';
+import { socioPuedePagarEnApp } from '@shared/lib/cobrosDelGym';
 import { supabase } from '@shared/lib/supabase';
 import { CheckoutModal } from '@shared/components/CheckoutModal';
 
@@ -29,7 +29,7 @@ export function MembresiaPendiente({
 }) {
   const tenant = useTenant();
   const { whatsappUrl } = useLandingConfig();
-  const cobraOnline = gymCobraOnline(tenant);
+  const cobraOnline = socioPuedePagarEnApp(tenant);
   const [tierId, setTierId] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [activando, setActivando] = useState(false);
