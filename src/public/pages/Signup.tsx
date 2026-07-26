@@ -7,6 +7,7 @@ import { PasswordInput } from '@shared/components/PasswordInput';
 import { validarPassword } from '../lib/onboardingLogic';
 import { formatearPrecioTier, sufijoPeriodoTier } from '@shared/lib/precioTier';
 import { socioPuedePagarEnApp } from '@shared/lib/cobrosDelGym';
+import { autoservicioActivo } from '@shared/lib/cobrosConfig';
 
 interface TierRow {
   id: string;
@@ -240,6 +241,9 @@ export default function Signup() {
   // listo Y autoservicio prendido. numa: autoservicio off → siempre "sin cargo,
   // coordina el pago con el gym".
   const cobraOnline = socioPuedePagarEnApp(tenant);
+  // Distinción del mensaje: autoservicio OFF (numa) → "pagas en recepción";
+  // autoservicio ON pero Connect en trámite → "coordina el pago con el gym".
+  const autoservicio = autoservicioActivo(tenant.config as Record<string, unknown> | null);
 
   return (
     <div style={{
@@ -390,18 +394,25 @@ export default function Signup() {
           <p style={{ fontSize: '13px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
             {cobraOnline && plan.precio_centavos > 0 ? (
               <>
-                <strong>Pagás al terminar.</strong> Creás tu cuenta y enseguida te pedimos la
+                <strong>Pagas al terminar.</strong> Creas tu cuenta y enseguida te pedimos la
                 tarjeta para activar tu plan de {precio}. El cobro lo procesa {tenant.nombre} de
                 forma segura.
               </>
             ) : plan.precio_centavos > 0 ? (
-              <>
-                <strong>Sin cargo por ahora.</strong> Activás tu cuenta al instante y{' '}
-                {tenant.nombre} coordina el pago con vos. No te pedimos tarjeta acá.
-              </>
+              autoservicio ? (
+                <>
+                  <strong>Sin cargo aquí.</strong> Creas tu cuenta al instante y{' '}
+                  {tenant.nombre} coordina el pago contigo. No te pedimos tarjeta.
+                </>
+              ) : (
+                <>
+                  <strong>Sin cargo aquí.</strong> Creas tu cuenta al instante y pagas tu plan en
+                  recepción. No te pedimos tarjeta.
+                </>
+              )
             ) : (
               <>
-                <strong>Este plan es gratis.</strong> Activás tu cuenta al instante y no te pedimos
+                <strong>Este plan es gratis.</strong> Activas tu cuenta al instante y no te pedimos
                 tarjeta.
               </>
             )}

@@ -752,13 +752,13 @@ function PlanActualYOpciones({
     return (
       <section style={{ marginTop: '20px' }}>
         <div className="ek-card" style={{ padding: '16px 18px' }}>
-          <div style={{ fontWeight: 600, fontSize: '14px' }}>Tu plan lo gestionás en recepción</div>
+          <div style={{ fontWeight: 600, fontSize: '14px' }}>Tu plan se gestiona en recepción</div>
           <div style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '4px 0 12px', lineHeight: 1.5 }}>
-            Para cambiar o renovar tu plan, hablá con {tenantNombre}.
+            Para cambiar o renovar tu plan, habla con {tenantNombre}.
           </div>
           <ContactoGymCTA
             mensaje="Hola, quiero cambiar o renovar mi plan."
-            label={`Escribile a ${tenantNombre}`}
+            label={`Escríbele a ${tenantNombre}`}
             variant="secondary"
           />
         </div>

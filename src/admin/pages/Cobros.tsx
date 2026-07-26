@@ -107,7 +107,7 @@ export default function Cobros() {
     const { error } = await (supabase as any).from('tenants').update({ config: next }).eq('id', tenant.id);
     if (error) toast.error('No se pudo guardar: ' + error.message);
     else {
-      toast.success(!autoservicio ? 'Los socios ya pueden pagar en la app' : 'Ahora cobrás solo en recepción');
+      toast.success(!autoservicio ? 'Los socios ya pueden pagar en la app' : 'Ahora cobras solo en recepción');
       await refetchTenant();
     }
     setGuardandoAuto(false);
@@ -147,7 +147,7 @@ export default function Cobros() {
               <div style={{ fontSize: '12.5px', color: 'var(--sala-text-secondary)', marginTop: '3px', lineHeight: 1.5 }}>
                 {autoservicio
                   ? 'Tus socios compran y renuevan su membresía desde la app y la landing.'
-                  : 'Cobrás todo en recepción. La landing queda informativa y la app no pide pago — el socio solo crea su cuenta y reserva.'}
+                  : 'Cobras todo en recepción. La landing queda informativa y la app no pide pago — el socio solo crea su cuenta y reserva.'}
               </div>
             </div>
             <button

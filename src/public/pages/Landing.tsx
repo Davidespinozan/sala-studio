@@ -1372,7 +1372,7 @@ export default function Landing() {
         {/* Solo-recepción: se dice claro que el pago no es online. */}
         {!autoservicio && !tiersLoading && planesVisibles.length > 0 && (
           <p style={{ textAlign: 'center', marginTop: '28px', fontSize: '14px', color: 'var(--sala-text-secondary)', lineHeight: 1.55 }}>
-            El pago de tu membresía se realiza en recepción. Creá tu cuenta para reservar tus clases.
+            El pago de tu membresía se realiza en recepción. Crea tu cuenta para reservar tus clases.
           </p>
         )}
       </section>

@@ -3,6 +3,7 @@ import { TenantLogo } from '@shared/components/TenantLogo';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useLandingConfig } from '@shared/hooks/useLandingConfig';
 import { socioPuedePagarEnApp } from '@shared/lib/cobrosDelGym';
+import { autoservicioActivo } from '@shared/lib/cobrosConfig';
 import { supabase } from '@shared/lib/supabase';
 import { CheckoutModal } from '@shared/components/CheckoutModal';
 
@@ -30,6 +31,9 @@ export function MembresiaPendiente({
   const tenant = useTenant();
   const { whatsappUrl } = useLandingConfig();
   const cobraOnline = socioPuedePagarEnApp(tenant);
+  // Sin cobro online: si el gym cobra en recepción (autoservicio off) el mensaje
+  // es directo; si es Connect en trámite, "coordina con el gym".
+  const autoservicio = autoservicioActivo(tenant.config as Record<string, unknown> | null);
   const [tierId, setTierId] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [activando, setActivando] = useState(false);
@@ -91,12 +95,14 @@ export function MembresiaPendiente({
         <TenantLogo variant="completo" height={48} fallbackFontSize={30} showSuffix />
         <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: '26px 0 8px' }}>CASI LISTO</p>
         <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, margin: '0 0 10px', color: 'var(--ek-ink)' }}>
-          {nombre ? `Hola, ${nombre}` : cobraOnline ? 'Completá tu pago' : 'Tu cuenta está lista'}
+          {nombre ? `Hola, ${nombre}` : cobraOnline ? 'Completa tu pago' : 'Tu cuenta está lista'}
         </h1>
         <p style={{ maxWidth: 380, fontSize: 14, color: 'var(--sala-text-secondary)', lineHeight: 1.55, margin: '0 0 22px' }}>
           {cobraOnline
-            ? 'Pagá tu plan para activar tu membresía y empezar a reservar.'
-            : `Tu cuenta ya está creada. Coordiná el pago con ${tenant.nombre} y activan tu membresía para que puedas reservar.`}
+            ? 'Paga tu plan para activar tu membresía y empezar a reservar.'
+            : autoservicio
+              ? `Tu cuenta ya está creada. Coordina el pago con ${tenant.nombre} y activan tu membresía para que puedas reservar.`
+              : `Tu cuenta ya está creada. Paga tu plan en recepción y activan tu membresía para que puedas reservar.`}
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 300 }}>
@@ -113,7 +119,7 @@ export function MembresiaPendiente({
               className="ek-cta"
               style={{ textDecoration: 'none' }}
             >
-              Escribile a {tenant.nombre}
+              Escríbele a {tenant.nombre}
             </a>
           )}
           <button onClick={onCerrarSesion} className="ek-cta ek-cta--secondary">
