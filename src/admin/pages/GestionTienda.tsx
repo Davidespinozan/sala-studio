@@ -96,14 +96,14 @@ export default function GestionTienda() {
     const next = { ...entrega, [k]: !entrega[k] };
     // No dejar al socio sin ninguna forma de recibir lo que compra.
     if (!next.recepcion && !next.tienda && !next.llevar) {
-      toast.error('Dejá al menos una forma de entrega');
+      toast.error('Deja al menos una forma de entrega');
       return;
     }
     guardarConfig(conEntrega(config, next), 'Formas de entrega actualizadas');
   }
 
   async function cancelarTienda() {
-    if (!confirm('¿Dar de baja la tienda? Dejás de pagar el complemento y desaparece del menú. Tus productos y ventas quedan guardados por si la reactivás.')) return;
+    if (!confirm('¿Dar de baja la tienda? Dejas de pagar el complemento y desaparece del menú. Tus productos y ventas quedan guardados por si la reactivas.')) return;
     setCancelando(true);
     try {
       await backendPost('complemento-saas', { modulo: 'tienda', accion: 'cancelar' });

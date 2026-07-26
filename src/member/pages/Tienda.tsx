@@ -76,7 +76,7 @@ export default function Tienda() {
 
   async function pagar() {
     if (entregaTipo === 'llevar' && !ubicacion.trim()) {
-      toast.error('Decinos dónde estás para llevártelo');
+      toast.error('Dinos dónde estás para llevártelo');
       return;
     }
     setComprando(true);
@@ -89,8 +89,8 @@ export default function Tienda() {
 
       if (r.paid) {
         toast.success(
-          entregaTipo === 'recepcion' ? '¡Listo! Pasá a recepción a recogerlo.'
-          : entregaTipo === 'tienda' ? '¡Listo! Pasá a la tienda a recogerlo.'
+          entregaTipo === 'recepcion' ? '¡Listo! Pasa a recepción a recogerlo.'
+          : entregaTipo === 'tienda' ? '¡Listo! Pasa a la tienda a recogerlo.'
           : '¡Listo! Te lo llevamos.'
         );
         setCarrito({});
@@ -101,21 +101,21 @@ export default function Tienda() {
       // No se cobró: cada motivo, su mensaje. 'sin_tarjeta' manda a agregar una.
       switch (r.reason) {
         case 'sin_tarjeta':
-          toast.info('Agregá una tarjeta para comprar desde la app.');
+          toast.info('Agrega una tarjeta para comprar desde la app.');
           navigate('/app/perfil');
           break;
         case 'suspendido':
           toast.error('Tu cuenta está suspendida. Hablá con el gym.');
           break;
         case 'sin_stock':
-          toast.error('Se agotó algo de tu carrito. Ajustalo e intentá de nuevo.');
+          toast.error('Se agotó algo de tu carrito. Ajústalo e intenta de nuevo.');
           void recargarProductos();
           break;
         case 'rechazada':
           toast.error(r.mensaje || 'Tu tarjeta fue rechazada.');
           break;
         case 'requiere_autenticacion':
-          toast.error('Tu banco pide confirmar el pago. Actualizá tu tarjeta en el perfil.');
+          toast.error('Tu banco pide confirmar el pago. Actualiza tu tarjeta en el perfil.');
           break;
         case 'no_disponible':
           toast.error('La compra desde la app no está disponible ahora.');
@@ -148,7 +148,7 @@ export default function Tienda() {
         <button onClick={() => setEnCheckout(false)} style={{ background: 'none', border: 'none', color: 'var(--sala-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 12 }}>‹ Volver</button>
         <div className="ek-stack-md" style={{ marginBottom: 20 }}>
           <p className="ek-eyebrow">TU COMPRA</p>
-          <h1 className="ek-display-md" style={{ margin: 0 }}>¿Cómo lo recibís?</h1>
+          <h1 className="ek-display-md" style={{ margin: 0 }}>¿Cómo lo recibes?</h1>
         </div>
 
         <div style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
@@ -188,7 +188,7 @@ export default function Tienda() {
           {comprando ? 'Procesando…' : `Pagar ${fmt(total, moneda)} con mi tarjeta`}
         </button>
         <p className="ek-body-muted" style={{ fontSize: 12, textAlign: 'center', marginTop: 10 }}>
-          Se cobra a la tarjeta que ya tenés guardada en el gym.
+          Se cobra a la tarjeta que ya tienes guardada en el gym.
         </p>
       </div>
     );
@@ -198,8 +198,8 @@ export default function Tienda() {
     <div className="ek-container" style={{ paddingTop: '12px', paddingBottom: items.length > 0 ? 80 : 0 }}>
       <div className="ek-stack-md" style={{ marginBottom: 20 }}>
         <p className="ek-eyebrow">TIENDA</p>
-        <h1 className="ek-display-md" style={{ margin: 0 }}>Comprá desde tu móvil</h1>
-        <p className="ek-body-muted" style={{ margin: 0 }}>Elegí lo que quieras y retiralo en el gym.</p>
+        <h1 className="ek-display-md" style={{ margin: 0 }}>Compra desde tu móvil</h1>
+        <p className="ek-body-muted" style={{ margin: 0 }}>Elige lo que quieras y retíralo en el gym.</p>
       </div>
 
       {productos.length === 0 ? (

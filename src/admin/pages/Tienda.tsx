@@ -64,8 +64,8 @@ function ActivarTienda() {
         }}
       >
         <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.9, color: 'var(--ek-ink)' }}>
-          <li>Cargá tus productos con precio, stock y foto</li>
-          <li>Cobralo en recepción: efectivo, terminal o tarjeta</li>
+          <li>Carga tus productos con precio, stock y foto</li>
+          <li>Cóbralo en recepción: efectivo, terminal o tarjeta</li>
           <li>El stock se descuenta solo y todo entra a tu Caja</li>
           <li>Reporte de ventas del día y aviso de stock bajo</li>
         </ul>

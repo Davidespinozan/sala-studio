@@ -223,7 +223,7 @@ export default function Cobros() {
                 </a>
               ) : (
                 <p style={{ fontSize: '13px', color: 'var(--sala-text-tertiary)', margin: 0 }}>
-                  El link a tu panel no está disponible ahora. Reintentá en un rato.
+                  El link a tu panel no está disponible ahora. Reinténtalo en un rato.
                 </p>
               )}
             </Bloque>

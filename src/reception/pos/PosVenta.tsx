@@ -174,7 +174,7 @@ export default function PosVenta() {
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ek-ink-faint)', marginBottom: 12 }}>La venta</div>
 
         {items.length === 0 ? (
-          <p className="ek-body-muted" style={{ fontSize: 13 }}>Tocá un producto para agregarlo.</p>
+          <p className="ek-body-muted" style={{ fontSize: 13 }}>Toca un producto para agregarlo.</p>
         ) : (
           <div style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
             {items.map((x) => (
@@ -251,7 +251,7 @@ export default function PosVenta() {
               inputMode="numeric"
               value={recibido}
               onChange={(e) => setRecibido(e.target.value)}
-              placeholder="¿Con cuánto paga? (dejá vacío si es justo)"
+              placeholder="¿Con cuánto paga? (deja vacío si es justo)"
               style={{ fontSize: 13 }}
             />
             <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
