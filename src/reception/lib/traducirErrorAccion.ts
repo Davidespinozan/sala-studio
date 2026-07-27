@@ -29,6 +29,7 @@ export const ERROR_CODE_MAP: Record<string, string> = {
   SIN_CREDITOS: 'El socio se quedó sin clases en su paquete',
   TIER_NO_PERMITIDO: 'El plan del socio no incluye esta sala',
   DIA_NO_PERMITIDO: 'El plan del socio no permite reservar ese día de la semana',
+  LIMITE_DIARIO: 'El socio ya llegó al máximo de reservas por día de su plan',
   SUCURSAL_NO_INCLUIDA: 'El plan del socio no cubre esta sede',
   USUARIO_BLOQUEADO: 'El socio tiene una restricción activa',
   INVITADOS_NO_INCLUIDOS: 'El plan del socio no incluye invitados',

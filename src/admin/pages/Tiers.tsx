@@ -643,6 +643,11 @@ function EditarTierModal({
   const tierDias = (tier as { dias_acceso?: number[] | null } | null)?.dias_acceso;
   const [limitarDias, setLimitarDias] = useState<boolean>(() => Array.isArray(tierDias) && tierDias.length > 0);
   const [diasAcceso, setDiasAcceso] = useState<number[]>(() => (Array.isArray(tierDias) && tierDias.length > 0 ? tierDias : [1, 2, 3, 4, 5]));
+  // Máx. reservas por día ('' = sin tope).
+  const [maxReservasDia, setMaxReservasDia] = useState<string>(() => {
+    const m = (tier as { max_reservas_dia?: number | null } | null)?.max_reservas_dia;
+    return m != null ? String(m) : '';
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -702,6 +707,14 @@ function EditarTierModal({
     }
     const diasAccesoVal = limitarDias && diasAcceso.length > 0 ? [...diasAcceso].sort((a, b) => a - b) : null;
 
+    // Máx. reservas por día ('' = sin tope; mínimo 1).
+    const maxResVal = maxReservasDia.trim() ? Math.max(1, Math.round(Number(maxReservasDia))) : null;
+    if (maxReservasDia.trim() && (!Number.isFinite(maxResVal as number))) {
+      setError('El máximo de reservas por día no es válido.');
+      setSaving(false);
+      return;
+    }
+
     if (esPaquete && (!Number.isFinite(clasesVal as number) || (clasesVal ?? 0) < 1)) {
       setError('El paquete debe incluir al menos 1 clase.');
       setSaving(false);
@@ -752,6 +765,7 @@ function EditarTierModal({
         duracion_dias: duracionVal,
         pago_unico: pagoUnicoVal,
         dias_acceso: diasAccesoVal,
+        max_reservas_dia: maxResVal,
         beneficios: beneficios as never,
         reglas: reglas as never,
         activo,
@@ -785,6 +799,7 @@ function EditarTierModal({
       duracion_dias: duracionVal,
       pago_unico: pagoUnicoVal,
       dias_acceso: diasAccesoVal,
+      max_reservas_dia: maxResVal,
       beneficios,
       reglas: reglasNuevas as never,
       activo,
@@ -954,6 +969,23 @@ function EditarTierModal({
             />
           </div>
         )}
+
+        {/* Tope de reservas por día. Vacío = sin límite. */}
+        <label className="ek-label" style={{ marginTop: '12px', display: 'block' }}>
+          Máx. reservas por día (opcional)
+          <input
+            type="number"
+            min="1"
+            step="1"
+            value={maxReservasDia}
+            onChange={(e) => setMaxReservasDia(e.target.value)}
+            className="ek-input"
+            placeholder="Sin límite"
+          />
+          <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)' }}>
+            Cuántas clases puede reservar el socio en un mismo día. Vacío = sin tope.
+          </span>
+        </label>
 
         {/* Acceso por día de la semana: si se limita, el sistema bloquea reservar
             en días no permitidos (ej. Elevate lun-vie, Ultra lun-sáb). */}

@@ -99,6 +99,11 @@ describe('traducirErrorRPC — gate de membresía (Fase 2A.2)', () => {
       'Te quedaste sin clases. Contacta al gimnasio para recargar.'
     );
   });
+  it('LIMITE_DIARIO → conserva el número del tope', () => {
+    expect(traducirErrorRPC('LIMITE_DIARIO: Tu plan permite 1 reserva(s) por día')).toBe(
+      'Tu plan permite 1 reserva(s) por día. Ya llegaste al tope de hoy.'
+    );
+  });
   it('DIA_NO_PERMITIDO → conserva el día del mensaje', () => {
     expect(traducirErrorRPC('DIA_NO_PERMITIDO: Tu plan no incluye acceso los sábados')).toBe(
       'Tu plan no incluye acceso los sábados.'
