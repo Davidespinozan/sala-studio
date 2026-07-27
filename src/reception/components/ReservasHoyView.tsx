@@ -3,6 +3,7 @@ import { Check, CalendarClock, CalendarDays, Clock, Hourglass, TrendingUp, Layer
 import { useReservasHoy, checkInManual, type ReservaConJoin } from '../hooks/useReservasHoy';
 import { playCheckInSuccess, playCheckInError } from '../lib/checkInFeedback';
 import { EmptyState } from '@shared/components/EmptyState';
+import { esCorreoMarcador } from '@shared/lib/sinCorreo';
 import { CancelarReservaModal } from './acciones/CancelarReservaModal';
 import { MarcarNoShowModal } from './acciones/MarcarNoShowModal';
 import { CorregirCheckinModal } from './acciones/CorregirCheckinModal';
@@ -413,9 +414,15 @@ function LlegandoCard({ reserva, onSelect, onQuickCheckIn }: {
               {nombre}
             </span>
             <TierChip tier={tier} />
+            {esCorreoMarcador(reserva.usuario?.email) && (
+              <span style={{ flexShrink: 0, fontSize: '10.5px', fontWeight: 700, color: 'var(--ek-warning, #d97706)', background: 'var(--ek-warning-soft, rgba(217,119,6,.14))', borderRadius: '999px', padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                Sin correo
+              </span>
+            )}
           </div>
           <p style={{ fontSize: '12.5px', color: 'var(--sala-text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {reserva.recurso?.nombre ?? '—'} · {hora}
+            {esCorreoMarcador(reserva.usuario?.email) && <strong style={{ color: 'var(--ek-warning, #d97706)' }}> · pídele su email</strong>}
             {lugar && <strong style={{ color: 'var(--sala-primary)' }}> · Lugar {lugar.replace(/^L/i, '')}</strong>}
           </p>
         </div>

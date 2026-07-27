@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Check } from 'lucide-react';
 import { usePlanesDelTenant } from '@shared/hooks/usePlanesDelTenant';
+import { esCorreoMarcador } from '@shared/lib/sinCorreo';
 
 interface MiembroData {
   id: string;
@@ -123,7 +124,11 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, membresi
         <Avatar nombre={miembro.nombre ?? miembro.email} url={miembro.avatar_url} />
         <div>
           <h2 className="rec-detail-name">{miembro.nombre ?? '—'}</h2>
-          <p className="rec-detail-contact">{miembro.email}</p>
+          <p className="rec-detail-contact">
+            {esCorreoMarcador(miembro.email)
+              ? <span style={{ color: 'var(--ek-warning, #d97706)', fontWeight: 700 }}>⚠ Sin correo — pídele su email</span>
+              : miembro.email}
+          </p>
           {miembro.telefono && <p className="rec-detail-contact">{miembro.telefono}</p>}
         </div>
       </div>
