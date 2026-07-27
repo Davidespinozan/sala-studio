@@ -6,6 +6,7 @@ import { useMiembros } from '../hooks/useAdminData';
 import { NuevaPersonaModal } from '../components/NuevaPersonaModal';
 import { ImportarMiembrosModal } from '../components/ImportarMiembrosModal';
 import { exportarCsv } from '@shared/lib/exportarCsv';
+import { etiquetaCorreo, esCorreoMarcador } from '@shared/lib/sinCorreo';
 import CardMenuDropdown from '../components/CardMenuDropdown';
 import { GestionarMembresiaModal } from '../components/miembro/GestionarMembresiaModal';
 import { BloquearAccesoModal } from '../components/miembro/BloquearAccesoModal';
@@ -27,6 +28,10 @@ export default function Miembros() {
   // Fijamos rol='miembro' para excluir staff (admins, recepcionistas).
   // El equipo se gestiona desde /admin/equipo (Sprint Equipo).
   const { miembros, isLoading, refetch } = useMiembros({ search, status, rol: 'miembro' });
+  // "Sin correo": socios importados sin email real → recepción debe capturarlo.
+  const [soloSinCorreo, setSoloSinCorreo] = useState(false);
+  const sinCorreoCount = miembros.filter((m) => esCorreoMarcador(m.email)).length;
+  const visibles = soloSinCorreo ? miembros.filter((m) => esCorreoMarcador(m.email)) : miembros;
 
   return (
     <div className="adm-page">
@@ -38,9 +43,22 @@ export default function Miembros() {
           <p className="ek-eyebrow">MIEMBROS</p>
           <h1 className="ek-h2">Tus clientes en {tenant.nombre || 'tu gym'}</h1>
           {!isLoading && (
-            <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '4px' }}>
-              {miembros.length}{' '}
-              {miembros.length === 1 ? 'cliente' : 'clientes'}
+            <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span>{miembros.length} {miembros.length === 1 ? 'cliente' : 'clientes'}</span>
+              {sinCorreoCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSoloSinCorreo((v) => !v)}
+                  style={{
+                    cursor: 'pointer', border: 'none', borderRadius: 999, padding: '2px 10px', fontSize: 11.5, fontWeight: 700,
+                    background: soloSinCorreo ? 'var(--ek-warning, #d97706)' : 'var(--ek-warning-soft, rgba(217,119,6,.14))',
+                    color: soloSinCorreo ? '#fff' : 'var(--ek-warning, #d97706)'
+                  }}
+                  title="Estos socios entraron sin correo. Ponles su email en la ficha para que activen su cuenta."
+                >
+                  {sinCorreoCount} sin correo {soloSinCorreo ? '· ver todos' : '›'}
+                </button>
+              )}
             </p>
           )}
         </div>
@@ -48,7 +66,7 @@ export default function Miembros() {
           <button
             onClick={() => exportarCsv(`miembros-${tenant.slug || 'gym'}`, miembros, [
               { key: 'nombre', label: 'Nombre' },
-              { key: 'email', label: 'Email' },
+              { key: 'email', label: 'Email', valor: (m) => etiquetaCorreo(m.email) },
               { key: 'telefono', label: 'Teléfono' },
               { key: 'status', label: 'Estado' },
               { key: 'membresia_tier', label: 'Plan' },
@@ -110,13 +128,19 @@ export default function Miembros() {
               </tr>
             </thead>
             <tbody>
-              {miembros.map((m) => {
+              {visibles.map((m) => {
                 const estaBloqueado =
                   !!m.bloqueado_hasta && new Date(m.bloqueado_hasta) > new Date();
                 return (
                   <tr key={m.id}>
                     <td>{m.nombre ?? '—'}</td>
-                    <td style={{ color: 'var(--ek-ink-muted)' }}>{m.email}</td>
+                    <td style={{ color: 'var(--ek-ink-muted)' }}>
+                      {esCorreoMarcador(m.email) ? (
+                        <span style={{ display: 'inline-block', borderRadius: 999, padding: '1px 9px', fontSize: 11.5, fontWeight: 700, background: 'var(--ek-warning-soft, rgba(217,119,6,.14))', color: 'var(--ek-warning, #d97706)' }}>
+                          Sin correo
+                        </span>
+                      ) : m.email}
+                    </td>
                     <td>{m.membresia_tier ?? '—'}</td>
                     <td>
                       <StatusBadge status={m.status} />
