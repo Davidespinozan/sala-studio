@@ -4,11 +4,16 @@ import { useTenant } from '@shared/hooks/useTenant';
 
 /**
  * Economía del gym (snapshot de HOY, independiente del período):
- *   - MRR   = Σ membresías activas × precio mensual del tier (anual → /12)
+ *   - MRR   = Σ membresías activas RECURRENTES × precio mensual del tier
  *   - ARR   = MRR × 12
- *   - ARPU  = MRR ÷ miembros activos con plan
+ *   - ARPU  = MRR ÷ miembros activos con plan recurrente
  *   - LTV   = ARPU × vida media (estimado; tope 36m)
  *   - Vida media = 1 ÷ churn mensual (bajas distintas en 90d ÷ 3 ÷ activos)
+ *
+ * El precio mensual se normaliza por `duracion_dias` (la fuente de verdad de la
+ * vigencia): precio × 30 / dias. Así un plan de 90 días de $3.000 aporta $1.000
+ * al mes, no $3.000. Los PASES de pago único (Day Pass, semana suelta) NO son
+ * ingreso recurrente → no entran al MRR/ARR.
  *
  * Es ingreso CONTRATADO (lo que las membresías representan), no cobro real —
  * no depende de Stripe. Asume una sola moneda por tenant: si hubiera tiers en
@@ -34,6 +39,8 @@ interface TierRow {
   precio_centavos: number;
   moneda: string;
   periodo: string;
+  duracion_dias: number | null;
+  pago_unico: boolean;
 }
 interface UsuarioRow {
   membresia_tier: string | null;
@@ -48,12 +55,19 @@ const DIA_MS = 86_400_000;
 const LIFESPAN_TOPE_MESES = 36;
 
 /**
- * Precio del tier normalizado a MENSUAL, para que el MRR compare peras con peras:
- * un anual se divide entre 12 y un quincenal se multiplica por 2 (se cobra dos
- * veces al mes). Sin esto, un plan quincenal aportaba al MRR la mitad de lo que
- * factura de verdad.
+ * Precio del tier normalizado a MENSUAL (30 días), para comparar planes de
+ * distinta duración. Usa `duracion_dias` como fuente de verdad: precio × 30/días.
+ * Los pases de PAGO ÚNICO no son ingreso recurrente → 0. Fallback por `periodo`
+ * para tiers viejos sin duracion_dias.
  */
 export function precioMensual(t: TierRow): number {
+  // Pase de pago único (Day Pass, semana suelta): no es recurrente.
+  if (t.pago_unico) return 0;
+  // Fuente de verdad: la duración real del acceso.
+  if (t.duracion_dias && t.duracion_dias > 0) {
+    return Math.round((t.precio_centavos * 30) / t.duracion_dias);
+  }
+  // Fallback (tiers sin duracion_dias): por periodo.
   if (t.periodo === 'anual') return Math.round(t.precio_centavos / 12);
   if (t.periodo === 'quincenal') return t.precio_centavos * 2;
   return t.precio_centavos;
@@ -74,7 +88,7 @@ export function useReportesEconomia() {
       const [tiersRes, activosRes, histRes] = await Promise.all([
         supabase
           .from('tiers')
-          .select('slug, nombre, precio_centavos, moneda, periodo')
+          .select('slug, nombre, precio_centavos, moneda, periodo, duracion_dias, pago_unico')
           .eq('tenant_id', tenant.id)
           .eq('activo', true),
         supabase
@@ -92,7 +106,8 @@ export function useReportesEconomia() {
 
       if (!mounted) return;
 
-      const tiers = (tiersRes.data ?? []) as TierRow[];
+      // pago_unico es columna nueva (no está aún en los tipos generados) → unknown.
+      const tiers = (tiersRes.data ?? []) as unknown as TierRow[];
       const activos = (activosRes.data ?? []) as UsuarioRow[];
       const hist = (histRes.data ?? []) as HistRow[];
 
