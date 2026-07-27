@@ -66,6 +66,7 @@ let vistas = 0;
 let ajenas = 0;
 let insertadas = 0;
 let yaEstaban = 0;
+let enCero = 0;
 // Por moneda, NUNCA en un solo total: los precios del SaaS son fijos por
 // mercado, no convertidos. Sumar pesos con dolares da un numero inventado.
 const totalPorMoneda = new Map();
@@ -82,7 +83,15 @@ for await (const inv of stripe.invoices.list({ status: 'paid', limit: 100 })) {
   }
 
   const centavos = typeof inv.amount_paid === 'number' ? inv.amount_paid : 0;
-  if (centavos <= 0) continue;
+  // Facturas de $0: arranque de prueba, cupon del 100%, o ajuste. NO son un
+  // movimiento de dinero, pero se REPORTAN: saltarlas en silencio hace que el
+  // resultado se lea como "no encontre nada" cuando en realidad si encontro,
+  // solo que sin importe. Son dos cosas muy distintas.
+  if (centavos <= 0) {
+    enCero++;
+    console.log(`  · ${new Date(inv.created * 1000).toISOString().substring(0, 10)}  sin importe (${inv.number ?? inv.id})`);
+    continue;
+  }
 
   // La fecha del cobro, no la de hoy: el ingreso pertenece al mes en que entró.
   const pagadoEn =
@@ -136,6 +145,7 @@ console.log(`
 ─────────────────────────────────────────────
 Facturas pagadas en Stripe:  ${vistas}
   de otro negocio (ignoradas): ${ajenas}
+  de SALA pero en $0:          ${enCero}
   ya estaban en el libro:      ${yaEstaban}
   ${DRY ? 'se registrarían' : 'registradas'}:${' '.repeat(DRY ? 14 : 17)}${insertadas}
 
