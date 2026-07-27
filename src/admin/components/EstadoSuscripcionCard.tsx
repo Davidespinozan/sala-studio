@@ -172,7 +172,7 @@ export function EstadoSuscripcionCard({
       }
       onCambio();
     } catch {
-      toast.error('No pudimos cancelar la suscripción. Probá de nuevo.');
+      toast.error('No pudimos cancelar la suscripción. Prueba de nuevo.');
     } finally {
       setCancelando(false);
       setConfirmando(false);
@@ -187,7 +187,7 @@ export function EstadoSuscripcionCard({
       toast.success('¡Suscripción reactivada! No se cancelará.');
       onCambio();
     } catch {
-      toast.error('No pudimos reactivar. Probá de nuevo.');
+      toast.error('No pudimos reactivar. Prueba de nuevo.');
     } finally {
       setReactivando(false);
     }
@@ -205,7 +205,7 @@ export function EstadoSuscripcionCard({
       } else if (res.reason === 'stripe_pendiente') {
         toast.info('Estamos conectando Stripe. Disponible pronto.');
       } else {
-        toast.error('No pudimos abrir la facturación. Probá de nuevo.');
+        toast.error('No pudimos abrir la facturación. Prueba de nuevo.');
       }
     } catch {
       toast.error('No pudimos abrir la facturación. Probá de nuevo.');
@@ -302,7 +302,7 @@ export function EstadoSuscripcionCard({
       {suscripcion.payment_past_due && (
         <AvisoLimite
           fuerte
-          texto="Tu último pago no se procesó. Actualizá tu método de pago para no perder el acceso a tu plan."
+          texto="Tu último pago no se procesó. Actualiza tu método de pago para no perder el acceso a tu plan."
         />
       )}
 
@@ -319,7 +319,7 @@ export function EstadoSuscripcionCard({
           <p style={{ fontSize: '13px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
             <strong>Cancelación programada · </strong>
             Tu plan sigue activo hasta el{' '}
-            {suscripcion.periodo_actual_termina ? formatFecha(suscripcion.periodo_actual_termina) : 'fin del período'}. Podés reactivarlo antes.
+            {suscripcion.periodo_actual_termina ? formatFecha(suscripcion.periodo_actual_termina) : 'fin del período'}. Puedes reactivarlo antes.
           </p>
         </div>
       )}
@@ -385,7 +385,7 @@ export function EstadoSuscripcionCard({
           {!uso.excedido && uso.cerca && (
             <AvisoLimite
               fuerte={false}
-              texto={`Estás cerca del límite de tu plan (${uso.miembrosActuales}/${uso.limite}). Pensá en subir de plan pronto.`}
+              texto={`Estás cerca del límite de tu plan (${uso.miembrosActuales}/${uso.limite}). Piensa en subir de plan pronto.`}
             />
           )}
         </div>
@@ -407,12 +407,12 @@ export function EstadoSuscripcionCard({
               />
               <div style={{ minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: '13.5px', fontWeight: 600, color: 'var(--sala-text-primary)' }}>
-                  No tenés una tarjeta registrada
+                  No tienes una tarjeta registrada
                 </p>
                 <p style={{ margin: '3px 0 0', fontSize: '12.5px', lineHeight: 1.5, color: 'var(--sala-text-secondary)' }}>
                   {suscripcion.estado === 'trial'
-                    ? 'Cuando termine tu prueba vas a perder el acceso al panel. Elegí tu plan abajo para agregarla.'
-                    : 'Agregá una tarjeta para mantener tu plan activo.'}
+                    ? 'Cuando termine tu prueba vas a perder el acceso al panel. Elige tu plan abajo para agregarla.'
+                    : 'Agrega una tarjeta para mantener tu plan activo.'}
                 </p>
               </div>
             </div>
@@ -559,8 +559,8 @@ export function EstadoSuscripcionCard({
         title="¿Cancelar tu suscripción?"
         description={
           esDemo
-            ? 'Perdés el acceso al terminar el período actual. Puedes volver a suscribirte cuando quieras. (Modo demo — no se procesa ningún reembolso real.)'
-            : 'Tu plan sigue activo hasta el final del período actual y luego se cancela. No se reembolsa el período en curso. Podés reactivarlo antes de esa fecha.'
+            ? 'Pierdes el acceso al terminar el período actual. Puedes volver a suscribirte cuando quieras. (Modo demo — no se procesa ningún reembolso real.)'
+            : 'Tu plan sigue activo hasta el final del período actual y luego se cancela. No se reembolsa el período en curso. Puedes reactivarlo antes de esa fecha.'
         }
         confirmLabel={cancelando ? 'Cancelando…' : 'Sí, cancelar'}
         cancelLabel="Volver"

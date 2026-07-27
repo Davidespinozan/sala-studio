@@ -35,6 +35,14 @@ export default function Suscripcion() {
       ? (suscripcion.tier as TierSaas)
       : null;
 
+  // ¿Hay una suscripción PAGA de verdad en Stripe? Un placeholder (sin
+  // `stripe_subscription_id`, o un `mock_`) o una que se dejó "pausada" a mano
+  // NO cuenta: el dueño tiene que poder ACTIVAR su plan y pagar, no verlo
+  // bloqueado como "Plan actual" (que es lo que pasaba con numa: pausada, sin
+  // sub real, y sin forma de llegar al checkout donde se aplica su cupón).
+  const subId = suscripcion?.stripe_subscription_id ?? null;
+  const tieneSubReal = !!subId && !subId.startsWith('mock_');
+
   // Retorno de Stripe Checkout (?checkout=success|cancel) → avisar + refrescar.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -69,7 +77,7 @@ export default function Suscripcion() {
         toast.success('¡Suscripción activada!');
       }
     } catch {
-      toast.error('No pudimos iniciar el checkout. Probá de nuevo.');
+      toast.error('No pudimos iniciar el checkout. Prueba de nuevo.');
     } finally {
       setProcesando(null);
     }
@@ -120,7 +128,7 @@ export default function Suscripcion() {
               margin: '0 0 12px'
             }}
           >
-            {tierActual ? 'Cambiar de plan' : 'Elige tu plan'}
+            {tierActual && tieneSubReal ? 'Cambiar de plan' : 'Elige tu plan'}
           </h2>
 
           {/* Cards de planes — precios en la moneda del mercado del gym */}
@@ -137,6 +145,7 @@ export default function Suscripcion() {
                 tier={tier}
                 moneda={moneda}
                 esActual={tier === tierActual}
+                activable={tier === tierActual && !tieneSubReal}
                 hayPlanActivo={tierActual !== null}
                 cargando={procesando === tier}
                 onElegir={() => elegirPlan(tier)}
@@ -170,6 +179,7 @@ function PlanCard({
   tier,
   moneda,
   esActual,
+  activable,
   hayPlanActivo,
   cargando,
   onElegir
@@ -177,10 +187,15 @@ function PlanCard({
   tier: TierSaas;
   moneda: MonedaSaas;
   esActual: boolean;
+  /** Es el plan actual PERO sin pago real (placeholder/pausado): se puede pagar. */
+  activable: boolean;
   hayPlanActivo: boolean;
   cargando: boolean;
   onElegir: () => void;
 }) {
+  // "Plan actual" bloqueado solo si de verdad ya está pago; si es un placeholder
+  // (activable) el botón invita a pagar.
+  const bloqueado = esActual && !activable;
   const plan = PLANES_SAAS[tier];
   const destacado = tier === 'pro';
   const precioStr = formatPrecio(precioCentavos(tier, moneda), moneda);
@@ -205,7 +220,7 @@ function PlanCard({
         gap: '12px'
       }}
     >
-      {esActual && (
+      {esActual && !activable && (
         <span
           style={{
             position: 'absolute',
@@ -282,17 +297,19 @@ function PlanCard({
       <button
         type="button"
         onClick={onElegir}
-        disabled={esActual || cargando}
-        className={destacado && !esActual ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
-        style={{ marginTop: 'auto', opacity: esActual ? 0.55 : 1, cursor: esActual || cargando ? 'default' : 'pointer' }}
+        disabled={bloqueado || cargando}
+        className={(destacado || activable) && !bloqueado ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
+        style={{ marginTop: 'auto', opacity: bloqueado ? 0.55 : 1, cursor: bloqueado || cargando ? 'default' : 'pointer' }}
       >
         {cargando
           ? 'Redirigiendo…'
-          : esActual
-            ? 'Plan actual'
-            : hayPlanActivo
-              ? 'Cambiar a este plan'
-              : `Probar ${TRIAL_DIAS} días gratis`}
+          : activable
+            ? 'Activar y pagar'
+            : esActual
+              ? 'Plan actual'
+              : hayPlanActivo
+                ? 'Cambiar a este plan'
+                : `Probar ${TRIAL_DIAS} días gratis`}
       </button>
     </div>
   );

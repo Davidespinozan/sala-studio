@@ -8,7 +8,7 @@ import type { SuscripcionSaas } from '../hooks/useSuscripcion';
 import type { MotivoBloqueo } from '../lib/accesoSaas';
 
 const TITULO: Record<MotivoBloqueo, string> = {
-  sin_tarjeta: 'Activá tu plan para empezar',
+  sin_tarjeta: 'Activa tu plan para empezar',
   trial_vencido: 'Tu prueba gratis terminó',
   cancelada: 'Tu plan está cancelado',
   vencida: 'Tu plan está pausado por falta de pago'
@@ -16,13 +16,13 @@ const TITULO: Record<MotivoBloqueo, string> = {
 
 const DETALLE: Record<MotivoBloqueo, string> = {
   sin_tarjeta:
-    'Falta registrar tu tarjeta. Tus 7 días de prueba arrancan al agregarla y hoy no se te cobra nada — podés cancelar antes de que termine.',
+    'Falta registrar tu tarjeta. Tus 7 días de prueba arrancan al agregarla y hoy no se te cobra nada — puedes cancelar antes de que termine.',
   trial_vencido:
-    'Se acabaron tus días de prueba. Activá tu plan para seguir gestionando tu gimnasio.',
+    'Se acabaron tus días de prueba. Activa tu plan para seguir gestionando tu gimnasio.',
   cancelada:
-    'Cancelaste tu suscripción y el período ya terminó. Reactivala cuando quieras para volver a entrar.',
+    'Cancelaste tu suscripción y el período ya terminó. Reactívala cuando quieras para volver a entrar.',
   vencida:
-    'No pudimos cobrar tu plan. Actualizá el pago para recuperar el acceso a tu panel.'
+    'No pudimos cobrar tu plan. Actualiza el pago para recuperar el acceso a tu panel.'
 };
 
 const CTA: Record<MotivoBloqueo, string> = {
@@ -61,12 +61,12 @@ export function SuscripcionBloqueada({
       const res = await iniciarCheckoutSaas({ tier, moneda, ciclo: suscripcion?.ciclo === 'anual' ? 'anual' : 'mensual', returnPath: '/admin/suscripcion' });
       if (res.url) return; // redirigiendo a Stripe
       if (res.reason === 'stripe_pendiente') {
-        toast.error('Estamos conectando Stripe. Probá en un rato.');
+        toast.error('Estamos conectando Stripe. Prueba en un rato.');
       } else if (res.activated) {
         window.location.reload();
       }
     } catch {
-      toast.error('No pudimos abrir el pago. Probá de nuevo.');
+      toast.error('No pudimos abrir el pago. Prueba de nuevo.');
     } finally {
       setProcesando(false);
     }
