@@ -13,6 +13,7 @@ const Onboarding = lazy(() => import('@public/pages/Onboarding'));
 const SalaLanding = lazy(() => import('@public/pages/SalaLanding'));
 const RecuperarContrasena = lazy(() => import('@public/pages/RecuperarContrasena'));
 const NuevaContrasena = lazy(() => import('@public/pages/NuevaContrasena'));
+const ActivarCuenta = lazy(() => import('@public/pages/ActivarCuenta'));
 
 export default function App() {
   // En el dominio raíz de SALA, "/" es la landing de producto (no la de un gym).
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/registro" element={enSubdominioTenant ? <Navigate to="/" replace /> : <Onboarding />} />
           <Route path="/recuperar" element={<RecuperarContrasena />} />
           <Route path="/nueva-contrasena" element={<NuevaContrasena />} />
+          <Route path="/activar" element={<ActivarCuenta />} />
           <Route path="/" element={marketing ? <SalaLanding /> : <PublicLayout />} />
           <Route path="/*" element={<PublicLayout />} />
         </Routes>

@@ -123,14 +123,16 @@ export default function Login() {
               />
             </div>
 
-            <div style={{ textAlign: 'right', marginTop: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: '12px' }}>
+              <Link
+                to="/activar"
+                style={{ fontSize: '13px', color: 'var(--ek-mustard)', textDecoration: 'none' }}
+              >
+                ¿Ya eres socio? Activa tu cuenta
+              </Link>
               <Link
                 to="/recuperar"
-                style={{
-                  fontSize: '13px',
-                  color: 'var(--ek-mustard)',
-                  textDecoration: 'none'
-                }}
+                style={{ fontSize: '13px', color: 'var(--ek-mustard)', textDecoration: 'none' }}
               >
                 ¿Olvidaste tu contraseña?
               </Link>
