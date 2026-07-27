@@ -5,6 +5,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { useMiembros } from '../hooks/useAdminData';
 import { NuevaPersonaModal } from '../components/NuevaPersonaModal';
 import { ImportarMiembrosModal } from '../components/ImportarMiembrosModal';
+import { exportarCsv } from '@shared/lib/exportarCsv';
 import CardMenuDropdown from '../components/CardMenuDropdown';
 import { GestionarMembresiaModal } from '../components/miembro/GestionarMembresiaModal';
 import { BloquearAccesoModal } from '../components/miembro/BloquearAccesoModal';
@@ -44,6 +45,20 @@ export default function Miembros() {
           )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => exportarCsv(`miembros-${tenant.slug || 'gym'}`, miembros, [
+              { key: 'nombre', label: 'Nombre' },
+              { key: 'email', label: 'Email' },
+              { key: 'telefono', label: 'Teléfono' },
+              { key: 'status', label: 'Estado' },
+              { key: 'membresia_tier', label: 'Plan' },
+              { key: 'created_at', label: 'Miembro desde', valor: (m) => (m.created_at ? new Date(m.created_at).toLocaleDateString('es-MX') : '') }
+            ])}
+            className="ek-cta ek-cta--secondary"
+            disabled={miembros.length === 0}
+          >
+            Exportar CSV
+          </button>
           <button onClick={() => setShowImportar(true)} className="ek-cta ek-cta--secondary">
             Importar CSV
           </button>

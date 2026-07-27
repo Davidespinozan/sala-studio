@@ -5,6 +5,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { translateActionError } from '@reception/lib/traducirErrorAccion';
 import { useSucursal } from '../providers/SucursalProvider';
+import { exportarCsv } from '@shared/lib/exportarCsv';
 
 /**
  * CAJA — el dinero que entró de verdad.
@@ -201,6 +202,24 @@ export default function Caja() {
             </button>
           );
         })}
+        <button
+          type="button"
+          onClick={() => exportarCsv(`caja-${rango}`, pagos, [
+            { key: 'created_at', label: 'Fecha y hora', valor: (p) => new Date(p.created_at).toLocaleString('es-MX') },
+            { key: 'concepto', label: 'Concepto' },
+            { key: 'socio', label: 'Socio', valor: (p) => (p as any).socio?.nombre ?? '' },
+            { key: 'metodo', label: 'Método', valor: (p) => (p.metodo === 'tarjeta' ? 'Terminal' : p.metodo === 'stripe' ? 'App' : p.metodo) },
+            { key: 'monto_centavos', label: 'Monto', valor: (p) => (p.monto_centavos / 100).toFixed(2) },
+            { key: 'moneda', label: 'Moneda' },
+            { key: 'cobrador', label: 'Cobró', valor: (p) => (p as any).cobrador?.nombre ?? '' },
+            { key: 'notas', label: 'Notas' }
+          ])}
+          className="ek-cta ek-cta--secondary"
+          style={{ marginLeft: 'auto' }}
+          disabled={pagos.length === 0}
+        >
+          Exportar CSV
+        </button>
       </div>
 
       {/* Corte: total cobrado + desglose por método */}

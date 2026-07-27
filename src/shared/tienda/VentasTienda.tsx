@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
+import { exportarCsv } from '@shared/lib/exportarCsv';
 
 /* ══════════════════════════════════════════════════════════════════════════
    HISTORIAL DE VENTAS DE LA TIENDA — rastreable
@@ -109,6 +110,21 @@ export default function VentasTienda({ sucursalId }: { sucursalId: string | null
         <label style={{ fontSize: 12, color: 'var(--ek-ink-muted)' }}>
           Hasta<br /><input type="date" className="ek-input" value={hasta} min={desde} onChange={(e) => setHasta(e.target.value)} />
         </label>
+        <button
+          type="button"
+          onClick={() => exportarCsv(`ventas-tienda-${desde}_a_${hasta}`, ventas, [
+            { key: 'cuando', label: 'Fecha y hora', valor: (v) => new Date(v.cuando).toLocaleString('es-MX') },
+            { key: 'items', label: 'Qué se vendió', valor: (v) => v.items.map((it) => `${it.cantidad}× ${it.nombre}`).join(' · ') },
+            { key: 'socio', label: 'A quién', valor: (v) => v.socio ?? 'Público' },
+            { key: 'metodo', label: 'Método', valor: (v) => (v.metodo === 'tarjeta' ? 'Terminal' : v.metodo === 'stripe' ? 'App' : v.metodo) },
+            { key: 'total', label: 'Total', valor: (v) => (v.total / 100).toFixed(2) },
+            { key: 'moneda', label: 'Moneda' }
+          ])}
+          className="ek-cta ek-cta--secondary"
+          disabled={ventas.length === 0}
+        >
+          Exportar CSV
+        </button>
         <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ek-ink-faint)' }}>Total del período</div>
           <div style={{ fontSize: 22, fontWeight: 800 }}>{fmt(total, moneda)} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ek-ink-faint)' }}>· {ventas.length} ventas</span></div>
