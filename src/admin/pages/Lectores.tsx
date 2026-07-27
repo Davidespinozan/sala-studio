@@ -21,10 +21,11 @@ function estaVivo(ultimoVisto: string | null): boolean {
   return Date.now() - new Date(ultimoVisto).getTime() < VIVO_MS;
 }
 
-// Dónde vive el instalador del agente. Se llena cuando se publique el .exe firmado
-// (Supabase Storage o release). Vacío = todavía no publicado: el paso se muestra
-// como instrucción en vez de un botón que no lleva a nada.
-const AGENTE_DESCARGA_URL = '';
+// El instalador del agente: lo publica el workflow "Compilar agente de huella"
+// como Release con tag fijo 'agente' (repo público → URL pública estable). El
+// botón se enciende en cuanto exista la primera Release; antes de eso, GitHub
+// devuelve 404 y el paso 1 igual explica qué hacer.
+const AGENTE_DESCARGA_URL = 'https://github.com/Davidespinozan/sala-studio/releases/download/agente/SalaAgente.exe';
 // Base de las functions que el agente usa para hablar con SALA (debe calzar con
 // la del agente / netlify).
 const SALA_API_BASE = 'https://www.salastudio.app/.netlify/functions';

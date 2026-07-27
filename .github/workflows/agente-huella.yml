@@ -1,0 +1,63 @@
+name: Compilar agente de huella
+
+# Se dispara A MANO desde la pestaña "Actions" de GitHub (botón "Run workflow").
+# No corre en cada push a propósito: así no falla en rojo antes de que estén
+# puestos los secrets. Cuando todo funcione, se le puede agregar un trigger push.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write # para publicar el .exe como Release
+
+jobs:
+  build:
+    runs-on: windows-latest # el agente es de Windows (DigitalPersona)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # El SDK de DigitalPersona no puede ir en un repo PÚBLICO (licencia). Se sube
+      # UNA vez a un bucket PRIVADO de Supabase Storage ('sdk') y acá se baja con la
+      # service key. Ver agente-huella/BUILD.md.
+      - name: Bajar DPUruNet.dll (SDK DigitalPersona) de Supabase Storage
+        shell: pwsh
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if (-not $env:SUPABASE_URL -or -not $env:SERVICE_KEY) {
+            throw "Faltan los secrets SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY. Ver agente-huella/BUILD.md."
+          }
+          New-Item -ItemType Directory -Force -Path agente-huella/libs | Out-Null
+          $u = "$($env:SUPABASE_URL.TrimEnd('/'))/storage/v1/object/sdk/DPUruNet.dll"
+          curl.exe -sS -f $u -H "Authorization: Bearer $env:SERVICE_KEY" -o agente-huella/libs/DPUruNet.dll
+          if (-not (Test-Path agente-huella/libs/DPUruNet.dll)) {
+            throw "No se pudo bajar DPUruNet.dll del bucket privado 'sdk'."
+          }
+
+      - name: Compilar el .exe (un solo archivo, autocontenido)
+        working-directory: agente-huella
+        run: >
+          dotnet publish -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+
+      # Respaldo: el .exe queda descargable desde la página de esta corrida.
+      - name: Guardar como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: SalaAgente
+          path: agente-huella/bin/Release/net8.0-windows/win-x64/publish/SalaAgente.exe
+
+      # La descarga PÚBLICA para los gyms: un Release con tag fijo 'agente', así la
+      # URL nunca cambia y el botón de Lectores siempre apunta a la última versión.
+      - name: Publicar el .exe como Release (URL pública estable)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: agente
+          name: Agente de huella SALA
+          body: Instalador del agente del lector de huella. Generado automáticamente.
+          files: agente-huella/bin/Release/net8.0-windows/win-x64/publish/SalaAgente.exe
