@@ -644,6 +644,10 @@ function EditarTierModal({
   const [ventanaFija, setVentanaFija] = useState<boolean>(() => !!tierVig?.vigencia_fin);
   const [vigenciaInicio, setVigenciaInicio] = useState<string>(() => (tierVig?.vigencia_inicio ?? '').slice(0, 10));
   const [vigenciaFin, setVigenciaFin] = useState<string>(() => (tierVig?.vigencia_fin ?? '').slice(0, 10));
+  // Días de acceso (0=dom … 6=sáb). Vacío = todos los días (sin restricción).
+  const tierDias = (tier as { dias_acceso?: number[] | null } | null)?.dias_acceso;
+  const [limitarDias, setLimitarDias] = useState<boolean>(() => Array.isArray(tierDias) && tierDias.length > 0);
+  const [diasAcceso, setDiasAcceso] = useState<number[]>(() => (Array.isArray(tierDias) && tierDias.length > 0 ? tierDias : [1, 2, 3, 4, 5]));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -705,6 +709,14 @@ function EditarTierModal({
       return;
     }
 
+    // Días de acceso: vacío/apagado = todos los días (null).
+    if (limitarDias && diasAcceso.length === 0) {
+      setError('Elige al menos un día de acceso.');
+      setSaving(false);
+      return;
+    }
+    const diasAccesoVal = limitarDias && diasAcceso.length > 0 ? [...diasAcceso].sort((a, b) => a - b) : null;
+
     if (esPaquete && (!Number.isFinite(clasesVal as number) || (clasesVal ?? 0) < 1)) {
       setError('El paquete debe incluir al menos 1 clase.');
       setSaving(false);
@@ -756,6 +768,7 @@ function EditarTierModal({
         pago_unico: pagoUnicoVal,
         vigencia_inicio: vigInicioVal,
         vigencia_fin: vigFinVal,
+        dias_acceso: diasAccesoVal,
         beneficios: beneficios as never,
         reglas: reglas as never,
         activo,
@@ -790,6 +803,7 @@ function EditarTierModal({
       pago_unico: pagoUnicoVal,
       vigencia_inicio: vigInicioVal,
       vigencia_fin: vigFinVal,
+      dias_acceso: diasAccesoVal,
       beneficios,
       reglas: reglasNuevas as never,
       activo,
@@ -983,6 +997,37 @@ function EditarTierModal({
             )}
           </div>
         )}
+
+        {/* Acceso por día de la semana: si se limita, el sistema bloquea reservar
+            en días no permitidos (ej. Elevate lun-vie, Ultra lun-sáb). */}
+        <div className="ek-form-field" style={{ marginTop: '12px' }}>
+          <Toggle
+            checked={limitarDias}
+            onChange={setLimitarDias}
+            label="Limitar días de acceso"
+            description="Si lo prendes, el socio de este plan solo puede reservar los días que elijas. Apagado = todos los días."
+          />
+          {limitarDias && (
+            <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
+              {[
+                [1, 'Lun'], [2, 'Mar'], [3, 'Mié'], [4, 'Jue'], [5, 'Vie'], [6, 'Sáb'], [0, 'Dom']
+              ].map(([n, l]) => {
+                const activo = diasAcceso.includes(n as number);
+                return (
+                  <button
+                    key={n as number}
+                    type="button"
+                    onClick={() => setDiasAcceso((d) => (d.includes(n as number) ? d.filter((x) => x !== n) : [...d, n as number]))}
+                    className={activo ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
+                    style={{ minHeight: 34, padding: '4px 12px', fontSize: 13 }}
+                  >
+                    {l}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {esPaquete && (
           <div className="ek-form-field" style={{ marginTop: '12px' }}>

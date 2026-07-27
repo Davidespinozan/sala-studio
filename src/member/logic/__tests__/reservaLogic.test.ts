@@ -99,6 +99,11 @@ describe('traducirErrorRPC — gate de membresía (Fase 2A.2)', () => {
       'Te quedaste sin clases. Contacta al gimnasio para recargar.'
     );
   });
+  it('DIA_NO_PERMITIDO → conserva el día del mensaje', () => {
+    expect(traducirErrorRPC('DIA_NO_PERMITIDO: Tu plan no incluye acceso los sábados')).toBe(
+      'Tu plan no incluye acceso los sábados.'
+    );
+  });
   it('MEMBRESIA_CONGELADA → mensaje de pausa', () => {
     expect(traducirErrorRPC('MEMBRESIA_CONGELADA: Tu membresía está pausada')).toBe(
       'Tu membresía está pausada. Contacta al gimnasio.'

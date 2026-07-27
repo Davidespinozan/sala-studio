@@ -144,6 +144,11 @@ export function traducirErrorRPC(message: string): string {
     return 'Tu membresía está pausada. Contacta al gimnasio.';
   if (message.includes('SIN_MEMBRESIA'))
     return 'No tienes una membresía activa. Contacta al gimnasio.';
+  if (message.includes('DIA_NO_PERMITIDO')) {
+    // El RPC ya trae el día ("… los sábados"); mostramos esa parte humana.
+    const dia = message.split('los ')[1]?.trim();
+    return dia ? `Tu plan no incluye acceso los ${dia}.` : 'Tu plan no incluye acceso ese día.';
+  }
   if (message.includes('TIER_NO_PERMITIDO')) return 'Tu plan no tiene acceso a esta sala.';
   if (message.includes('SUCURSAL_NO_INCLUIDA')) return 'Tu plan solo cubre tu sede.';
   if (message.includes('TIER_NO_PERMITE')) return 'Tu plan no incluye acceso a esta sala.';
