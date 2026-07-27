@@ -26,13 +26,15 @@ export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') return badRequest('Method not allowed');
 
   try {
-    const { email, password, slug } = JSON.parse(event.body || '{}') as {
-      email?: string; password?: string; slug?: string;
+    const { email, password, slug, codigo } = JSON.parse(event.body || '{}') as {
+      email?: string; password?: string; slug?: string; codigo?: string;
     };
     const emailLc = String(email ?? '').trim().toLowerCase();
+    const codigoUp = String(codigo ?? '').trim().toUpperCase();
     if (!EMAIL_RE.test(emailLc)) return badRequest('Email inválido');
     if (!password || password.length < 8) return badRequest('La contraseña debe tener al menos 8 caracteres');
     if (!slug) return badRequest('Falta el gimnasio');
+    if (!codigoUp) return badRequest('Falta el código de activación');
 
     const supabaseUrl = requireEnv('VITE_SUPABASE_URL');
     const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
@@ -70,8 +72,23 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // 3) Crear el login → el trigger engancha el auth_id a la ficha existente
-    //    (conserva nombre/status/membresía).
+    // 2b) Prueba de identidad: un CÓDIGO válido y vigente que recepción le dio al
+    //     socio. Sin esto, conocer el email bastaría para robar la ficha.
+    const { data: cod } = await admin
+      .from('codigos_activacion')
+      .select('codigo, expira_at')
+      .eq('usuario_id', ficha.id)
+      .maybeSingle();
+    if (!cod || String(cod.codigo).toUpperCase() !== codigoUp || new Date(cod.expira_at as string) <= new Date()) {
+      return {
+        statusCode: 403,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'El código no es válido o venció. Pídele uno nuevo al gimnasio.', code: 'CODIGO_INVALIDO' })
+      };
+    }
+
+    // 3) Crear el login. El trigger ya NO auto-vincula (seguridad): la ficha se
+    //    engancha explícitamente abajo.
     const { data: authData, error: authErr } = await admin.auth.admin.createUser({
       email: emailLc,
       password,
@@ -91,18 +108,23 @@ export const handler: Handler = async (event) => {
       return serverError('No pudimos activar tu cuenta. Intenta de nuevo.');
     }
 
-    // 4) Verificar que el trigger vinculó (defensa: si por algo no quedó
-    //    enganchada, deshacemos el login para no dejar un huérfano).
-    const { data: verif } = await admin
+    // 4) Vincular EXPLÍCITAMENTE la ficha a este login (el trigger ya no lo hace).
+    //    El WHERE auth_id IS NULL evita pisar una ficha que se reclamó en paralelo.
+    const { data: vinculada } = await admin
       .from('usuarios')
-      .select('id')
+      .update({ auth_id: authData.user.id })
       .eq('id', ficha.id)
-      .eq('auth_id', authData.user.id)
+      .is('auth_id', null)
+      .select('id')
       .maybeSingle();
-    if (!verif) {
+    if (!vinculada) {
+      // No quedó enganchada (carrera, o ya se reclamó): deshacer el login.
       await admin.auth.admin.deleteUser(authData.user.id);
       return serverError('No pudimos vincular tu cuenta. Intenta de nuevo o habla con el gimnasio.');
     }
+
+    // 5) Consumir el código (un solo uso).
+    await admin.from('codigos_activacion').delete().eq('usuario_id', ficha.id);
 
     return ok({ success: true });
   } catch (err) {

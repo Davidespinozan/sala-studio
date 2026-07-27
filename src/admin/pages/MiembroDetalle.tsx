@@ -252,6 +252,13 @@ export default function MiembroDetalle() {
             <EditarDatosForm miembro={miembro} onSaved={refetch} />
           </FieldGroup>
 
+          {/* Socio sin login todavía: recepción le genera un código para activar. */}
+          {!miembro.auth_id && (
+            <FieldGroup title="Activación de cuenta">
+              <CodigoActivacionControl usuarioId={miembro.id} />
+            </FieldGroup>
+          )}
+
           <FieldGroup title="Estado de la cuenta">
             <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 8px' }}>
               El miembro debe estar <strong>Activo</strong> para poder reservar clases.
@@ -915,6 +922,60 @@ function EditarDatosForm({
         {saved && <span style={{ color: 'var(--sala-success)', fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Check size={14} strokeWidth={2.5} />Guardado</span>}
         {error && <span style={{ color: 'var(--sala-error)', fontSize: '0.875rem' }}>{error}</span>}
       </div>
+    </div>
+  );
+}
+
+function CodigoActivacionControl({ usuarioId }: { usuarioId: string }) {
+  const [codigo, setCodigo] = useState<string | null>(null);
+  const [expira, setExpira] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function generar() {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await (supabase.rpc as unknown as (name: string, args: unknown) => Promise<{ data: { codigo: string; expira_at: string } | null; error: { message: string } | null }>)(
+        'generar_codigo_activacion',
+        { p_usuario_id: usuarioId }
+      );
+      if (error) throw new Error(error.message);
+      setCodigo(data?.codigo ?? null);
+      setExpira(data?.expira_at ?? null);
+    } catch (e) {
+      const m = e instanceof Error ? e.message : '';
+      setError(
+        m.includes('SIN_EMAIL') ? 'Primero ponle su correo real (arriba) y guarda.'
+          : m.includes('YA_TIENE_CUENTA') ? 'Este socio ya tiene su cuenta activa.'
+            : 'No pudimos generar el código. Intenta de nuevo.'
+      );
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div>
+      <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', marginBottom: '10px', lineHeight: 1.5 }}>
+        Este socio aún no tiene acceso a la app. Genera un código y dáselo: lo usa en “Ya soy socio” con su email para activar su cuenta.
+      </p>
+      {codigo ? (
+        <div className="ek-card" style={{ padding: '14px 16px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--ek-ink-faint)' }}>CÓDIGO DE ACTIVACIÓN</div>
+          <div style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '28px', fontWeight: 800, letterSpacing: '0.15em' }}>{codigo}</div>
+          <div style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', marginTop: '4px' }}>
+            Válido hasta {expira ? new Date(expira).toLocaleDateString('es-MX') : '—'}. Un solo uso.
+          </div>
+          <button onClick={generar} disabled={loading} className="ek-cta ek-cta--secondary" style={{ marginTop: '10px', minHeight: '36px' }}>
+            Generar otro
+          </button>
+        </div>
+      ) : (
+        <button onClick={generar} disabled={loading} className="ek-cta">
+          {loading ? 'Generando…' : 'Generar código de activación'}
+        </button>
+      )}
+      {error && <p className="ek-error-text" style={{ marginTop: '8px' }}>{error}</p>}
     </div>
   );
 }

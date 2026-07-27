@@ -19,6 +19,7 @@ export default function ActivarCuenta() {
   const tieneIsotipo = typeof (tenant.branding as Record<string, unknown> | null)?.isotipo_url === 'string';
 
   const [email, setEmail] = useState('');
+  const [codigo, setCodigo] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,12 +28,13 @@ export default function ActivarCuenta() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!codigo.trim()) { setError('Escribe el código que te dio el gimnasio.'); return; }
     if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return; }
     if (password !== confirm) { setError('Las contraseñas no coinciden.'); return; }
 
     setIsSubmitting(true);
     try {
-      await backendPost('reclamar-cuenta', { email: email.trim(), password, slug: tenant.slug });
+      await backendPost('reclamar-cuenta', { email: email.trim(), codigo: codigo.trim(), password, slug: tenant.slug });
       // Vinculada: entramos con la contraseña recién creada.
       const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (signInError) {
@@ -68,7 +70,7 @@ export default function ActivarCuenta() {
             <p className="ek-eyebrow" style={{ margin: 0 }}>YA SOY SOCIO</p>
             <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: 22, fontWeight: 700, margin: '4px 0 0' }}>Activa tu cuenta</h1>
             <p style={{ fontSize: 13, color: 'var(--sala-text-secondary)', marginTop: 6, lineHeight: 1.5 }}>
-              Usa el email que tienes registrado en {tenant.nombre || 'el gimnasio'} y crea tu contraseña.
+              Usa tu email y el <strong>código de activación</strong> que te dio {tenant.nombre || 'el gimnasio'}, y crea tu contraseña.
             </p>
           </div>
 
@@ -77,6 +79,13 @@ export default function ActivarCuenta() {
               <label htmlFor="email" className="ek-label">Email</label>
               <input id="email" type="email" autoComplete="email" required value={email}
                 onChange={(e) => setEmail(e.target.value)} className="ek-input" placeholder="tu@email.com" />
+            </div>
+
+            <div className="ek-form-field">
+              <label htmlFor="codigo" className="ek-label">Código de activación</label>
+              <input id="codigo" type="text" required value={codigo}
+                onChange={(e) => setCodigo(e.target.value)} className="ek-input" placeholder="El que te dio el gimnasio"
+                style={{ textTransform: 'uppercase' }} autoCapitalize="characters" />
             </div>
 
             <div className="ek-form-field">
