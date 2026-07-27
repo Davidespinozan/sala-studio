@@ -39,6 +39,7 @@ interface TierRow {
   precio_centavos: number;
   moneda: string;
   periodo: string;
+  tipo: string;
   duracion_dias: number | null;
   pago_unico: boolean;
 }
@@ -61,8 +62,9 @@ const LIFESPAN_TOPE_MESES = 36;
  * para tiers viejos sin duracion_dias.
  */
 export function precioMensual(t: TierRow): number {
-  // Pase de pago único (Day Pass, semana suelta): no es recurrente.
-  if (t.pago_unico) return 0;
+  // No recurrente → fuera del MRR: pases de pago único, y PAQUETES de clases
+  // (creditos/hibrido, que se compran una vez).
+  if (t.pago_unico || t.tipo === 'creditos' || t.tipo === 'hibrido') return 0;
   // Fuente de verdad: la duración real del acceso.
   if (t.duracion_dias && t.duracion_dias > 0) {
     return Math.round((t.precio_centavos * 30) / t.duracion_dias);
@@ -88,7 +90,7 @@ export function useReportesEconomia() {
       const [tiersRes, activosRes, histRes] = await Promise.all([
         supabase
           .from('tiers')
-          .select('slug, nombre, precio_centavos, moneda, periodo, duracion_dias, pago_unico')
+          .select('slug, nombre, precio_centavos, moneda, periodo, tipo, duracion_dias, pago_unico')
           .eq('tenant_id', tenant.id)
           .eq('activo', true),
         supabase

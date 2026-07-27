@@ -12,6 +12,7 @@ const tier = (o: Partial<Parameters<typeof precioMensual>[0]>) => ({
   precio_centavos: 0,
   moneda: 'MXN',
   periodo: 'mensual',
+  tipo: 'tiempo',
   duracion_dias: null,
   pago_unico: false,
   ...o
@@ -32,6 +33,11 @@ describe('precioMensual', () => {
 
   it('un pase de PAGO ÚNICO no cuenta como ingreso recurrente', () => {
     expect(precioMensual(tier({ precio_centavos: 60000, duracion_dias: 7, pago_unico: true }))).toBe(0);
+  });
+
+  it('un PAQUETE de clases (creditos/hibrido) no cuenta como recurrente', () => {
+    expect(precioMensual(tier({ precio_centavos: 200000, tipo: 'creditos', duracion_dias: null }))).toBe(0);
+    expect(precioMensual(tier({ precio_centavos: 200000, tipo: 'hibrido', duracion_dias: 60 }))).toBe(0);
   });
 
   it('fallback por periodo si el tier no tiene duracion_dias (anual → /12)', () => {

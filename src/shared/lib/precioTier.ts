@@ -19,18 +19,33 @@ export function formatearPrecioTier(centavos: number, moneda: string): string {
 }
 
 /**
- * Lo que va DESPUÉS del precio: "/mes", "/año", "/quincena", o las clases que
- * trae el paquete. Un paquete no se cobra por periodo: se compra una vez.
+ * Lo que va DESPUÉS del precio. Se basa en `duracion_dias` (la fuente de verdad
+ * de la vigencia), NO en `periodo` — que con duraciones libres se deriva y
+ * mentía (un plan de 90 días mostraba "/mes"). Un paquete no se cobra por
+ * periodo (trae N clases); un pase de pago único no es recurrente (" · 1 día"
+ * en vez de "/día"). Recurrente → "/frase"; pago único → " · frase".
  */
 export function sufijoPeriodoTier(tier: {
   tipo: string | null;
   periodo: string | null;
   clases_incluidas: number | null;
+  duracion_dias?: number | null;
+  pago_unico?: boolean | null;
 }): string {
   if (tier.tipo === 'creditos' || tier.tipo === 'hibrido') {
     return ` · ${tier.clases_incluidas ?? 0} clases`;
   }
-  if (tier.periodo === 'anual') return '/año';
-  if (tier.periodo === 'quincenal') return '/quincena';
-  return '/mes';
+  const d = tier.duracion_dias ?? null;
+  const frase =
+    d === 1 ? '1 día' :
+    d === 7 ? '1 semana' :
+    d === 15 ? 'quincena' :
+    d === 30 ? 'mes' :
+    d === 60 ? '2 meses' :
+    d === 90 ? '3 meses' :
+    d === 365 ? 'año' :
+    d != null && d > 0 ? `${d} días` :
+    // Fallback (tiers viejos sin duracion_dias): por periodo.
+    (tier.periodo === 'anual' ? 'año' : tier.periodo === 'quincenal' ? 'quincena' : 'mes');
+  return tier.pago_unico ? ` · ${frase}` : `/${frase}`;
 }

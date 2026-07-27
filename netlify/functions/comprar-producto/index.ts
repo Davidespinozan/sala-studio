@@ -279,6 +279,21 @@ export const handler: Handler = async (event) => {
       p_entrega_ubicacion: entregaUbicacion
     });
     if (rpcErr) {
+      // OJO: `rpcErr` puede ser un RAISE de negocio (SIN_STOCK → la venta NO se
+      // asentó, hay que reembolsar) o un timeout de red DESPUÉS de que la RPC
+      // commiteó (la venta SÍ existe). Antes de reembolsar, confirmamos que NO
+      // haya un pago con esta referencia; si existe, la venta se registró y
+      // reembolsar regalaría el producto. En ese caso la damos por buena.
+      const { data: pagoExistente } = await admin
+        .from('pagos')
+        .select('id')
+        .eq('tenant_id', socio.tenant_id)
+        .eq('referencia', intent.id)
+        .maybeSingle();
+      if (pagoExistente) {
+        console.warn('[comprar-producto] rpcErr pero la venta SÍ se registró pi=', intent.id, rpcErr.message);
+        return ok({ paid: true, referencia: intent.id });
+      }
       try {
         await stripe.refunds.create({ payment_intent: intent.id }, { stripeAccount: acct });
       } catch (re) {
