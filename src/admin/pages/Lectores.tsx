@@ -21,6 +21,36 @@ function estaVivo(ultimoVisto: string | null): boolean {
   return Date.now() - new Date(ultimoVisto).getTime() < VIVO_MS;
 }
 
+// Dónde vive el instalador del agente. Se llena cuando se publique el .exe firmado
+// (Supabase Storage o release). Vacío = todavía no publicado: el paso se muestra
+// como instrucción en vez de un botón que no lleva a nada.
+const AGENTE_DESCARGA_URL = '';
+// Base de las functions que el agente usa para hablar con SALA (debe calzar con
+// la del agente / netlify).
+const SALA_API_BASE = 'https://www.salastudio.app/.netlify/functions';
+
+/**
+ * Genera y descarga `sala-lector.config.json` con el token YA adentro. Así el gym
+ * no copia ni pega nada: descarga el agente, descarga esto, y los junta. Todo
+ * client-side — el token nunca sale del navegador que ya lo tenía.
+ */
+function descargarConfigLector(token: string): void {
+  const cfg = {
+    apiBase: SALA_API_BASE,
+    token,
+    syncCadaSegundos: 60,
+    pendienteCadaSegundos: 2,
+    umbralMatch: 21474,
+  };
+  const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'sala-lector.config.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function Lectores() {
   const { sucursales, multisede } = useSucursal();
   const [lectores, setLectores] = useState<Lector[]>([]);
@@ -74,7 +104,7 @@ export default function Lectores() {
       >
         <p style={{ fontSize: '13px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.6 }}>
           Con un lector conectado, tus socios entran apoyando el dedo — sin sacar el celular.
-          Las huellas se guardan acá, cifradas: si el aparato se rompe, comprás otro y nadie
+          Las huellas se guardan acá, cifradas: si el aparato se rompe, compras otro y nadie
           tiene que volver a registrarse. Cada socio decide si la da, y puede borrarla cuando
           quiera desde su app.
         </p>
@@ -218,7 +248,7 @@ function NuevoLectorModal({
     <Overlay onClose={onClose}>
       <h2 className="ek-h3" style={{ margin: '0 0 4px' }}>Nuevo lector</h2>
       <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
-        Ponele un nombre que diga dónde está. Si tenés dos sedes, el lector solo va a poder
+        Ponle un nombre que diga dónde está. Si tienes dos sedes, el lector solo podrá
         registrar entradas de la suya.
       </p>
 
@@ -267,55 +297,112 @@ function NuevoLectorModal({
   );
 }
 
-/** El token se ve UNA vez. Si se cierra sin copiarlo, hay que dar de alta otro lector. */
+/**
+ * Guía de instalación del lector. Aparece UNA vez, al crear el lector (es el único
+ * momento con el token en claro). La config se descarga con el token adentro, así
+ * el gym no copia nada a mano. La clave manual queda como respaldo, colapsada.
+ */
 function TokenModal({ token, onClose }: { token: string; onClose: () => void }) {
   const [copiado, setCopiado] = useState(false);
+  const [bajoConfig, setBajoConfig] = useState(false);
+  const listo = bajoConfig || copiado;
 
   return (
     <Overlay onClose={onClose}>
-      <h2 className="ek-h3" style={{ margin: '0 0 4px' }}>Listo. Copiá esta clave</h2>
-      <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 14px', lineHeight: 1.5 }}>
-        Pegala en el programa del lector, en la compu del mostrador.{' '}
-        <strong style={{ color: 'var(--sala-error)' }}>
-          No la vas a poder volver a ver.
-        </strong>{' '}
-        Si la perdés, tenés que dar de alta el lector otra vez.
+      <h2 className="ek-h3" style={{ margin: '0 0 4px' }}>Lector listo — 3 pasos en la compu del mostrador</h2>
+      <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
+        La configuración ya lleva la clave adentro: no tienes que copiar ni pegar nada a mano.
       </p>
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '12px',
-          marginBottom: '16px',
-          borderRadius: 'var(--ek-r-card)',
-          border: '1px solid var(--sala-border)',
-          background: 'var(--sala-surface)',
-        }}
-      >
-        <code style={{ flex: 1, fontSize: '12px', wordBreak: 'break-all', lineHeight: 1.5 }}>
-          {token}
-        </code>
+      <Paso n={1} titulo="Descarga e instala el agente">
+        {AGENTE_DESCARGA_URL ? (
+          <a
+            className="ek-cta ek-cta--secondary"
+            href={AGENTE_DESCARGA_URL}
+            style={{ display: 'inline-block', width: 'fit-content' }}
+          >
+            Descargar agente
+          </a>
+        ) : (
+          <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--sala-text-tertiary)', lineHeight: 1.5 }}>
+            El instalador aparecerá aquí en cuanto se publique. Por ahora instálalo con el
+            archivo que te compartimos.
+          </p>
+        )}
+      </Paso>
+
+      <Paso n={2} titulo="Descarga tu configuración">
         <button
-          className="ek-cta ek-cta--secondary"
-          style={{ flexShrink: 0, fontSize: '12px', padding: '6px 10px' }}
-          onClick={() => {
-            void navigator.clipboard.writeText(token);
-            setCopiado(true);
+          className="ek-cta"
+          style={{ width: 'fit-content' }}
+          onClick={() => { descargarConfigLector(token); setBajoConfig(true); }}
+        >
+          {bajoConfig ? <><Check size={14} /> Configuración descargada</> : 'Descargar configuración'}
+        </button>
+        <p style={{ margin: '6px 0 0', fontSize: '12.5px', color: 'var(--sala-text-tertiary)', lineHeight: 1.5 }}>
+          Trae la clave de tu lector ya adentro (<code>sala-lector.config.json</code>).
+        </p>
+      </Paso>
+
+      <Paso n={3} titulo="Ponlos juntos y abre el agente" ultimo>
+        <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
+          Deja <code>sala-lector.config.json</code> en la MISMA carpeta del agente y ábrelo.
+          Conecta el lector por USB. En esta lista lo verás como <strong>Conectado</strong>.
+        </p>
+      </Paso>
+
+      <details style={{ marginTop: '14px' }}>
+        <summary style={{ cursor: 'pointer', fontSize: '12.5px', color: 'var(--sala-text-secondary)' }}>
+          ¿Prefieres pegar la clave a mano?
+        </summary>
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', marginTop: '10px',
+            borderRadius: 'var(--ek-r-card)', border: '1px solid var(--sala-border)', background: 'var(--sala-surface)',
           }}
         >
-          {copiado ? <Check size={14} /> : <Copy size={14} />}
-          {copiado ? ' Copiada' : ' Copiar'}
-        </button>
-      </div>
+          <code style={{ flex: 1, fontSize: '12px', wordBreak: 'break-all', lineHeight: 1.5 }}>{token}</code>
+          <button
+            className="ek-cta ek-cta--secondary"
+            style={{ flexShrink: 0, fontSize: '12px', padding: '6px 10px' }}
+            onClick={() => { void navigator.clipboard.writeText(token); setCopiado(true); }}
+          >
+            {copiado ? <Check size={14} /> : <Copy size={14} />}
+            {copiado ? ' Copiada' : ' Copiar'}
+          </button>
+        </div>
+        <p style={{ margin: '8px 0 0', fontSize: '12px', color: 'var(--sala-error)' }}>
+          No se vuelve a mostrar. Si la pierdes, da de alta el lector otra vez.
+        </p>
+      </details>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button className="ek-cta" onClick={onClose} disabled={!copiado}>
-          Ya la guardé
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+        <button className="ek-cta" onClick={onClose} disabled={!listo}>
+          Ya quedó
         </button>
       </div>
     </Overlay>
+  );
+}
+
+/** Un paso numerado de la guía de instalación. */
+function Paso({ n, titulo, children, ultimo }: { n: number; titulo: string; children: React.ReactNode; ultimo?: boolean }) {
+  return (
+    <div style={{ display: 'flex', gap: '12px', paddingBottom: ultimo ? 0 : '14px', marginBottom: ultimo ? 0 : '14px', borderBottom: ultimo ? 'none' : '1px solid var(--sala-border)' }}>
+      <span
+        style={{
+          flexShrink: 0, width: '24px', height: '24px', borderRadius: '999px',
+          background: 'var(--sala-primary)', color: 'var(--sala-text-on-primary, #fff)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700,
+        }}
+      >
+        {n}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ margin: '2px 0 8px', fontSize: '13.5px', fontWeight: 700, color: 'var(--sala-text-primary)' }}>{titulo}</p>
+        {children}
+      </div>
+    </div>
   );
 }
 
