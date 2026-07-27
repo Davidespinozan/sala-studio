@@ -10,6 +10,7 @@ import {
 import { useMiembroKPIs } from '../hooks/useMiembroKPIs';
 import { useSucursal } from '../providers/SucursalProvider';
 import { supabase } from '@shared/lib/supabase';
+import { esCorreoMarcador, etiquetaCorreo } from '@shared/lib/sinCorreo';
 import { useToast } from '@shared/hooks/useToast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { MiembroHero } from '../components/miembro/MiembroHero';
@@ -286,7 +287,7 @@ export default function MiembroDetalle() {
 
           <FieldGroup title="Información del sistema">
             <div className="adm-info-grid">
-              <Info label="Email" value={miembro.email} />
+              <Info label="Email" value={etiquetaCorreo(miembro.email)} />
               <Info label="Rol" value={miembro.rol} mono />
               <Info label="Alta" value={new Date(miembro.created_at).toLocaleString('es-MX')} />
               {miembro.commitment_ends_at && (
@@ -730,27 +731,44 @@ function EditarDatosForm({
   const [nombre, setNombre] = useState(miembro.nombre ?? '');
   const [telefono, setTelefono] = useState(miembro.telefono ?? '');
   const [sucursalId, setSucursalId] = useState(miembro.sucursal_id ?? '');
+  // Socio importado sin correo: recepción le pone su email real acá para que
+  // pueda activar su cuenta. Solo para estos (los que ya tienen login no se
+  // editan acá, para no desincronizar su email de auth).
+  const socioSinCorreo = esCorreoMarcador(miembro.email);
+  const [email, setEmail] = useState(socioSinCorreo ? '' : (miembro.email ?? ''));
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const emailNuevo = socioSinCorreo ? email.trim() : '';
   const isDirty =
     nombre !== (miembro.nombre ?? '') ||
     telefono !== (miembro.telefono ?? '') ||
-    sucursalId !== (miembro.sucursal_id ?? '');
+    sucursalId !== (miembro.sucursal_id ?? '') ||
+    (socioSinCorreo && emailNuevo.length > 0);
 
   async function handleSave() {
     setSaving(true);
     setError(null);
     setSaved(false);
     try {
+      // Si le ponen el correo real a un socio "sin correo": validarlo y guardarlo
+      // (además limpia la nota de importación).
+      const patch: Record<string, unknown> = {
+        nombre: nombre.trim() || null,
+        telefono: telefono.trim() || null,
+        sucursal_id: sucursalId || null
+      };
+      if (socioSinCorreo && emailNuevo) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNuevo)) {
+          throw new Error('El correo no es válido.');
+        }
+        patch.email = emailNuevo.toLowerCase();
+        patch.notas_admin = null;
+      }
       const { error } = await supabase
         .from('usuarios')
-        .update({
-          nombre: nombre.trim() || null,
-          telefono: telefono.trim() || null,
-          sucursal_id: sucursalId || null
-        })
+        .update(patch as never)
         .eq('id', miembro.id);
       if (error) throw error;
       await onSaved();
@@ -774,6 +792,21 @@ function EditarDatosForm({
           placeholder="Nombre completo"
         />
       </label>
+      {socioSinCorreo && (
+        <label className="ek-label">
+          Correo (para activar su cuenta)
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="ek-input"
+            placeholder="correo@ejemplo.com"
+          />
+          <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)' }}>
+            Este socio entró sin correo. Ponle su email y podrá activar su cuenta desde “Ya soy socio”.
+          </span>
+        </label>
+      )}
       <label className="ek-label">
         Teléfono
         <input

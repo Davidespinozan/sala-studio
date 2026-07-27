@@ -20,7 +20,7 @@ type Paso = 'subir' | 'mapear' | 'preview' | 'listo';
 // Campos destino. nombre/email obligatorios (el resto opcional).
 const CAMPOS = [
   { key: 'nombre', label: 'Nombre', req: true },
-  { key: 'email', label: 'Email', req: true },
+  { key: 'email', label: 'Email', req: false },
   { key: 'telefono', label: 'Teléfono', req: false },
   { key: 'plan', label: 'Plan', req: false },
   { key: 'vencimiento', label: 'Vencimiento', req: false },
@@ -30,23 +30,25 @@ type CampoKey = (typeof CAMPOS)[number]['key'];
 
 // Adivina la columna del CSV para un campo, por nombre de encabezado.
 const PISTAS: Record<CampoKey, string[]> = {
-  nombre: ['nombre', 'name', 'nombre completo', 'cliente', 'socio', 'full name'],
+  nombre: ['nombre', 'name', 'nombre completo', 'cliente', 'nombre del cliente', 'socio', 'full name'],
   email: ['email', 'correo', 'e-mail', 'mail'],
   telefono: ['telefono', 'teléfono', 'phone', 'celular', 'movil', 'móvil', 'tel'],
   plan: ['plan', 'membresia', 'membresía', 'tier', 'paquete', 'plan actual'],
-  vencimiento: ['vencimiento', 'vence', 'expira', 'expiration', 'fin', 'fecha fin', 'due'],
+  vencimiento: ['vencimiento', 'vence', 'expira', 'expiration', 'fin', 'fecha fin', 'membresia fin', 'membresía fin', 'due'],
   creditos: ['creditos', 'créditos', 'clases', 'clases restantes', 'saldo', 'credits']
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Fecha a ISO (yyyy-mm-dd). Acepta ISO tal cual y d/m/aaaa (LatAm). Lo que no
- *  reconoce lo deja pasar; si la RPC no lo castea, esa fila sale como error. */
+/** Fecha a ISO (yyyy-mm-dd). Acepta ISO y d/m/aaaa (LatAm), con hora opcional al
+ *  final (ej. SIAGYM manda "18/08/2026 00:00"). Lo que no reconoce lo deja pasar;
+ *  si la RPC no lo castea, esa fila sale como error (no se inventa una fecha). */
 function normalizarFecha(v: string): string {
   const s = v.trim();
   if (!s) return '';
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  // d/m/aaaa con hora opcional (" 00:00" o " 00:00:00", con espacio o T).
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/);
   if (m) {
     const [, d, mth, y] = m;
     return `${y}-${mth.padStart(2, '0')}-${d.padStart(2, '0')}`;
@@ -62,6 +64,7 @@ interface FilaFinal {
   vencimiento: string;
   creditos: string;
   planTexto: string;
+  sinCorreo: boolean;
   problema: string | null;
 }
 
@@ -129,10 +132,22 @@ export function ImportarMiembrosModal({ onClose, onImported }: { onClose: () => 
 
   // Construye las filas finales con el tier resuelto y la validación.
   const filasFinales = useMemo<FilaFinal[]>(() => {
+    // Cuántas veces aparece cada email: uno que se repite es de relleno (como
+    // default@siagym.com, que sale para varios socios sin correo).
+    const conteo = new Map<string, number>();
+    if (mapa.email) {
+      for (const f of filasCsv) {
+        const e = (f[mapa.email] ?? '').trim().toLowerCase();
+        if (e) conteo.set(e, (conteo.get(e) ?? 0) + 1);
+      }
+    }
     const vistos = new Set<string>();
     return filasCsv.map((f) => {
       const nombre = (mapa.nombre ? f[mapa.nombre] : '')?.trim() ?? '';
-      const email = (mapa.email ? f[mapa.email] : '')?.trim().toLowerCase() ?? '';
+      const emailRaw = (mapa.email ? f[mapa.email] : '')?.trim().toLowerCase() ?? '';
+      // Sin correo real: vacío, o un email de relleno (se repite en el archivo).
+      const sinCorreo = !emailRaw || (conteo.get(emailRaw) ?? 0) > 1;
+      const email = sinCorreo ? '' : emailRaw;
       const telefono = (mapa.telefono ? f[mapa.telefono] : '')?.trim() ?? '';
       const planTexto = (mapa.plan ? f[mapa.plan] : '')?.trim() ?? '';
       const tier_id = mapa.plan ? (planTier[planTexto] ?? '') : tierDefault;
@@ -141,19 +156,22 @@ export function ImportarMiembrosModal({ onClose, onImported }: { onClose: () => 
 
       let problema: string | null = null;
       if (!nombre) problema = 'Sin nombre';
-      else if (!email) problema = 'Sin email';
-      else if (!EMAIL_RE.test(email)) problema = 'Email inválido';
       else if (!tier_id) problema = 'Plan sin asignar';
-      else if (vistos.has(email)) problema = 'Email repetido en el archivo';
-      if (email && !problema) vistos.add(email);
+      else if (!sinCorreo) {
+        // Solo se validan/dedupean los correos reales; los "sin correo" entran igual.
+        if (!EMAIL_RE.test(email)) problema = 'Email inválido';
+        else if (vistos.has(email)) problema = 'Email repetido en el archivo';
+      }
+      if (!sinCorreo && email && !problema) vistos.add(email);
 
-      return { nombre, email, telefono, tier_id, vencimiento, creditos, planTexto, problema };
+      return { nombre, email, telefono, tier_id, vencimiento, creditos, planTexto, sinCorreo, problema };
     });
   }, [filasCsv, mapa, planTier, tierDefault]);
 
   const listos = filasFinales.filter((f) => !f.problema);
   const conProblema = filasFinales.filter((f) => f.problema);
-  const mapeoOk = !!mapa.nombre && !!mapa.email && (mapa.plan ? planesDistintos.every((p) => planTier[p]) : !!tierDefault);
+  const sinCorreoCount = listos.filter((f) => f.sinCorreo).length;
+  const mapeoOk = !!mapa.nombre && (mapa.plan ? planesDistintos.every((p) => planTier[p]) : !!tierDefault);
 
   async function importar() {
     if (listos.length === 0) return;
@@ -205,9 +223,10 @@ export function ImportarMiembrosModal({ onClose, onImported }: { onClose: () => 
         {paso === 'subir' && (
           <div>
             <p className="ek-body-muted" style={{ fontSize: 13.5, marginBottom: 14 }}>
-              Sube un CSV con tus socios: nombre y email son obligatorios; teléfono, plan,
-              vencimiento y clases restantes son opcionales. No se les cobra nada — quedan activos con
-              su vencimiento actual.
+              Sube un CSV con tus socios. El nombre es obligatorio; email, teléfono, plan,
+              vencimiento y clases restantes son opcionales. Los que no tengan correo (o traigan uno
+              de relleno repetido) entran igual, marcados "sin correo". No se les cobra nada — quedan
+              activos con su vencimiento actual.
             </p>
             <label className="ek-cta ek-cta--secondary" style={{ display: 'inline-flex', cursor: 'pointer' }}>
               Elegir archivo CSV
@@ -281,10 +300,18 @@ export function ImportarMiembrosModal({ onClose, onImported }: { onClose: () => 
         {/* ── Paso 3: preview ────────────────────────────────────────────── */}
         {paso === 'preview' && (
           <div>
-            <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 14 }}><b style={{ color: 'var(--ek-ok, #34d399)' }}>{listos.length}</b> listos</span>
+              {sinCorreoCount > 0 && (
+                <span style={{ fontSize: 14 }}><b style={{ color: 'var(--ek-warning, #d97706)' }}>{sinCorreoCount}</b> sin correo</span>
+              )}
               <span style={{ fontSize: 14 }}><b style={{ color: conProblema.length ? 'var(--ek-danger)' : 'var(--ek-ink-faint)' }}>{conProblema.length}</b> con problema (se omiten)</span>
             </div>
+            {sinCorreoCount > 0 && (
+              <p className="ek-body-muted" style={{ fontSize: 12, margin: '0 0 12px', lineHeight: 1.5 }}>
+                Los "sin correo" entran activos con su plan; recepción les pondrá su email real cuando vengan, para que activen su cuenta.
+              </p>
+            )}
             <div className="ek-card" style={{ padding: 0, maxHeight: 260, overflow: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
                 <thead><tr>{['Nombre', 'Email', 'Plan', 'Vence', 'Estado'].map((h) => <th key={h} style={thc}>{h}</th>)}</tr></thead>
@@ -292,7 +319,7 @@ export function ImportarMiembrosModal({ onClose, onImported }: { onClose: () => 
                   {filasFinales.slice(0, 200).map((f, i) => (
                     <tr key={i} style={{ background: f.problema ? 'var(--ek-danger-dim, rgba(239,68,68,.06))' : undefined }}>
                       <td style={tdc}>{f.nombre || '—'}</td>
-                      <td style={tdc}>{f.email || '—'}</td>
+                      <td style={{ ...tdc, color: f.sinCorreo ? 'var(--ek-warning, #d97706)' : undefined }}>{f.sinCorreo ? 'sin correo' : (f.email || '—')}</td>
                       <td style={tdc}>{f.planTexto || (tierDefault ? tiers.find((t) => t.id === tierDefault)?.nombre : '—')}</td>
                       <td style={tdc}>{f.vencimiento || '—'}</td>
                       <td style={{ ...tdc, color: f.problema ? 'var(--ek-danger)' : 'var(--ek-ink-faint)' }}>{f.problema ?? 'OK'}</td>
