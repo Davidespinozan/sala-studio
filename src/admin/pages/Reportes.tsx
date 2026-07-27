@@ -78,6 +78,7 @@ function useChartColors() {
 }
 
 export default function Reportes() {
+  const tenant = useTenant();
   const [periodo, setPeriodo] = useState<PeriodoReporte>('mes');
   const { data, isLoading } = useReportes(periodo);
   const { data: avanzado, isLoading: avLoading } = useReportesAvanzados(periodo);
@@ -88,15 +89,31 @@ export default function Reportes() {
   const { data: recursos } = useReportesRecursos();
   const { data: operacion } = useReportesOperacion();
 
+  const periodoLabel = PERIODO_OPTIONS.find((o) => o.value === periodo)?.label ?? '';
+
   return (
-    <div className="adm-page">
-      <div className="adm-page-header" style={{ marginBottom: '20px' }}>
-        <p className="ek-eyebrow">REPORTES</p>
-        <h1 className="ek-h2">Métricas de tu gimnasio</h1>
+    <div className="adm-page" id="reportes-print">
+      {/* Encabezado de marca — solo visible en el PDF impreso. */}
+      <div className="solo-print" style={{ marginBottom: 18, borderBottom: '2px solid #000', paddingBottom: 10 }}>
+        <div style={{ fontSize: 22, fontWeight: 800 }}>{tenant.nombre || 'Reportes'}</div>
+        <div style={{ fontSize: 12.5, color: '#555' }}>
+          Reportes · {periodoLabel} · Generado el {new Date().toLocaleDateString('es-MX')}
+        </div>
+      </div>
+
+      <div className="adm-page-header" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <p className="ek-eyebrow">REPORTES</p>
+          <h1 className="ek-h2">Métricas de tu gimnasio</h1>
+        </div>
+        <button type="button" className="no-print ek-cta ek-cta--secondary" onClick={() => window.print()}>
+          Exportar PDF
+        </button>
       </div>
 
       {/* Selector de período */}
       <div
+        className="no-print"
         style={{
           display: 'flex',
           gap: '8px',
