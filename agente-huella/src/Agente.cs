@@ -1,0 +1,135 @@
+namespace SalaAgente;
+
+/// <summary>
+/// El cerebro: junta lector + matcher + API + almacén y corre el loop del mostrador.
+/// Publica un texto de estado para que la bandeja muestre qué está pasando.
+///
+/// El loop, cada vuelta:
+///   1) re-sincroniza las huellas si toca (cada N seg),
+///   2) drena la cola de entradas offline si hay,
+///   3) si recepción abrió una toma → enrola,
+///   4) si no → espera un dedo y, si lo reconoce, marca la entrada.
+/// </summary>
+public sealed class Agente : IDisposable
+{
+    private readonly Config _cfg;
+    private readonly SalaApi _api;
+    private readonly Almacen _almacen;
+    private readonly DigitalPersona4500 _lector; // es lector Y matcher (mismo motor)
+    private readonly CancellationTokenSource _cts = new();
+    private DateTimeOffset _ultimoSync = DateTimeOffset.MinValue;
+    private DateTimeOffset _ultimoPendiente = DateTimeOffset.MinValue;
+
+    /// <summary>Último mensaje de estado (para la bandeja / logs).</summary>
+    public event Action<string>? Estado;
+
+    public Agente(Config cfg, string carpetaDatos)
+    {
+        _cfg = cfg;
+        _api = new SalaApi(cfg);
+        _almacen = new Almacen(carpetaDatos);
+        _lector = new DigitalPersona4500(cfg.UmbralMatch);
+    }
+
+    public void Iniciar() => _ = Task.Run(LoopAsync);
+
+    private async Task LoopAsync()
+    {
+        var ct = _cts.Token;
+        try
+        {
+            _lector.Abrir();
+            Avisar($"Lector listo: {_lector.Nombre}");
+            await Sync(ct); // arrancar con las huellas frescas
+        }
+        catch (Exception ex) { Avisar($"Sin lector: {ex.Message}"); return; }
+
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await TalvezSync(ct);
+                await TalvezDrenar(ct);
+
+                var pendiente = await TalvezPendiente(ct);
+                if (pendiente is not null) { await Enrolar(pendiente, ct); continue; }
+
+                // Check-in: esperar un dedo, con timeout corto para volver a revisar pendientes.
+                var captura = await _lector.CapturarUnaAsync(TimeSpan.FromSeconds(3), ct);
+                if (captura is null) continue;
+
+                var usuarioId = _lector.Identificar(captura.PlantillaIso, _almacen.Huellas);
+                if (usuarioId is null) { Avisar("Huella no reconocida"); continue; }
+
+                await RegistrarEntrada(usuarioId, ct);
+            }
+            catch (LectorNoAutorizadoException ex) { Avisar($"Token inválido: {ex.Message}"); await Esperar(30, ct); }
+            catch (OperationCanceledException) { break; }
+            catch (Exception ex) { Avisar($"Error: {ex.Message}"); await Esperar(3, ct); }
+        }
+    }
+
+    private async Task RegistrarEntrada(string usuarioId, CancellationToken ct)
+    {
+        var momento = DateTimeOffset.Now;
+        try
+        {
+            var r = await _api.CheckInAsync(usuarioId, momento, ct);
+            Avisar(string.IsNullOrWhiteSpace(r.Mensaje) ? "Entrada registrada" : r.Mensaje!);
+        }
+        catch (HttpRequestException) // sin internet: encolar y seguir operando
+        {
+            _almacen.Encolar(new EntradaPendiente(usuarioId, momento));
+            Avisar($"Entrada guardada (sin internet). En cola: {_almacen.PendientesCount}");
+        }
+    }
+
+    private async Task Enrolar(PendienteResp p, CancellationToken ct)
+    {
+        Avisar($"Apoya el {p.Dedo}, {p.Socio}…");
+        var captura = await _lector.EnrolarAsync(ct);
+        if (captura is null) { Avisar("Enrolamiento cancelado"); return; }
+        try
+        {
+            await _api.EnrolarAsync(p.EnrolamientoId!, Convert.ToBase64String(captura.PlantillaIso), captura.Calidad, ct);
+            Avisar("Huella registrada ✓");
+            await Sync(ct); // que la huella nueva entre al cache de inmediato
+        }
+        catch (Exception ex) { Avisar($"No se pudo guardar la huella: {ex.Message}"); }
+    }
+
+    // ── Tareas de fondo, con throttle ────────────────────────────────────────
+    private async Task TalvezSync(CancellationToken ct)
+    {
+        if ((DateTimeOffset.Now - _ultimoSync).TotalSeconds >= _cfg.SyncCadaSegundos)
+            await Sync(ct);
+    }
+
+    private async Task Sync(CancellationToken ct)
+    {
+        _almacen.ReemplazarHuellas(await _api.SyncAsync(ct));
+        _ultimoSync = DateTimeOffset.Now;
+        Avisar($"Huellas al día ({_almacen.Huellas.Count})");
+    }
+
+    private async Task<PendienteResp?> TalvezPendiente(CancellationToken ct)
+    {
+        if ((DateTimeOffset.Now - _ultimoPendiente).TotalSeconds < _cfg.PendienteCadaSegundos) return null;
+        _ultimoPendiente = DateTimeOffset.Now;
+        return await _api.PendienteAsync(ct);
+    }
+
+    private Task TalvezDrenar(CancellationToken ct) =>
+        _almacen.PendientesCount == 0
+            ? Task.CompletedTask
+            : _almacen.DrenarAsync(async e =>
+            {
+                try { await _api.CheckInAsync(e.UsuarioId, e.Momento, ct); return true; }
+                catch { return false; }
+            });
+
+    private static Task Esperar(int seg, CancellationToken ct) => Task.Delay(TimeSpan.FromSeconds(seg), ct);
+    private void Avisar(string s) => Estado?.Invoke(s);
+
+    public void Dispose() { _cts.Cancel(); _lector.Dispose(); }
+}

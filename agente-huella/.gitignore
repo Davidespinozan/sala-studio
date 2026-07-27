@@ -1,0 +1,11 @@
+# Build de .NET
+bin/
+obj/
+*.user
+
+# La librería del SDK de DigitalPersona NO se redistribuye: cada quien la baja
+# del portal de HID y la deja en libs/. No va al repo.
+libs/*.dll
+
+# El config con el token del lector es por-instalación, no va al repo.
+sala-lector.config.json

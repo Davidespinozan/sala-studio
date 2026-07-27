@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>            <!-- WinExe: corre sin consola (icono de bandeja) -->
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>    <!-- solo para el NotifyIcon de la bandeja -->
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>SalaAgente</AssemblyName>
+    <RootNamespace>SalaAgente</RootNamespace>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+  </PropertyGroup>
+
+  <!--
+    DPUruNet: la librería .NET del DigitalPersona U.are.U SDK. NO se puede
+    redistribuir en un repo público — cada quien la baja del portal de HID y la
+    deja en libs/. Por eso está como referencia local y no como paquete NuGet.
+  -->
+  <ItemGroup>
+    <Reference Include="DPUruNet">
+      <HintPath>libs/DPUruNet.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
