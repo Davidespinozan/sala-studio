@@ -236,8 +236,16 @@ async function sincronizarModulo(
   const { data } = await admin.from('tenants').select('config').eq('id', tenantId).maybeSingle();
   const config = (data?.config ?? {}) as Record<string, unknown>;
   const modulos = { ...((config.modulos ?? {}) as Record<string, unknown>) };
-  if (modulos[modulo] === activo) return; // ya está como debe: no tocar
-  modulos[modulo] = activo;
+
+  // Módulo REGALADO: si SALA le comp'eó este módulo al gym (trato de fundador,
+  // cortesía, etc.), vive SIN renglón en Stripe. El webhook nunca debe apagarlo
+  // aunque no encuentre el ítem en la suscripción. `activo` (lo que dicta Stripe)
+  // solo puede PRENDER; apagar queda vetado para un módulo comp.
+  const comps = (config.modulos_comp ?? {}) as Record<string, unknown>;
+  const target = activo || comps[modulo] === true;
+
+  if (modulos[modulo] === target) return; // ya está como debe: no tocar
+  modulos[modulo] = target;
   const { error } = await admin
     .from('tenants')
     .update({ config: { ...config, modulos } })

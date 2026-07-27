@@ -114,6 +114,9 @@ export const handler: Handler = async (event) => {
     // ── ACTIVAR ─────────────────────────────────────────────────────────────
     if (itemExistente) return ok({ ya: true }); // ya lo tenía: idempotente
 
+    // El complemento tiene un Price por divisa (igual que los planes base), cada
+    // uno con su lookup_key 'sala_tienda_<moneda>'. Resolvemos el de la moneda de
+    // la suscripción del gym (numa = mxn → sala_tienda_mxn).
     const moneda = String(sus?.moneda || 'mxn').toLowerCase();
     const priceId = await resolvePriceId(stripe, `${COMPLEMENTOS[modulo].lookupPrefix}_${moneda}`);
 
