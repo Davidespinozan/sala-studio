@@ -30,13 +30,16 @@ faltaba — todo el lado de SALA (endpoints, tablas, enrolamiento, check-in) ya 
 
 El **token** lo genera el admin en **Admin → Lectores** (se ve una sola vez).
 
-## Requisitos para compilar
+## Cómo se compila
 
-1. **.NET 8 SDK** (Windows).
-2. **DigitalPersona U.are.U SDK** (HID) — instala el runtime/driver del lector y trae
-   la librería .NET **`DPUruNet.dll`**. Ponla en `libs/DPUruNet.dll` y ajusta la
-   referencia del `.csproj` si hace falta. (Descarga: portal de desarrolladores de
-   HID/DigitalPersona.)
+Lo normal es **no compilar a mano**: el workflow de GitHub Actions lo hace solo
+(ver [BUILD.md](BUILD.md) → apretar "Run workflow"). La librería `DPUruNet` viene
+de **NuGet** (`DigitalPersona.dpUruNet`, ver el `.csproj`), así que se restaura
+sola — no hay que bajar ningún DLL.
+
+Requisito para compilar en local (opcional): **.NET 8 SDK** en Windows. El
+**driver/runtime nativo del lector** (del sitio de DigitalPersona) va en la PC del
+mostrador para que el agente funcione en ejecución.
 
 ## Compilar un .exe autocontenido (un solo archivo)
 

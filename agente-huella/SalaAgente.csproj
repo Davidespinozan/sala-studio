@@ -13,15 +13,12 @@
   </PropertyGroup>
 
   <!--
-    DPUruNet: la librería .NET del DigitalPersona U.are.U SDK. NO se puede
-    redistribuir en un repo público — cada quien la baja del portal de HID y la
-    deja en libs/. Por eso está como referencia local y no como paquete NuGet.
+    DPUruNet: la librería .NET del DigitalPersona U.are.U SDK. Está publicada en
+    NuGet, así que se restaura sola al compilar — sin bajar DLLs a mano ni secrets.
+    (El driver/runtime NATIVO del lector igual va instalado en la PC del mostrador.)
   -->
   <ItemGroup>
-    <Reference Include="DPUruNet">
-      <HintPath>libs/DPUruNet.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
+    <PackageReference Include="DigitalPersona.dpUruNet" Version="3.4.4.127" />
   </ItemGroup>
 
 </Project>

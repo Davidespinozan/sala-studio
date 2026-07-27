@@ -20,25 +20,8 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      # El SDK de DigitalPersona no puede ir en un repo PÚBLICO (licencia). Se sube
-      # UNA vez a un bucket PRIVADO de Supabase Storage ('sdk') y acá se baja con la
-      # service key. Ver agente-huella/BUILD.md.
-      - name: Bajar DPUruNet.dll (SDK DigitalPersona) de Supabase Storage
-        shell: pwsh
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          if (-not $env:SUPABASE_URL -or -not $env:SERVICE_KEY) {
-            throw "Faltan los secrets SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY. Ver agente-huella/BUILD.md."
-          }
-          New-Item -ItemType Directory -Force -Path agente-huella/libs | Out-Null
-          $u = "$($env:SUPABASE_URL.TrimEnd('/'))/storage/v1/object/sdk/DPUruNet.dll"
-          curl.exe -sS -f $u -H "Authorization: Bearer $env:SERVICE_KEY" -o agente-huella/libs/DPUruNet.dll
-          if (-not (Test-Path agente-huella/libs/DPUruNet.dll)) {
-            throw "No se pudo bajar DPUruNet.dll del bucket privado 'sdk'."
-          }
-
+      # DPUruNet ahora viene de NuGet (ver el .csproj): `dotnet publish` lo restaura
+      # solo. Ya no hay que bajar DLLs a mano ni poner secrets.
       - name: Compilar el .exe (un solo archivo, autocontenido)
         working-directory: agente-huella
         run: >
