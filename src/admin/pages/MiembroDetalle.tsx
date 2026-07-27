@@ -11,6 +11,7 @@ import { useMiembroKPIs } from '../hooks/useMiembroKPIs';
 import { useSucursal } from '../providers/SucursalProvider';
 import { supabase } from '@shared/lib/supabase';
 import { esCorreoMarcador, etiquetaCorreo } from '@shared/lib/sinCorreo';
+import { calcularEdad } from '@shared/lib/edad';
 import { useToast } from '@shared/hooks/useToast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { MiembroHero } from '../components/miembro/MiembroHero';
@@ -740,12 +741,38 @@ function EditarDatosForm({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Ficha de datos (tabla privada usuarios_datos_privados): nacimiento, sexo,
+  // domicilio. Se cargan aparte y se guardan con upsert.
+  const [fechaNac, setFechaNac] = useState('');
+  const [sexo, setSexo] = useState('');
+  const [domicilio, setDomicilio] = useState('');
+  const [fichaOrig, setFichaOrig] = useState({ fechaNac: '', sexo: '', domicilio: '' });
+  useEffect(() => {
+    let cancel = false;
+    void (async () => {
+      const { data } = await (supabase as any)
+        .from('usuarios_datos_privados')
+        .select('fecha_nacimiento, sexo, domicilio')
+        .eq('usuario_id', miembro.id)
+        .maybeSingle();
+      if (cancel) return;
+      const fn = (data?.fecha_nacimiento ?? '') as string;
+      const sx = (data?.sexo ?? '') as string;
+      const dm = (data?.domicilio ?? '') as string;
+      setFechaNac(fn); setSexo(sx); setDomicilio(dm);
+      setFichaOrig({ fechaNac: fn, sexo: sx, domicilio: dm });
+    })();
+    return () => { cancel = true; };
+  }, [miembro.id]);
+
   const emailNuevo = socioSinCorreo ? email.trim() : '';
+  const fichaDirty = fechaNac !== fichaOrig.fechaNac || sexo !== fichaOrig.sexo || domicilio !== fichaOrig.domicilio;
   const isDirty =
     nombre !== (miembro.nombre ?? '') ||
     telefono !== (miembro.telefono ?? '') ||
     sucursalId !== (miembro.sucursal_id ?? '') ||
-    (socioSinCorreo && emailNuevo.length > 0);
+    (socioSinCorreo && emailNuevo.length > 0) ||
+    fichaDirty;
 
   async function handleSave() {
     setSaving(true);
@@ -771,6 +798,24 @@ function EditarDatosForm({
         .update(patch as never)
         .eq('id', miembro.id);
       if (error) throw error;
+
+      // Ficha de datos (tabla privada): upsert si cambió algo.
+      if (fichaDirty) {
+        const { error: e2 } = await (supabase as any)
+          .from('usuarios_datos_privados')
+          .upsert(
+            {
+              usuario_id: miembro.id,
+              tenant_id: miembro.tenant_id,
+              fecha_nacimiento: fechaNac || null,
+              sexo: sexo || null,
+              domicilio: domicilio.trim() || null
+            },
+            { onConflict: 'usuario_id' }
+          );
+        if (e2) throw e2;
+        setFichaOrig({ fechaNac, sexo, domicilio });
+      }
       await onSaved();
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -815,6 +860,34 @@ function EditarDatosForm({
           onChange={(e) => setTelefono(e.target.value)}
           className="ek-input"
           placeholder="+52 667 123 4567"
+        />
+      </label>
+      <label className="ek-label">
+        Fecha de nacimiento{calcularEdad(fechaNac) != null ? ` · ${calcularEdad(fechaNac)} años` : ''}
+        <input
+          type="date"
+          value={fechaNac}
+          onChange={(e) => setFechaNac(e.target.value)}
+          className="ek-input"
+        />
+      </label>
+      <label className="ek-label">
+        Sexo
+        <select value={sexo} onChange={(e) => setSexo(e.target.value)} className="ek-input">
+          <option value="">Sin especificar</option>
+          <option value="femenino">Femenino</option>
+          <option value="masculino">Masculino</option>
+          <option value="otro">Otro</option>
+        </select>
+      </label>
+      <label className="ek-label" style={{ gridColumn: '1 / -1' }}>
+        Domicilio
+        <input
+          type="text"
+          value={domicilio}
+          onChange={(e) => setDomicilio(e.target.value)}
+          className="ek-input"
+          placeholder="Calle, número, colonia, ciudad"
         />
       </label>
       {multisede && (

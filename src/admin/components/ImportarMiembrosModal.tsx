@@ -24,7 +24,9 @@ const CAMPOS = [
   { key: 'telefono', label: 'Teléfono', req: false },
   { key: 'plan', label: 'Plan', req: false },
   { key: 'vencimiento', label: 'Vencimiento', req: false },
-  { key: 'creditos', label: 'Clases restantes', req: false }
+  { key: 'creditos', label: 'Clases restantes', req: false },
+  { key: 'nacimiento', label: 'Fecha de nacimiento', req: false },
+  { key: 'domicilio', label: 'Domicilio', req: false }
 ] as const;
 type CampoKey = (typeof CAMPOS)[number]['key'];
 
@@ -35,7 +37,9 @@ const PISTAS: Record<CampoKey, string[]> = {
   telefono: ['telefono', 'teléfono', 'phone', 'celular', 'movil', 'móvil', 'tel'],
   plan: ['plan', 'membresia', 'membresía', 'tier', 'paquete', 'plan actual'],
   vencimiento: ['vencimiento', 'vence', 'expira', 'expiration', 'fin', 'fecha fin', 'membresia fin', 'membresía fin', 'due'],
-  creditos: ['creditos', 'créditos', 'clases', 'clases restantes', 'saldo', 'credits']
+  creditos: ['creditos', 'créditos', 'clases', 'clases restantes', 'saldo', 'credits'],
+  nacimiento: ['nacimiento', 'fecha nacimiento', 'fecha de nacimiento', 'fecha nac', 'nac', 'birth', 'birthday', 'dob'],
+  domicilio: ['domicilio', 'direccion', 'dirección', 'address', 'calle']
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -63,6 +67,8 @@ interface FilaFinal {
   tier_id: string;
   vencimiento: string;
   creditos: string;
+  nacimiento: string;
+  domicilio: string;
   planTexto: string;
   sinCorreo: boolean;
   problema: string | null;
@@ -75,7 +81,7 @@ export function ImportarMiembrosModal({ onClose, onImported }: { onClose: () => 
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [columnas, setColumnas] = useState<string[]>([]);
   const [filasCsv, setFilasCsv] = useState<Record<string, string>[]>([]);
-  const [mapa, setMapa] = useState<Record<CampoKey, string>>({ nombre: '', email: '', telefono: '', plan: '', vencimiento: '', creditos: '' });
+  const [mapa, setMapa] = useState<Record<CampoKey, string>>({ nombre: '', email: '', telefono: '', plan: '', vencimiento: '', creditos: '', nacimiento: '', domicilio: '' });
   const [planTier, setPlanTier] = useState<Record<string, string>>({});
   const [tierDefault, setTierDefault] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -153,6 +159,10 @@ export function ImportarMiembrosModal({ onClose, onImported }: { onClose: () => 
       const tier_id = mapa.plan ? (planTier[planTexto] ?? '') : tierDefault;
       const vencimiento = normalizarFecha((mapa.vencimiento ? f[mapa.vencimiento] : '') ?? '');
       const creditos = (mapa.creditos ? f[mapa.creditos] : '')?.replace(/[^\d]/g, '') ?? '';
+      // Nacimiento a ISO; si no se reconoce, va vacío (no rompe la fila).
+      const nacRaw = normalizarFecha((mapa.nacimiento ? f[mapa.nacimiento] : '') ?? '');
+      const nacimiento = /^\d{4}-\d{2}-\d{2}$/.test(nacRaw) ? nacRaw : '';
+      const domicilio = (mapa.domicilio ? f[mapa.domicilio] : '')?.trim() ?? '';
 
       let problema: string | null = null;
       if (!nombre) problema = 'Sin nombre';
@@ -164,7 +174,7 @@ export function ImportarMiembrosModal({ onClose, onImported }: { onClose: () => 
       }
       if (!sinCorreo && email && !problema) vistos.add(email);
 
-      return { nombre, email, telefono, tier_id, vencimiento, creditos, planTexto, sinCorreo, problema };
+      return { nombre, email, telefono, tier_id, vencimiento, creditos, nacimiento, domicilio, planTexto, sinCorreo, problema };
     });
   }, [filasCsv, mapa, planTier, tierDefault]);
 
@@ -183,7 +193,7 @@ export function ImportarMiembrosModal({ onClose, onImported }: { onClose: () => 
       const acc = { creados: 0, omitidos: 0, errores: 0, detalle: [] as any[] };
       for (const lote of lotes) {
         const r = await backendPost<{ creados: number; omitidos: number; errores: number; detalle: any[] }>('importar-miembros', {
-          rows: lote.map((f) => ({ nombre: f.nombre, email: f.email, telefono: f.telefono, tier_id: f.tier_id, vencimiento: f.vencimiento, creditos: f.creditos }))
+          rows: lote.map((f) => ({ nombre: f.nombre, email: f.email, telefono: f.telefono, tier_id: f.tier_id, vencimiento: f.vencimiento, creditos: f.creditos, nacimiento: f.nacimiento, domicilio: f.domicilio }))
         });
         acc.creados += r.creados; acc.omitidos += r.omitidos; acc.errores += r.errores;
         acc.detalle.push(...(r.detalle ?? []));

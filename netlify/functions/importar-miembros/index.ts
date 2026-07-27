@@ -76,7 +76,9 @@ export const handler: Handler = async (event) => {
       telefono: String(r.telefono ?? '').trim(),
       tier_id: String(r.tier_id ?? '').trim(),
       vencimiento: String(r.vencimiento ?? '').trim(),
-      creditos: r.creditos === undefined || r.creditos === null ? '' : String(r.creditos).trim()
+      creditos: r.creditos === undefined || r.creditos === null ? '' : String(r.creditos).trim(),
+      nacimiento: String((r as Record<string, unknown>).nacimiento ?? '').trim(),
+      domicilio: String((r as Record<string, unknown>).domicilio ?? '').trim()
     }));
 
     const service = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
