@@ -124,6 +124,21 @@ export const handler: Handler = async (event) => {
       });
     }
 
+    // Pre-check pagos (pagos.usuario_id es FK RESTRICT: preserva el historial de
+    // la Caja). Un socio con dinero registrado no se borra — se revoca. Sin este
+    // chequeo, el borrado fallaba con el críptico "Database error deleting user".
+    const { count: pagosCount } = await supabaseAdmin
+      .from('pagos')
+      .select('id', { count: 'exact', head: true })
+      .eq('usuario_id', targetUser.id);
+
+    if ((pagosCount ?? 0) > 0) {
+      return CONFLICT({
+        error: `Tiene ${pagosCount} ${pagosCount === 1 ? 'pago' : 'pagos'} en la Caja. Para no perder el historial financiero, usá "Revocar acceso" en lugar de eliminar.`,
+        reservas_count: 0
+      });
+    }
+
     // Hard delete via auth admin (cascadea a la fila de usuarios vía
     // ON DELETE CASCADE en usuarios.auth_id → auth.users)
     if (targetUser.auth_id) {
