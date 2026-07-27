@@ -4,6 +4,7 @@ import { User, CreditCard, Lock, Unlock } from 'lucide-react';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useMiembros } from '../hooks/useAdminData';
 import { NuevaPersonaModal } from '../components/NuevaPersonaModal';
+import { ImportarMiembrosModal } from '../components/ImportarMiembrosModal';
 import CardMenuDropdown from '../components/CardMenuDropdown';
 import { GestionarMembresiaModal } from '../components/miembro/GestionarMembresiaModal';
 import { BloquearAccesoModal } from '../components/miembro/BloquearAccesoModal';
@@ -19,6 +20,7 @@ export default function Miembros() {
   // Permite llegar pre-filtrado desde el Centro de pendientes (?status=pendiente_pago).
   const [status, setStatus] = useState<string>(() => searchParams.get('status') ?? '');
   const [showNuevo, setShowNuevo] = useState(false);
+  const [showImportar, setShowImportar] = useState(false);
   const [cambiarPlanFor, setCambiarPlanFor] = useState<MiembroLista | null>(null);
   const [bloquearFor, setBloquearFor] = useState<MiembroLista | null>(null);
   // Fijamos rol='miembro' para excluir staff (admins, recepcionistas).
@@ -41,9 +43,14 @@ export default function Miembros() {
             </p>
           )}
         </div>
-        <button onClick={() => setShowNuevo(true)} className="ek-cta">
-          + Nuevo miembro
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => setShowImportar(true)} className="ek-cta ek-cta--secondary">
+            Importar CSV
+          </button>
+          <button onClick={() => setShowNuevo(true)} className="ek-cta">
+            + Nuevo miembro
+          </button>
+        </div>
       </div>
 
       <div className="adm-filters">
@@ -140,6 +147,13 @@ export default function Miembros() {
             await refetch();
             setShowNuevo(false);
           }}
+        />
+      )}
+
+      {showImportar && (
+        <ImportarMiembrosModal
+          onClose={() => setShowImportar(false)}
+          onImported={() => { void refetch(); }}
         />
       )}
 
