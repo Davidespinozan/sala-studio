@@ -5,6 +5,8 @@ import {
   useTiersAdmin
 } from '../hooks/useAdminData';
 import { useSucursal } from '../providers/SucursalProvider';
+import { useTenant } from '@shared/hooks/useTenant';
+import { guardarDatosPrivados, subirAvatarSocio } from '@shared/lib/datosSocio';
 
 /**
  * Alta de MIEMBRO (cliente que paga). Este modal vive en la página Miembros y
@@ -43,10 +45,17 @@ interface Props {
 export function NuevaPersonaModal({ onClose, onCreated }: Props) {
   const { tiers, isLoading: loadingTiers } = useTiersAdmin();
   const { sucursales, sucursalId: adminSucursalId, multisede } = useSucursal();
+  const tenant = useTenant();
   const [email, setEmail] = useState('');
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
   const [password, setPassword] = useState('');
+  // Ficha del socio (opcional): sexo/nacimiento/domicilio + foto, capturados AL
+  // ALTA en vez de escondidos en una pantalla que nadie abre.
+  const [fechaNac, setFechaNac] = useState('');
+  const [sexo, setSexo] = useState('');
+  const [domicilio, setDomicilio] = useState('');
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
   const rol = ROL_FIJO;
   // Sede de la persona (miembro/recepción en multisede). Default = la sede
   // activa del admin; el trigger de BD igual la rellena si quedara vacía.
@@ -91,6 +100,11 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
         membresia_tier: null,
         sucursal_id: pideSucursal ? sucursalId || null : null
       });
+
+      // Ficha del socio (opcional). Best-effort: la cuenta YA existe, así que un
+      // fallo acá no debe tumbar el alta — se puede recargar desde la ficha.
+      await guardarDatosPrivados(res.user.id, tenant.id, { fecha_nacimiento: fechaNac, sexo, domicilio });
+      if (fotoFile) await subirAvatarSocio(res.user.id, fotoFile);
 
       // Si es miembro Y se eligió un tier, alta de membresía vía RPC. Eso
       // crea la fila en `membresias`, sincroniza `usuarios.membresia_tier`,
@@ -299,6 +313,44 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
               className="ek-input"
               placeholder="+52 667 123 4567"
             />
+          </div>
+
+          {/* Ficha del socio (opcional): se captura al alta, ya no escondida. */}
+          <div className="ek-form-field">
+            <label className="ek-label" htmlFor="np-nac">
+              Fecha de nacimiento <span style={{ color: 'var(--ek-ink-muted)', fontWeight: 400 }}>(opcional)</span>
+            </label>
+            <input id="np-nac" type="date" value={fechaNac} onChange={(e) => setFechaNac(e.target.value)} className="ek-input" />
+          </div>
+
+          <div className="ek-form-field">
+            <label className="ek-label" htmlFor="np-sexo">
+              Sexo <span style={{ color: 'var(--ek-ink-muted)', fontWeight: 400 }}>(opcional)</span>
+            </label>
+            <select id="np-sexo" value={sexo} onChange={(e) => setSexo(e.target.value)} className="ek-input">
+              <option value="">Sin especificar</option>
+              <option value="femenino">Femenino</option>
+              <option value="masculino">Masculino</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+
+          <div className="ek-form-field">
+            <label className="ek-label" htmlFor="np-domicilio">
+              Domicilio <span style={{ color: 'var(--ek-ink-muted)', fontWeight: 400 }}>(opcional)</span>
+            </label>
+            <input id="np-domicilio" type="text" value={domicilio} onChange={(e) => setDomicilio(e.target.value)} className="ek-input" placeholder="Calle, número, colonia, ciudad" />
+          </div>
+
+          <div className="ek-form-field">
+            <label className="ek-label">
+              Foto <span style={{ color: 'var(--ek-ink-muted)', fontWeight: 400 }}>(opcional)</span>
+            </label>
+            <label className="ek-cta ek-cta--secondary" style={{ cursor: 'pointer', display: 'inline-block', width: 'fit-content' }}>
+              {fotoFile ? 'Cambiar foto' : 'Subir foto'}
+              <input type="file" accept="image/*" onChange={(e) => setFotoFile(e.target.files?.[0] ?? null)} style={{ display: 'none' }} />
+            </label>
+            {fotoFile && <p className="ek-helper-text">{fotoFile.name}</p>}
           </div>
 
           <div className="ek-form-field">

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { adminCreateUser } from '@admin/hooks/useAdminData';
 import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
+import { useTenant } from '@shared/hooks/useTenant';
+import { guardarDatosPrivados } from '@shared/lib/datosSocio';
 
 interface Props {
   isOpen: boolean;
@@ -26,9 +28,14 @@ function generarPassword(): string {
  */
 export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
   const { sucursalId, multisede } = useReceptionSucursal();
+  const tenant = useTenant();
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [telefono, setTelefono] = useState('');
+  // Ficha del socio (opcional): sexo/nacimiento/domicilio, pedidos AL ALTA.
+  const [fechaNac, setFechaNac] = useState('');
+  const [sexo, setSexo] = useState('');
+  const [domicilio, setDomicilio] = useState('');
   const [password, setPassword] = useState(generarPassword);
   const [creado, setCreado] = useState<{ email: string; password: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -38,6 +45,7 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
   useEffect(() => {
     if (!isOpen) return;
     setNombre(''); setEmail(''); setTelefono(''); setPassword(generarPassword());
+    setFechaNac(''); setSexo(''); setDomicilio('');
     setCreado(null); setError(null); setSubmitting(false);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -65,6 +73,9 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
         membresia_tier: null,
         sucursal_id: multisede ? sucursalId : null
       });
+      // Ficha del socio (opcional). Best-effort: el socio YA existe, un fallo acá
+      // no debe tumbar el alta (se puede completar luego desde su ficha).
+      await guardarDatosPrivados(res.user.id, tenant.id, { fecha_nacimiento: fechaNac, sexo, domicilio });
       setCreado({ email: res.user.email, password: res.user.password });
       await onDone();
     } catch (e) {
@@ -128,6 +139,20 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
               </Campo>
               <Campo label="Teléfono (opcional)">
                 <input className="ek-input" value={telefono} onChange={(e) => setTelefono(e.target.value)} autoComplete="off" />
+              </Campo>
+              <Campo label="Fecha de nacimiento (opcional)">
+                <input className="ek-input" type="date" value={fechaNac} onChange={(e) => setFechaNac(e.target.value)} />
+              </Campo>
+              <Campo label="Sexo (opcional)">
+                <select className="ek-input" value={sexo} onChange={(e) => setSexo(e.target.value)}>
+                  <option value="">Sin especificar</option>
+                  <option value="femenino">Femenino</option>
+                  <option value="masculino">Masculino</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </Campo>
+              <Campo label="Domicilio (opcional)">
+                <input className="ek-input" value={domicilio} onChange={(e) => setDomicilio(e.target.value)} placeholder="Calle, número, colonia, ciudad" autoComplete="off" />
               </Campo>
               <Campo label="Contraseña temporal">
                 <div style={{ display: 'flex', gap: '8px' }}>
