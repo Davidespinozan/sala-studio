@@ -59,7 +59,11 @@ function definirWebhooks(host) {
         'customer.subscription.deleted',
         'invoice.paid',
         'invoice.payment_failed',
-        'invoice.payment_succeeded'
+        'invoice.payment_succeeded',
+        // Red de seguridad de las compras de la Tienda: si comprar-producto se
+        // muere tras cobrar y antes de registrar, este evento re-arma la venta
+        // (registrar_venta_online es idempotente por el PaymentIntent).
+        'payment_intent.succeeded'
       ]
     }
   ].map((w) => ({ ...w, url: `https://${host}${w.path}` }));
@@ -129,9 +133,23 @@ async function main() {
   for (const w of webhooks) {
     const previo = existentes.find((e) => e.url === w.url);
     if (previo) {
-      console.log(`  = ${w.nombre}`);
-      console.log(`    ${w.url}`);
-      console.log(`    Ya existe (${previo.id}). El secret NO se puede leer por API una vez creado.`);
+      // Ya existe: NO lo recreamos (perderíamos el secret y habría que redeployar).
+      // Pero SÍ sincronizamos los eventos: si el código ganó un `case` nuevo y acá
+      // se agregó a la lista, un endpoint viejo se quedaría sordo a ese evento sin
+      // que nadie se entere. `update` conserva el signing secret.
+      const previos = previo.enabled_events ?? [];
+      const faltan = w.events.filter((ev) => !previos.includes(ev) && !previos.includes('*'));
+      const sobran = previos.includes('*') ? [] : previos.filter((ev) => !w.events.includes(ev));
+      if (faltan.length || sobran.length) {
+        await stripe.webhookEndpoints.update(previo.id, { enabled_events: w.events });
+        console.log(`  ~ ${w.nombre}`);
+        console.log(`    ${w.url}`);
+        console.log(`    Actualizado (${previo.id}) — eventos sincronizados${faltan.length ? '  +[' + faltan.join(', ') + ']' : ''}${sobran.length ? '  -[' + sobran.join(', ') + ']' : ''}`);
+      } else {
+        console.log(`  = ${w.nombre}`);
+        console.log(`    ${w.url}`);
+        console.log(`    Ya existe y sus eventos ya están al día (${previo.id}).`);
+      }
       secretos.push({ envVar: w.envVar, secret: null, url: w.url, yaExistia: true });
       continue;
     }
