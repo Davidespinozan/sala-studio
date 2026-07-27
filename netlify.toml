@@ -65,3 +65,8 @@
 [[scheduled_functions]]
   name = "cron-membresias-por-vencer"
   cron = "0 8 * * *"
+
+# Felicita por cumpleaños (≈9am hora de México = 15:00 UTC).
+[[scheduled_functions]]
+  name = "cron-felicitaciones"
+  cron = "0 15 * * *"
