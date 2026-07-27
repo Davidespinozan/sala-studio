@@ -639,6 +639,11 @@ function EditarTierModal({
   });
   // Pago único: el plan por tiempo NO es una suscripción autorenovable.
   const [pagoUnico, setPagoUnico] = useState<boolean>(() => (tier as { pago_unico?: boolean } | null)?.pago_unico === true);
+  // Ventana fija: vigencia por fechas de calendario (preventa) en vez de "X días".
+  const tierVig = tier as { vigencia_inicio?: string | null; vigencia_fin?: string | null } | null;
+  const [ventanaFija, setVentanaFija] = useState<boolean>(() => !!tierVig?.vigencia_fin);
+  const [vigenciaInicio, setVigenciaInicio] = useState<string>(() => (tierVig?.vigencia_inicio ?? '').slice(0, 10));
+  const [vigenciaFin, setVigenciaFin] = useState<string>(() => (tierVig?.vigencia_fin ?? '').slice(0, 10));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -690,6 +695,16 @@ function EditarTierModal({
     // único por naturaleza, así que el flag solo aplica al modelo por tiempo.
     const pagoUnicoVal = !esPaquete ? pagoUnico : false;
 
+    // Ventana fija (solo modelo por tiempo): vigencia_fin es la fecha de corte.
+    const usaVentana = !esPaquete && ventanaFija;
+    const vigInicioVal = usaVentana && vigenciaInicio ? vigenciaInicio : null;
+    const vigFinVal = usaVentana && vigenciaFin ? vigenciaFin : null;
+    if (usaVentana && !vigFinVal) {
+      setError('Pon la fecha de fin de la ventana.');
+      setSaving(false);
+      return;
+    }
+
     if (esPaquete && (!Number.isFinite(clasesVal as number) || (clasesVal ?? 0) < 1)) {
       setError('El paquete debe incluir al menos 1 clase.');
       setSaving(false);
@@ -739,6 +754,8 @@ function EditarTierModal({
         clases_incluidas: clasesVal,
         duracion_dias: duracionVal,
         pago_unico: pagoUnicoVal,
+        vigencia_inicio: vigInicioVal,
+        vigencia_fin: vigFinVal,
         beneficios: beneficios as never,
         reglas: reglas as never,
         activo,
@@ -771,6 +788,8 @@ function EditarTierModal({
       clases_incluidas: clasesVal,
       duracion_dias: duracionVal,
       pago_unico: pagoUnicoVal,
+      vigencia_inicio: vigInicioVal,
+      vigencia_fin: vigFinVal,
       beneficios,
       reglas: reglasNuevas as never,
       activo,
@@ -938,6 +957,30 @@ function EditarTierModal({
               label="Pago único (no se renueva sola)"
               description="El socio paga una vez por su acceso; para seguir, vuelve a pagar (ideal si cobras en recepción). Sin auto-cobro."
             />
+          </div>
+        )}
+
+        {/* Ventana fija: vigencia por fechas de calendario (preventa/promo). */}
+        {!esPaquete && (
+          <div className="ek-form-field" style={{ marginTop: '12px' }}>
+            <Toggle
+              checked={ventanaFija}
+              onChange={setVentanaFija}
+              label="Fechas fijas (ventana de calendario)"
+              description="Para preventas/promos: todos vencen el MISMO día, sin importar cuándo se inscribieron. Si lo apagas, la vigencia corre desde la compra (la duración de arriba)."
+            />
+            {ventanaFija && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '10px' }}>
+                <label className="ek-label">
+                  Inicio (opcional)
+                  <input type="date" value={vigenciaInicio} onChange={(e) => setVigenciaInicio(e.target.value)} className="ek-input" />
+                </label>
+                <label className="ek-label">
+                  Vence el
+                  <input type="date" value={vigenciaFin} onChange={(e) => setVigenciaFin(e.target.value)} className="ek-input" />
+                </label>
+              </div>
+            )}
           </div>
         )}
 

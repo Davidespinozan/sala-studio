@@ -230,14 +230,14 @@ export function useTiersAdmin() {
 // tienen, así que se agrega a mano y se castea en la llamada.
 export async function updateTier(
   tierId: string,
-  patch: Partial<Pick<Tier, 'nombre' | 'descripcion' | 'precio_centavos' | 'inscripcion_centavos' | 'invitados_por_periodo' | 'moneda' | 'periodo' | 'tipo' | 'clases_incluidas' | 'duracion_dias' | 'beneficios' | 'reglas' | 'activo' | 'orden' | 'slug' | 'acceso_todas_sucursales'>> & { pago_unico?: boolean }
+  patch: Partial<Pick<Tier, 'nombre' | 'descripcion' | 'precio_centavos' | 'inscripcion_centavos' | 'invitados_por_periodo' | 'moneda' | 'periodo' | 'tipo' | 'clases_incluidas' | 'duracion_dias' | 'beneficios' | 'reglas' | 'activo' | 'orden' | 'slug' | 'acceso_todas_sucursales'>> & { pago_unico?: boolean; vigencia_inicio?: string | null; vigencia_fin?: string | null }
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.from('tiers').update(patch as never).eq('id', tierId);
   return { error: error?.message ?? null };
 }
 
 export async function insertTier(
-  payload: Database['public']['Tables']['tiers']['Insert'] & { pago_unico?: boolean }
+  payload: Database['public']['Tables']['tiers']['Insert'] & { pago_unico?: boolean; vigencia_inicio?: string | null; vigencia_fin?: string | null }
 ): Promise<{ error: string | null; data: Tier | null }> {
   const { data, error } = await supabase
     .from('tiers')
