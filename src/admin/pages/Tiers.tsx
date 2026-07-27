@@ -26,18 +26,16 @@ const MONEDA_OPTS: { value: string; label: string }[] = [
   { value: 'USD', label: 'USD · dólar' },
   { value: 'EUR', label: 'EUR · euro' }
 ];
-const PERIODO_OPTS: { value: string; label: string }[] = [
-  { value: 'quincenal', label: 'Quincenal (15 días)' },
-  { value: 'mensual', label: 'Mensual' },
-  { value: 'anual', label: 'Anual' }
+// Duraciones de acceso para el modelo por tiempo. El motor guarda duracion_dias
+// (cualquier número); estas son las opciones comunes + "personalizada".
+const DURACION_OPTS: { value: string; label: string }[] = [
+  { value: '7', label: '1 semana (7 días)' },
+  { value: '15', label: 'Quincena (15 días)' },
+  { value: '30', label: '1 mes (30 días)' },
+  { value: '90', label: '3 meses (90 días)' },
+  { value: '365', label: '1 año (365 días)' },
+  { value: 'custom', label: 'Otra duración…' }
 ];
-
-/** Días de vigencia de cada periodo. Es lo que la DB usa para vencer la membresía. */
-const DIAS_POR_PERIODO: Record<string, number> = {
-  quincenal: 15,
-  mensual: 30,
-  anual: 365
-};
 
 type ModalState =
   | { mode: 'edit'; tier: Tier }
@@ -598,7 +596,9 @@ function EditarTierModal({
     tier ? String(tier.precio_centavos / 100) : ''
   );
   const [moneda, setMoneda] = useState(tier?.moneda ?? 'MXN');
-  const [periodo, setPeriodo] = useState(tier?.periodo ?? 'mensual');
+  // periodo ya no se elige a mano en el modelo por tiempo (se deriva de la
+  // duración); para paquetes queda el valor inicial. Solo se lee.
+  const [periodo] = useState(tier?.periodo ?? 'mensual');
   const [descripcion, setDescripcion] = useState(tier?.descripcion ?? '');
   const [activo, setActivo] = useState(tier?.activo ?? true);
   const [accesoTodasSucursales, setAccesoTodasSucursales] = useState(
@@ -631,6 +631,14 @@ function EditarTierModal({
   const [duracionDias, setDuracionDias] = useState<string>(
     () => (tier?.duracion_dias != null ? String(tier.duracion_dias) : '30')
   );
+  // Duración del acceso (modelo por tiempo): preset o 'custom'.
+  const [duracionSel, setDuracionSel] = useState<string>(() => {
+    const d = tier?.duracion_dias;
+    if (d == null) return '30';
+    return ['7', '15', '30', '90', '365'].includes(String(d)) ? String(d) : 'custom';
+  });
+  // Pago único: el plan por tiempo NO es una suscripción autorenovable.
+  const [pagoUnico, setPagoUnico] = useState<boolean>(() => (tier as { pago_unico?: boolean } | null)?.pago_unico === true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -659,11 +667,29 @@ function EditarTierModal({
     // Modelo de plan → tipo + clases + vigencia.
     const tipo = !esPaquete ? 'tiempo' : vence ? 'hibrido' : 'creditos';
     const clasesVal = esPaquete ? Math.round(Number(clasesIncluidas)) : null;
-    const duracionVal = esPaquete
-      ? vence
-        ? Math.round(Number(duracionDias))
-        : null
-      : (DIAS_POR_PERIODO[periodo] ?? 30);
+
+    // Duración del acceso. Paquete: la vigencia (si vence). Por tiempo: el preset
+    // o el valor personalizado (cualquier número de días).
+    let duracionVal: number | null;
+    let periodoFinal = periodo;
+    if (esPaquete) {
+      duracionVal = vence ? Math.round(Number(duracionDias)) : null;
+    } else {
+      const dias = duracionSel === 'custom' ? Math.round(Number(duracionDias)) : Number(duracionSel);
+      if (!Number.isFinite(dias) || dias < 1) {
+        setError('La duración del acceso debe ser de al menos 1 día.');
+        setSaving(false);
+        return;
+      }
+      duracionVal = dias;
+      // periodo es solo etiqueta/ciclo de cobro online; se deriva de la duración
+      // (numa cobra en recepción, no lo usa). duracion_dias es la fuente de verdad.
+      periodoFinal = dias <= 15 ? 'quincenal' : dias >= 180 ? 'anual' : 'mensual';
+    }
+    // Un plan por tiempo de pago único no es suscripción; el paquete ya es de pago
+    // único por naturaleza, así que el flag solo aplica al modelo por tiempo.
+    const pagoUnicoVal = !esPaquete ? pagoUnico : false;
+
     if (esPaquete && (!Number.isFinite(clasesVal as number) || (clasesVal ?? 0) < 1)) {
       setError('El paquete debe incluir al menos 1 clase.');
       setSaving(false);
@@ -708,10 +734,11 @@ function EditarTierModal({
         inscripcion_centavos: inscripcionCentavos,
         invitados_por_periodo: invitadosPorPeriodo,
         moneda,
-        periodo,
+        periodo: periodoFinal,
         tipo,
         clases_incluidas: clasesVal,
         duracion_dias: duracionVal,
+        pago_unico: pagoUnicoVal,
         beneficios: beneficios as never,
         reglas: reglas as never,
         activo,
@@ -739,10 +766,11 @@ function EditarTierModal({
       inscripcion_centavos: inscripcionCentavos,
       invitados_por_periodo: invitadosPorPeriodo,
       moneda,
-      periodo,
+      periodo: periodoFinal,
       tipo,
       clases_incluidas: clasesVal,
       duracion_dias: duracionVal,
+      pago_unico: pagoUnicoVal,
       beneficios,
       reglas: reglasNuevas as never,
       activo,
@@ -833,7 +861,9 @@ function EditarTierModal({
           <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '6px 0 0', lineHeight: 1.5 }}>
             {esPaquete
               ? 'El socio compra N clases (pago único). Cada reserva descuenta una.'
-              : 'Acceso ilimitado por tiempo, con cobro recurrente (mensual/anual).'}
+              : pagoUnico
+                ? 'Acceso ilimitado por un tiempo. Pago único: el socio renueva cuando vuelve a pagar.'
+                : 'Acceso ilimitado por tiempo, con cobro recurrente.'}
           </p>
         </div>
 
@@ -860,9 +890,9 @@ function EditarTierModal({
           </label>
           {!esPaquete ? (
             <label className="ek-label">
-              Cobro
-              <select value={periodo} onChange={(e) => setPeriodo(e.target.value)} className="ek-input">
-                {PERIODO_OPTS.map((o) => (
+              Duración del acceso
+              <select value={duracionSel} onChange={(e) => setDuracionSel(e.target.value)} className="ek-input">
+                {DURACION_OPTS.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
                   </option>
@@ -883,6 +913,33 @@ function EditarTierModal({
             </label>
           )}
         </div>
+
+        {/* Duración personalizada (modelo por tiempo): cualquier número de días. */}
+        {!esPaquete && duracionSel === 'custom' && (
+          <label className="ek-label" style={{ display: 'block', marginTop: '10px' }}>
+            Duración en días
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={duracionDias}
+              onChange={(e) => setDuracionDias(e.target.value)}
+              className="ek-input"
+            />
+          </label>
+        )}
+
+        {/* Pago único: el plan por tiempo no es suscripción autorenovable. */}
+        {!esPaquete && (
+          <div className="ek-form-field" style={{ marginTop: '12px' }}>
+            <Toggle
+              checked={pagoUnico}
+              onChange={setPagoUnico}
+              label="Pago único (no se renueva sola)"
+              description="El socio paga una vez por su acceso; para seguir, vuelve a pagar (ideal si cobras en recepción). Sin auto-cobro."
+            />
+          </div>
+        )}
 
         {esPaquete && (
           <div className="ek-form-field" style={{ marginTop: '12px' }}>
