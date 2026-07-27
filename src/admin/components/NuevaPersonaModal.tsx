@@ -14,15 +14,25 @@ import { useSucursal } from '../providers/SucursalProvider';
  * así que se podía fabricar un admin desde la lista de clientes.
  */
 const ROL_FIJO = 'miembro' as const;
-type FormaActivacion = 'efectivo' | 'transferencia' | 'cortesia';
+type FormaActivacion = 'efectivo' | 'tarjeta' | 'transferencia' | 'cortesia';
 
 // Asignar un plan activa al miembro (gestionar_membresia_socio pasa el status a
-// 'activo'). Acá NO se cobra plata — solo se registra CÓMO se activó, en el
-// motivo del movimiento de membresía.
+// 'activo'). Si se cobró (efectivo/transferencia) también SE REGISTRA EL PAGO en
+// la Caja, con el precio del plan — igual que en recepción. Cortesía no cobra.
 const MOTIVO_ALTA: Record<FormaActivacion, string> = {
   efectivo: 'Alta con pago en efectivo',
+  tarjeta: 'Alta con pago por terminal',
   transferencia: 'Alta con pago por transferencia',
   cortesia: 'Alta de cortesía (sin cargo)',
+};
+
+// El método que va al RPC: efectivo/tarjeta/transferencia registran pago;
+// cortesía → null (no cobra). Es lo que decide si el dinero entra o no a la Caja.
+const METODO_PAGO: Record<FormaActivacion, string | null> = {
+  efectivo: 'efectivo',
+  tarjeta: 'tarjeta',
+  transferencia: 'transferencia',
+  cortesia: null,
 };
 
 interface Props {
@@ -89,7 +99,10 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
         const { error: memErr } = await gestionarMembresiaSocio({
           usuario_id: res.user.id,
           tier_id: tierId,
-          motivo: MOTIVO_ALTA[formaActivacion]
+          motivo: MOTIVO_ALTA[formaActivacion],
+          // Registra el pago en la Caja si se cobró; cortesía → null (no cobra).
+          // El monto lo pone el RPC con el precio de lista del plan.
+          metodo_pago: METODO_PAGO[formaActivacion]
         });
         if (memErr) {
           // El usuario YA está creado (auth + fila). Solo falló la membresía.
@@ -237,12 +250,13 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
                 className="ek-input"
               >
                 <option value="efectivo">Activar — pagó en efectivo</option>
+                <option value="tarjeta">Activar — pagó con terminal</option>
                 <option value="transferencia">Activar — pagó por transferencia</option>
                 <option value="cortesia">Cortesía / gratis (sin cargo)</option>
               </select>
               <p className="ek-helper-text">
-                Queda registrado en la bitácora de la membresía. (No cobra plata acá;
-                solo activa y anota cómo se hizo.)
+                Con <strong>efectivo</strong> o <strong>transferencia</strong> se registra el
+                pago en la Caja por el precio del plan. <strong>Cortesía</strong> activa sin cobrar.
               </p>
             </div>
           )}

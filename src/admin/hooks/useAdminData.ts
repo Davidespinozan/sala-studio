@@ -644,6 +644,15 @@ export async function gestionarMembresiaSocio(params: {
   tier_id: string;
   motivo?: string;
   /**
+   * Método de cobro real ('efectivo' | 'transferencia' | ...). NULL → no se
+   * registra pago en la Caja (cortesía, o ya pagó online). Sin esto, un alta
+   * "pagó en efectivo" desde admin activaba la membresía pero NO dejaba el dinero
+   * en la Caja — el pago se perdía.
+   */
+  metodo_pago?: string | null;
+  /** Monto cobrado en centavos. NULL → el RPC usa el precio de lista del plan. */
+  monto_centavos?: number | null;
+  /**
    * Cambiar de paquete a mensualidad (o al revés) BORRA las clases sin usar del
    * socio. La base se niega a hacerlo si nadie lo confirmó: hay que mandar esto en
    * true, y solo después de habérselo mostrado a quien aprieta el botón.
@@ -654,6 +663,8 @@ export async function gestionarMembresiaSocio(params: {
     p_usuario_id: params.usuario_id,
     p_tier_id: params.tier_id,
     p_motivo: params.motivo,
+    p_metodo_pago: params.metodo_pago ?? null,
+    p_monto_centavos: params.monto_centavos ?? null,
     p_confirmar_perdida: params.confirmar_perdida ?? false
   } as never);
   if (error) return { data: null, error: error.message };

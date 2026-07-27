@@ -30,9 +30,11 @@ interface Props {
  *   1. Trae la membresía actual del socio + los tiers activos del tenant.
  *   2. El admin elige un tier de la lista.
  *   3. Mostramos PREVIEW del efecto (alta / renovación / cambio de tipo).
- *   4. Confirmar → RPC + toast + refetch del MiembroDetalle.
+ *   4. Elige cómo se cobró (efectivo/transferencia/cortesía).
+ *   5. Confirmar → RPC + toast + refetch del MiembroDetalle.
  *
- * Sin botón de pago — el cobro se gestiona afuera (efectivo/Stripe vendrá luego).
+ * El cobro SÍ se registra: efectivo/transferencia dejan el pago en la Caja por el
+ * precio del plan (vía gestionar_membresia_socio). Cortesía activa sin cobrar.
  */
 export function GestionarMembresiaModal({
   usuarioId,
@@ -44,6 +46,11 @@ export function GestionarMembresiaModal({
   const { tiers, isLoading: loadingTiers } = useTiersAdmin();
   const { membresia, isLoading: loadingMem } = useMembresiaActual(usuarioId);
   const [selTierId, setSelTierId] = useState<string>('');
+  // Cómo se cobró la renovación/cambio: efectivo/transferencia registran el pago
+  // en la Caja (por el precio del plan); cortesía activa sin cobrar. Antes esto no
+  // existía y el cobro "se gestionaba afuera" → el dinero de una renovación hecha
+  // desde admin no quedaba registrado.
+  const [formaPago, setFormaPago] = useState<'efectivo' | 'tarjeta' | 'transferencia' | 'cortesia'>('efectivo');
   const [saving, setSaving] = useState(false);
   // Baja de membresía (recepcion_cancelar_membresia).
   const [showBaja, setShowBaja] = useState(false);
@@ -93,7 +100,10 @@ export function GestionarMembresiaModal({
       tier_id: selTierId,
       // La pantalla YA le mostró al admin "el socio pierde N clases" (ver preview).
       // Confirmamos esa pérdida contra la base, que sin esto rechaza el cambio.
-      confirmar_perdida: (preview?.creditosPerdidos ?? 0) > 0
+      confirmar_perdida: (preview?.creditosPerdidos ?? 0) > 0,
+      // Registra el pago en la Caja si se cobró; cortesía → null (no cobra). El
+      // monto lo pone el RPC con el precio de lista del plan elegido.
+      metodo_pago: formaPago === 'cortesia' ? null : formaPago
     });
     setSaving(false);
     if (error || !data) {
@@ -339,6 +349,34 @@ export function GestionarMembresiaModal({
           </div>
         )}
 
+        {/* Cobro: registra el pago en la Caja, igual que recepción. */}
+        {selTierId && (
+          <div style={{ marginBottom: '12px' }}>
+            <label
+              htmlFor="gm-forma-pago"
+              style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--sala-text-primary)', marginBottom: '6px' }}
+            >
+              Cobro
+            </label>
+            <select
+              id="gm-forma-pago"
+              value={formaPago}
+              onChange={(e) => setFormaPago(e.target.value as 'efectivo' | 'tarjeta' | 'transferencia' | 'cortesia')}
+              className="ek-input"
+              disabled={saving}
+            >
+              <option value="efectivo">Pagó en efectivo</option>
+              <option value="tarjeta">Pagó con terminal</option>
+              <option value="transferencia">Pagó por transferencia</option>
+              <option value="cortesia">Cortesía / gratis (sin cargo)</option>
+            </select>
+            <p style={{ fontSize: '11.5px', color: 'var(--sala-text-tertiary)', margin: '6px 0 0', lineHeight: 1.45 }}>
+              Efectivo o transferencia registran el pago en la Caja por el precio del plan.
+              Cortesía activa sin cobrar.
+            </p>
+          </div>
+        )}
+
         {/* Acciones */}
         <div style={{ display: 'flex', gap: '10px' }}>
           <button
@@ -368,7 +406,7 @@ export function GestionarMembresiaModal({
             textAlign: 'center'
           }}
         >
-          El cobro se gestiona aparte. Esta acción solo actualiza la membresía.
+          Registra el pago en la Caja según el cobro elegido (o cortesía si no cobraste).
         </p>
 
         {/* Baja de membresía — solo si tiene una activa. */}
