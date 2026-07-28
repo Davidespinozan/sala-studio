@@ -79,7 +79,7 @@ public sealed class SalaApi(Config cfg)
             token = _token,
             enrolamiento_id = enrolamientoId,
             plantilla = plantillaBase64,
-            formato = "iso19794-2",
+            formato = "ansi378-2004", // este build de DPUruNet expone ANSI, no ISO
             calidad
         }, ct);
         await LanzarSiError(resp, ct);

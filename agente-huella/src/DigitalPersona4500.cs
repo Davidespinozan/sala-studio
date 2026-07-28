@@ -34,7 +34,7 @@ public sealed class DigitalPersona4500(int umbralMatch) : ILectorHuella, IMatche
         var fid = await CapturarFidAsync(timeout, ct);
         if (fid is null) return null;
 
-        var res = FeatureExtraction.CreateFmdFromFid(fid, Constants.Formats.Fmd.ISO_19794_2_2005);
+        var res = FeatureExtraction.CreateFmdFromFid(fid, Constants.Formats.Fmd.ANSI);
         return res.ResultCode == Constants.ResultCode.DP_SUCCESS
             ? new Captura(res.Data.Bytes, 90)
             : null;
@@ -49,14 +49,14 @@ public sealed class DigitalPersona4500(int umbralMatch) : ILectorHuella, IMatche
             var fid = await CapturarFidAsync(TimeSpan.FromSeconds(15), ct);
             if (fid is null) continue; // aún no apoyó el dedo → reintentar
 
-            var res = FeatureExtraction.CreateFmdFromFid(fid, Constants.Formats.Fmd.ISO_19794_2_2005);
+            var res = FeatureExtraction.CreateFmdFromFid(fid, Constants.Formats.Fmd.ANSI);
             if (res.ResultCode == Constants.ResultCode.DP_SUCCESS)
                 tomas.Add(res.Data);
         }
         if (tomas.Count < 4) return null; // cancelado antes de completar
 
         // SDK: combina las 4 tomas en la plantilla final de enrolamiento.
-        var enroll = Enrollment.CreateEnrollmentFmd(Constants.Formats.Fmd.ISO_19794_2_2005, tomas);
+        var enroll = Enrollment.CreateEnrollmentFmd(Constants.Formats.Fmd.ANSI, tomas);
         return enroll.ResultCode == Constants.ResultCode.DP_SUCCESS
             ? new Captura(enroll.Data.Bytes, 100)
             : null;
@@ -65,10 +65,10 @@ public sealed class DigitalPersona4500(int umbralMatch) : ILectorHuella, IMatche
     // ── Matching (IMatcher): compara la captura contra las huellas cacheadas ─
     public string? Identificar(byte[] capturaIso, IReadOnlyList<HuellaCache> candidatas)
     {
-        var fmdCaptura = ImportarIso(capturaIso);
+        var fmdCaptura = ImportarPlantilla(capturaIso);
         foreach (var c in candidatas)
         {
-            var cmp = Comparison.Compare(fmdCaptura, 0, ImportarIso(c.PlantillaIso), 0);
+            var cmp = Comparison.Compare(fmdCaptura, 0, ImportarPlantilla(c.PlantillaIso), 0);
             // El score es una PROBABILIDAD de falso positivo: bajo = misma persona.
             if (cmp.ResultCode == Constants.ResultCode.DP_SUCCESS && cmp.Score < umbralMatch)
                 return c.UsuarioId;
@@ -93,9 +93,14 @@ public sealed class DigitalPersona4500(int umbralMatch) : ILectorHuella, IMatche
         return cr.Quality == Constants.CaptureQuality.DP_QUALITY_GOOD ? cr.Data : null;
     }, ct);
 
-    /// <summary>Carga bytes ISO como Fmd comparable. (ISO in, ANSI interno para el motor.)</summary>
-    private static Fmd ImportarIso(byte[] iso) =>
-        Importer.ImportFmd(iso, Constants.Formats.Fmd.ISO_19794_2_2005, Constants.Formats.Fmd.ANSI_378_2004);
+    /// <summary>
+    /// Carga bytes de plantilla (formato ANSI 378) como Fmd comparable.
+    /// Nota: este build de DPUruNet expone ANSI en el enum Fmd, no ISO — por eso
+    /// todo el agente usa ANSI 378. Como el matching es local y consistente
+    /// (enrola y compara en el mismo formato), es indistinto.
+    /// </summary>
+    private static Fmd ImportarPlantilla(byte[] datos) =>
+        Importer.ImportFmd(datos, Constants.Formats.Fmd.ANSI, Constants.Formats.Fmd.ANSI);
 
     public void Dispose() => _reader?.Dispose();
 }
