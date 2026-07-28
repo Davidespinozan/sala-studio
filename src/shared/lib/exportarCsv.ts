@@ -31,7 +31,7 @@ export function construirCsv<T extends object>(
     .map((f) => cols.map((c) => celda(c.valor ? c.valor(f) : (f as Record<string, unknown>)[c.key as string])).join(','))
     .join('\r\n');
 
-  // ﻿ (BOM) → Excel abre en UTF-8 y no rompe los acentos.
+  // El BOM (U+FEFF) → Excel abre en UTF-8 y no rompe los acentos.
   return '﻿' + head + '\r\n' + body;
 }
 
