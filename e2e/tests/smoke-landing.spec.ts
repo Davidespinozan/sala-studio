@@ -62,7 +62,9 @@ test.describe('Auth / routing público', () => {
     await page.goto('/login');
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
-    await expect(page.getByRole('button')).toBeVisible();
+    // Específico: el form tiene 2 botones (mostrar contraseña + enviar); apuntamos
+    // al de enviar. Está disabled hasta llenar el form, pero visible sí está.
+    await expect(page.getByRole('button', { name: 'Iniciar sesión' })).toBeVisible();
   });
 
   test('una ruta desconocida no rompe la app', async ({ page }) => {
