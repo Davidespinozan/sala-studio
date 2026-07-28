@@ -55,7 +55,6 @@ export default function Tienda() {
 
   useEffect(() => {
     void recargarProductos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const agregar = (id: string) => setCarrito((c) => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
