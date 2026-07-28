@@ -100,7 +100,7 @@ public sealed class DigitalPersona4500(int umbralMatch) : ILectorHuella, IMatche
     /// (enrola y compara en el mismo formato), es indistinto.
     /// </summary>
     private static Fmd ImportarPlantilla(byte[] datos) =>
-        Importer.ImportFmd(datos, Constants.Formats.Fmd.ANSI, Constants.Formats.Fmd.ANSI);
+        Importer.ImportFmd(datos, Constants.Formats.Fmd.ANSI, Constants.Formats.Fmd.ANSI).Data;
 
     public void Dispose() => _reader?.Dispose();
 }
