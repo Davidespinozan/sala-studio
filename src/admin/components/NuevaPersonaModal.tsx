@@ -7,6 +7,7 @@ import {
 import { useSucursal } from '../providers/SucursalProvider';
 import { useTenant } from '@shared/hooks/useTenant';
 import { guardarDatosPrivados, subirAvatarSocio } from '@shared/lib/datosSocio';
+import { PASSWORD_TEMPORAL_INICIAL } from '@shared/lib/acceso';
 
 /**
  * Alta de MIEMBRO (cliente que paga). Este modal vive en la página Miembros y
@@ -49,7 +50,6 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
   const [email, setEmail] = useState('');
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
-  const [password, setPassword] = useState('');
   // Ficha del socio (opcional): sexo/nacimiento/domicilio + foto, capturados AL
   // ALTA en vez de escondidos en una pantalla que nadie abre.
   const [fechaNac, setFechaNac] = useState('');
@@ -75,13 +75,6 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
 
   const tiersActivos = tiers.filter((t) => t.activo);
 
-  function generarPassword() {
-    const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let out = '';
-    for (let i = 0; i < 12; i++) out += chars[Math.floor(Math.random() * chars.length)];
-    setPassword(out);
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -90,7 +83,7 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
     try {
       const res = await adminCreateUser({
         email: email.trim(),
-        password,
+        password: PASSWORD_TEMPORAL_INICIAL,
         nombre: nombre.trim(),
         telefono: telefono.trim() || undefined,
         rol,
@@ -354,29 +347,11 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
           </div>
 
           <div className="ek-form-field">
-            <label className="ek-label" htmlFor="np-password">Password inicial</label>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input
-                id="np-password"
-                type="text"
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="ek-input"
-                placeholder="Mínimo 8 caracteres"
-                style={{ fontFamily: 'var(--ek-font-mono)' }}
-              />
-              <button
-                type="button"
-                onClick={generarPassword}
-                className="ek-cta ek-cta--secondary"
-                style={{ minHeight: '48px', padding: '0 1rem', flexShrink: 0 }}
-              >
-                Generar
-              </button>
-            </div>
-            <p className="ek-helper-text">Compártela con la persona por WhatsApp o en persona.</p>
+            <label className="ek-label">Contraseña inicial</label>
+            <p className="ek-helper-text" style={{ marginTop: 0 }}>
+              Es <strong style={{ fontFamily: 'var(--ek-font-mono)' }}>{PASSWORD_TEMPORAL_INICIAL}</strong> para todos.
+              El socio la cambia al entrar (la app se lo exige). Compártela por WhatsApp o en persona.
+            </p>
           </div>
 
           {error && <p className="ek-error-text">{error}</p>}
@@ -385,7 +360,7 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
             <button type="button" onClick={onClose} disabled={submitting} className="ek-cta ek-cta--secondary" style={{ flex: 1 }}>
               Cancelar
             </button>
-            <button type="submit" disabled={submitting || !email || !password || !nombre} className="ek-cta" style={{ flex: 1 }}>
+            <button type="submit" disabled={submitting || !email || !nombre} className="ek-cta" style={{ flex: 1 }}>
               {submitting ? 'Creando…' : 'Crear cuenta'}
             </button>
           </div>

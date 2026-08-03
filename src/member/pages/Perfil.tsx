@@ -246,6 +246,8 @@ export default function Perfil() {
           </div>
         </section>
 
+        <CambiarPasswordSection />
+
         {/* Cerrar sesión — al fondo */}
         <button
           onClick={signOut}
@@ -1361,5 +1363,63 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         </p>
       )}
     </div>
+  );
+}
+
+/** Cambiar la contraseña estando dentro (voluntario). El cambio forzado tras un
+ *  alta/reset lo maneja CambiarPasswordGate; esto es para cuando el socio quiera. */
+function CambiarPasswordSection() {
+  const toast = useToast();
+  const [abierto, setAbierto] = useState(false);
+  const [pass, setPass] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const coincide = pass === confirm;
+  const puede = pass.length >= 8 && coincide && !saving;
+
+  async function guardar() {
+    if (!puede) return;
+    setSaving(true);
+    const { error } = await supabase.auth.updateUser({ password: pass });
+    setSaving(false);
+    if (error) { toast.error('No se pudo cambiar la contraseña. Intenta de nuevo.'); return; }
+    toast.success('Contraseña actualizada.');
+    setPass(''); setConfirm(''); setAbierto(false);
+  }
+
+  return (
+    <section style={{ marginTop: '16px' }}>
+      <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>SEGURIDAD</p>
+      <div className="ek-card ek-card--md">
+        {!abierto ? (
+          <button
+            type="button"
+            onClick={() => setAbierto(true)}
+            style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: 600, color: 'var(--sala-text-primary)', textAlign: 'left', padding: 0 }}
+          >
+            Cambiar mi contraseña
+          </button>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <input className="ek-input" type="password" value={pass} autoFocus
+              onChange={(e) => setPass(e.target.value)} placeholder="Nueva contraseña (mín. 8)" autoComplete="new-password" />
+            <input className="ek-input" type="password" value={confirm}
+              onChange={(e) => setConfirm(e.target.value)} placeholder="Repite la contraseña" autoComplete="new-password" />
+            {confirm.length > 0 && !coincide && (
+              <p style={{ fontSize: '12px', color: 'var(--sala-error)', margin: 0 }}>No coinciden.</p>
+            )}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button type="button" onClick={() => { setAbierto(false); setPass(''); setConfirm(''); }} className="ek-cta ek-cta--secondary" style={{ flex: 1 }}>
+                Cancelar
+              </button>
+              <button type="button" onClick={() => void guardar()} disabled={!puede} className="ek-cta" style={{ flex: 1, opacity: puede ? 1 : 0.5 }}>
+                {saving ? 'Guardando…' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

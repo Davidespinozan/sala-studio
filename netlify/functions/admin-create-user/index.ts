@@ -180,6 +180,19 @@ export const handler: Handler = async (event) => {
       return serverError(`No se pudo asignar el rol: ${updateErr?.message ?? 'fila no encontrada'}`);
     }
 
+    // Socio nuevo: forzar el cambio de la contraseña temporal al entrar (aviso
+    // en-app; no push). Solo para miembros — el staff maneja su propia clave.
+    if (body.rol === 'miembro') {
+      await supabaseAdmin.from('notificaciones').insert({
+        tenant_id: tenantId,
+        usuario_id: updatedRow.id,
+        tipo: 'cambiar_password',
+        titulo: 'Cambia tu contraseña',
+        mensaje: 'Entraste con una contraseña temporal. Por tu seguridad, cámbiala ahora por una tuya.',
+        push_enviado_at: new Date().toISOString()
+      } as never);
+    }
+
     return ok({
       success: true,
       user: {

@@ -3,6 +3,7 @@ import { adminCreateUser } from '@admin/hooks/useAdminData';
 import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
 import { useTenant } from '@shared/hooks/useTenant';
 import { guardarDatosPrivados } from '@shared/lib/datosSocio';
+import { PASSWORD_TEMPORAL_INICIAL } from '@shared/lib/acceso';
 
 interface Props {
   isOpen: boolean;
@@ -11,13 +12,6 @@ interface Props {
 }
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-
-function generarPassword(): string {
-  const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let out = '';
-  for (let i = 0; i < 10; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
-}
 
 /**
  * Alta de un socio (walk-in) desde el mostrador. Recepción crea la cuenta
@@ -36,7 +30,6 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
   const [fechaNac, setFechaNac] = useState('');
   const [sexo, setSexo] = useState('');
   const [domicilio, setDomicilio] = useState('');
-  const [password, setPassword] = useState(generarPassword);
   const [creado, setCreado] = useState<{ email: string; password: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +37,7 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
   // Reset al abrir + scroll-lock + Escape (no cierra mientras se envía).
   useEffect(() => {
     if (!isOpen) return;
-    setNombre(''); setEmail(''); setTelefono(''); setPassword(generarPassword());
+    setNombre(''); setEmail(''); setTelefono('');
     setFechaNac(''); setSexo(''); setDomicilio('');
     setCreado(null); setError(null); setSubmitting(false);
     const prev = document.body.style.overflow;
@@ -58,7 +51,7 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
   if (!isOpen) return null;
 
   const emailOk = EMAIL_RE.test(email.trim());
-  const canConfirm = nombre.trim().length > 1 && emailOk && password.length >= 8 && !submitting;
+  const canConfirm = nombre.trim().length > 1 && emailOk && !submitting;
 
   async function crear() {
     setSubmitting(true);
@@ -66,7 +59,7 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
     try {
       const res = await adminCreateUser({
         email: email.trim().toLowerCase(),
-        password,
+        password: PASSWORD_TEMPORAL_INICIAL,
         nombre: nombre.trim(),
         telefono: telefono.trim() || undefined,
         rol: 'miembro',
@@ -154,15 +147,10 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
               <Campo label="Domicilio (opcional)">
                 <input className="ek-input" value={domicilio} onChange={(e) => setDomicilio(e.target.value)} placeholder="Calle, número, colonia, ciudad" autoComplete="off" />
               </Campo>
-              <Campo label="Contraseña temporal">
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input className="ek-input" value={password} onChange={(e) => setPassword(e.target.value)} style={{ flex: 1 }} />
-                  <button type="button" className="ek-cta ek-cta--secondary" style={{ flex: '0 0 auto', padding: '0 14px' }} onClick={() => setPassword(generarPassword())}>
-                    Generar
-                  </button>
-                </div>
-              </Campo>
             </div>
+            <p style={{ fontSize: '12.5px', color: 'var(--ek-ink-muted)', margin: '0 0 16px', lineHeight: 1.45 }}>
+              Contraseña temporal: <strong style={{ fontFamily: 'var(--ek-font-mono)' }}>{PASSWORD_TEMPORAL_INICIAL}</strong> — el socio la cambia al entrar.
+            </p>
 
             {error && (
               <p style={{ color: 'var(--ek-danger)', background: 'var(--ek-danger-soft)', border: '0.5px solid var(--sala-error-glow)', borderRadius: 'var(--ek-r-md)', padding: '10px 12px', fontSize: '0.875rem', margin: '0 0 16px' }}>

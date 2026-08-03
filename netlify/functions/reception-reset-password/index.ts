@@ -18,12 +18,10 @@ import { requireEnv } from '../_lib/env';
 
 interface Body { usuario_id?: string }
 
-function generarPassword(): string {
-  const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let out = '';
-  for (let i = 0; i < 10; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
-}
+// Contraseña temporal fija = src/shared/lib/acceso.ts (pública a propósito; la app
+// obliga a cambiarla al entrar). "Resetear" = volver a dejarla en esta, para que
+// un socio que perdió su clave (o de un alta vieja con clave aleatoria) entre.
+const PASSWORD_TEMPORAL = 'Cambiar123';
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') return badRequest('Method not allowed');
@@ -69,10 +67,20 @@ export const handler: Handler = async (event) => {
     if (socio.rol !== 'miembro') return forbidden('Solo se puede resetear la contraseña de un socio');
     if (!socio.auth_id) return badRequest('El socio no tiene cuenta de acceso.');
 
-    // 3) Password temporal.
-    const password = generarPassword();
+    // 3) Password temporal fija (Cambiar123). La app le exige cambiarla al entrar.
+    const password = PASSWORD_TEMPORAL;
     const { error: updErr } = await admin.auth.admin.updateUserById(socio.auth_id, { password });
     if (updErr) return serverError(updErr.message);
+
+    // Aviso EN-APP para forzar el cambio (solo en-app, no push).
+    await admin.from('notificaciones').insert({
+      tenant_id: staff.tenant_id,
+      usuario_id: socio.id,
+      tipo: 'cambiar_password',
+      titulo: 'Cambia tu contraseña',
+      mensaje: 'Tu contraseña se restableció a una temporal. Por tu seguridad, cámbiala ahora por una tuya.',
+      push_enviado_at: new Date().toISOString()
+    } as never);
 
     // 4) Bitácora (actor = el staff que pidió; resuelto acá porque un RPC no
     //    puede leer auth.uid() bajo service_role).
