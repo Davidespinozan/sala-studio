@@ -776,13 +776,15 @@ function EditarDatosForm({
     return () => { cancel = true; };
   }, [miembro.id]);
 
-  const emailNuevo = socioSinCorreo ? email.trim() : '';
+  const emailNuevo = email.trim();
+  const emailCambio =
+    emailNuevo.length > 0 && emailNuevo.toLowerCase() !== (miembro.email ?? '').toLowerCase();
   const fichaDirty = fechaNac !== fichaOrig.fechaNac || sexo !== fichaOrig.sexo || domicilio !== fichaOrig.domicilio;
   const isDirty =
     nombre !== (miembro.nombre ?? '') ||
     telefono !== (miembro.telefono ?? '') ||
     sucursalId !== (miembro.sucursal_id ?? '') ||
-    (socioSinCorreo && emailNuevo.length > 0) ||
+    emailCambio ||
     fichaDirty;
 
   async function handleSave() {
@@ -790,25 +792,25 @@ function EditarDatosForm({
     setError(null);
     setSaved(false);
     try {
-      // Si le ponen el correo real a un socio "sin correo": validarlo y guardarlo
-      // (además limpia la nota de importación).
       const patch: Record<string, unknown> = {
         nombre: nombre.trim() || null,
         telefono: telefono.trim() || null,
         sucursal_id: sucursalId || null
       };
-      if (socioSinCorreo && emailNuevo) {
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNuevo)) {
-          throw new Error('El correo no es válido.');
-        }
-        patch.email = emailNuevo.toLowerCase();
-        patch.notas_admin = null;
-      }
       const { error } = await supabase
         .from('usuarios')
         .update(patch as never)
         .eq('id', miembro.id);
       if (error) throw error;
+
+      // El EMAIL va por la función: cambia el de acceso (auth) Y el de la ficha a
+      // la vez, para no desincronizar el login. Sirve para cualquier socio.
+      if (emailCambio) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNuevo)) {
+          throw new Error('El correo no es válido.');
+        }
+        await backendPost('staff-editar-email', { usuario_id: miembro.id, email: emailNuevo.toLowerCase() });
+      }
 
       // Ficha de datos (tabla privada): upsert si cambió algo.
       if (fichaDirty) {
@@ -848,21 +850,21 @@ function EditarDatosForm({
           placeholder="Nombre completo"
         />
       </label>
-      {socioSinCorreo && (
-        <label className="ek-label">
-          Correo (para activar su cuenta)
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="ek-input"
-            placeholder="correo@ejemplo.com"
-          />
-          <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)' }}>
-            Este socio entró sin correo. Ponle su email y podrá activar su cuenta desde “Ya soy socio”.
-          </span>
-        </label>
-      )}
+      <label className="ek-label">
+        Correo{socioSinCorreo ? ' (para activar su cuenta)' : ''}
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="ek-input"
+          placeholder="correo@ejemplo.com"
+        />
+        <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)' }}>
+          {socioSinCorreo
+            ? 'Este socio entró sin correo. Ponle su email y podrá activar su cuenta desde “Ya soy socio”.'
+            : 'Cambia el correo del socio — el de acceso (login) y el de la ficha, juntos.'}
+        </span>
+      </label>
       <label className="ek-label">
         Teléfono
         <input
