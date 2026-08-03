@@ -128,7 +128,7 @@ export default function Login() {
                 to="/activar"
                 style={{ fontSize: '13px', color: 'var(--ek-mustard)', textDecoration: 'none' }}
               >
-                ¿Ya eres socio? Activa tu cuenta
+                ¿Primera vez? Activa tu cuenta
               </Link>
               <Link
                 to="/recuperar"

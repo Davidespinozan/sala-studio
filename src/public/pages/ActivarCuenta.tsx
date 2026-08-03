@@ -4,14 +4,16 @@ import { supabase } from '@shared/lib/supabase';
 import { backendPost } from '@shared/lib/backend';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
-import { PasswordInput } from '@shared/components/PasswordInput';
 import { useTenant } from '@shared/hooks/useTenant';
+import { PASSWORD_TEMPORAL_INICIAL } from '@shared/lib/acceso';
 
 /**
- * ACTIVAR MI CUENTA — para socios que ya existen en el gym (importados de otro
- * sistema o dados de alta por recepción) pero todavía no tienen login. Ponen su
- * email + una contraseña; si hay una ficha pendiente con ese email, se crea el
- * acceso y queda enganchado a su membresía. No es un registro abierto.
+ * ACTIVAR / CREAR MI CUENTA — autoservicio por email, sin código.
+ *   - Si el email YA es socio (importado o dado de alta) → se activa su cuenta.
+ *   - Si es nuevo → se crea una cuenta PENDIENTE DE PAGO (entra pero no reserva
+ *     hasta pagar en recepción).
+ * En ambos casos entra con la contraseña temporal fija y la app lo obliga a
+ * cambiarla. (La seguridad real es huella + recepción; ver acceso.ts.)
  */
 export default function ActivarCuenta() {
   const navigate = useNavigate();
@@ -19,34 +21,39 @@ export default function ActivarCuenta() {
   const tieneIsotipo = typeof (tenant.branding as Record<string, unknown> | null)?.isotipo_url === 'string';
 
   const [email, setEmail] = useState('');
-  const [codigo, setCodigo] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [listo, setListo] = useState<{ nueva: boolean } | null>(null);
+  const [entrando, setEntrando] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!codigo.trim()) { setError('Escribe el código que te dio el gimnasio.'); return; }
-    if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return; }
-    if (password !== confirm) { setError('Las contraseñas no coinciden.'); return; }
-
     setIsSubmitting(true);
     try {
-      await backendPost('reclamar-cuenta', { email: email.trim(), codigo: codigo.trim(), password, slug: tenant.slug });
-      // Vinculada: entramos con la contraseña recién creada.
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (signInError) {
-        // La cuenta quedó creada; que inicie sesión a mano.
-        navigate('/login', { replace: true });
-        return;
-      }
-      navigate('/', { replace: true });
+      const res = await backendPost<{ success: boolean; nueva: boolean }>('activar-cuenta', {
+        email: email.trim(),
+        slug: tenant.slug
+      });
+      setListo({ nueva: !!res.nueva });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No pudimos activar tu cuenta. Intenta de nuevo.');
+    } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function entrar() {
+    setEntrando(true);
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password: PASSWORD_TEMPORAL_INICIAL
+    });
+    if (signInError) {
+      navigate('/login', { replace: true }); // que entre a mano con la clave temporal
+      return;
+    }
+    navigate('/', { replace: true }); // la app le exige cambiar la contraseña
   }
 
   return (
@@ -66,53 +73,61 @@ export default function ActivarCuenta() {
             boxShadow: '0 12px 32px var(--sala-primary-dim)'
           }}
         >
-          <div style={{ marginBottom: 16 }}>
-            <p className="ek-eyebrow" style={{ margin: 0 }}>YA SOY SOCIO</p>
-            <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: 22, fontWeight: 700, margin: '4px 0 0' }}>Activa tu cuenta</h1>
-            <p style={{ fontSize: 13, color: 'var(--sala-text-secondary)', marginTop: 6, lineHeight: 1.5 }}>
-              Usa tu email y el <strong>código de activación</strong> que te dio {tenant.nombre || 'el gimnasio'}, y crea tu contraseña.
-            </p>
-          </div>
+          {listo ? (
+            <>
+              <div style={{ marginBottom: 14 }}>
+                <p className="ek-eyebrow" style={{ margin: 0, color: 'var(--sala-success)' }}>CUENTA LISTA</p>
+                <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: 22, fontWeight: 700, margin: '4px 0 0' }}>Entra con esta contraseña</h1>
+                <p style={{ fontSize: 13, color: 'var(--sala-text-secondary)', marginTop: 6, lineHeight: 1.5 }}>
+                  {listo.nueva
+                    ? <>Tu cuenta quedó creada. Para <strong>reservar</strong>, pasa a recepción a activar tu plan.</>
+                    : 'Ya puedes entrar y reservar.'}
+                </p>
+              </div>
 
-          <form onSubmit={handleSubmit} className="ek-stack-md">
-            <div className="ek-form-field">
-              <label htmlFor="email" className="ek-label">Email</label>
-              <input id="email" type="email" autoComplete="email" required value={email}
-                onChange={(e) => setEmail(e.target.value)} className="ek-input" placeholder="tu@email.com" />
-            </div>
+              <div style={{ background: 'var(--sala-surface)', border: '0.5px solid var(--sala-border)', borderRadius: 'var(--ek-r-md)', padding: '14px 16px', marginBottom: 16 }}>
+                <p style={{ fontSize: 11, color: 'var(--sala-text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tu contraseña temporal</p>
+                <p style={{ fontFamily: 'var(--ek-font-mono)', fontSize: 26, fontWeight: 800, letterSpacing: '0.08em', margin: '4px 0 0', color: 'var(--sala-text-primary)' }}>{PASSWORD_TEMPORAL_INICIAL}</p>
+                <p style={{ fontSize: 12, color: 'var(--sala-text-tertiary)', margin: '6px 0 0', lineHeight: 1.45 }}>
+                  Al entrar, la app te va a pedir que la cambies por una tuya.
+                </p>
+              </div>
 
-            <div className="ek-form-field">
-              <label htmlFor="codigo" className="ek-label">Código de activación</label>
-              <input id="codigo" type="text" required value={codigo}
-                onChange={(e) => setCodigo(e.target.value)} className="ek-input" placeholder="El que te dio el gimnasio"
-                style={{ textTransform: 'uppercase' }} autoCapitalize="characters" />
-            </div>
+              <button type="button" onClick={() => void entrar()} disabled={entrando} className="ek-cta ek-cta--full ek-cta--solid">
+                {entrando ? 'Entrando…' : 'Entrar ahora'}
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{ marginBottom: 16 }}>
+                <p className="ek-eyebrow" style={{ margin: 0 }}>ACCESO</p>
+                <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: 22, fontWeight: 700, margin: '4px 0 0' }}>Activa tu cuenta</h1>
+                <p style={{ fontSize: 13, color: 'var(--sala-text-secondary)', marginTop: 6, lineHeight: 1.5 }}>
+                  Pon tu email y entra a la app de {tenant.nombre || 'el gimnasio'}. Si ya eres socio, se activa tu cuenta; si eres nuevo, la creamos.
+                </p>
+              </div>
 
-            <div className="ek-form-field">
-              <label htmlFor="password" className="ek-label">Nueva contraseña</label>
-              <PasswordInput id="password" autoComplete="new-password" required minLength={8}
-                value={password} onChange={setPassword} placeholder="Al menos 8 caracteres" />
-            </div>
+              <form onSubmit={handleSubmit} className="ek-stack-md">
+                <div className="ek-form-field">
+                  <label htmlFor="email" className="ek-label">Email</label>
+                  <input id="email" type="email" autoComplete="email" required value={email}
+                    onChange={(e) => setEmail(e.target.value)} className="ek-input" placeholder="tu@email.com" />
+                </div>
 
-            <div className="ek-form-field">
-              <label htmlFor="confirm" className="ek-label">Repite la contraseña</label>
-              <PasswordInput id="confirm" autoComplete="new-password" required minLength={8}
-                value={confirm} onChange={setConfirm} placeholder="••••••••" />
-            </div>
+                {error && <p className="ek-error-text">{error}</p>}
 
-            {error && <p className="ek-error-text">{error}</p>}
+                <button type="submit" className="ek-cta ek-cta--full ek-cta--solid" disabled={isSubmitting || !email}>
+                  {isSubmitting ? 'Activando…' : 'Activar mi cuenta'}
+                </button>
 
-            <button type="submit" className="ek-cta ek-cta--full ek-cta--solid"
-              disabled={isSubmitting || !email || !password || !confirm}>
-              {isSubmitting ? 'Activando…' : 'Activar mi cuenta'}
-            </button>
-
-            <div style={{ textAlign: 'center', marginTop: 6 }}>
-              <Link to="/login" style={{ fontSize: 13, color: 'var(--ek-mustard)', textDecoration: 'none' }}>
-                ¿Ya tienes acceso? Inicia sesión
-              </Link>
-            </div>
-          </form>
+                <div style={{ textAlign: 'center', marginTop: 6 }}>
+                  <Link to="/login" style={{ fontSize: 13, color: 'var(--ek-mustard)', textDecoration: 'none' }}>
+                    ¿Ya tienes acceso? Inicia sesión
+                  </Link>
+                </div>
+              </form>
+            </>
+          )}
         </div>
 
         <PoweredBySala />

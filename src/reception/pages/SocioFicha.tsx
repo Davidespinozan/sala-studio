@@ -16,6 +16,7 @@ import { AgregarNotaModal } from '../components/acciones/AgregarNotaModal';
 import { EditarContactoModal } from '../components/acciones/EditarContactoModal';
 import { EnviarAvisoModal } from '../components/acciones/EnviarAvisoModal';
 import { ResetPasswordModal } from '../components/acciones/ResetPasswordModal';
+import { CrearAccesoSocioModal } from '../components/acciones/CrearAccesoSocioModal';
 import { HuellaModal } from '../components/acciones/HuellaModal';
 import { Avatar } from '@shared/components/Avatar';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData } from '../hooks/useSocioFicha';
@@ -38,6 +39,7 @@ type ModalAccion =
   | 'editar_contacto'
   | 'enviar_aviso'
   | 'reset_password'
+  | 'crear_acceso'
   | 'huella';
 
 // ── Helpers de formato ──────────────────────────────────────────────────────
@@ -198,7 +200,11 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
         )}
         <AccionBtn onClick={() => setModalAbierto('editar_contacto')}>Editar contacto</AccionBtn>
         <AccionBtn onClick={() => setModalAbierto('enviar_aviso')}>Enviar aviso</AccionBtn>
-        <AccionBtn onClick={() => setModalAbierto('reset_password')}>Resetear contraseña</AccionBtn>
+        {socio.auth_id ? (
+          <AccionBtn onClick={() => setModalAbierto('reset_password')}>Resetear contraseña</AccionBtn>
+        ) : (
+          <AccionBtn onClick={() => setModalAbierto('crear_acceso')}>Dar acceso a la app</AccionBtn>
+        )}
         {/* El label dice el estado: así recepción no abre el modal para averiguarlo. */}
         <AccionBtn onClick={() => setModalAbierto('huella')}>
           {huellas.length > 0 ? `Huella (${huellas.length})` : 'Registrar huella'}
@@ -494,6 +500,16 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           isOpen
           socioId={socio.id}
           socioNombre={socioNombre}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
+      {modalAbierto === 'crear_acceso' && (
+        <CrearAccesoSocioModal
+          isOpen
+          socioId={socio.id}
+          socioNombre={socioNombre}
+          emailActual={socio.email}
           onClose={cerrar}
           onDone={handleDone}
         />

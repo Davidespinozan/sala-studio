@@ -17,6 +17,7 @@ import { PoweredBySala } from '@shared/components/PoweredBySala';
 import { PwaInstallBanner } from '@shared/components/PwaInstallBanner';
 import { MemberSucursalProvider } from './providers/MemberSucursalProvider';
 import { SucursalSwitcher } from './components/SucursalSwitcher';
+import { CambiarPasswordGate } from './components/CambiarPasswordGate';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Tienda = lazy(() => import('./pages/Tienda'));
@@ -83,6 +84,7 @@ export default function MemberLayout() {
     <MemberSucursalProvider>
     <ModoDemoBanner />
     <div className="ek-page" style={{ paddingBottom: '88px' /* espacio para bottom nav */ }}>
+      <CambiarPasswordGate />
       <DemoBanner vista="Miembro" />
       <EstadoMembresiaBanner />
       <header className="ek-header-glass">
