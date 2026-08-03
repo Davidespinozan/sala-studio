@@ -3334,8 +3334,10 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 @media print {
   /* Ocultar todo el chrome (sidebar, topbar, botones) y mostrar solo el tablero. */
   body * { visibility: hidden; }
-  #reportes-print, #reportes-print * { visibility: visible; }
-  #reportes-print {
+  #reportes-print, #reportes-print *,
+  .recibo-print, .recibo-print * { visibility: visible; }
+  #reportes-print,
+  .recibo-print {
     position: absolute;
     left: 0;
     top: 0;
@@ -3343,6 +3345,8 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     margin: 0;
     padding: 0;
   }
+  /* El recibo se imprime sin marco/sombra: es una hoja limpia. */
+  .recibo-print { border: none !important; max-width: 100% !important; }
   .no-print { display: none !important; }
   .solo-print { display: block !important; visibility: visible !important; }
   /* No cortar tarjetas/secciones a la mitad entre páginas. */

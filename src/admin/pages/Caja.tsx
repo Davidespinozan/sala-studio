@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banknote, CreditCard, ArrowLeftRight, Gift, Globe, Undo2 } from 'lucide-react';
+import { Banknote, CreditCard, ArrowLeftRight, Gift, Globe, Undo2, Receipt } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { translateActionError } from '@reception/lib/traducirErrorAccion';
 import { useSucursal } from '../providers/SucursalProvider';
 import { exportarCsv } from '@shared/lib/exportarCsv';
+import { ReciboModal } from '@shared/components/ReciboModal';
 
 /**
  * CAJA — el dinero que entró de verdad.
@@ -98,6 +99,7 @@ export default function Caja() {
   const [pagos, setPagos] = useState<PagoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [devolviendo, setDevolviendo] = useState<PagoRow | null>(null);
+  const [reciboId, setReciboId] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
 
   // sucursalFiltro es null en "Todas las sedes" o en un gym de una sola sede:
@@ -360,6 +362,18 @@ export default function Caja() {
                   )}
                 </div>
 
+                {!esReembolso && !esCortesia && (
+                  <button
+                    type="button"
+                    onClick={() => setReciboId(p.id)}
+                    className="ek-cta ek-cta--secondary"
+                    title="Recibo"
+                    style={{ minHeight: '32px', padding: '0 12px', fontSize: '12px', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <Receipt size={14} /> Recibo
+                  </button>
+                )}
+
                 {puedeDevolver && (
                   <button
                     type="button"
@@ -405,6 +419,10 @@ export default function Caja() {
           }}
           onError={(msg) => toast.error(msg)}
         />
+      )}
+
+      {reciboId && (
+        <ReciboModal pagoId={reciboId} modo="staff" onClose={() => setReciboId(null)} />
       )}
     </div>
   );

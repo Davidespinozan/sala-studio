@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { AlertTriangle, ArrowRight, CalendarCheck, ChevronRight, CreditCard, Fingerprint, LifeBuoy, Plus, RotateCcw, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CalendarCheck, ChevronRight, CreditCard, Fingerprint, LifeBuoy, Plus, RotateCcw, X, Receipt } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Avatar } from '@shared/components/Avatar';
 import { useAuth } from '@shared/hooks/useAuth';
@@ -18,6 +18,8 @@ import { nombreDedo } from '@shared/lib/dedos';
 import { sufijoPeriodoTier } from '@shared/lib/precioTier';
 import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { iniciarCheckout } from '@shared/lib/checkout';
+import { ReciboModal } from '@shared/components/ReciboModal';
+import { conceptoLabel, metodoLabel, montoFmt } from '@shared/lib/recibo';
 import { backendPost } from '@shared/lib/backend';
 import { CheckoutModal } from '@shared/components/CheckoutModal';
 import ContactoGymCTA from '../components/ContactoGymCTA';
@@ -1136,29 +1138,34 @@ function MetodoPago() {
 // Historial de pagos
 // ============================================================================
 
-interface PagoHist {
+interface PagoLedger {
   id: string;
-  amount: number;
-  currency: string;
-  created: number;
-  status: string;
-  descripcion: string | null;
+  created_at: string;
+  concepto: string;
+  monto_centavos: number;
+  moneda: string;
+  metodo: string;
+  tier: { nombre: string | null } | null;
 }
 
 function HistorialPagos() {
-  const [pagos, setPagos] = useState<PagoHist[]>([]);
+  // Leemos el ledger `pagos` (fuente de verdad, incluye efectivo). RLS ya lo acota
+  // a los pagos del propio socio (pagos_read_self), no hace falta filtrar por id.
+  const [pagos, setPagos] = useState<PagoLedger[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reciboId, setReciboId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancel = false;
     (async () => {
-      try {
-        const res = await backendPost<{ pagos: PagoHist[] }>('metodo-pago', { action: 'historial' });
-        if (!cancel) setPagos(res.pagos ?? []);
-      } catch {
-        if (!cancel) setPagos([]);
-      } finally {
-        if (!cancel) setLoading(false);
+      const { data } = await supabase
+        .from('pagos')
+        .select('id, created_at, concepto, monto_centavos, moneda, metodo, tier:tiers(nombre)')
+        .order('created_at', { ascending: false })
+        .limit(24);
+      if (!cancel) {
+        setPagos((data ?? []) as unknown as PagoLedger[]);
+        setLoading(false);
       }
     })();
     return () => { cancel = true; };
@@ -1175,28 +1182,41 @@ function HistorialPagos() {
         </p>
       ) : (
         <div className="ek-stack-sm">
-          {pagos.map((p) => (
-            <div
-              key={p.id}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', background: 'var(--sala-surface)', border: '1px solid var(--sala-border)', borderRadius: 'var(--ek-r-card)' }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: 'var(--sala-text-primary)' }}>
-                  ${(p.amount / 100).toLocaleString('es-MX')} {p.currency.toUpperCase()}
-                </p>
-                <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '2px 0 0' }}>
-                  {new Date(p.created * 1000).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  {p.descripcion ? ` · ${p.descripcion}` : ''}
-                </p>
-              </div>
-              <span
-                style={{ flexShrink: 0, fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 10px', borderRadius: '999px', color: p.status === 'succeeded' ? 'var(--sala-success)' : 'var(--sala-error)', background: p.status === 'succeeded' ? 'var(--sala-success-bg)' : 'var(--sala-error-bg)' }}
+          {pagos.map((p) => {
+            const esReembolso = p.concepto === 'reembolso';
+            const sinCosto = p.metodo === 'cortesia';
+            return (
+              <div
+                key={p.id}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', background: 'var(--sala-surface)', border: '1px solid var(--sala-border)', borderRadius: 'var(--ek-r-card)' }}
               >
-                {p.status === 'succeeded' ? 'Pagado' : p.status === 'failed' ? 'Falló' : p.status}
-              </span>
-            </div>
-          ))}
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: 'var(--sala-text-primary)' }}>
+                    {esReembolso ? '−' : ''}{montoFmt(Math.abs(p.monto_centavos), p.moneda)} {p.moneda.toUpperCase()}
+                  </p>
+                  <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '2px 0 0' }}>
+                    {new Date(p.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {' · '}{conceptoLabel(p.concepto, p.tier?.nombre)} · {metodoLabel(p.metodo)}
+                  </p>
+                </div>
+                {!esReembolso && !sinCosto && (
+                  <button
+                    type="button"
+                    onClick={() => setReciboId(p.id)}
+                    className="ek-cta ek-cta--secondary"
+                    style={{ flexShrink: 0, minHeight: '34px', padding: '0 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <Receipt size={14} /> Recibo
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
+      )}
+
+      {reciboId && (
+        <ReciboModal pagoId={reciboId} modo="socio" onClose={() => setReciboId(null)} />
       )}
     </section>
   );
