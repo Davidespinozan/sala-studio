@@ -10,6 +10,8 @@ import {
 import { useMiembroKPIs } from '../hooks/useMiembroKPIs';
 import { useSucursal } from '../providers/SucursalProvider';
 import { supabase } from '@shared/lib/supabase';
+import { backendPost } from '@shared/lib/backend';
+import { PASSWORD_TEMPORAL_INICIAL } from '@shared/lib/acceso';
 import { esCorreoMarcador, etiquetaCorreo } from '@shared/lib/sinCorreo';
 import { calcularEdad } from '@shared/lib/edad';
 import { useToast } from '@shared/hooks/useToast';
@@ -289,9 +291,11 @@ export default function MiembroDetalle() {
             />
           </FieldGroup>
 
-          <FieldGroup title="Cuenta">
-            <ResetPasswordControl email={miembro.email} />
-          </FieldGroup>
+          {miembro.auth_id && (
+            <FieldGroup title="Cuenta">
+              <ResetPasswordControl usuarioId={miembro.id} />
+            </FieldGroup>
+          )}
 
           <FieldGroup title="Información del sistema">
             <div className="adm-info-grid">
@@ -980,40 +984,41 @@ function CodigoActivacionControl({ usuarioId }: { usuarioId: string }) {
   );
 }
 
-function ResetPasswordControl({ email }: { email: string }) {
+function ResetPasswordControl({ usuarioId }: { usuarioId: string }) {
   const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleReset() {
-    if (!confirm(`¿Enviar email de recuperación de contraseña a ${email}?`)) return;
+    if (!confirm(`¿Restablecer la contraseña de este socio a la temporal (${PASSWORD_TEMPORAL_INICIAL})?`)) return;
     setSending(true);
     setError(null);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login`
-      });
-      if (error) throw error;
-      setSent(true);
+      const res = await backendPost<{ password: string }>('reception-reset-password', { usuario_id: usuarioId });
+      setPassword(res.password);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos enviar el email. Prueba de nuevo.');
+      setError(e instanceof Error ? e.message : 'No pudimos resetear la contraseña. Prueba de nuevo.');
     }
     setSending(false);
   }
 
-  if (sent) {
+  if (password) {
     return (
-      <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--sala-success)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-        <Check size={14} strokeWidth={2.5} style={{ flexShrink: 0 }} />
-        Email de recuperación enviado a {email}
-      </p>
+      <div style={{ marginTop: '0.25rem' }}>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--sala-text-secondary)', margin: '0 0 6px' }}>
+          Contraseña temporal (dásela al socio; la cambia al entrar):
+        </p>
+        <code style={{ fontFamily: 'var(--ek-font-mono)', fontSize: '18px', fontWeight: 800, letterSpacing: '0.08em', color: 'var(--sala-text-primary)' }}>
+          {password}
+        </code>
+      </div>
     );
   }
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
       <button onClick={handleReset} disabled={sending} className="ek-cta ek-cta--secondary">
-        {sending ? 'Enviando…' : 'Enviar email de recuperación'}
+        {sending ? 'Reseteando…' : 'Resetear contraseña'}
       </button>
       {error && <span style={{ color: 'var(--sala-error)', fontSize: '0.875rem' }}>{error}</span>}
     </div>
