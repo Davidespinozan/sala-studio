@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { adminCreateUser } from '@admin/hooks/useAdminData';
+import { backendPost } from '@shared/lib/backend';
 import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
 import { useTenant } from '@shared/hooks/useTenant';
 import { guardarDatosPrivados } from '@shared/lib/datosSocio';
-import { PASSWORD_TEMPORAL_INICIAL } from '@shared/lib/acceso';
+import { QrChico } from '@shared/components/QrChico';
 
 interface Props {
   isOpen: boolean;
@@ -14,11 +14,11 @@ interface Props {
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 /**
- * Alta de un socio (walk-in) desde el mostrador. Recepción crea la cuenta
- * (rol='miembro', status pendiente_pago) en su sede actual; el PLAN se asigna
- * después desde la ficha del socio ("Asignar plan"). Dos fases: datos →
- * credenciales para entregar. Modal autónomo (no AccionModal, que cierra tras
- * confirmar) para poder mostrar las credenciales sin cerrar.
+ * Alta de un socio (walk-in) desde el mostrador. Crea SOLO la ficha (rol miembro,
+ * pendiente_pago), SIN login: el gym solo le dice "ya puedes activar tu cuenta" y
+ * el socio se activa solo en /activar (ahí el sistema le da su contraseña temporal
+ * y lo obliga a cambiarla). Así el gym nunca dicta contraseñas. El PLAN se asigna
+ * después desde la ficha.
  */
 export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
   const { sucursalId, multisede } = useReceptionSucursal();
@@ -30,11 +30,10 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
   const [fechaNac, setFechaNac] = useState('');
   const [sexo, setSexo] = useState('');
   const [domicilio, setDomicilio] = useState('');
-  const [creado, setCreado] = useState<{ email: string; password: string } | null>(null);
+  const [creado, setCreado] = useState<{ email: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Reset al abrir + scroll-lock + Escape (no cierra mientras se envía).
   useEffect(() => {
     if (!isOpen) return;
     setNombre(''); setEmail(''); setTelefono('');
@@ -52,24 +51,22 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
 
   const emailOk = EMAIL_RE.test(email.trim());
   const canConfirm = nombre.trim().length > 1 && emailOk && !submitting;
+  const activarUrl = `${window.location.origin}/activar`;
 
   async function crear() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await adminCreateUser({
-        email: email.trim().toLowerCase(),
-        password: PASSWORD_TEMPORAL_INICIAL,
+      const res = await backendPost<{ usuario_id: string; email: string }>('crear-socio-ficha', {
         nombre: nombre.trim(),
+        email: email.trim().toLowerCase(),
         telefono: telefono.trim() || undefined,
-        rol: 'miembro',
-        membresia_tier: null,
         sucursal_id: multisede ? sucursalId : null
       });
-      // Ficha del socio (opcional). Best-effort: el socio YA existe, un fallo acá
-      // no debe tumbar el alta (se puede completar luego desde su ficha).
-      await guardarDatosPrivados(res.user.id, tenant.id, { fecha_nacimiento: fechaNac, sexo, domicilio });
-      setCreado({ email: res.user.email, password: res.user.password });
+      // Ficha del socio (opcional). Best-effort: la ficha YA existe, un fallo acá
+      // no debe tumbar el alta (se completa luego desde su ficha).
+      await guardarDatosPrivados(res.usuario_id, tenant.id, { fecha_nacimiento: fechaNac, sexo, domicilio });
+      setCreado({ email: res.email });
       await onDone();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo crear el socio.');
@@ -102,18 +99,28 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
           {creado ? 'SOCIO CREADO' : 'NUEVO SOCIO'}
         </p>
         <h3 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 12px', color: 'var(--ek-ink)' }}>
-          {creado ? 'Listo, pasale los datos' : 'Alta en el mostrador'}
+          {creado ? 'Listo — dile que active su cuenta' : 'Alta en el mostrador'}
         </h3>
 
         {creado ? (
           <>
-            <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', lineHeight: 1.55, margin: '0 0 16px' }}>
-              Estos son los datos de acceso del socio. Para activarle un plan, abrí su ficha y usá “Asignar plan”.
+            <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', lineHeight: 1.55, margin: '0 0 14px' }}>
+              El socio activa su cuenta él mismo (ahí le sale su contraseña). Solo dile
+              que entre aquí con <strong>su email</strong>:
             </p>
-            <div style={{ background: 'var(--sala-surface)', border: '0.5px solid var(--ek-line)', borderRadius: '12px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>
-              <Dato label="Email de acceso" valor={creado.email} />
-              <Dato label="Contraseña temporal" valor={creado.password} />
+            <div style={{ display: 'flex', gap: '14px', alignItems: 'center', background: 'var(--sala-surface)', border: '0.5px solid var(--ek-line)', borderRadius: '12px', padding: '14px', marginBottom: '12px' }}>
+              <QrChico data={activarUrl} />
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: '11px', color: 'var(--ek-ink-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Activar cuenta</p>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--sala-text-primary)', margin: '2px 0 0', wordBreak: 'break-all' }}>{activarUrl}</p>
+                <p style={{ fontSize: '11.5px', color: 'var(--sala-text-tertiary)', margin: '6px 0 0', lineHeight: 1.4 }}>
+                  Con su email: <strong>{creado.email}</strong>. Escanea el QR o dile la dirección.
+                </p>
+              </div>
             </div>
+            <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '0 0 16px', lineHeight: 1.45 }}>
+              Para activarle un plan, abre su ficha y usa “Asignar plan”.
+            </p>
             <button type="button" onClick={onClose} className="ek-cta" style={{ width: '100%' }}>
               Listo
             </button>
@@ -127,7 +134,7 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
               <Campo label="Nombre">
                 <input className="ek-input" value={nombre} onChange={(e) => setNombre(e.target.value)} autoComplete="off" autoFocus />
               </Campo>
-              <Campo label="Email de acceso">
+              <Campo label="Email">
                 <input className="ek-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" placeholder="socio@email.com" />
               </Campo>
               <Campo label="Teléfono (opcional)">
@@ -148,9 +155,6 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
                 <input className="ek-input" value={domicilio} onChange={(e) => setDomicilio(e.target.value)} placeholder="Calle, número, colonia, ciudad" autoComplete="off" />
               </Campo>
             </div>
-            <p style={{ fontSize: '12.5px', color: 'var(--ek-ink-muted)', margin: '0 0 16px', lineHeight: 1.45 }}>
-              Contraseña temporal: <strong style={{ fontFamily: 'var(--ek-font-mono)' }}>{PASSWORD_TEMPORAL_INICIAL}</strong> — el socio la cambia al entrar.
-            </p>
 
             {error && (
               <p style={{ color: 'var(--ek-danger)', background: 'var(--ek-danger-soft)', border: '0.5px solid var(--sala-error-glow)', borderRadius: 'var(--ek-r-md)', padding: '10px 12px', fontSize: '0.875rem', margin: '0 0 16px' }}>
@@ -179,14 +183,5 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
       <span className="ek-label" style={{ display: 'block', marginBottom: '5px' }}>{label}</span>
       {children}
     </label>
-  );
-}
-
-function Dato({ label, valor }: { label: string; valor: string }) {
-  return (
-    <div>
-      <p style={{ fontSize: '11px', color: 'var(--ek-ink-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
-      <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--sala-text-primary)', margin: '2px 0 0', fontFamily: 'var(--ek-font-mono)' }}>{valor}</p>
-    </div>
   );
 }

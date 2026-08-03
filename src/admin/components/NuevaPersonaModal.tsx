@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import {
-  adminCreateUser,
   gestionarMembresiaSocio,
   useTiersAdmin
 } from '../hooks/useAdminData';
 import { useSucursal } from '../providers/SucursalProvider';
 import { useTenant } from '@shared/hooks/useTenant';
 import { guardarDatosPrivados, subirAvatarSocio } from '@shared/lib/datosSocio';
-import { PASSWORD_TEMPORAL_INICIAL } from '@shared/lib/acceso';
+import { backendPost } from '@shared/lib/backend';
+import { QrChico } from '@shared/components/QrChico';
 
 /**
  * Alta de MIEMBRO (cliente que paga). Este modal vive en la página Miembros y
@@ -70,7 +70,7 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
   const [formaActivacion, setFormaActivacion] = useState<FormaActivacion>('efectivo');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<{ email: string; password: string; rol: string; warning?: string } | null>(null);
+  const [success, setSuccess] = useState<{ email: string; warning?: string } | null>(null);
 
 
   const tiersActivos = tiers.filter((t) => t.activo);
@@ -81,30 +81,26 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
     setError(null);
 
     try {
-      const res = await adminCreateUser({
-        email: email.trim(),
-        password: PASSWORD_TEMPORAL_INICIAL,
+      // Crea SOLO la ficha (sin login). El socio activa su cuenta solo en /activar
+      // (ahí le sale su contraseña). El gym no dicta contraseñas.
+      const res = await backendPost<{ usuario_id: string; email: string }>('crear-socio-ficha', {
         nombre: nombre.trim(),
+        email: email.trim(),
         telefono: telefono.trim() || undefined,
-        rol,
-        // Pasamos null: el "atajo viejo" de setear usuarios.membresia_tier sin
-        // crear fila en membresias dejaba al socio bloqueado por SIN_MEMBRESIA.
-        // Si se eligió tier, la membresía la crea el RPC en el paso siguiente.
-        membresia_tier: null,
         sucursal_id: pideSucursal ? sucursalId || null : null
       });
 
-      // Ficha del socio (opcional). Best-effort: la cuenta YA existe, así que un
+      // Ficha del socio (opcional). Best-effort: la ficha YA existe, así que un
       // fallo acá no debe tumbar el alta — se puede recargar desde la ficha.
-      await guardarDatosPrivados(res.user.id, tenant.id, { fecha_nacimiento: fechaNac, sexo, domicilio });
-      if (fotoFile) await subirAvatarSocio(res.user.id, fotoFile);
+      await guardarDatosPrivados(res.usuario_id, tenant.id, { fecha_nacimiento: fechaNac, sexo, domicilio });
+      if (fotoFile) await subirAvatarSocio(res.usuario_id, fotoFile);
 
       // Si es miembro Y se eligió un tier, alta de membresía vía RPC. Eso
       // crea la fila en `membresias`, sincroniza `usuarios.membresia_tier`,
       // y pasa el status de pendiente_pago a activo.
       if (rol === 'miembro' && tierId) {
         const { error: memErr } = await gestionarMembresiaSocio({
-          usuario_id: res.user.id,
+          usuario_id: res.usuario_id,
           tier_id: tierId,
           motivo: MOTIVO_ALTA[formaActivacion],
           // Registra el pago en la Caja si se cobró; cortesía → null (no cobra).
@@ -117,23 +113,17 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
           // admin sabe que existe y no reintenta con el mismo email → "ya existe")
           // + un aviso para cargar el plan desde el perfil. NO es un error total.
           setSuccess({
-            email: res.user.email,
-            password: res.user.password,
-            rol: res.user.rol,
+            email: res.email,
             warning:
-              `La cuenta se creó, pero no se pudo asignar el plan: ${memErr}. ` +
-              `Asignalo desde el perfil de la persona (Miembros → su ficha).`
+              `La ficha se creó, pero no se pudo asignar el plan: ${memErr}. ` +
+              `Asígnalo desde el perfil de la persona (Miembros → su ficha).`
           });
           setSubmitting(false);
           return;
         }
       }
 
-      setSuccess({
-        email: res.user.email,
-        password: res.user.password,
-        rol: res.user.rol
-      });
+      setSuccess({ email: res.email });
       setSubmitting(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No pudimos crear el usuario. Prueba de nuevo.');
@@ -145,12 +135,12 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
     return (
       <div className="adm-modal-backdrop" onClick={async () => { await onCreated(); }}>
         <div className="adm-modal" onClick={(e) => e.stopPropagation()}>
-          <p className="ek-eyebrow" style={{ color: 'var(--ek-success)' }}>CUENTA CREADA</p>
-          <h3 className="ek-h3">Comparte estas credenciales</h3>
+          <p className="ek-eyebrow" style={{ color: 'var(--ek-success)' }}>SOCIO CREADO</p>
+          <h3 className="ek-h3">Dile que active su cuenta</h3>
 
-          <p style={{ color: 'var(--ek-ink-muted)', fontSize: '0.9375rem' }}>
-            Cuenta lista para usar. Envíalas por WhatsApp o en persona.
-            El usuario puede cambiar la password después en su perfil.
+          <p style={{ color: 'var(--ek-ink-muted)', fontSize: '0.9375rem', lineHeight: 1.5 }}>
+            El socio activa su cuenta él mismo (ahí le sale su contraseña). Solo dile que
+            entre con <strong>su email</strong> a esta dirección:
           </p>
 
           {success.warning && (
@@ -170,22 +160,16 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
             </div>
           )}
 
-          <div className="ek-card" style={{ background: 'var(--ek-cream-warm)' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.9375rem' }}>
-              <div>
-                <div className="adm-info-label">Email</div>
-                <code style={{ fontFamily: 'var(--ek-font-mono)', userSelect: 'all' }}>{success.email}</code>
-              </div>
-              <div>
-                <div className="adm-info-label">Password</div>
-                <code style={{ fontFamily: 'var(--ek-font-mono)', userSelect: 'all', background: 'var(--ek-cream)', padding: '4px 8px', borderRadius: '4px' }}>
-                  {success.password}
-                </code>
-              </div>
-              <div>
-                <div className="adm-info-label">Rol</div>
-                <code style={{ fontFamily: 'var(--ek-font-mono)' }}>{success.rol}</code>
-              </div>
+          <div className="ek-card" style={{ background: 'var(--ek-cream-warm)', display: 'flex', gap: '14px', alignItems: 'center' }}>
+            <QrChico data={`${window.location.origin}/activar`} />
+            <div style={{ minWidth: 0 }}>
+              <div className="adm-info-label">Activar cuenta</div>
+              <code style={{ fontFamily: 'var(--ek-font-mono)', userSelect: 'all', wordBreak: 'break-all', fontSize: '13px' }}>
+                {`${window.location.origin}/activar`}
+              </code>
+              <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', margin: '6px 0 0' }}>
+                Con su email: <strong>{success.email}</strong>
+              </p>
             </div>
           </div>
 
@@ -346,13 +330,10 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
             {fotoFile && <p className="ek-helper-text">{fotoFile.name}</p>}
           </div>
 
-          <div className="ek-form-field">
-            <label className="ek-label">Contraseña inicial</label>
-            <p className="ek-helper-text" style={{ marginTop: 0 }}>
-              Es <strong style={{ fontFamily: 'var(--ek-font-mono)' }}>{PASSWORD_TEMPORAL_INICIAL}</strong> para todos.
-              El socio la cambia al entrar (la app se lo exige). Compártela por WhatsApp o en persona.
-            </p>
-          </div>
+          <p className="ek-helper-text" style={{ margin: '4px 0 0' }}>
+            No lleva contraseña: el socio activa su cuenta solo (en “Activar mi cuenta”) y ahí
+            le sale su contraseña temporal.
+          </p>
 
           {error && <p className="ek-error-text">{error}</p>}
 
