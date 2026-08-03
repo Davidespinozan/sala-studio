@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import {
   type ReciboData,
   conceptoLabel,
@@ -10,15 +11,11 @@ import {
  * Recibo imprimible (comprobante interno, no CFDI). Documento en blanco/negro,
  * pensado para verse bien impreso o guardado como PDF desde el navegador.
  * Se usa igual en la app (dentro de ReciboModal) y en la página pública /recibo.
- *
- * La clase `recibo-print` la usa el @media print de sala.css para imprimir SOLO
- * el recibo, ocultando el resto de la app.
  */
 export function ReciboView({ data }: { data: ReciboData }) {
   const esReembolso = data.concepto === 'reembolso';
   return (
     <div
-      className="recibo-print"
       style={{
         background: '#ffffff',
         color: '#1a1f1c',
@@ -91,6 +88,22 @@ export function ReciboView({ data }: { data: ReciboData }) {
         {data.gym.telefono ? <> · {data.gym.telefono}</> : null}
       </p>
     </div>
+  );
+}
+
+/**
+ * Copia del recibo montada como portal DIRECTO en <body>, fuera del modal. En
+ * pantalla está oculta (display:none vía .recibo-print-root); solo aparece en
+ * @media print. Así se imprime el recibo completo sin que el overflow/position
+ * del modal lo recorte. Móntala junto al ReciboView visible.
+ */
+export function ReciboPrint({ data }: { data: ReciboData }) {
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div className="recibo-print-root">
+      <ReciboView data={data} />
+    </div>,
+    document.body
   );
 }
 

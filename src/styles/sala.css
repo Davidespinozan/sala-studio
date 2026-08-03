@@ -3331,13 +3331,16 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
    ════════════════════════════════════════════════════════════════════════ */
 .solo-print { display: none; }
 
+/* El portal del recibo vive en <body> pero solo se ve al imprimir (ver @media print). */
+.recibo-print-root { display: none; }
+
 @media print {
   /* Ocultar todo el chrome (sidebar, topbar, botones) y mostrar solo el tablero. */
   body * { visibility: hidden; }
   #reportes-print, #reportes-print *,
-  .recibo-print, .recibo-print * { visibility: visible; }
+  .recibo-print-root, .recibo-print-root * { visibility: visible; }
   #reportes-print,
-  .recibo-print {
+  .recibo-print-root {
     position: absolute;
     left: 0;
     top: 0;
@@ -3345,8 +3348,8 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     margin: 0;
     padding: 0;
   }
-  /* El recibo se imprime sin marco/sombra: es una hoja limpia. */
-  .recibo-print { border: none !important; max-width: 100% !important; }
+  /* El recibo (portal en <body>) se vuelve visible e imprime como hoja limpia. */
+  .recibo-print-root { display: block !important; }
   .no-print { display: none !important; }
   .solo-print { display: block !important; visibility: visible !important; }
   /* No cortar tarjetas/secciones a la mitad entre páginas. */
