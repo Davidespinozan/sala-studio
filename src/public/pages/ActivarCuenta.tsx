@@ -8,12 +8,11 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { PASSWORD_TEMPORAL_INICIAL } from '@shared/lib/acceso';
 
 /**
- * ACTIVAR / CREAR MI CUENTA — autoservicio por email, sin código.
- *   - Si el email YA es socio (importado o dado de alta) → se activa su cuenta.
- *   - Si es nuevo → se crea una cuenta PENDIENTE DE PAGO (entra pero no reserva
- *     hasta pagar en recepción).
- * En ambos casos entra con la contraseña temporal fija y la app lo obliga a
- * cambiarla. (La seguridad real es huella + recepción; ver acceso.ts.)
+ * ACTIVAR MI CUENTA — autoservicio por email, sin código, para socios YA dados
+ * de alta en recepción. Si el email tiene ficha → se activa la cuenta; si no lo
+ * reconoce → lo manda a recepción (NO crea ficha, para no duplicar). Entra con la
+ * contraseña temporal fija y la app lo obliga a cambiarla. (La seguridad real es
+ * huella + recepción; ver acceso.ts.)
  */
 export default function ActivarCuenta() {
   const navigate = useNavigate();
@@ -103,7 +102,7 @@ export default function ActivarCuenta() {
                 <p className="ek-eyebrow" style={{ margin: 0 }}>ACCESO</p>
                 <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: 22, fontWeight: 700, margin: '4px 0 0' }}>Activa tu cuenta</h1>
                 <p style={{ fontSize: 13, color: 'var(--sala-text-secondary)', marginTop: 6, lineHeight: 1.5 }}>
-                  Pon tu email y entra a la app de {tenant.nombre || 'el gimnasio'}. Si ya eres socio, se activa tu cuenta; si eres nuevo, la creamos.
+                  Pon el email con el que te registraron en {tenant.nombre || 'el gimnasio'} y activa tu cuenta. ¿Aún no eres socio? Pasa a recepción para darte de alta.
                 </p>
               </div>
 

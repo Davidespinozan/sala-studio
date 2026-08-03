@@ -15,10 +15,11 @@ import { requireEnv } from '../_lib/env';
  * Body: { email, slug }
  *
  * Contraseña temporal FIJA (Cambiar123, pública a propósito); la app obliga a
- * cambiarla al entrar. Dos casos:
+ * cambiarla al entrar. El alta es 100% en recepción, así que:
  *   - El email YA es socio (tiene ficha sin login) → se activa su cuenta.
- *   - El email es NUEVO → se crea una cuenta en estado PENDIENTE DE PAGO: puede
- *     entrar pero no reservar hasta que pague en recepción (le asignen plan).
+ *   - El email NO tiene ficha → se RECHAZA (que pase a recepción). NO creamos
+ *     ficha por auto-servicio: si el socio teclea un email distinto al que
+ *     registró recepción, crearíamos una ficha huérfana duplicada.
  *
  * SEGURIDAD (decisión del owner): es abierto por email a propósito — el acceso
  * físico real es huella + recepción, y la clave se cambia de una. No hay código.
@@ -65,11 +66,18 @@ export const handler: Handler = async (event) => {
     if (fichaPrevia?.auth_id) {
       return CONFLICT('Esa cuenta ya está activa. Inicia sesión con tu contraseña.', 'YA_ACTIVA');
     }
-    const esNuevo = !fichaPrevia;
+    // Alta 100% en recepción: si el email no tiene ficha, NO lo creamos por
+    // auto-servicio (evita fichas huérfanas cuando el socio teclea un email
+    // distinto al que registró recepción). Se le pide pasar a recepción.
+    if (!fichaPrevia) {
+      return CONFLICT(
+        'No reconocimos este correo. Verifica que sea el que registraste en el gimnasio, o pídele a recepción que te dé de alta.',
+        'NO_FICHA'
+      );
+    }
 
-    // 3) Crear el login. El trigger handle_new_auth_user, con el tenant_slug:
-    //    - si YA existe la ficha (socio) → ON CONFLICT (tenant_id,email) DO NOTHING.
-    //    - si es NUEVO → crea la ficha (rol miembro) en ese gym.
+    // 3) Crear el login. El trigger handle_new_auth_user hace ON CONFLICT
+    //    (tenant_id,email) DO NOTHING porque la ficha del socio ya existe.
     const { data: authData, error: authErr } = await admin.auth.admin.createUser({
       email: emailLc,
       password: PASSWORD_TEMPORAL,
@@ -95,14 +103,9 @@ export const handler: Handler = async (event) => {
       await admin.auth.admin.deleteUser(authData.user.id);
       return serverError('No pudimos crear tu cuenta. Habla con el gimnasio.');
     }
-    // Socio existente: el trigger hizo DO NOTHING → se liga acá. Nuevo: el trigger
-    // ya la creó con este auth_id (el update no toca nada por el `is null`).
+    // El trigger hizo DO NOTHING (la ficha ya existía) → ligamos el login acá.
     if (!ficha.auth_id) {
       await admin.from('usuarios').update({ auth_id: authData.user.id }).eq('id', ficha.id).is('auth_id', null);
-    }
-    // Persona NUEVA → pendiente de pago (no reserva hasta pagar en recepción).
-    if (esNuevo) {
-      await admin.from('usuarios').update({ status: 'pendiente_pago' }).eq('id', ficha.id);
     }
 
     // 5) Aviso EN-APP para que cambie la contraseña temporal (solo en-app, no push).
@@ -115,7 +118,7 @@ export const handler: Handler = async (event) => {
       push_enviado_at: new Date().toISOString()
     } as never);
 
-    return ok({ success: true, nueva: esNuevo });
+    return ok({ success: true, nueva: false });
   } catch (err) {
     console.error('[activar-cuenta]', err instanceof Error ? err.message : err);
     return serverError('No pudimos activar tu cuenta');
