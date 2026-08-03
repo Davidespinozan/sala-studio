@@ -19,6 +19,7 @@ import { ResetPasswordModal } from '../components/acciones/ResetPasswordModal';
 import { CrearAccesoSocioModal } from '../components/acciones/CrearAccesoSocioModal';
 import { HuellaModal } from '../components/acciones/HuellaModal';
 import { Avatar } from '@shared/components/Avatar';
+import { HistorialPagosSocio } from '@shared/components/HistorialPagosSocio';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData } from '../hooks/useSocioFicha';
 import { useSocioNotas } from '../hooks/useSocioNotas';
 import { useHuellasSocio } from '@shared/hooks/useHuellasSocio';
@@ -138,11 +139,15 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
   const socioNombre = socio.nombre ?? socio.email;
   const { notas, refetch: refetchNotas } = useSocioNotas(socio.id);
   const { huellas, refetch: refetchHuellas } = useHuellasSocio(socio.id);
+  const [pagosReload, setPagosReload] = useState(0);
   const cerrar = () => setModalAbierto(null);
   const handleDone = async () => {
     if (onAccionDone) await onAccionDone();
     await refetchNotas();
     await refetchHuellas();
+    // Tras cualquier acción (incluye cobros) refrescamos el historial de pagos:
+    // el cobro recién hecho aparece arriba con su botón de Recibo.
+    setPagosReload((n) => n + 1);
   };
   const esCreditos = membresia?.tierTipo === 'creditos' || membresia?.tierTipo === 'hibrido';
   const bloqueado = !!socio.bloqueado_hasta && new Date(socio.bloqueado_hasta) > new Date();
@@ -352,6 +357,12 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           <Stat n={String(asistencia.mes)} l="mes" />
           <Stat n={asistencia.pct == null ? '—' : `${asistencia.pct}%`} l="asist." />
         </div>
+      </div>
+
+      {/* PAGOS Y RECIBOS */}
+      <div className="ek-card ek-card--md" style={{ marginBottom: '12px' }}>
+        <p className="ek-eyebrow" style={{ marginBottom: '9px' }}>PAGOS</p>
+        <HistorialPagosSocio usuarioId={socio.id} reloadKey={pagosReload} />
       </div>
 
       {/* NOTAS SOBRE EL SOCIO (con autor + fecha) */}

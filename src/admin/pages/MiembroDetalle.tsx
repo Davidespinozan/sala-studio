@@ -25,6 +25,7 @@ import {
   MiembroHistorial,
   type HistorialItem
 } from '../components/miembro/MiembroHistorial';
+import { HistorialPagosSocio } from '@shared/components/HistorialPagosSocio';
 import { MiembroHistorialCambios } from '../components/miembro/MiembroHistorialCambios';
 import { MiembroNotasInternas } from '../components/miembro/MiembroNotasInternas';
 import { GestionarMembresiaModal } from '../components/miembro/GestionarMembresiaModal';
@@ -47,6 +48,7 @@ export default function MiembroDetalle() {
   // con plan vencido mientras recepción sí lo mostraba. Leyendo de `membresias`,
   // admin y recepción coinciden.
   const [membresia, setMembresia] = useState<{ nombre: string | null; estado: string; periodoFin: Date | null; creditos: number | null } | null>(null);
+  const [pagosReload, setPagosReload] = useState(0);
   useEffect(() => {
     if (!id) return;
     let mounted = true;
@@ -159,6 +161,8 @@ export default function MiembroDetalle() {
 
   async function handleAfterChange() {
     await Promise.all([refetch(), refetchKpis()]);
+    // Refresca el historial de pagos: el cobro recién hecho aparece arriba con Recibo.
+    setPagosReload((n) => n + 1);
   }
 
   async function handleDelete() {
@@ -206,6 +210,11 @@ export default function MiembroDetalle() {
       <section style={{ marginBottom: '32px' }}>
         <SectionHeading hint="Últimos 30 días">Historial de asistencia</SectionHeading>
         <MiembroHistorial items={historialItems} />
+      </section>
+
+      <section style={{ marginBottom: '32px' }}>
+        <SectionHeading hint="Recibo por cobro">Pagos y recibos</SectionHeading>
+        <HistorialPagosSocio usuarioId={miembro.id} reloadKey={pagosReload} />
       </section>
 
       <section style={{ marginBottom: '32px' }}>
