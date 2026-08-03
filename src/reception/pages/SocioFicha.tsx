@@ -45,7 +45,12 @@ type ModalAccion =
 // ── Helpers de formato ──────────────────────────────────────────────────────
 function fmtFechaCorta(iso: string | null): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+  const d = new Date(iso);
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
+  // Muestra el año si NO es el actual: así una membresía vencida hace un año
+  // ("2 sep 2025") no se confunde con una reciente.
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+  return d.toLocaleDateString('es-MX', opts);
 }
 function diasHasta(iso: string | null): number | null {
   if (!iso) return null;
@@ -544,7 +549,7 @@ function FichaAlerta({ data }: { data: SocioFichaData }) {
   if (estado === 'vencida') {
     return (
       <Alerta variant="error" icon="⛔">
-        <b>Plan vencido el {fmtFechaCorta(membresia?.periodoFin ?? null)}</b> — renová para reactivar el acceso.
+        <b>Plan vencido el {fmtFechaCorta(membresia?.periodoFin ?? null)}</b> — renueva para reactivar el acceso.
       </Alerta>
     );
   }
@@ -558,7 +563,7 @@ function FichaAlerta({ data }: { data: SocioFichaData }) {
   if (estado === 'sin_plan') {
     return (
       <Alerta variant="neutral" icon="○">
-        <b>Sin membresía activa</b> — asignale un plan para que pueda reservar.
+        <b>Sin membresía activa</b> — asígnale un plan para que pueda reservar.
       </Alerta>
     );
   }
