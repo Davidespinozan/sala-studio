@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Check } from 'lucide-react';
 import {
   useMiembroDetalle,
-  useTiersAdmin,
   adminUpdateRole,
   adminDeleteUser
 } from '../hooks/useAdminData';
@@ -40,31 +39,37 @@ export default function MiembroDetalle() {
   const navigate = useNavigate();
   const toast = useToast();
   const { miembro, reservas, isLoading, refetch } = useMiembroDetalle(id);
-  const { tiers } = useTiersAdmin();
   const { kpis, isLoading: loadingKpis, refetch: refetchKpis } = useMiembroKPIs(id);
 
-  // Membresía activa para "vence en X días" + saldo de créditos (si aplica).
-  const [periodoFin, setPeriodoFin] = useState<Date | null>(null);
-  const [creditosRestantes, setCreditosRestantes] = useState<number | null>(null);
+  // Membresía del socio: la ÚLTIMA (cualquier estado), leída de `membresias` —
+  // la fuente de verdad, igual que recepción. `usuarios.membresia_tier` se NULLea
+  // al vencer (para acceso/reportes), así que leerlo dejaba "sin plan" a un socio
+  // con plan vencido mientras recepción sí lo mostraba. Leyendo de `membresias`,
+  // admin y recepción coinciden.
+  const [membresia, setMembresia] = useState<{ nombre: string | null; estado: string; periodoFin: Date | null; creditos: number | null } | null>(null);
   useEffect(() => {
     if (!id) return;
     let mounted = true;
     void (async () => {
       const { data } = await supabase
         .from('membresias')
-        .select('periodo_actual_fin, creditos_restantes, tier:tiers(tipo)')
+        .select('status, periodo_actual_fin, creditos_restantes, tier:tiers(nombre, tipo)')
         .eq('usuario_id', id)
-        .eq('status', 'activa')
-        .order('periodo_actual_fin', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       if (!mounted) return;
-      const fin = (data?.periodo_actual_fin as string | undefined) ?? null;
-      setPeriodoFin(fin ? new Date(fin) : null);
-      const tipo = (data?.tier as { tipo?: string } | null)?.tipo;
-      const cred = (data?.creditos_restantes as number | null) ?? null;
-      // Solo planes por créditos/híbrido tienen saldo que mostrar.
-      setCreditosRestantes(tipo === 'creditos' || tipo === 'hibrido' ? cred : null);
+      if (!data) { setMembresia(null); return; }
+      const estado = String(data.status ?? '');
+      const activa = estado === 'activa' || estado === 'trialing' || estado === 'past_due';
+      const tier = data.tier as { nombre?: string; tipo?: string } | null;
+      const fin = (data.periodo_actual_fin as string | undefined) ?? null;
+      setMembresia({
+        nombre: tier?.nombre ?? null,
+        estado,
+        periodoFin: activa && fin ? new Date(fin) : null,
+        creditos: (tier?.tipo === 'creditos' || tier?.tipo === 'hibrido') ? ((data.creditos_restantes as number | null) ?? null) : null
+      });
     })();
     return () => { mounted = false; };
   }, [id, miembro]);
@@ -131,9 +136,17 @@ export default function MiembroDetalle() {
   if (isLoading) return <p className="adm-body">Cargando…</p>;
   if (!miembro) return <p className="adm-body">Miembro no encontrado.</p>;
 
-  const planNombre = miembro.membresia_tier
-    ? tiers.find((t) => t.slug === miembro.membresia_tier)?.nombre ?? null
+  // El plan viene de la membresía (fuente real). Si no está activa, se muestra su
+  // estado (vencido/pausado) — así admin no dice "sin plan" cuando en realidad el
+  // socio tuvo uno que venció (como lo muestra recepción).
+  const membresiaActiva = !!membresia && ['activa', 'trialing', 'past_due'].includes(membresia.estado);
+  const planNombre = membresia?.nombre
+    ? membresiaActiva
+      ? membresia.nombre
+      : `${membresia.nombre} (${membresia.estado === 'congelada' ? 'pausado' : 'vencido'})`
     : null;
+  const periodoFin = membresia?.periodoFin ?? null;
+  const creditosRestantes = membresia?.creditos ?? null;
 
   const diasParaVencimiento = periodoFin
     ? Math.ceil((periodoFin.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
