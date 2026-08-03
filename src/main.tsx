@@ -45,6 +45,12 @@ if ('serviceWorker' in navigator) {
   };
   document.addEventListener('visibilitychange', chequearUpdate);
   window.addEventListener('focus', chequearUpdate);
+
+  // Chequeo PERIÓDICO: quien tiene la PWA abierta y activa (sin cambiar de
+  // pestaña) no dispara focus/visibility, así que sin esto se quedaría en la
+  // versión vieja aunque haya un deploy nuevo. Cada 2 min: si hay SW nuevo, se
+  // instala → autoUpdate lo activa → 'controllerchange' recarga la pestaña sola.
+  setInterval(chequearUpdate, 120_000);
 }
 
 // Versión vieja cacheada: el index.html viejo pide un chunk JS que ya no existe
