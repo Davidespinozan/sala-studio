@@ -139,7 +139,7 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
                 <input className="ek-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" placeholder="socio@email.com" />
               </Campo>
               <Campo label="Teléfono (opcional)">
-                <input className="ek-input" value={telefono} onChange={(e) => setTelefono(e.target.value)} autoComplete="off" />
+                <input className="ek-input" type="tel" inputMode="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)} autoComplete="off" />
               </Campo>
               <Campo label="Fecha de nacimiento (opcional)">
                 <input className="ek-input" type="date" value={fechaNac} onChange={(e) => setFechaNac(e.target.value)} />

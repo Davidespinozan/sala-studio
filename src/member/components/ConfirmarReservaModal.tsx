@@ -125,7 +125,7 @@ export function ConfirmarReservaModal({
                 onClick={() => onInvitadosChange(Math.max(0, invitados - 1))}
                 disabled={invitados === 0}
                 className="ek-cta ek-cta--secondary"
-                style={{ minHeight: '40px', minWidth: '40px', padding: '0 12px' }}
+                style={{ minHeight: '44px', minWidth: '44px', padding: '0 12px' }}
               >
                 −
               </button>
@@ -146,7 +146,7 @@ export function ConfirmarReservaModal({
                 onClick={() => onInvitadosChange(Math.min(maxInvitados, invitados + 1))}
                 disabled={invitados === maxInvitados}
                 className="ek-cta ek-cta--secondary"
-                style={{ minHeight: '40px', minWidth: '40px', padding: '0 12px' }}
+                style={{ minHeight: '44px', minWidth: '44px', padding: '0 12px' }}
               >
                 +
               </button>

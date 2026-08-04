@@ -263,7 +263,7 @@ export default function PosVenta() {
                     key={n}
                     onClick={() => setRecibido(String(n))}
                     className="ek-cta ek-cta--secondary"
-                    style={{ flex: 1, fontSize: 12, padding: '6px 4px', minHeight: 0 }}
+                    style={{ flex: 1, fontSize: 12, padding: '6px 4px' }}
                   >
                     {n === Math.ceil(total / 100) ? 'Justo' : `$${n}`}
                   </button>
@@ -295,6 +295,6 @@ export default function PosVenta() {
 }
 
 const btnQty: React.CSSProperties = {
-  width: 26, height: 26, borderRadius: 7, border: '1px solid var(--ek-line)',
-  background: 'var(--ek-bg-soft)', cursor: 'pointer', fontSize: 15, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center'
+  width: 40, height: 40, borderRadius: 8, border: '1px solid var(--ek-line)',
+  background: 'var(--ek-bg-soft)', cursor: 'pointer', fontSize: 16, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center'
 };

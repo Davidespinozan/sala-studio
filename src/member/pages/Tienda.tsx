@@ -222,7 +222,7 @@ export default function Tienda() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
                   <span style={{ fontWeight: 700 }}>{fmt(p.precio_centavos, p.moneda)}</span>
                   {enCarrito === 0 ? (
-                    <button onClick={() => agregar(p.id)} className="ek-cta ek-cta--secondary" style={{ padding: '6px 14px', fontSize: 13, minHeight: 0 }}>Agregar</button>
+                    <button onClick={() => agregar(p.id)} className="ek-cta ek-cta--secondary" style={{ padding: '6px 14px', fontSize: 13 }}>Agregar</button>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <button onClick={() => quitar(p.id)} style={btnQty}>−</button>
@@ -239,7 +239,7 @@ export default function Tienda() {
 
       {/* Barra de compra fija abajo cuando hay algo en el carrito. */}
       {items.length > 0 && (
-        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 72, padding: '0 16px', zIndex: 20 }}>
+        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))', padding: '0 16px', zIndex: 20 }}>
           <button
             onClick={() => setEnCheckout(true)}
             className="ek-cta"
@@ -255,6 +255,6 @@ export default function Tienda() {
 }
 
 const btnQty: React.CSSProperties = {
-  width: 26, height: 26, borderRadius: 7, border: '1px solid var(--ek-line)', background: 'var(--ek-bg-soft)',
-  cursor: 'pointer', fontSize: 15, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center'
+  width: 40, height: 40, borderRadius: 8, border: '1px solid var(--ek-line)', background: 'var(--ek-bg-soft)',
+  cursor: 'pointer', fontSize: 16, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center'
 };

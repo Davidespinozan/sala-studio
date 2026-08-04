@@ -1110,8 +1110,9 @@ function InfoTooltip({ titulo, texto }: { titulo: string; texto: string }) {
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: '18px',
-          height: '18px',
+          width: '32px',
+          height: '32px',
+          margin: '-7px', /* área de toque mayor sin empujar el layout */
           padding: 0,
           border: 'none',
           background: 'transparent',

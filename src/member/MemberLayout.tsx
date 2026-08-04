@@ -83,7 +83,7 @@ export default function MemberLayout() {
     <TenantGuard>
     <MemberSucursalProvider>
     <ModoDemoBanner />
-    <div className="ek-page" style={{ paddingBottom: '88px' /* espacio para bottom nav */ }}>
+    <div className="ek-page" style={{ paddingBottom: 'calc(88px + env(safe-area-inset-bottom, 0px))' /* bottom nav + safe-area del iPhone */ }}>
       <CambiarPasswordGate />
       <DemoBanner vista="Miembro" />
       <EstadoMembresiaBanner />
