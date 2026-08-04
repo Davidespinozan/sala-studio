@@ -3340,6 +3340,11 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
      recibo (body.printing-recibo), que usa su propio esquema más abajo. */
   body:not(.printing-recibo) * { visibility: hidden; }
   #reportes-print, #reportes-print * { visibility: visible; }
+  /* .adm-content es position:relative (ancla de la campana flotante). Sin esto,
+     el `absolute` de abajo se posiciona respecto a ella —que empieza DESPUÉS del
+     sidebar de 240px— y el PDF salía corrido a la derecha ("chueco"). En print la
+     volvemos estática para que el tablero quede pegado al origen de la hoja. */
+  body:not(.printing-recibo) .adm-content { position: static !important; }
   #reportes-print {
     position: absolute;
     left: 0;
