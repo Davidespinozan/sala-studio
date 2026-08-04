@@ -41,6 +41,11 @@ interface PagoRow {
   tier: { nombre: string | null } | null;
 }
 
+interface ResumenCorte {
+  total_centavos: number;
+  por_concepto: { label: string; centavos: number }[];
+  por_metodo: { label: string; centavos: number }[];
+}
 interface CorteRow {
   id: string;
   desde: string | null;
@@ -50,6 +55,7 @@ interface CorteRow {
   efectivo_contado_centavos: number;
   diferencia_centavos: number;
   notas: string | null;
+  resumen: ResumenCorte | null;
   realizado_por: { nombre: string | null } | null;
 }
 
@@ -147,7 +153,7 @@ export default function Caja() {
     (async () => {
       const { data } = await (supabase as any)
         .from('cortes_caja')
-        .select('id, desde, hasta, efectivo_esperado_centavos, fondo_centavos, efectivo_contado_centavos, diferencia_centavos, notas, realizado_por:usuarios!cortes_caja_realizado_por_fkey(nombre)')
+        .select('id, desde, hasta, efectivo_esperado_centavos, fondo_centavos, efectivo_contado_centavos, diferencia_centavos, notas, resumen, realizado_por:usuarios!cortes_caja_realizado_por_fkey(nombre)')
         .eq('tenant_id', tenant.id)
         .order('hasta', { ascending: false })
         .limit(8);
@@ -248,8 +254,12 @@ export default function Caja() {
     desde: string | null; hasta: string;
     efectivo_esperado_centavos: number; fondo_centavos: number;
     efectivo_contado_centavos: number; diferencia_centavos: number; recepcion: string | null;
+    resumen?: ResumenCorte | null;
   }) {
-    const { porConcepto, total, porMetodo } = await desgloseDePeriodo(c.desde, c.hasta);
+    // Corte histórico (importado): usa el snapshot guardado. Corte normal: recalcula.
+    const { porConcepto, total, porMetodo } = c.resumen
+      ? { porConcepto: c.resumen.por_concepto, total: c.resumen.total_centavos, porMetodo: c.resumen.por_metodo }
+      : await desgloseDePeriodo(c.desde, c.hasta);
     setTicketData({
       gym: gymHeaderData(),
       sucursalNombre: sucursalActiva?.nombre ?? null,
@@ -547,7 +557,8 @@ export default function Caja() {
                 desde: c.desde, hasta: c.hasta,
                 efectivo_esperado_centavos: c.efectivo_esperado_centavos, fondo_centavos: c.fondo_centavos,
                 efectivo_contado_centavos: c.efectivo_contado_centavos, diferencia_centavos: c.diferencia_centavos,
-                recepcion: c.realizado_por?.nombre ?? null
+                recepcion: c.realizado_por?.nombre ?? null,
+                resumen: c.resumen
               })}
               style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 18px', borderTop: i === 0 ? 'none' : '0.5px solid var(--sala-border)', background: 'none', border: 'none', width: '100%', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
               title="Ver / imprimir este corte"
