@@ -9,7 +9,7 @@ import { useSucursal } from '../providers/SucursalProvider';
 import { exportarCsv } from '@shared/lib/exportarCsv';
 import { ReciboModal } from '@shared/components/ReciboModal';
 import { CorteTicket, CortePrint, type CorteTicketData } from '@shared/components/CorteTicket';
-import { imprimirCorte, compartirCorteImagen } from '@shared/lib/recibo';
+import { imprimirCorte, compartirCorteImagen, conceptoLabel } from '@shared/lib/recibo';
 import { getTenantTimezone, hoyEnTimezone, sumarDias } from '@shared/lib/timezone';
 import { fromZonedTime } from 'date-fns-tz';
 
@@ -474,8 +474,7 @@ export default function Caja() {
                   <p style={{ margin: 0, fontWeight: 600, fontSize: '14px', color: 'var(--sala-text-primary)' }}>
                     {p.socio?.nombre ?? 'Socio'}
                     <span style={{ color: 'var(--sala-text-tertiary)', fontWeight: 500 }}>
-                      {' · '}{CONCEPTO_LABEL[p.concepto] ?? p.concepto}
-                      {p.tier?.nombre ? ` ${p.tier.nombre}` : ''}
+                      {' · '}{conceptoLabel(p.concepto, p.tier?.nombre)}
                     </span>
                   </p>
                   <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
