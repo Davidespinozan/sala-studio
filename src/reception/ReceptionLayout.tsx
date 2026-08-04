@@ -10,6 +10,7 @@ import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { DemoBanner } from '@shared/components/DemoBanner';
 import { AppShell } from '@shared/components/AppShell';
 import { TenantGuard } from '@shared/components/TenantGuard';
+import { CambiarPasswordGate } from '@shared/components/CambiarPasswordGate';
 import { ModoDemoBanner } from '@shared/components/ModoDemoBanner';
 import { AppSidebar, type AppNavSection } from '@shared/components/AppSidebar';
 import { MapPin } from 'lucide-react';
@@ -90,6 +91,7 @@ export default function ReceptionLayout() {
             />
           )}
         >
+          <CambiarPasswordGate />
           <main className="adm-main">
             <SedeBar />
             <Suspense fallback={<LoadingScreen />}>

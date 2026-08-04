@@ -17,7 +17,7 @@ import { PoweredBySala } from '@shared/components/PoweredBySala';
 import { PwaInstallBanner } from '@shared/components/PwaInstallBanner';
 import { MemberSucursalProvider } from './providers/MemberSucursalProvider';
 import { SucursalSwitcher } from './components/SucursalSwitcher';
-import { CambiarPasswordGate } from './components/CambiarPasswordGate';
+import { CambiarPasswordGate } from '@shared/components/CambiarPasswordGate';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Tienda = lazy(() => import('./pages/Tienda'));

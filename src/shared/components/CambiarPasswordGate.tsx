@@ -4,11 +4,15 @@ import { supabase } from '@shared/lib/supabase';
 import { useNotificaciones } from '@shared/hooks/useNotificaciones';
 
 /**
- * Aviso EN PANTALLA (fuerte, tono de precaución) para que el socio cambie la
- * contraseña TEMPORAL que le dio el mostrador. Se dispara con la notificación
- * `cambiar_password` (que también vive en la campana). Mientras no la cambie, el
- * aviso reaparece en cada entrada — pero deja seguir usando la app ("Ahora no")
- * para no encerrarlo. Al cambiarla, se marca leída la notificación y desaparece.
+ * Aviso EN PANTALLA (fuerte, tono de precaución) para que el DUEÑO de la cuenta
+ * cambie la contraseña TEMPORAL con la que entró (Cambiar123). Se dispara con la
+ * notificación `cambiar_password` (que también vive en la campana), que insertan
+ * las funciones de alta/reset. Cada quien cambia la SUYA: aplica igual a miembros
+ * y a staff (recepción/admin). Mientras no la cambie reaparece en cada entrada,
+ * pero deja seguir usando la app ("Ahora no"). Al cambiarla, se marca leída y
+ * desaparece.
+ *
+ * Montado en los 3 layouts (member, admin, reception).
  */
 export function CambiarPasswordGate() {
   const { items, marcarLeida } = useNotificaciones();
@@ -78,8 +82,8 @@ export function CambiarPasswordGate() {
             Cambia tu contraseña ahora
           </h2>
           <p style={{ fontSize: '13.5px', color: 'var(--sala-text-secondary)', lineHeight: 1.55, margin: 0 }}>
-            Entraste con una contraseña <strong>temporal</strong> que te dio el gimnasio. Cámbiala
-            por una <strong>tuya</strong> para que nadie más pueda entrar a tu cuenta.
+            Entraste con una contraseña <strong>temporal</strong>. Cámbiala por una
+            <strong> tuya</strong> para que nadie más pueda entrar a tu cuenta.
           </p>
         </div>
 

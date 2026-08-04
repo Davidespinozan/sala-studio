@@ -12,6 +12,7 @@ import { AppShell } from '@shared/components/AppShell';
 import { TenantGuard } from '@shared/components/TenantGuard';
 import { ModoDemoBanner } from '@shared/components/ModoDemoBanner';
 import { Sidebar } from './components/Sidebar';
+import { CambiarPasswordGate } from '@shared/components/CambiarPasswordGate';
 import { SucursalProvider } from './providers/SucursalProvider';
 import { SucursalSelectorBar } from './components/SucursalSelectorBar';
 
@@ -63,6 +64,7 @@ export default function AdminLayout() {
     <ModoDemoBanner />
     <SucursalProvider>
       <AppShell sidebar={({ onNavigate }) => <Sidebar onNavigate={onNavigate} />} roleLabel="ADMIN">
+        <CambiarPasswordGate />
         <AvisoSuscripcion acceso={acceso} />
         <SucursalSelectorBar />
 
