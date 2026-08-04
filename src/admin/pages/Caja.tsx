@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Banknote, CreditCard, ArrowLeftRight, Gift, Globe, Undo2, Receipt } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
 import { translateActionError } from '@reception/lib/traducirErrorAccion';
 import { useSucursal } from '../providers/SucursalProvider';
 import { exportarCsv } from '@shared/lib/exportarCsv';
 import { ReciboModal } from '@shared/components/ReciboModal';
+import { CorteTicket, CortePrint, type CorteTicketData } from '@shared/components/CorteTicket';
+import { imprimirCorte } from '@shared/lib/recibo';
 
 /**
  * CAJA — el dinero que entró de verdad.
@@ -104,10 +107,16 @@ function hora(iso: string): string {
   });
 }
 
+interface DatosCorte { razon_social?: string; rfc?: string; telefono?: string; direccion?: string }
+
 export default function Caja() {
   const tenant = useTenant();
+  const { usuario } = useAuth();
   const toast = useToast();
   const { sucursalFiltro, sucursalActiva } = useSucursal();
+  const [ticketData, setTicketData] = useState<CorteTicketData | null>(null);
+  const [showDatos, setShowDatos] = useState(false);
+  const [datosCorte, setDatosCorte] = useState<DatosCorte>(() => ((tenant.config as unknown as { corte?: DatosCorte })?.corte ?? {}));
   const [rango, setRango] = useState<Rango>('hoy');
   const [pagos, setPagos] = useState<PagoRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -186,6 +195,57 @@ export default function Caja() {
 
   const moneda = pagos[0]?.moneda ?? 'MXN';
 
+  function gymHeaderData() {
+    const footerDir = (tenant.config as unknown as { landing?: { footer?: { direccion?: string } } })?.landing?.footer?.direccion ?? null;
+    return {
+      nombre: (datosCorte.razon_social || '').trim() || tenant.nombre || 'Gimnasio',
+      direccion: (datosCorte.direccion || '').trim() || footerDir,
+      rfc: (datosCorte.rfc || '').trim() || null,
+      telefono: (datosCorte.telefono || '').trim() || null
+    };
+  }
+
+  async function desgloseDePeriodo(desde: string | null, hasta: string) {
+    let q = supabase.from('pagos').select('concepto, metodo, monto_centavos').eq('tenant_id', tenant.id).lt('created_at', hasta);
+    if (desde) q = q.gte('created_at', desde);
+    if (sucursalFiltro) q = q.eq('sucursal_id', sucursalFiltro);
+    const { data } = await q;
+    const rows = ((data ?? []) as unknown as { concepto: string; metodo: string; monto_centavos: number }[]).filter((r) => r.metodo !== 'cortesia');
+    const total = rows.reduce((s, r) => s + r.monto_centavos, 0);
+    const concMap: Record<string, number> = {};
+    const metMap: Record<string, number> = {};
+    const metLabel: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', stripe: 'Online' };
+    for (const r of rows) {
+      const cl = r.concepto === 'plan' || r.concepto === 'inscripcion' ? 'Membresías'
+        : r.concepto === 'paquete' ? 'Paquetes'
+          : r.concepto === 'producto' ? 'Productos'
+            : r.concepto === 'reembolso' ? 'Devoluciones' : 'Otros';
+      concMap[cl] = (concMap[cl] ?? 0) + r.monto_centavos;
+      metMap[r.metodo] = (metMap[r.metodo] ?? 0) + r.monto_centavos;
+    }
+    const ordenC = ['Membresías', 'Paquetes', 'Productos', 'Otros', 'Devoluciones'];
+    const porConcepto = ordenC.filter((l) => concMap[l] !== undefined).map((l) => ({ label: l, centavos: concMap[l] }));
+    const porMetodo = Object.entries(metMap).map(([k, v]) => ({ label: metLabel[k] ?? k, centavos: v }));
+    return { porConcepto, total, porMetodo };
+  }
+
+  async function mostrarTicket(c: {
+    desde: string | null; hasta: string;
+    efectivo_esperado_centavos: number; fondo_centavos: number;
+    efectivo_contado_centavos: number; diferencia_centavos: number; recepcion: string | null;
+  }) {
+    const { porConcepto, total, porMetodo } = await desgloseDePeriodo(c.desde, c.hasta);
+    setTicketData({
+      gym: gymHeaderData(),
+      sucursalNombre: sucursalActiva?.nombre ?? null,
+      recepcion: c.recepcion,
+      desde: c.desde, hasta: c.hasta,
+      porConcepto, totalCentavos: total, porMetodo, moneda,
+      efectivoEsperadoCentavos: c.efectivo_esperado_centavos, fondoCentavos: c.fondo_centavos,
+      efectivoContadoCentavos: c.efectivo_contado_centavos, diferenciaCentavos: c.diferencia_centavos
+    });
+  }
+
   return (
     <div className="adm-page">
       <p className="ek-eyebrow" style={{ marginBottom: '4px' }}>OPERACIÓN</p>
@@ -251,6 +311,9 @@ export default function Caja() {
           disabled={pagos.length === 0}
         >
           Exportar CSV
+        </button>
+        <button type="button" onClick={() => setShowDatos(true)} className="ek-cta ek-cta--secondary" title="Datos que salen en el ticket del corte">
+          Datos del corte
         </button>
         <button type="button" onClick={() => setShowCorte(true)} className="ek-cta">
           Hacer corte
@@ -462,7 +525,18 @@ export default function Caja() {
         <section className="ek-card" style={{ padding: 0, overflow: 'hidden', marginTop: '20px' }}>
           <p className="ek-eyebrow" style={{ padding: '14px 18px 4px', margin: 0 }}>ÚLTIMOS CORTES</p>
           {cortes.map((c, i) => (
-            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 18px', borderTop: i === 0 ? 'none' : '0.5px solid var(--sala-border)' }}>
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => void mostrarTicket({
+                desde: c.desde, hasta: c.hasta,
+                efectivo_esperado_centavos: c.efectivo_esperado_centavos, fondo_centavos: c.fondo_centavos,
+                efectivo_contado_centavos: c.efectivo_contado_centavos, diferencia_centavos: c.diferencia_centavos,
+                recepcion: c.realizado_por?.nombre ?? null
+              })}
+              style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 18px', borderTop: i === 0 ? 'none' : '0.5px solid var(--sala-border)', background: 'none', border: 'none', width: '100%', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+              title="Ver / imprimir este corte"
+            >
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--sala-text-primary)' }}>
                   {hora(c.hasta)}{c.realizado_por?.nombre ? ` · ${c.realizado_por.nombre}` : ''}
@@ -474,7 +548,7 @@ export default function Caja() {
               <span style={{ fontWeight: 700, fontSize: '14px', whiteSpace: 'nowrap', color: c.diferencia_centavos === 0 ? 'var(--sala-text-secondary)' : c.diferencia_centavos > 0 ? 'var(--sala-success)' : 'var(--sala-error)' }}>
                 {c.diferencia_centavos === 0 ? 'Cuadra' : (c.diferencia_centavos > 0 ? 'Sobra ' : 'Falta ') + money(Math.abs(c.diferencia_centavos), moneda)}
               </span>
-            </div>
+            </button>
           ))}
         </section>
       )}
@@ -484,9 +558,39 @@ export default function Caja() {
           sucursalId={sucursalFiltro}
           moneda={moneda}
           onClose={() => setShowCorte(false)}
-          onHecho={(msg) => { setShowCorte(false); toast.success(msg); setCortesReload((n) => n + 1); setReload((n) => n + 1); }}
+          onHecho={(r) => {
+            setShowCorte(false);
+            toast.success(r.diferencia_centavos === 0 ? 'Corte hecho: la caja cuadra.' : r.diferencia_centavos > 0 ? `Corte hecho: sobran ${money(Math.abs(r.diferencia_centavos), moneda)}.` : `Corte hecho: faltan ${money(Math.abs(r.diferencia_centavos), moneda)}.`);
+            setCortesReload((n) => n + 1);
+            setReload((n) => n + 1);
+            void mostrarTicket({ ...r, recepcion: usuario?.nombre ?? 'Recepción' });
+          }}
           onError={(msg) => toast.error(msg)}
         />
+      )}
+
+      {showDatos && (
+        <DatosCorteModal
+          tenantId={tenant.id}
+          config={tenant.config as Record<string, unknown>}
+          datos={datosCorte}
+          onClose={() => setShowDatos(false)}
+          onSaved={(d) => { setDatosCorte(d); setShowDatos(false); toast.success('Datos del corte guardados.'); }}
+          onError={(m) => toast.error(m)}
+        />
+      )}
+
+      {ticketData && (
+        <div className="ek-modal-backdrop no-print" onClick={() => setTicketData(null)}>
+          <div className="ek-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
+            <CorteTicket data={ticketData} />
+            <CortePrint data={ticketData} />
+            <div className="no-print" style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+              <button type="button" onClick={() => setTicketData(null)} className="ek-cta ek-cta--secondary" style={{ flex: 1 }}>Cerrar</button>
+              <button type="button" onClick={() => imprimirCorte()} className="ek-cta" style={{ flex: 1 }}>Imprimir / PDF</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -633,7 +737,11 @@ function CorteModal({
   sucursalId: string | null;
   moneda: string;
   onClose: () => void;
-  onHecho: (msg: string) => void;
+  onHecho: (r: {
+    desde: string | null; hasta: string;
+    efectivo_esperado_centavos: number; fondo_centavos: number;
+    efectivo_contado_centavos: number; diferencia_centavos: number;
+  }) => void;
   onError: (msg: string) => void;
 }) {
   const [esperado, setEsperado] = useState<number | null>(null);
@@ -666,22 +774,16 @@ function CorteModal({
     const rpc = supabase.rpc.bind(supabase) as unknown as (
       name: string,
       args: unknown
-    ) => Promise<{ error: { message: string } | null }>;
-    const { error } = await rpc('hacer_corte_caja', {
+    ) => Promise<{ data: { desde: string | null; hasta: string; efectivo_esperado_centavos: number; fondo_centavos: number; efectivo_contado_centavos: number; diferencia_centavos: number } | null; error: { message: string } | null }>;
+    const { data, error } = await rpc('hacer_corte_caja', {
       p_sucursal_id: sucursalId,
       p_efectivo_contado_centavos: contadoC,
       p_fondo_centavos: Number.isFinite(fondoC) ? fondoC : 0,
       p_notas: null
     });
     setEnviando(false);
-    if (error) { onError('No se pudo hacer el corte. Intenta de nuevo.'); return; }
-    onHecho(
-      dif === 0
-        ? 'Corte hecho: la caja cuadra.'
-        : dif > 0
-          ? `Corte hecho: sobran ${money(Math.abs(dif), moneda)}.`
-          : `Corte hecho: faltan ${money(Math.abs(dif), moneda)}.`
-    );
+    if (error || !data) { onError('No se pudo hacer el corte. Intenta de nuevo.'); return; }
+    onHecho(data);
   }
 
   return (
@@ -731,5 +833,76 @@ function CorteModal({
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================================================
+// Datos fiscales del corte (encabezado del ticket)
+// ============================================================================
+
+function DatosCorteModal({
+  tenantId,
+  config,
+  datos,
+  onClose,
+  onSaved,
+  onError
+}: {
+  tenantId: string;
+  config: Record<string, unknown>;
+  datos: DatosCorte;
+  onClose: () => void;
+  onSaved: (d: DatosCorte) => void;
+  onError: (m: string) => void;
+}) {
+  const [d, setD] = useState<DatosCorte>(datos);
+  const [saving, setSaving] = useState(false);
+
+  async function guardar() {
+    setSaving(true);
+    const limpio: DatosCorte = {
+      razon_social: d.razon_social?.trim() || undefined,
+      rfc: d.rfc?.trim() || undefined,
+      telefono: d.telefono?.trim() || undefined,
+      direccion: d.direccion?.trim() || undefined
+    };
+    const next = { ...config, corte: limpio };
+    const { error } = await (supabase as unknown as {
+      from: (t: string) => { update: (v: unknown) => { eq: (c: string, v: string) => Promise<{ error: { message: string } | null }> } };
+    }).from('tenants').update({ config: next }).eq('id', tenantId);
+    setSaving(false);
+    if (error) { onError('No se pudo guardar. Intenta de nuevo.'); return; }
+    onSaved(limpio);
+  }
+
+  return (
+    <div className="ek-modal-backdrop" onClick={onClose}>
+      <div className="ek-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+        <div className="ek-modal-handle" />
+        <h3 className="ek-h3" style={{ marginBottom: '4px' }}>Datos del corte</h3>
+        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
+          Salen en el encabezado del ticket de corte. Se guardan una sola vez.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <CampoCorte label="Razón social / Nombre" v={d.razon_social ?? ''} onChange={(v) => setD({ ...d, razon_social: v })} placeholder="Si lo dejas vacío, usa el nombre del gym" />
+          <CampoCorte label="RFC" v={d.rfc ?? ''} onChange={(v) => setD({ ...d, rfc: v })} />
+          <CampoCorte label="Teléfono" v={d.telefono ?? ''} onChange={(v) => setD({ ...d, telefono: v })} />
+          <CampoCorte label="Dirección" v={d.direccion ?? ''} onChange={(v) => setD({ ...d, direccion: v })} placeholder="Si lo dejas vacío, usa la del footer" />
+        </div>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+          <button type="button" onClick={onClose} disabled={saving} className="ek-cta ek-cta--secondary" style={{ flex: 1 }}>Cancelar</button>
+          <button type="button" onClick={guardar} disabled={saving} className="ek-cta" style={{ flex: 1 }}>{saving ? 'Guardando…' : 'Guardar'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CampoCorte({ label, v, onChange, placeholder }: { label: string; v: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <label className="ek-form-field">
+      <span className="ek-label">{label}</span>
+      <input className="ek-input" value={v} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} autoComplete="off" />
+    </label>
   );
 }

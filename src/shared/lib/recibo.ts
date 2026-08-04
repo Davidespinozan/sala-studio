@@ -95,11 +95,11 @@ export function reciboUrl(origin: string, pagoId: string, token: string): string
  * antes hacía reaparecer la app → páginas en blanco de más. Dejar la clase puesta
  * mientras tanto no afecta la pantalla (las reglas viven dentro de @media print).
  */
-export function imprimirRecibo(): void {
+function imprimirConClase(clase: string): void {
   const body = document.body;
-  body.classList.add('printing-recibo');
+  body.classList.add(clase);
   const limpiar = () => {
-    body.classList.remove('printing-recibo');
+    body.classList.remove(clase);
     window.removeEventListener('afterprint', limpiar);
     window.removeEventListener('focus', limpiar);
   };
@@ -109,6 +109,11 @@ export function imprimirRecibo(): void {
   window.addEventListener('focus', limpiar, { once: true });
   window.print();
 }
+
+export function imprimirRecibo(): void { imprimirConClase('printing-recibo'); }
+
+/** Imprime SOLO el ticket de corte (portal .corte-print-root). */
+export function imprimirCorte(): void { imprimirConClase('printing-corte'); }
 
 /** Link de WhatsApp AL SOCIO con su recibo. `telefono` en dígitos (con lada país). */
 export function waReciboUrl(telefono: string, url: string, gymNombre: string): string {

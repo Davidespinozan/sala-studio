@@ -3331,14 +3331,16 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
    ════════════════════════════════════════════════════════════════════════ */
 .solo-print { display: none; }
 
-/* El portal del recibo vive en <body> pero solo se ve al imprimir (ver @media print). */
+/* Los portales de documentos imprimibles viven en <body> pero solo se ven al
+   imprimir (ver @media print). */
 .recibo-print-root { display: none; }
+.corte-print-root { display: none; }
 
 @media print {
   /* ── Reportes (tablero admin) ─────────────────────────────────────────────
      Se imprime con el truco de visibility. NO aplica cuando imprimimos un
      recibo (body.printing-recibo), que usa su propio esquema más abajo. */
-  body:not(.printing-recibo) * { visibility: hidden; }
+  body:not(.printing-recibo):not(.printing-corte) * { visibility: hidden; }
   #reportes-print, #reportes-print * { visibility: visible; }
   /* .adm-content es position:relative (ancla de la campana flotante). Sin esto,
      el `absolute` de abajo se posiciona respecto a ella —que empieza DESPUÉS del
@@ -3371,6 +3373,14 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     border-radius: 0 !important;
     max-width: 100% !important;
   }
+
+  /* ── Corte de caja (mismo esquema que el recibo) ────────────────────────── */
+  body.printing-corte { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+  body.printing-corte > *:not(.corte-print-root) { display: none !important; }
+  body.printing-corte .corte-print-root,
+  body.printing-corte .corte-print-root * { visibility: visible !important; }
+  body.printing-corte .corte-print-root { display: block !important; }
+  body.printing-corte .corte-print-root > div { max-width: 100% !important; }
 
   .no-print { display: none !important; }
   .solo-print { display: block !important; visibility: visible !important; }
