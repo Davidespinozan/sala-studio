@@ -9,6 +9,7 @@ import { useSucursal } from '../providers/SucursalProvider';
 import { exportarCsv } from '@shared/lib/exportarCsv';
 import { ReciboModal } from '@shared/components/ReciboModal';
 import { CorteTicket, CortePrint, type CorteTicketData } from '@shared/components/CorteTicket';
+import CardMenuDropdown, { type DropdownItem } from '../components/CardMenuDropdown';
 import { imprimirCorte, compartirCorteImagen, conceptoLabel } from '@shared/lib/recibo';
 import { getTenantTimezone, hoyEnTimezone, sumarDias } from '@shared/lib/timezone';
 import { fromZonedTime } from 'date-fns-tz';
@@ -443,6 +444,10 @@ export default function Caja() {
             const yaDevuelto = devueltoPorPago.get(p.id) ?? 0;
             const puedeDevolver =
               !esReembolso && !esCortesia && p.monto_centavos - yaDevuelto > 0;
+            // En móvil estas acciones se muestran en un kebab (mismo array).
+            const acciones: DropdownItem[] = [];
+            if (!esReembolso && !esCortesia) acciones.push({ label: 'Recibo', icon: <Receipt size={16} strokeWidth={2.25} />, onClick: () => setReciboId(p.id) });
+            if (puedeDevolver) acciones.push({ label: 'Devolver', icon: <Undo2 size={16} strokeWidth={2.25} />, onClick: () => setDevolviendo(p), danger: true });
             return (
               <div
                 key={p.id}
@@ -495,27 +500,33 @@ export default function Caja() {
                   )}
                 </div>
 
-                {!esReembolso && !esCortesia && (
-                  <button
-                    type="button"
-                    onClick={() => setReciboId(p.id)}
-                    className="ek-cta ek-cta--secondary"
-                    title="Recibo"
-                    style={{ minHeight: '32px', padding: '0 12px', fontSize: '12px', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <Receipt size={14} /> Recibo
-                  </button>
-                )}
-
-                {puedeDevolver && (
-                  <button
-                    type="button"
-                    onClick={() => setDevolviendo(p)}
-                    className="ek-cta ek-cta--secondary"
-                    style={{ minHeight: '32px', padding: '0 12px', fontSize: '12px', flexShrink: 0 }}
-                  >
-                    Devolver
-                  </button>
+                <div className="caja-row-actions" style={{ flexShrink: 0, gap: 8 }}>
+                  {!esReembolso && !esCortesia && (
+                    <button
+                      type="button"
+                      onClick={() => setReciboId(p.id)}
+                      className="ek-cta ek-cta--secondary"
+                      title="Recibo"
+                      style={{ minHeight: '36px', padding: '0 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <Receipt size={14} /> Recibo
+                    </button>
+                  )}
+                  {puedeDevolver && (
+                    <button
+                      type="button"
+                      onClick={() => setDevolviendo(p)}
+                      className="ek-cta ek-cta--secondary"
+                      style={{ minHeight: '36px', padding: '0 12px', fontSize: '12px' }}
+                    >
+                      Devolver
+                    </button>
+                  )}
+                </div>
+                {acciones.length > 0 && (
+                  <div className="caja-row-kebab" style={{ flexShrink: 0 }}>
+                    <CardMenuDropdown items={acciones} />
+                  </div>
                 )}
 
                 <p

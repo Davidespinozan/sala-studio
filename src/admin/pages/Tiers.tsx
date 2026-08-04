@@ -1188,9 +1188,9 @@ function BeneficiosEditor({
       {value.map((beneficio, idx) => (
         <div
           key={idx}
+          className="tier-benefit-row"
           style={{
             display: 'grid',
-            gridTemplateColumns: '24px 1fr auto auto auto',
             gap: '8px',
             alignItems: 'center',
             padding: '8px',
@@ -1210,6 +1210,7 @@ function BeneficiosEditor({
             style={{ fontSize: '13px', padding: '6px 10px' }}
           />
 
+          <div className="tier-benefit-controls" style={{ display: 'flex', gap: '4px' }}>
           <button
             type="button"
             onClick={() => mover(idx, 'up')}
@@ -1245,6 +1246,7 @@ function BeneficiosEditor({
           >
             <X size={15} strokeWidth={2.25} />
           </button>
+          </div>
         </div>
       ))}
 

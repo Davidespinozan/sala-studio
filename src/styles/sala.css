@@ -2151,10 +2151,28 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .adm-link:hover { text-decoration: underline; }
 
+  /* Editor de beneficios del tier: en móvil los controles (subir/bajar/borrar)
+     bajan a una segunda línea para no aplastar el input. */
+  .tier-benefit-row { grid-template-columns: 24px 1fr; }
+  .tier-benefit-row .tier-benefit-controls { grid-column: 2; justify-content: flex-end; }
+  @media (min-width: 480px) {
+    .tier-benefit-row { grid-template-columns: 24px 1fr auto; }
+    .tier-benefit-row .tier-benefit-controls { grid-column: auto; }
+  }
+
   /* QR del socio: el SVG se genera a 320px; que escale para no desbordar
      pantallas angostas (es la pantalla de la puerta). */
   .qr-box { width: 100%; max-width: 320px; }
   .qr-box svg { width: 100% !important; height: auto !important; display: block; }
+
+  /* Caja: en móvil las acciones de la fila (Recibo/Devolver) colapsan en un
+     menú kebab; en pantallas anchas se muestran como botones. */
+  .caja-row-actions { display: none; }
+  .caja-row-kebab { display: inline-flex; }
+  @media (min-width: 640px) {
+    .caja-row-actions { display: inline-flex; }
+    .caja-row-kebab { display: none; }
+  }
 
   /* POS (venta en mostrador): 1 columna en teléfono (carrito abajo);
      productos + carrito de 300px en pantallas anchas (tablet/desktop). */
