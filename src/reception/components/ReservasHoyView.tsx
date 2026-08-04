@@ -88,6 +88,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
   const { reservas, isLoading, refetch } = useReservasHoy(fechaSeleccionada);
   const [selected, setSelected] = useState<ReservaConJoin | null>(null);
   const [accionReserva, setAccionReserva] = useState<AccionReserva | null>(null);
+  const [restoTab, setRestoTab] = useState<'pendientes' | 'asistieron' | 'no_show' | 'canceladas'>('pendientes');
 
   // Hay un modal abierto (check-in manual o acción) sii hay una reserva
   // seleccionada. Le avisamos al Scanner para que pause el lector HID.
@@ -147,6 +148,21 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
     };
     return { llegando, resto, kpis };
   }, [reservas, esHoy]);
+
+  // "Resto del día" separado por estado, para las pestañas.
+  const restoBuckets = useMemo(() => ({
+    pendientes: resto.filter((r) => r.status === 'confirmada'),
+    asistieron: resto.filter((r) => r.status === 'completada'),
+    no_show: resto.filter((r) => r.status === 'no_show'),
+    canceladas: resto.filter((r) => r.status === 'cancelada')
+  }), [resto]);
+  const restoTabs = ([
+    ['pendientes', 'Pendientes'],
+    ['asistieron', 'Asistieron'],
+    ['no_show', 'No llegaron'],
+    ['canceladas', 'Canceladas']
+  ] as const).filter(([k]) => restoBuckets[k].length > 0);
+  const restoActiva = restoBuckets[restoTab].length > 0 ? restoTab : (restoTabs[0]?.[0] ?? 'pendientes');
 
   // Check-in rápido (1 toque) desde la tarjeta de "Llegando ahora". Misma acción
   // que el modal — si falla (ventana/ya hecho), abre el modal para ver el detalle.
@@ -269,11 +285,38 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
             subtitle={esHoy ? 'Vuelve en un rato para ver nuevas llegadas.' : 'Prueba con otro día desde el selector de arriba.'}
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {resto.map((r) => (
-              <ReservaCard key={r.id} reserva={r} onSelect={setSelected} />
-            ))}
-          </div>
+          <>
+            {restoTabs.length > 1 && (
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                {restoTabs.map(([k, label]) => {
+                  const activo = k === restoActiva;
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setRestoTab(k)}
+                      style={{
+                        minHeight: '36px', padding: '0 14px', borderRadius: '999px',
+                        border: `1px solid ${activo ? 'var(--sala-primary)' : 'var(--sala-border)'}`,
+                        background: activo ? 'var(--sala-primary)' : 'var(--sala-surface)',
+                        color: activo ? '#fff' : 'var(--sala-text-secondary)',
+                        fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                        display: 'inline-flex', alignItems: 'center', gap: '6px'
+                      }}
+                    >
+                      {label}
+                      <span style={{ fontSize: '11px', fontWeight: 700, opacity: 0.85 }}>{restoBuckets[k].length}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {restoBuckets[restoActiva].map((r) => (
+                <ReservaCard key={r.id} reserva={r} onSelect={setSelected} />
+              ))}
+            </div>
+          </>
         )}
       </section>
 
