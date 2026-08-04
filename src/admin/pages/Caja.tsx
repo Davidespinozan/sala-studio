@@ -50,6 +50,7 @@ const CONCEPTO_LABEL: Record<string, string> = {
   plan: 'Plan',
   paquete: 'Paquete',
   inscripcion: 'Inscripción',
+  producto: 'Producto',
   reembolso: 'Reembolso',
   otro: 'Otro'
 };

@@ -517,15 +517,20 @@ export function TenantProvider({ children }: TenantProviderProps) {
 
   const fetchTenant = useCallback(async (): Promise<Tenant> => {
     const slug = resolveTenantSlug();
+    // Columnas explícitas (NO '*'): 'tenants' revoca a anon las columnas de Stripe
+    // (stripe_account_id, stripe_subscription_product_id) para no exponerlas al
+    // sitio público; con REVOKE de columna un SELECT * fallaría. El cliente no usa
+    // esas columnas. Si agregas una columna nueva a `tenants` que el front necesite,
+    // añádela AQUÍ.
     const { data, error: queryError } = await supabase
       .from('tenants')
-      .select('*')
+      .select('id, slug, nombre, vertical, branding, config, dominio_principal, dominio_app, status, created_at, updated_at')
       .eq('slug', slug)
       .eq('status', 'activo')
       .maybeSingle();
     if (queryError) throw new Error(`No se pudo cargar el tenant: ${queryError.message}`);
     if (!data) throw new Error(`Tenant '${slug}' no encontrado o inactivo`);
-    return data;
+    return data as unknown as Tenant;
   }, []);
 
   /** Re-lee el tenant y re-aplica branding. No rompe la pantalla si falla. */
