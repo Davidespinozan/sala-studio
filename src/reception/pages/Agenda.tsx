@@ -32,21 +32,41 @@ function hora(iso: string): string {
   return new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 }
 
+/** Una clase (recurso + horario) con sus reservas = su lista de asistentes. */
+interface ClaseGrupo {
+  key: string;
+  recursoNombre: string;
+  hora: string;
+  slotISO: string;
+  reservas: ReservaConJoin[];
+}
 interface Dia {
   key: string;
   label: string;
-  reservas: ReservaConJoin[];
+  clases: ClaseGrupo[];
 }
 
 export default function Agenda() {
   const { reservas, isLoading } = useReservasSemana(7);
 
+  // Día → clase → reservas. Puro reagrupado de la misma data (sin queries extra).
   const dias = useMemo<Dia[]>(() => {
     const map = new Map<string, Dia>();
     for (const r of reservas) {
-      const key = claveDia(r.slot_inicio);
-      if (!map.has(key)) map.set(key, { key, label: etiquetaDia(r.slot_inicio), reservas: [] });
-      map.get(key)!.reservas.push(r);
+      const dayKey = claveDia(r.slot_inicio);
+      if (!map.has(dayKey)) map.set(dayKey, { key: dayKey, label: etiquetaDia(r.slot_inicio), clases: [] });
+      const dia = map.get(dayKey)!;
+      const claseKey = `${r.recurso?.id ?? '·'}-${r.slot_inicio}`;
+      let clase = dia.clases.find((c) => c.key === claseKey);
+      if (!clase) {
+        clase = { key: claseKey, recursoNombre: r.recurso?.nombre ?? 'Clase', hora: hora(r.slot_inicio), slotISO: r.slot_inicio, reservas: [] };
+        dia.clases.push(clase);
+      }
+      clase.reservas.push(r);
+    }
+    // Ordenar las clases de cada día por hora.
+    for (const dia of map.values()) {
+      dia.clases.sort((a, b) => a.slotISO.localeCompare(b.slotISO));
     }
     return Array.from(map.values());
   }, [reservas]);
@@ -59,7 +79,7 @@ export default function Agenda() {
           Agenda
         </h1>
         <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', margin: '0 0 20px' }}>
-          Las reservas de los próximos 7 días.
+          Las clases de los próximos 7 días con su lista de asistentes.
         </p>
 
         {isLoading ? (
@@ -72,7 +92,7 @@ export default function Agenda() {
           <EmptyState
             icon={CalendarDays}
             title="Sin reservas esta semana"
-            subtitle="Cuando los socios reserven, van a aparecer acá por día."
+            subtitle="Cuando los socios reserven, van a aparecer acá por clase."
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -83,12 +103,12 @@ export default function Agenda() {
                     {dia.label}
                   </h2>
                   <span style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
-                    {dia.reservas.length} {dia.reservas.length === 1 ? 'reserva' : 'reservas'}
+                    {dia.clases.length} {dia.clases.length === 1 ? 'clase' : 'clases'}
                   </span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {dia.reservas.map((r) => (
-                    <FilaReserva key={r.id} r={r} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {dia.clases.map((clase) => (
+                    <ClaseCard key={clase.key} clase={clase} />
                   ))}
                 </div>
               </section>
@@ -100,31 +120,42 @@ export default function Agenda() {
   );
 }
 
-function FilaReserva({ r }: { r: ReservaConJoin }) {
+function ClaseCard({ clase }: { clase: ClaseGrupo }) {
+  const activos = clase.reservas.filter((r) => r.status !== 'cancelada');
+  return (
+    <div style={{ borderRadius: '16px', background: 'var(--sala-surface)', border: '1px solid var(--sala-border)', overflow: 'hidden' }}>
+      {/* Encabezado de la clase */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderBottom: '1px solid var(--sala-border)', background: 'var(--sala-bg)' }}>
+        <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--sala-text-primary)', fontVariantNumeric: 'tabular-nums', minWidth: '52px' }}>
+          {clase.hora}
+        </span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: '14px', fontWeight: 700, color: 'var(--sala-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {clase.recursoNombre}
+        </span>
+        <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--sala-text-secondary)', background: 'var(--sala-primary-light)', padding: '4px 10px', borderRadius: '999px', whiteSpace: 'nowrap' }}>
+          {activos.length} {activos.length === 1 ? 'inscrito' : 'inscritos'}
+        </span>
+      </div>
+      {/* Lista de asistentes */}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {clase.reservas.map((r) => (
+          <FilaAsistente key={r.id} r={r} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FilaAsistente({ r }: { r: ReservaConJoin }) {
   const cfg = STATUS_CFG[r.status] ?? { label: r.status, color: 'var(--sala-text-tertiary)', bg: 'var(--sala-bg)' };
   const nombre = r.usuario?.nombre ?? r.usuario?.email ?? 'Socio';
+  const invitados = (r as { invitados_count?: number }).invitados_count ?? 0;
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '12px 14px',
-        borderRadius: '14px',
-        background: 'var(--sala-surface)',
-        border: '1px solid var(--sala-border)'
-      }}
-    >
-      <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--sala-text-primary)', fontVariantNumeric: 'tabular-nums', minWidth: '48px' }}>
-        {hora(r.slot_inicio)}
-      </span>
-      <Avatar src={r.usuario?.avatar_url} nombre={nombre} email={r.usuario?.email} size={34} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderTop: '1px solid var(--sala-border)' }}>
+      <Avatar src={r.usuario?.avatar_url} nombre={nombre} email={r.usuario?.email} size={32} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--sala-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {nombre}
-        </p>
-        <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sala-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {r.recurso?.nombre ?? 'Clase'}
+          {nombre}{invitados > 0 ? ` +${invitados}` : ''}
         </p>
       </div>
       <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: cfg.color, background: cfg.bg, padding: '4px 10px', borderRadius: '999px', whiteSpace: 'nowrap' }}>
