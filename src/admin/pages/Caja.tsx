@@ -857,8 +857,16 @@ function CorteModal({
     onHecho(data);
   }
 
-  function setDia(fecha: string) { setFDesde(fecha); setFHasta(fecha); }
+  function setRango(d: string, h: string) { setFDesde(d); setFHasta(h); }
   const hoy = ymd(new Date());
+  const inicioSemana = (() => { const d = new Date(); const dow = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dow); return ymd(d); })();
+  const inicioMes = ymd(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const presets = [
+    { label: 'Hoy', d: hoy, h: hoy },
+    { label: 'Ayer', d: ayer, h: ayer },
+    { label: 'Esta semana', d: inicioSemana, h: hoy },
+    { label: 'Este mes', d: inicioMes, h: hoy }
+  ];
 
   return (
     <div className="ek-modal-backdrop" onClick={onClose}>
@@ -870,10 +878,19 @@ function CorteModal({
           registró el sistema en ese periodo. Tarjeta, transferencia y online no cuentan.
         </p>
 
-        {/* Rango de fechas (horario del gym) */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-          <button type="button" onClick={() => setDia(ayer)} className={`ek-cta ${fDesde === ayer && fHasta === ayer ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 34, fontSize: 12 }}>Ayer</button>
-          <button type="button" onClick={() => setDia(hoy)} className={`ek-cta ${fDesde === hoy && fHasta === hoy ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 34, fontSize: 12 }}>Hoy</button>
+        {/* Rango de fechas (horario del gym) — atajos + personalizado */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+          {presets.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => setRango(p.d, p.h)}
+              className={`ek-cta ${fDesde === p.d && fHasta === p.h ? '' : 'ek-cta--secondary'}`}
+              style={{ flex: '1 1 calc(50% - 4px)', minHeight: 34, fontSize: 12 }}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
           <label className="ek-form-field" style={{ flex: 1 }}>
