@@ -79,6 +79,21 @@ export function reciboUrl(origin: string, pagoId: string, token: string): string
   return `${origin}/recibo/${pagoId}?t=${encodeURIComponent(token)}`;
 }
 
+/**
+ * Imprime SOLO el recibo (portal .recibo-print-root). Marca <body> con
+ * `printing-recibo` para que el @media print de sala.css saque del layout todo lo
+ * demás (una sola hoja, sin color de fondo de la app) y lo quita al terminar.
+ */
+export function imprimirRecibo(): void {
+  const body = document.body;
+  body.classList.add('printing-recibo');
+  const limpiar = () => body.classList.remove('printing-recibo');
+  window.addEventListener('afterprint', limpiar, { once: true });
+  // Fallback: algunos navegadores no disparan afterprint (o el usuario cancela).
+  window.setTimeout(limpiar, 1500);
+  window.print();
+}
+
 /** Link de WhatsApp AL SOCIO con su recibo. `telefono` en dígitos (con lada país). */
 export function waReciboUrl(telefono: string, url: string, gymNombre: string): string {
   const tel = telefono.replace(/\D/g, '');

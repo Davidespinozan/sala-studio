@@ -3335,12 +3335,12 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 .recibo-print-root { display: none; }
 
 @media print {
-  /* Ocultar todo el chrome (sidebar, topbar, botones) y mostrar solo el tablero. */
-  body * { visibility: hidden; }
-  #reportes-print, #reportes-print *,
-  .recibo-print-root, .recibo-print-root * { visibility: visible; }
-  #reportes-print,
-  .recibo-print-root {
+  /* ── Reportes (tablero admin) ─────────────────────────────────────────────
+     Se imprime con el truco de visibility. NO aplica cuando imprimimos un
+     recibo (body.printing-recibo), que usa su propio esquema más abajo. */
+  body:not(.printing-recibo) * { visibility: hidden; }
+  #reportes-print, #reportes-print * { visibility: visible; }
+  #reportes-print {
     position: absolute;
     left: 0;
     top: 0;
@@ -3348,12 +3348,29 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     margin: 0;
     padding: 0;
   }
-  /* El recibo (portal en <body>) se vuelve visible e imprime como hoja limpia. */
-  .recibo-print-root { display: block !important; }
+
+  /* ── Recibo ────────────────────────────────────────────────────────────────
+     Quitamos del LAYOUT todo lo que no es el recibo (display:none, no
+     visibility) para no arrastrar la altura del resto de la app —que dejaba una
+     segunda página en blanco— ni su color de fondo. Queda una hoja blanca con
+     solo el recibo. */
+  body.printing-recibo { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+  body.printing-recibo > *:not(.recibo-print-root) { display: none !important; }
+  body.printing-recibo .recibo-print-root,
+  body.printing-recibo .recibo-print-root * { visibility: visible !important; }
+  body.printing-recibo .recibo-print-root { display: block !important; }
+  /* El recibo en papel va sin marco ni sombra (lo trae por estilo inline). */
+  body.printing-recibo .recibo-print-root > div {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    max-width: 100% !important;
+  }
+
   .no-print { display: none !important; }
   .solo-print { display: block !important; visibility: visible !important; }
   /* No cortar tarjetas/secciones a la mitad entre páginas. */
   #reportes-print .ek-card,
   #reportes-print section { break-inside: avoid; page-break-inside: avoid; }
-  @page { margin: 14mm; }
+  @page { margin: 16mm; }
 }

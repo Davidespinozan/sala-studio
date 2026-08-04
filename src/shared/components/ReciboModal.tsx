@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Printer, MessageCircle, X, Share2 } from 'lucide-react';
 import { backendPost } from '@shared/lib/backend';
 import { ReciboView, ReciboPrint } from './ReciboView';
-import { type ReciboData, reciboUrl, waReciboUrl } from '@shared/lib/recibo';
+import { type ReciboData, reciboUrl, waReciboUrl, imprimirRecibo } from '@shared/lib/recibo';
 
 /**
  * Modal in-app que muestra el recibo de un pago y deja imprimirlo / guardarlo en
@@ -79,7 +79,7 @@ export function ReciboModal({
             <ReciboPrint data={data} />
 
             <div className="no-print" style={{ display: 'flex', gap: 8, marginTop: 18, flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => window.print()} className="ek-cta" style={{ flex: 1, minWidth: 140, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <button type="button" onClick={() => imprimirRecibo()} className="ek-cta" style={{ flex: 1, minWidth: 140, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <Printer size={16} /> Imprimir / PDF
               </button>
 

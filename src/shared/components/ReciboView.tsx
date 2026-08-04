@@ -14,50 +14,50 @@ import {
  */
 export function ReciboView({ data }: { data: ReciboData }) {
   const esReembolso = data.concepto === 'reembolso';
+  const ink = '#1a1f1c';
+  const muted = '#767b77';
+  const line = '#e6e6e3';
   return (
     <div
       style={{
         background: '#ffffff',
-        color: '#1a1f1c',
+        color: ink,
         border: '1px solid #e4e4e4',
         borderRadius: 12,
-        padding: '28px 26px',
-        maxWidth: 440,
+        padding: '34px 32px',
+        maxWidth: 460,
         width: '100%',
         margin: '0 auto',
         fontFamily: 'var(--ek-font-sans, system-ui, sans-serif)'
       }}
     >
-      {/* Encabezado: gym */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 18, borderBottom: '1px solid #ececec' }}>
+      {/* Encabezado del gym, centrado */}
+      <div style={{ textAlign: 'center', paddingBottom: 20, borderBottom: `1px solid ${line}` }}>
         {data.gym.logoUrl ? (
           <img
             src={data.gym.logoUrl}
             alt={data.gym.nombre}
-            style={{ height: 44, maxWidth: 130, objectFit: 'contain' }}
+            style={{ height: 48, maxWidth: 180, objectFit: 'contain', margin: '0 auto 6px' }}
           />
         ) : (
-          <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>{data.gym.nombre}</span>
+          <p style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>{data.gym.nombre}</p>
         )}
-        <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-          <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.12em', color: '#8a8f8b', fontWeight: 700 }}>
-            {esReembolso ? 'COMPROBANTE DE REEMBOLSO' : 'RECIBO DE PAGO'}
-          </p>
-          <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 700 }}>Folio {data.folio}</p>
-        </div>
+        {data.gym.logoUrl && (
+          <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 700 }}>{data.gym.nombre}</p>
+        )}
+        {data.gym.direccion && (
+          <p style={{ margin: '4px 0 0', fontSize: 11.5, color: muted, lineHeight: 1.5 }}>{data.gym.direccion}</p>
+        )}
       </div>
 
-      {/* Datos del gym (nombre + dirección) cuando hay logo, si no ya salió el nombre */}
-      {(data.gym.logoUrl || data.gym.direccion) && (
-        <p style={{ margin: '12px 0 0', fontSize: 12, color: '#6b706c', lineHeight: 1.5 }}>
-          {data.gym.logoUrl ? <strong style={{ color: '#1a1f1c' }}>{data.gym.nombre}</strong> : null}
-          {data.gym.logoUrl && data.gym.direccion ? ' · ' : ''}
-          {data.gym.direccion}
-        </p>
-      )}
+      {/* Título del documento */}
+      <p style={{ margin: '20px 0 0', textAlign: 'center', fontSize: 12, fontWeight: 700, letterSpacing: '0.22em', color: muted }}>
+        {esReembolso ? 'COMPROBANTE DE REEMBOLSO' : 'RECIBO DE PAGO'}
+      </p>
 
-      {/* Cuerpo */}
-      <div style={{ margin: '20px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* Meta: folio + fecha */}
+      <div style={{ margin: '16px 0 4px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <Fila k="Folio" v={data.folio} mono />
         <Fila k="Fecha" v={fechaReciboFmt(data.fechaISO)} />
         <Fila k="Socio" v={data.socio} />
         <Fila k="Concepto" v={conceptoLabel(data.concepto, data.tierNombre)} />
@@ -70,22 +70,24 @@ export function ReciboView({ data }: { data: ReciboData }) {
           display: 'flex',
           alignItems: 'baseline',
           justifyContent: 'space-between',
-          padding: '16px 0',
-          borderTop: '2px solid #1a1f1c'
+          gap: 12,
+          marginTop: 18,
+          padding: '16px 0 0',
+          borderTop: `2px solid ${ink}`
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.02em' }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '0.06em', color: muted }}>
           {esReembolso ? 'DEVUELTO' : 'TOTAL PAGADO'}
         </span>
-        <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em' }}>
+        <span style={{ fontSize: 25, fontWeight: 800, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
           {esReembolso ? '−' : ''}{montoFmt(Math.abs(data.montoCentavos), data.moneda)} {data.moneda.toUpperCase()}
         </span>
       </div>
 
       {/* Pie */}
-      <p style={{ margin: '18px 0 0', fontSize: 10.5, color: '#9a9f9b', lineHeight: 1.55, textAlign: 'center' }}>
-        Comprobante interno de {data.gym.nombre}. No es un comprobante fiscal (CFDI).
-        {data.gym.telefono ? <> · {data.gym.telefono}</> : null}
+      <p style={{ margin: '24px 0 0', fontSize: 10.5, color: '#9a9f9b', lineHeight: 1.55, textAlign: 'center' }}>
+        Comprobante interno de {data.gym.nombre} · No es un comprobante fiscal (CFDI)
+        {data.gym.telefono ? <><br />{data.gym.telefono}</> : null}
       </p>
     </div>
   );
@@ -107,11 +109,21 @@ export function ReciboPrint({ data }: { data: ReciboData }) {
   );
 }
 
-function Fila({ k, v }: { k: string; v: string }) {
+function Fila({ k, v, mono = false }: { k: string; v: string; mono?: boolean }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, fontSize: 13.5 }}>
-      <span style={{ color: '#8a8f8b' }}>{k}</span>
-      <span style={{ fontWeight: 600, textAlign: 'right', color: '#1a1f1c' }}>{v}</span>
+      <span style={{ color: '#767b77' }}>{k}</span>
+      <span
+        style={{
+          fontWeight: 600,
+          textAlign: 'right',
+          color: '#1a1f1c',
+          fontFamily: mono ? 'var(--ek-font-mono, ui-monospace, monospace)' : undefined,
+          letterSpacing: mono ? '0.04em' : undefined
+        }}
+      >
+        {v}
+      </span>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { Printer, Share2 } from 'lucide-react';
 import { backendPost } from '@shared/lib/backend';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
 import { ReciboView, ReciboPrint } from '@shared/components/ReciboView';
-import { type ReciboData } from '@shared/lib/recibo';
+import { type ReciboData, imprimirRecibo } from '@shared/lib/recibo';
 
 /**
  * PÁGINA PÚBLICA /recibo/:id?t=<token> — a la que llega el socio por el link de
@@ -58,7 +58,7 @@ export default function Recibo() {
             <ReciboView data={data} />
             <ReciboPrint data={data} />
             <div className="no-print" style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-              <button type="button" onClick={() => window.print()} className="ek-cta" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <button type="button" onClick={() => imprimirRecibo()} className="ek-cta" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <Printer size={16} /> Imprimir / Guardar PDF
               </button>
               <button type="button" onClick={compartir} className="ek-cta ek-cta--secondary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0 14px' }}>
