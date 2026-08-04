@@ -3,6 +3,8 @@ import { ClipboardList } from 'lucide-react';
 import { PageHeader } from '@shared/components/PageHeader';
 import { EmptyState } from '@shared/components/EmptyState';
 import { useBitacora, type BitacoraEntry } from '../hooks/useBitacora';
+import { useTenant } from '@shared/hooks/useTenant';
+import { getTenantTimezone } from '@shared/lib/timezone';
 
 // Color del badge según la entidad afectada.
 const ENTIDAD_COLOR: Record<string, { bg: string; fg: string }> = {
@@ -19,13 +21,14 @@ const ENTIDADES = ['todas', 'membresia', 'reserva', 'socio', 'checkin', 'clase',
 const normalize = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
-function fmtFecha(iso: string): string {
+function fmtFecha(iso: string, tz: string): string {
   return new Date(iso).toLocaleString('es-MX', {
     day: '2-digit',
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
+    timeZone: tz,
   });
 }
 
@@ -41,6 +44,7 @@ function capitalizar(s: string | null): string {
 
 export default function Bitacora() {
   const { entries, isLoading, error } = useBitacora();
+  const tz = getTenantTimezone(useTenant());
   const [entidad, setEntidad] = useState<string>('todas');
   const [q, setQ] = useState('');
 
@@ -124,7 +128,7 @@ export default function Bitacora() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {filtradas.map((e) => (
-            <EntradaBitacora key={e.id} entry={e} />
+            <EntradaBitacora key={e.id} entry={e} tz={tz} />
           ))}
         </div>
       )}
@@ -132,7 +136,7 @@ export default function Bitacora() {
   );
 }
 
-function EntradaBitacora({ entry }: { entry: BitacoraEntry }) {
+function EntradaBitacora({ entry, tz }: { entry: BitacoraEntry; tz: string }) {
   const [verDetalle, setVerDetalle] = useState(false);
   const [ent, verbo] = entry.accion.split('.');
   const color = ENTIDAD_COLOR[entry.entidad ?? ent] ?? { bg: 'var(--ek-bg-elevated)', fg: 'var(--sala-text-secondary)' };
@@ -157,7 +161,7 @@ function EntradaBitacora({ entry }: { entry: BitacoraEntry }) {
           {(verbo ?? entry.accion).replace(/_/g, ' ')}
         </span>
         <span style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', whiteSpace: 'nowrap' }}>
-          {fmtFecha(entry.creado_en)}
+          {fmtFecha(entry.creado_en, tz)}
         </span>
       </div>
 

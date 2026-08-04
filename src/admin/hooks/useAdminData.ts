@@ -7,6 +7,8 @@ import type { Database } from '@shared/types/database';
 import type { SalaLayout } from '@shared/lib/salaLayout';
 
 import { COLUMNAS_USUARIO_CLIENTE } from '@shared/lib/usuariosSelect';
+import { getTenantTimezone, hoyEnTimezone, sumarDias } from '@shared/lib/timezone';
+import { fromZonedTime } from 'date-fns-tz';
 
 type Usuario = Database['public']['Tables']['usuarios']['Row'];
 type Recurso = Database['public']['Tables']['recursos']['Row'];
@@ -269,11 +271,14 @@ export function useAdminMetrics() {
     async function load() {
       // try/finally: una query que rechace no debe dejar las métricas colgadas.
       try {
-      const now = new Date();
-      const inicioHoy = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const finHoy = new Date(inicioHoy.getTime() + 24 * 60 * 60 * 1000);
-      const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
-      const hace7d = new Date(inicioHoy.getTime() - 7 * 24 * 60 * 60 * 1000);
+      // Fronteras del día/mes en la zona del GYM (no del navegador del que mira).
+      const tz = getTenantTimezone(tenant);
+      const hoyGym = hoyEnTimezone(tz);
+      const inicioHoy = fromZonedTime(`${hoyGym}T00:00:00`, tz);
+      const finHoy = fromZonedTime(`${sumarDias(hoyGym, 1)}T00:00:00`, tz);
+      const inicioMes = fromZonedTime(`${hoyGym.slice(0, 8)}01T00:00:00`, tz);
+      const hace7d = fromZonedTime(`${sumarDias(hoyGym, -7)}T00:00:00`, tz);
+      const now = new Date(); // instante real, para "próximas" (no es frontera de día)
 
       const [activos, total, hoy, mes, noShows, reservas7d, proximas, capHorarios] = await Promise.all([
         supabase
@@ -404,13 +409,18 @@ export function useDashboardData() {
 
   const refetch = useCallback(async () => {
     setIsLoading(true);
-    const now = new Date();
-    const inicioHoy = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const finHoy = new Date(inicioHoy.getTime() + 24 * 60 * 60 * 1000);
-    const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
-    const inicioMesAnterior = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    // Fronteras del día/mes en la zona del GYM (no del navegador del que mira).
+    const tz = getTenantTimezone(tenant);
+    const hoyGym = hoyEnTimezone(tz);
+    const [yGym, mGym] = hoyGym.split('-').map(Number);
+    const prevY = mGym === 1 ? yGym - 1 : yGym;
+    const prevM = mGym === 1 ? 12 : mGym - 1;
+    const inicioHoy = fromZonedTime(`${hoyGym}T00:00:00`, tz);
+    const finHoy = fromZonedTime(`${sumarDias(hoyGym, 1)}T00:00:00`, tz);
+    const inicioMes = fromZonedTime(`${hoyGym.slice(0, 8)}01T00:00:00`, tz);
+    const inicioMesAnterior = fromZonedTime(`${prevY}-${String(prevM).padStart(2, '0')}-01T00:00:00`, tz);
     const finMesAnterior = inicioMes;
-    const hace30dias = new Date(inicioHoy.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const hace30dias = fromZonedTime(`${sumarDias(hoyGym, -30)}T00:00:00`, tz);
 
     // try/finally: si una query rechaza (ej. caída de red), igual liberamos el
     // loading en vez de dejar el dashboard colgado para siempre.

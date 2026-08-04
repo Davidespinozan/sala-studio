@@ -17,6 +17,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { useDashboardData, type DashboardData } from '../hooks/useAdminData';
 import { useDineroMes } from '../hooks/useDineroMes';
+import { getTenantTimezone, hoyEnTimezone } from '@shared/lib/timezone';
 import { formatearMoneda } from '@shared/lib/dinero';
 import { useGymSetup, gymOperativo } from '../hooks/useGymSetup';
 import ChecklistActivacion from '../components/ChecklistActivacion';
@@ -115,11 +116,13 @@ function SeccionHoy({
   onCancelar: (r: ReservaParaCancelar) => void;
 }) {
   const toast = useToast();
+  const tz = getTenantTimezone(useTenant());
   const hoy = new Date();
   const fechaFmt = hoy.toLocaleDateString('es-MX', {
     weekday: 'long',
     day: 'numeric',
-    month: 'long'
+    month: 'long',
+    timeZone: tz
   });
 
   const top = data.reservasHoy.slice(0, 3);
@@ -159,7 +162,8 @@ function SeccionHoy({
               const hora = fecha.toLocaleTimeString('es-MX', {
                 hour: '2-digit',
                 minute: '2-digit',
-                hour12: false
+                hour12: false,
+                timeZone: tz
               });
               const nombre = capitalizar(r.usuario?.nombre) || r.usuario?.email || '—';
               const tier = r.usuario?.membresia_tier ?? null;
@@ -269,7 +273,9 @@ function SeccionHoy({
 // ============================================================================
 
 function SeccionTuMes({ data }: { data: DashboardData }) {
-  const ahora = new Date();
+  // El mes es el del GYM, no el del navegador (importa cerca del cambio de mes).
+  const [anioGym, mesGym] = hoyEnTimezone(getTenantTimezone(useTenant())).split('-').map(Number);
+  const ahora = new Date(anioGym, mesGym - 1, 1);
   const mesActual = nombreMes(ahora);
   const mesAnteriorDate = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
   const mesAnteriorNombre = nombreMes(mesAnteriorDate);
@@ -438,7 +444,8 @@ function Grafica30Dias({ data }: { data: Array<{ fecha: string; count: number }>
                   {new Date(d.fecha).toLocaleDateString('es-MX', {
                     weekday: 'short',
                     day: 'numeric',
-                    month: 'short'
+                    month: 'short',
+                    timeZone: 'UTC'
                   })}
                 </title>
               </rect>
@@ -468,7 +475,8 @@ function Grafica30Dias({ data }: { data: Array<{ fecha: string; count: number }>
 
 function SeccionDinero() {
   const { data, isLoading } = useDineroMes();
-  const ahora = new Date();
+  const [anioGym, mesGym] = hoyEnTimezone(getTenantTimezone(useTenant())).split('-').map(Number);
+  const ahora = new Date(anioGym, mesGym - 1, 1);
   const mes = `${nombreMes(ahora).charAt(0).toUpperCase() + nombreMes(ahora).slice(1)} ${ahora.getFullYear()}`;
 
   return (

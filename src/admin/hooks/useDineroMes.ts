@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useSucursal } from '../providers/SucursalProvider';
+import { getTenantTimezone, hoyEnTimezone } from '@shared/lib/timezone';
+import { fromZonedTime } from 'date-fns-tz';
 
 export interface DineroMes {
   /** Neto del mes: cobros − reembolsos, sin contar cortesías. */
@@ -33,15 +35,17 @@ export function useDineroMes() {
     setIsLoading(true);
 
     (async () => {
-      const inicioMes = new Date();
-      inicioMes.setDate(1);
-      inicioMes.setHours(0, 0, 0, 0);
+      // Inicio del mes en la zona del GYM (no del navegador): si el dueño abre
+      // desde otra zona, "este mes" seguía siendo el del gym.
+      const tz = getTenantTimezone(tenant);
+      const hoy = hoyEnTimezone(tz);
+      const inicioMesISO = fromZonedTime(`${hoy.slice(0, 8)}01T00:00:00`, tz).toISOString();
 
       let q = supabase
         .from('pagos')
         .select('monto_centavos, moneda, metodo, concepto, sucursal_id')
         .eq('tenant_id', tenant.id)
-        .gte('created_at', inicioMes.toISOString());
+        .gte('created_at', inicioMesISO);
 
       // null = todas las sedes o gym mono-sede: no filtrar (no perder online).
       if (sucursalFiltro) q = q.eq('sucursal_id', sucursalFiltro);
