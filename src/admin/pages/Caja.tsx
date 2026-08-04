@@ -10,6 +10,8 @@ import { exportarCsv } from '@shared/lib/exportarCsv';
 import { ReciboModal } from '@shared/components/ReciboModal';
 import { CorteTicket, CortePrint, type CorteTicketData } from '@shared/components/CorteTicket';
 import { imprimirCorte, compartirCorteImagen } from '@shared/lib/recibo';
+import { getTenantTimezone, hoyEnTimezone, sumarDias } from '@shared/lib/timezone';
+import { fromZonedTime } from 'date-fns-tz';
 
 /**
  * CAJA — el dinero que entró de verdad.
@@ -76,20 +78,32 @@ const CONCEPTO_LABEL: Record<string, string> = {
   otro: 'Otro'
 };
 
-type Rango = 'hoy' | 'semana' | 'mes';
+type Rango = 'hoy' | 'ayer' | 'semana' | 'mes';
 
 const RANGOS: { value: Rango; label: string }[] = [
   { value: 'hoy', label: 'Hoy' },
+  { value: 'ayer', label: 'Ayer' },
   { value: 'semana', label: 'Últimos 7 días' },
   { value: 'mes', label: 'Este mes' }
 ];
 
-function desdeISO(rango: Rango): string {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  if (rango === 'semana') d.setDate(d.getDate() - 6);
-  if (rango === 'mes') d.setDate(1);
-  return d.toISOString();
+// El "día" es el del GYM (tenant.config.timezone), no el del dispositivo. Sin esto,
+// abrir Caja desde otra zona (o UTC) corría las fechas ~horas y metía cobros de la
+// noche anterior en "Hoy". Se calcula la medianoche del gym y se pasa a instante UTC.
+function desdeISO(rango: Rango, tz: string): string {
+  const hoy = hoyEnTimezone(tz);
+  let fecha = hoy;
+  if (rango === 'ayer') fecha = sumarDias(hoy, -1);
+  else if (rango === 'semana') fecha = sumarDias(hoy, -6);
+  else if (rango === 'mes') fecha = `${hoy.slice(0, 8)}01`;
+  return fromZonedTime(`${fecha}T00:00:00`, tz).toISOString();
+}
+
+/** Límite superior (exclusivo). Solo "Ayer" lo necesita: corta en la medianoche
+ *  de HOY del gym, para no arrastrar los movimientos de hoy. */
+function hastaISO(rango: Rango, tz: string): string | null {
+  if (rango !== 'ayer') return null;
+  return fromZonedTime(`${hoyEnTimezone(tz)}T00:00:00`, tz).toISOString();
 }
 
 function money(centavos: number, moneda = 'MXN'): string {
@@ -104,28 +118,22 @@ function money(centavos: number, moneda = 'MXN'): string {
   }
 }
 
-function hora(iso: string): string {
+function hora(iso: string, tz: string): string {
   return new Date(iso).toLocaleString('es-MX', {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZone: tz
   });
 }
 
-/** Fecha local (del dispositivo = horario del gym) como YYYY-MM-DD. */
-function ymd(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-/** Rango [desde, hasta) en horario LOCAL: incluye todo el día `fHasta`. */
-function rangoISO(fDesde: string, fHasta: string): { desde: string; hasta: string } {
-  const desde = new Date(`${fDesde}T00:00:00`);
-  const hasta = new Date(`${fHasta}T00:00:00`);
-  hasta.setDate(hasta.getDate() + 1);
-  return { desde: desde.toISOString(), hasta: hasta.toISOString() };
+/** Rango [desde, hasta) en la timezone del GYM: incluye todo el día `fHasta`. */
+function rangoISO(fDesde: string, fHasta: string, tz: string): { desde: string; hasta: string } {
+  return {
+    desde: fromZonedTime(`${fDesde}T00:00:00`, tz).toISOString(),
+    hasta: fromZonedTime(`${sumarDias(fHasta, 1)}T00:00:00`, tz).toISOString()
+  };
 }
 
 interface DatosCorte { razon_social?: string; rfc?: string; telefono?: string; direccion?: string }
@@ -135,6 +143,7 @@ export default function Caja() {
   const { usuario } = useAuth();
   const toast = useToast();
   const { sucursalFiltro, sucursalActiva } = useSucursal();
+  const tz = getTenantTimezone(tenant);
   const [ticketData, setTicketData] = useState<CorteTicketData | null>(null);
   const corteRef = useRef<HTMLDivElement>(null);
   const [compartiendoCorte, setCompartiendoCorte] = useState(false);
@@ -178,8 +187,10 @@ export default function Caja() {
           'id, created_at, concepto, monto_centavos, moneda, metodo, notas, revierte_pago_id, socio:usuarios!pagos_usuario_id_fkey(nombre), cobrador:usuarios!pagos_cobrado_por_fkey(nombre), tier:tiers(nombre)'
         )
         .eq('tenant_id', tenant.id)
-        .gte('created_at', desdeISO(rango))
+        .gte('created_at', desdeISO(rango, tz))
         .order('created_at', { ascending: false });
+      const hasta = hastaISO(rango, tz);
+      if (hasta) q = q.lt('created_at', hasta);
       if (sucursalFiltro) q = q.eq('sucursal_id', sucursalFiltro);
       const { data, error } = await q;
       if (cancelled) return;
@@ -468,7 +479,7 @@ export default function Caja() {
                     </span>
                   </p>
                   <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
-                    {hora(p.created_at)} · {meta.label}
+                    {hora(p.created_at, tz)} · {meta.label}
                     {p.cobrador?.nombre
                       ? ` · ${esReembolso ? 'devolvió' : 'cobró'} ${p.cobrador.nombre}`
                       : ''}
@@ -567,7 +578,7 @@ export default function Caja() {
             >
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--sala-text-primary)' }}>
-                  {hora(c.hasta)}{c.realizado_por?.nombre ? ` · ${c.realizado_por.nombre}` : ''}
+                  {hora(c.hasta, tz)}{c.realizado_por?.nombre ? ` · ${c.realizado_por.nombre}` : ''}
                 </p>
                 <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
                   Esperado {money(c.efectivo_esperado_centavos + c.fondo_centavos, moneda)} · Contado {money(c.efectivo_contado_centavos, moneda)}
@@ -585,6 +596,8 @@ export default function Caja() {
         <CorteModal
           sucursalId={sucursalFiltro}
           moneda={moneda}
+          tz={tz}
+          cortesPrevios={cortes}
           onClose={() => setShowCorte(false)}
           onHecho={(r) => {
             setShowCorte(false);
@@ -816,12 +829,16 @@ function DevolverModal({
 function CorteModal({
   sucursalId,
   moneda,
+  tz,
+  cortesPrevios,
   onClose,
   onHecho,
   onError
 }: {
   sucursalId: string | null;
   moneda: string;
+  tz: string;
+  cortesPrevios: { desde: string | null; hasta: string }[];
   onClose: () => void;
   onHecho: (r: {
     desde: string | null; hasta: string;
@@ -830,7 +847,7 @@ function CorteModal({
   }) => void;
   onError: (msg: string) => void;
 }) {
-  const ayer = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return ymd(d); })();
+  const ayer = sumarDias(hoyEnTimezone(tz), -1);
   const [fDesde, setFDesde] = useState(ayer);
   const [fHasta, setFHasta] = useState(ayer);
   const [esperado, setEsperado] = useState<number | null>(null);
@@ -840,12 +857,25 @@ function CorteModal({
 
   const rangoValido = fDesde !== '' && fHasta !== '' && fHasta >= fDesde;
 
+  // Aviso (no bloquea): el rango elegido se enclima con un corte ya hecho, así que
+  // los mismos cobros contarían en dos cortes. Se compara por timestamp real.
+  const seEnclima = useMemo(() => {
+    if (!rangoValido) return false;
+    const { desde, hasta } = rangoISO(fDesde, fHasta, tz);
+    const sD = Date.parse(desde);
+    const sH = Date.parse(hasta);
+    return cortesPrevios.some((c) => {
+      const cD = c.desde ? Date.parse(c.desde) : -Infinity;
+      return sD < Date.parse(c.hasta) && cD < sH;
+    });
+  }, [fDesde, fHasta, rangoValido, cortesPrevios]);
+
   useEffect(() => {
     if (!rangoValido) { setEsperado(null); return; }
     let cancel = false;
     setEsperado(null);
     (async () => {
-      const { desde, hasta } = rangoISO(fDesde, fHasta);
+      const { desde, hasta } = rangoISO(fDesde, fHasta, tz);
       const rpc = supabase.rpc.bind(supabase) as unknown as (
         name: string,
         args: unknown
@@ -865,7 +895,7 @@ function CorteModal({
   async function confirmar() {
     if (!contadoValido || esperado === null || !rangoValido) return;
     setEnviando(true);
-    const { desde, hasta } = rangoISO(fDesde, fHasta);
+    const { desde, hasta } = rangoISO(fDesde, fHasta, tz);
     const rpc = supabase.rpc.bind(supabase) as unknown as (
       name: string,
       args: unknown
@@ -884,9 +914,10 @@ function CorteModal({
   }
 
   function setRango(d: string, h: string) { setFDesde(d); setFHasta(h); }
-  const hoy = ymd(new Date());
-  const inicioSemana = (() => { const d = new Date(); const dow = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dow); return ymd(d); })();
-  const inicioMes = ymd(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const hoy = hoyEnTimezone(tz);
+  const dow = (new Date(`${hoy}T00:00:00Z`).getUTCDay() + 6) % 7;
+  const inicioSemana = sumarDias(hoy, -dow);
+  const inicioMes = `${hoy.slice(0, 8)}01`;
   const presets = [
     { label: 'Hoy', d: hoy, h: hoy },
     { label: 'Ayer', d: ayer, h: ayer },
@@ -928,6 +959,12 @@ function CorteModal({
             <input type="date" className="ek-input" value={fHasta} min={fDesde} onChange={(e) => setFHasta(e.target.value)} />
           </label>
         </div>
+
+        {seEnclima && (
+          <div style={{ marginBottom: 16, padding: '10px 12px', borderRadius: 10, background: 'var(--sala-surface)', border: '1px solid var(--sala-border)', fontSize: 12.5, lineHeight: 1.45, color: 'var(--sala-text-secondary)' }}>
+            <strong>⚠ Ojo:</strong> este rango se enclima con un corte anterior. Los mismos cobros contarían en los dos cortes. Puedes continuar, pero revisa que no estés cortando lo mismo dos veces.
+          </div>
+        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', padding: '2px 0' }}>
