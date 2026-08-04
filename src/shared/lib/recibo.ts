@@ -123,7 +123,20 @@ export async function compartirReciboImagen(
   data: ReciboData
 ): Promise<'compartido' | 'descargado'> {
   const { toBlob } = await import('html-to-image');
-  const blob = await toBlob(node, { pixelRatio: 2, backgroundColor: '#ffffff', cacheBust: true });
+
+  // Safari/iOS: la captura sale EN BLANCO si las fuentes/imágenes aún no están
+  // listas, y además su primer render suele salir vacío. Por eso: esperamos el
+  // decode del logo + las fuentes, y repetimos la conversión (las primeras
+  // "calientan" el render; la última es la buena).
+  const imgs = Array.from(node.querySelectorAll('img'));
+  await Promise.all(imgs.map((img) => (img.decode ? img.decode().catch(() => undefined) : Promise.resolve())));
+  try { await document.fonts?.ready; } catch { /* fuentes no disponibles: seguir */ }
+
+  const opts = { pixelRatio: 2, backgroundColor: '#ffffff', cacheBust: true } as const;
+  let blob: Blob | null = null;
+  for (let i = 0; i < 3; i++) {
+    blob = await toBlob(node, opts);
+  }
   if (!blob) throw new Error('No se pudo generar la imagen del recibo.');
   const file = new File([blob], `recibo-${data.folio}.png`, { type: 'image/png' });
 
