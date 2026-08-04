@@ -444,7 +444,7 @@ function SalaChip({
       style={{
         flexShrink: 0,
         padding: '8px 16px',
-        minHeight: '36px',
+        minHeight: '44px',
         background: active ? 'var(--grad-accent)' : 'var(--sala-surface)',
         color: active ? 'var(--sala-text-on-accent)' : 'var(--sala-text-secondary)',
         border: `1px solid ${active ? 'var(--sala-accent)' : 'var(--sala-border)'}`,

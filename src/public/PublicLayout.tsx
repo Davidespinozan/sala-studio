@@ -25,7 +25,7 @@ export default function PublicLayout() {
   useRoleRedirect(['/', '/login', '/signup']);
 
   return (
-    <div className="ek-page ek-immersive-top">
+    <div className="ek-page ek-immersive-top" style={{ overflowX: 'clip' }}>
       <ModoDemoBanner />
       <DemoBanner vista="Landing" />
       {/* El tamaño (padding, alto del logo, botón) lo maneja .landing-topbar en

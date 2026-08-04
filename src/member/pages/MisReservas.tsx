@@ -188,7 +188,7 @@ function TabButton({
       onClick={onClick}
       style={{
         flex: 1,
-        minHeight: '38px',
+        minHeight: '44px',
         border: 'none',
         cursor: 'pointer',
         borderRadius: '999px',
