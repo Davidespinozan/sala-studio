@@ -44,7 +44,12 @@ const METODO_LABEL: Record<string, string> = {
 
 export function conceptoLabel(concepto: string, tierNombre?: string | null): string {
   const base = CONCEPTO_LABEL[concepto] ?? 'Pago';
-  return tierNombre ? `${base} ${tierNombre}` : base;
+  const t = (tierNombre ?? '').trim();
+  if (!t) return base;
+  // Evita "Plan Plan Elevate": si el nombre del plan YA empieza con la palabra
+  // base (el gym llamó a su tier "Plan Elevate"), usa solo el nombre del plan.
+  if (t.toLowerCase().startsWith(base.toLowerCase())) return t;
+  return `${base} ${t}`;
 }
 
 export function metodoLabel(metodo: string): string {
