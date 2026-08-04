@@ -117,9 +117,12 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
     reservas.forEach((r) => {
       const inicio = new Date(r.slot_inicio).getTime();
       const fin = new Date(r.slot_fin).getTime();
-      // "Llegando ahora" solo aplica si la fecha vista es hoy
+      // "Llegando ahora" solo aplica si la fecha vista es hoy Y la reserva sigue
+      // CONFIRMADA (pendiente de check-in). Sin el filtro de status, una reserva
+      // cancelada/asistida caía en "llegando" con botón de check-in (fantasmas).
       if (
         esHoy &&
+        r.status === 'confirmada' &&
         ((now >= inicio - 15 * 60_000 && now <= fin) ||
           (now >= inicio - 15 * 60_000 && now <= inicio + 15 * 60_000))
       ) {
