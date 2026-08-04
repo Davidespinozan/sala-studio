@@ -82,15 +82,25 @@ export function reciboUrl(origin: string, pagoId: string, token: string): string
 /**
  * Imprime SOLO el recibo (portal .recibo-print-root). Marca <body> con
  * `printing-recibo` para que el @media print de sala.css saque del layout todo lo
- * demás (una sola hoja, sin color de fondo de la app) y lo quita al terminar.
+ * demás (una sola hoja, sin color de fondo de la app).
+ *
+ * La clase se quita SOLO cuando el diálogo de impresión se cierra (afterprint /
+ * focus), NUNCA por timer: en desktop el diálogo sigue abierto un rato y quitarla
+ * antes hacía reaparecer la app → páginas en blanco de más. Dejar la clase puesta
+ * mientras tanto no afecta la pantalla (las reglas viven dentro de @media print).
  */
 export function imprimirRecibo(): void {
   const body = document.body;
   body.classList.add('printing-recibo');
-  const limpiar = () => body.classList.remove('printing-recibo');
+  const limpiar = () => {
+    body.classList.remove('printing-recibo');
+    window.removeEventListener('afterprint', limpiar);
+    window.removeEventListener('focus', limpiar);
+  };
   window.addEventListener('afterprint', limpiar, { once: true });
-  // Fallback: algunos navegadores no disparan afterprint (o el usuario cancela).
-  window.setTimeout(limpiar, 1500);
+  // Respaldo: al volver el foco a la ventana (se cerró el diálogo), por si el
+  // navegador no dispara afterprint. Sin setTimeout, para no limpiar en pleno print.
+  window.addEventListener('focus', limpiar, { once: true });
   window.print();
 }
 
