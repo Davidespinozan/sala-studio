@@ -60,7 +60,10 @@ export default function Recibo() {
           <div className="ek-skeleton" style={{ height: 340, borderRadius: 12 }} aria-hidden="true" />
         ) : (
           <>
-            <ReciboView data={data} />
+            {/* Capturamos el recibo VISIBLE (Safari/iOS no pinta lo off-screen). */}
+            <div ref={capturaRef} style={{ background: '#fff' }}>
+              <ReciboView data={data} />
+            </div>
             <ReciboPrint data={data} />
             <div className="no-print" style={{ display: 'flex', gap: 8, marginTop: 18 }}>
               <button type="button" onClick={() => imprimirRecibo()} className="ek-cta ek-cta--secondary" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -73,10 +76,6 @@ export default function Recibo() {
             {aviso && (
               <p className="no-print" style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--sala-text-secondary)', textAlign: 'center' }}>{aviso}</p>
             )}
-            {/* Nodo oculto para capturar la imagen (fuera de pantalla, no display:none). */}
-            <div ref={capturaRef} aria-hidden="true" style={{ position: 'fixed', left: -10000, top: 0, width: 460, pointerEvents: 'none', background: '#fff' }}>
-              <ReciboView data={data} />
-            </div>
             <div className="no-print"><PoweredBySala /></div>
           </>
         )}

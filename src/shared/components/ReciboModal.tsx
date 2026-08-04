@@ -96,7 +96,12 @@ export function ReciboModal({
           <div className="ek-skeleton" style={{ height: 320, borderRadius: 12 }} aria-hidden="true" />
         ) : (
           <>
-            <ReciboView data={data} />
+            {/* El recibo VISIBLE es también el que capturamos como imagen: Safari/iOS
+                no pinta lo que está fuera de pantalla, así que un clon oculto salía
+                en blanco. */}
+            <div ref={capturaRef} style={{ background: '#fff' }}>
+              <ReciboView data={data} />
+            </div>
             <ReciboPrint data={data} />
 
             <div className="no-print" style={{ display: 'flex', gap: 8, marginTop: 18, flexWrap: 'wrap' }}>
@@ -117,11 +122,6 @@ export function ReciboModal({
                 {aviso}
               </p>
             )}
-
-            {/* Nodo oculto (fuera de pantalla, NO display:none) para capturar la imagen. */}
-            <div ref={capturaRef} aria-hidden="true" style={{ position: 'fixed', left: -10000, top: 0, width: 460, pointerEvents: 'none', background: '#fff' }}>
-              <ReciboView data={data} />
-            </div>
           </>
         )}
       </div>
