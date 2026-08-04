@@ -92,6 +92,7 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
         style={{
           background: 'var(--ek-bg-soft)', border: '0.5px solid var(--ek-line)',
           borderRadius: 'var(--ek-r-card)', maxWidth: '480px', width: '100%', padding: '28px',
+          maxHeight: '90vh', overflowY: 'auto',
           animation: 'ek-scale-in 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
       >

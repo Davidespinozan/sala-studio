@@ -155,6 +155,8 @@ export function AccionModal({
           borderRadius: 'var(--ek-r-card)',
           maxWidth: '480px',
           width: '100%',
+          maxHeight: '90vh',
+          overflowY: 'auto',
           padding: '28px',
           animation: 'ek-scale-in 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
           outline: 'none',

@@ -2151,6 +2151,18 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .adm-link:hover { text-decoration: underline; }
 
+  /* QR del socio: el SVG se genera a 320px; que escale para no desbordar
+     pantallas angostas (es la pantalla de la puerta). */
+  .qr-box { width: 100%; max-width: 320px; }
+  .qr-box svg { width: 100% !important; height: auto !important; display: block; }
+
+  /* POS (venta en mostrador): 1 columna en teléfono (carrito abajo);
+     productos + carrito de 300px en pantallas anchas (tablet/desktop). */
+  .pos-grid { display: grid; grid-template-columns: 1fr; }
+  @media (min-width: 768px) {
+    .pos-grid { grid-template-columns: minmax(0, 1fr) 300px; }
+  }
+
   /* Tablas */
   .adm-table-wrapper {
     overflow-x: auto;
@@ -2161,6 +2173,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .adm-table {
     width: 100%;
+    min-width: 640px; /* fuerza el scroll-x del wrapper en móvil en vez de apretujar */
     border-collapse: collapse;
     font-size: 14px;
   }

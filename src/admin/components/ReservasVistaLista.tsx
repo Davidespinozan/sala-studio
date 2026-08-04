@@ -389,13 +389,14 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
               background: 'var(--ek-bg-soft)',
               border: '0.5px solid var(--ek-line)',
               borderRadius: 'var(--ek-r-md)',
-              overflow: 'hidden'
+              overflowX: 'auto'
             }}
           >
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: '120px 90px 1.2fr 1.5fr 90px 130px 40px',
+                minWidth: '780px',
                 gap: '12px',
                 padding: '12px 16px',
                 background: 'var(--ek-bg-elevated)',
@@ -533,6 +534,7 @@ function ReservaRow({
       style={{
         display: 'grid',
         gridTemplateColumns: '120px 90px 1.2fr 1.5fr 90px 130px 40px',
+        minWidth: '780px',
         gap: '12px',
         padding: '12px 16px',
         borderBottom: '0.5px solid var(--ek-line)',

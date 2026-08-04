@@ -169,7 +169,7 @@ export default function MiQR() {
             gap: '16px'
           }}
         >
-          <div ref={qrContainerRef} />
+          <div ref={qrContainerRef} className="qr-box" />
           <p style={{ fontFamily: 'var(--ek-font-mono)', fontSize: '13px', color: '#0A0A0A' }}>
             {reserva?.folio}
           </p>

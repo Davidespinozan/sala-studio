@@ -142,7 +142,7 @@ export default function PosVenta() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 300px', gap: 16, alignItems: 'start' }} className="pos-grid">
+    <div style={{ gap: 16, alignItems: 'start' }} className="pos-grid">
       {/* Grilla de productos */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(120px,1fr))', gap: 10 }}>
         {productos.map((p) => {
