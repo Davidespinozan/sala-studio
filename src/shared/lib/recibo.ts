@@ -123,21 +123,23 @@ export function waReciboUrl(telefono: string, url: string, gymNombre: string): s
 }
 
 /**
- * Comparte el recibo como IMAGEN (PNG) por la hoja de compartir del sistema. Así
- * recepción/el socio eligen A QUIÉN y POR DÓNDE mandarlo (WhatsApp a cualquier
- * contacto, sin que el número esté guardado, y el recibo se ve dentro del chat).
- * En equipos sin compartir de archivos (típicamente desktop) DESCARGA la imagen
- * para adjuntarla a mano. `node`: un ReciboView renderizado a capturar.
+ * Comparte un NODO como IMAGEN (PNG) por la hoja de compartir del sistema. Así se
+ * elige A QUIÉN y POR DÓNDE mandarlo (WhatsApp a cualquier contacto, sin que el
+ * número esté guardado, y el contenido se ve dentro del chat). En equipos sin
+ * compartir de archivos (típicamente desktop) DESCARGA la imagen para adjuntarla
+ * a mano. Debe capturarse un nodo VISIBLE (Safari no pinta nodos fuera de pantalla).
  */
-export async function compartirReciboImagen(
+async function compartirNodoImagen(
   node: HTMLElement,
-  data: ReciboData
+  fileName: string,
+  title: string,
+  text: string
 ): Promise<'compartido' | 'descargado'> {
   const { toBlob } = await import('html-to-image');
 
   // Safari/iOS: la captura sale EN BLANCO si las fuentes/imágenes aún no están
   // listas, y además su primer render suele salir vacío. Por eso: esperamos el
-  // decode del logo + las fuentes, y repetimos la conversión (las primeras
+  // decode de las imágenes + las fuentes, y repetimos la conversión (las primeras
   // "calientan" el render; la última es la buena).
   const imgs = Array.from(node.querySelectorAll('img'));
   await Promise.all(imgs.map((img) => (img.decode ? img.decode().catch(() => undefined) : Promise.resolve())));
@@ -148,15 +150,15 @@ export async function compartirReciboImagen(
   for (let i = 0; i < 3; i++) {
     blob = await toBlob(node, opts);
   }
-  if (!blob) throw new Error('No se pudo generar la imagen del recibo.');
-  const file = new File([blob], `recibo-${data.folio}.png`, { type: 'image/png' });
+  if (!blob) throw new Error('No se pudo generar la imagen.');
+  const file = new File([blob], fileName, { type: 'image/png' });
 
   const nav = navigator as Navigator & {
     canShare?: (d: { files?: File[] }) => boolean;
     share?: (d: { files?: File[]; title?: string; text?: string }) => Promise<void>;
   };
   if (nav.canShare?.({ files: [file] }) && nav.share) {
-    await nav.share({ files: [file], title: `Recibo ${data.folio}`, text: `Recibo de ${data.gym.nombre}` });
+    await nav.share({ files: [file], title, text });
     return 'compartido';
   }
 
@@ -170,4 +172,27 @@ export async function compartirReciboImagen(
   a.remove();
   URL.revokeObjectURL(url);
   return 'descargado';
+}
+
+/** Comparte el RECIBO como imagen. `node`: un ReciboView renderizado a capturar. */
+export async function compartirReciboImagen(
+  node: HTMLElement,
+  data: ReciboData
+): Promise<'compartido' | 'descargado'> {
+  return compartirNodoImagen(node, `recibo-${data.folio}.png`, `Recibo ${data.folio}`, `Recibo de ${data.gym.nombre}`);
+}
+
+/**
+ * Comparte el TICKET DE CORTE como imagen. `node`: un CorteTicket renderizado y
+ * VISIBLE (el del modal). `gymNombre`/`hastaISO` solo para el nombre del archivo
+ * y el texto que acompaña.
+ */
+export async function compartirCorteImagen(
+  node: HTMLElement,
+  gymNombre: string,
+  hastaISO: string
+): Promise<'compartido' | 'descargado'> {
+  const d = new Date(hastaISO);
+  const slug = Number.isNaN(d.getTime()) ? 'corte' : d.toISOString().slice(0, 10);
+  return compartirNodoImagen(node, `corte-caja-${slug}.png`, 'Corte de caja', `Corte de caja de ${gymNombre}`);
 }

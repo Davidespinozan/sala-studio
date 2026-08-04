@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Banknote, CreditCard, ArrowLeftRight, Gift, Globe, Undo2, Receipt } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
@@ -9,7 +9,7 @@ import { useSucursal } from '../providers/SucursalProvider';
 import { exportarCsv } from '@shared/lib/exportarCsv';
 import { ReciboModal } from '@shared/components/ReciboModal';
 import { CorteTicket, CortePrint, type CorteTicketData } from '@shared/components/CorteTicket';
-import { imprimirCorte } from '@shared/lib/recibo';
+import { imprimirCorte, compartirCorteImagen } from '@shared/lib/recibo';
 
 /**
  * CAJA — el dinero que entró de verdad.
@@ -136,6 +136,8 @@ export default function Caja() {
   const toast = useToast();
   const { sucursalFiltro, sucursalActiva } = useSucursal();
   const [ticketData, setTicketData] = useState<CorteTicketData | null>(null);
+  const corteRef = useRef<HTMLDivElement>(null);
+  const [compartiendoCorte, setCompartiendoCorte] = useState(false);
   const [showDatos, setShowDatos] = useState(false);
   const [datosCorte, setDatosCorte] = useState<DatosCorte>(() => ((tenant.config as unknown as { corte?: DatosCorte })?.corte ?? {}));
   const [rango, setRango] = useState<Rango>('hoy');
@@ -609,11 +611,35 @@ export default function Caja() {
       {ticketData && (
         <div className="ek-modal-backdrop no-print" onClick={() => setTicketData(null)}>
           <div className="ek-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
-            <CorteTicket data={ticketData} />
+            <div ref={corteRef}>
+              <CorteTicket data={ticketData} />
+            </div>
             <CortePrint data={ticketData} />
-            <div className="no-print" style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <button type="button" onClick={() => setTicketData(null)} className="ek-cta ek-cta--secondary" style={{ flex: 1 }}>Cerrar</button>
-              <button type="button" onClick={() => imprimirCorte()} className="ek-cta" style={{ flex: 1 }}>Imprimir / PDF</button>
+            <div className="no-print" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+              <button
+                type="button"
+                disabled={compartiendoCorte}
+                onClick={async () => {
+                  if (!corteRef.current) return;
+                  setCompartiendoCorte(true);
+                  try {
+                    const r = await compartirCorteImagen(corteRef.current, ticketData.gym.nombre, ticketData.hasta);
+                    if (r === 'descargado') toast.success('Imagen descargada — adjúntala en WhatsApp.');
+                  } catch {
+                    toast.error('No se pudo compartir el corte.');
+                  } finally {
+                    setCompartiendoCorte(false);
+                  }
+                }}
+                className="ek-cta"
+                style={{ width: '100%' }}
+              >
+                {compartiendoCorte ? 'Generando…' : 'Enviar por WhatsApp'}
+              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" onClick={() => setTicketData(null)} className="ek-cta ek-cta--secondary" style={{ flex: 1 }}>Cerrar</button>
+                <button type="button" onClick={() => imprimirCorte()} className="ek-cta ek-cta--secondary" style={{ flex: 1 }}>Imprimir / PDF</button>
+              </div>
             </div>
           </div>
         </div>
