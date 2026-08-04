@@ -20,6 +20,7 @@ import { CrearAccesoSocioModal } from '../components/acciones/CrearAccesoSocioMo
 import { HuellaModal } from '../components/acciones/HuellaModal';
 import { Avatar } from '@shared/components/Avatar';
 import { HistorialPagosSocio } from '@shared/components/HistorialPagosSocio';
+import { MetodoPagoMembresia } from '@shared/components/MetodoPagoMembresia';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData } from '../hooks/useSocioFicha';
 import { useSocioNotas } from '../hooks/useSocioNotas';
 import { useHuellasSocio } from '@shared/hooks/useHuellasSocio';
@@ -269,6 +270,13 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
               return <KV k="Créditos" v={v} sub={sub} />;
             })()}
             <KV k="Tipo" v={TIPO_LABEL[membresia.tierTipo ?? ''] ?? '—'} />
+          </div>
+        )}
+
+        {membresia && estado !== 'sin_plan' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
+            <span className="ek-label" style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)' }}>Método de pago</span>
+            <MetodoPagoMembresia usuarioId={socio.id} valor={membresia.metodoPago} />
           </div>
         )}
 

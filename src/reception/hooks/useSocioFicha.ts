@@ -13,6 +13,7 @@ export interface FichaMembresia {
   tierId: string | null;            // para excluir el plan actual al cambiar
   tierNombre: string | null;
   tierTipo: string | null;          // 'tiempo' | 'creditos' | 'hibrido'
+  metodoPago: string | null;        // cómo paga su membresía (editable)
 }
 
 export interface FichaReserva {
@@ -54,6 +55,7 @@ interface MembresiaQueryRow {
   status: string;
   periodo_actual_fin: string | null;
   creditos_restantes: number | null;
+  metodo_pago: string | null;
   tier: { id: string; nombre: string | null; tipo: string | null } | { id: string; nombre: string | null; tipo: string | null }[] | null;
 }
 interface ReservaQueryRow {
@@ -112,7 +114,7 @@ export function useSocioFicha(id: string | undefined) {
       // Membresía más reciente (cualquier status) para conocer el estado real.
       const { data: memData } = await supabase
         .from('membresias')
-        .select('status, periodo_actual_fin, creditos_restantes, tier:tiers(id, nombre, tipo)')
+        .select('status, periodo_actual_fin, creditos_restantes, metodo_pago, tier:tiers(id, nombre, tipo)')
         .eq('usuario_id', id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -165,6 +167,7 @@ export function useSocioFicha(id: string | undefined) {
             tierId: tier?.id ?? null,
             tierNombre: tier?.nombre ?? null,
             tierTipo: tier?.tipo ?? null,
+            metodoPago: mem.metodo_pago ?? null,
           }
         : null;
 

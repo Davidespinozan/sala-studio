@@ -7,6 +7,7 @@ import { useSucursal } from '../providers/SucursalProvider';
 import { useTenant } from '@shared/hooks/useTenant';
 import { guardarDatosPrivados, subirAvatarSocio } from '@shared/lib/datosSocio';
 import { backendPost } from '@shared/lib/backend';
+import { supabase } from '@shared/lib/supabase';
 import { QrChico } from '@shared/components/QrChico';
 
 /**
@@ -120,6 +121,15 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
           });
           setSubmitting(false);
           return;
+        }
+        // Guardar el método de pago elegido en la membresía (informativo,
+        // editable luego en la ficha). Best-effort: no tumba el alta.
+        const metodo = METODO_PAGO[formaActivacion];
+        if (metodo) {
+          const rpc = supabase.rpc.bind(supabase) as unknown as (
+            name: string, args: unknown
+          ) => Promise<{ error: unknown }>;
+          await rpc('establecer_metodo_pago', { p_usuario_id: res.usuario_id, p_metodo: metodo });
         }
       }
 

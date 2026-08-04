@@ -26,6 +26,7 @@ import {
   type HistorialItem
 } from '../components/miembro/MiembroHistorial';
 import { HistorialPagosSocio } from '@shared/components/HistorialPagosSocio';
+import { MetodoPagoMembresia } from '@shared/components/MetodoPagoMembresia';
 import { MiembroHistorialCambios } from '../components/miembro/MiembroHistorialCambios';
 import { MiembroNotasInternas } from '../components/miembro/MiembroNotasInternas';
 import { GestionarMembresiaModal } from '../components/miembro/GestionarMembresiaModal';
@@ -47,19 +48,24 @@ export default function MiembroDetalle() {
   // al vencer (para acceso/reportes), así que leerlo dejaba "sin plan" a un socio
   // con plan vencido mientras recepción sí lo mostraba. Leyendo de `membresias`,
   // admin y recepción coinciden.
-  const [membresia, setMembresia] = useState<{ nombre: string | null; estado: string; periodoFin: Date | null; creditos: number | null } | null>(null);
+  const [membresia, setMembresia] = useState<{ nombre: string | null; estado: string; periodoFin: Date | null; creditos: number | null; metodoPago: string | null } | null>(null);
   const [pagosReload, setPagosReload] = useState(0);
   useEffect(() => {
     if (!id) return;
     let mounted = true;
     void (async () => {
-      const { data } = await supabase
+      const res = await supabase
         .from('membresias')
-        .select('status, periodo_actual_fin, creditos_restantes, tier:tiers(nombre, tipo)')
+        .select('status, periodo_actual_fin, creditos_restantes, metodo_pago, tier:tiers(nombre, tipo)')
         .eq('usuario_id', id)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
+      // Cast laxo: los tipos generados aún no incluyen `metodo_pago` (columna nueva).
+      const data = res.data as unknown as {
+        status: string; periodo_actual_fin: string | null; creditos_restantes: number | null;
+        metodo_pago: string | null; tier: { nombre?: string; tipo?: string } | null;
+      } | null;
       if (!mounted) return;
       if (!data) { setMembresia(null); return; }
       const estado = String(data.status ?? '');
@@ -70,7 +76,8 @@ export default function MiembroDetalle() {
         nombre: tier?.nombre ?? null,
         estado,
         periodoFin: activa && fin ? new Date(fin) : null,
-        creditos: (tier?.tipo === 'creditos' || tier?.tipo === 'hibrido') ? ((data.creditos_restantes as number | null) ?? null) : null
+        creditos: (tier?.tipo === 'creditos' || tier?.tipo === 'hibrido') ? ((data.creditos_restantes as number | null) ?? null) : null,
+        metodoPago: (data.metodo_pago as string | null) ?? null
       });
     })();
     return () => { mounted = false; };
@@ -197,6 +204,13 @@ export default function MiembroDetalle() {
       />
 
       <MiembroKPIs kpis={kpis} isLoading={loadingKpis} />
+
+      {membresia && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', margin: '4px 0 24px' }}>
+          <span className="ek-label" style={{ fontSize: '12px', color: 'var(--sala-text-secondary)' }}>Método de pago</span>
+          <MetodoPagoMembresia usuarioId={miembro.id} valor={membresia.metodoPago} />
+        </div>
+      )}
 
       <section style={{ marginBottom: '32px' }}>
         <SectionHeading>Próximas reservas</SectionHeading>
