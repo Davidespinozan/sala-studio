@@ -3,7 +3,6 @@ if (!globalThis.WebSocket) {
   (globalThis as any).WebSocket = ws;
 }
 
-import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { ok, badRequest, notFound, serverError } from '../_lib/http';
@@ -18,12 +17,9 @@ import { requireEnv } from '../_lib/env';
  * leer el recibo (los ids no son adivinables + el token lo blinda).
  */
 
-function firmarRecibo(pagoId: string, secret: string): string {
-  return createHmac('sha256', secret).update(pagoId).digest('base64url').slice(0, 24);
-}
-
-function tokenValido(id: string, t: string, secret: string): boolean {
-  const esperado = firmarRecibo(id, secret);
+async function tokenValido(id: string, t: string, secret: string): Promise<boolean> {
+  const { createHmac, timingSafeEqual } = await import('node:crypto');
+  const esperado = createHmac('sha256', secret).update(id).digest('base64url').slice(0, 24);
   const a = Buffer.from(t);
   const b = Buffer.from(esperado);
   return a.length === b.length && timingSafeEqual(a, b);
@@ -48,7 +44,7 @@ export const handler: Handler = async (event) => {
     const supabaseUrl = requireEnv('VITE_SUPABASE_URL');
     const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!tokenValido(id, t, serviceKey)) return notFound('Recibo no encontrado');
+    if (!(await tokenValido(id, t, serviceKey))) return notFound('Recibo no encontrado');
 
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 

@@ -3,24 +3,25 @@ if (!globalThis.WebSocket) {
   (globalThis as any).WebSocket = ws;
 }
 
-import { createHmac } from 'node:crypto';
 import type { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
-import { ok, badRequest, unauthorized, forbidden, notFound, serverError } from '../_lib/http';
+import { ok, badRequest, unauthorized, forbidden, serverError } from '../_lib/http';
 import { requireEnv } from '../_lib/env';
 
 /**
  * POST /recibo-token — devuelve el token firmado del recibo de un pago (para armar
- * el link público /recibo/<id>?t=<token>) y, si quien pide es staff, el teléfono
- * del socio para el botón de WhatsApp. Auth: Bearer JWT.
+ * el link público /recibo/<id>?t=<token>) y el teléfono del socio (para WhatsApp).
+ * Auth: Bearer JWT.
  *
- * Autorizado para: staff (recepcionista/admin) del gym del pago, o el propio socio
- * dueño del pago. El token es HMAC(pago_id) con el service_role como llave: no se
- * puede adivinar y no expone la llave (HMAC es de una vía).
+ * Autorización por RLS (como qr-issue): consultamos `pagos` CON EL TOKEN DEL
+ * USUARIO. Si la fila vuelve, el caller puede verla (es el dueño por
+ * pagos_read_self, o staff del gym por pagos_read_staff) → tiene derecho al
+ * recibo. Si no vuelve, no está autorizado. El token es HMAC(pago_id) con el
+ * service_role como llave: no se puede adivinar y no expone la llave.
  */
 
-/** Debe coincidir con folioDePago/reciboUrl del front (mismo algoritmo de token). */
-function firmarRecibo(pagoId: string, secret: string): string {
+async function firmarRecibo(pagoId: string, secret: string): Promise<string> {
+  const { createHmac } = await import('node:crypto');
   return createHmac('sha256', secret).update(pagoId).digest('base64url').slice(0, 24);
 }
 
@@ -39,47 +40,33 @@ export const handler: Handler = async (event) => {
     const anonKey = requireEnv('VITE_SUPABASE_ANON_KEY');
     const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
 
+    // Cliente con el token del usuario → RLS decide qué puede ver.
     const asUser = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: `Bearer ${userToken}` } }
     });
-    const { data: { user: authUser }, error: uErr } = await asUser.auth.getUser();
-    if (uErr || !authUser) return unauthorized('Token inválido');
 
-    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-
-    const { data: pago } = await admin
+    // RLS autoriza: solo vuelve la fila si el caller es dueño del pago o staff del gym.
+    const { data: pago, error: pErr } = await asUser
       .from('pagos')
-      .select('id, tenant_id, usuario_id')
+      .select('id, usuario_id')
       .eq('id', pago_id)
       .maybeSingle();
-    if (!pago) return notFound('No encontramos ese pago');
-
-    const { data: quien } = await admin
-      .from('usuarios')
-      .select('id, tenant_id, rol, status')
-      .eq('auth_id', authUser.id)
-      .maybeSingle();
-    if (!quien) return forbidden('Sin acceso');
-
-    const esStaff =
-      quien.tenant_id === pago.tenant_id &&
-      ['recepcionista', 'admin'].includes(quien.rol as string) &&
-      quien.status === 'activo';
-    const esDueno = quien.id === pago.usuario_id;
-    if (!esStaff && !esDueno) return forbidden('Este recibo no es tuyo');
-
-    const token = firmarRecibo(pago.id, serviceKey);
-
-    // El teléfono (para WhatsApp) solo se lo damos al staff.
-    let telefono: string | null = null;
-    if (esStaff) {
-      const { data: socio } = await admin
-        .from('usuarios')
-        .select('telefono')
-        .eq('id', pago.usuario_id)
-        .maybeSingle();
-      telefono = (socio?.telefono as string | null) || null;
+    if (pErr) {
+      console.error('[recibo-token] pago:', pErr.message);
+      return serverError('No pudimos generar el recibo');
     }
+    if (!pago) return forbidden('Este recibo no está disponible para tu cuenta');
+
+    const token = await firmarRecibo(pago.id as string, serviceKey);
+
+    // Teléfono del socio para el botón de WhatsApp. Via RLS: staff lee el del
+    // miembro; un socio lee el suyo (inofensivo, ya lo conoce).
+    const { data: socio } = await asUser
+      .from('usuarios')
+      .select('telefono')
+      .eq('id', pago.usuario_id as string)
+      .maybeSingle();
+    const telefono = (socio?.telefono as string | null) || null;
 
     return ok({ token, telefono });
   } catch (err) {
