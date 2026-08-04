@@ -48,12 +48,14 @@ export default function RecuperarContrasena() {
       {enviado ? (
         <div className="ek-stack-md">
           <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: 0 }}>
-            REVISÁ TU CORREO
+            REVISA TU CORREO
           </p>
-          <h2 className="ek-h3" style={{ margin: 0 }}>Enlace enviado</h2>
+          <h2 className="ek-h3" style={{ margin: 0 }}>Listo</h2>
           <p className="ek-body-muted" style={{ margin: 0, lineHeight: 1.55 }}>
-            Si existe una cuenta con ese email, te enviamos un enlace para
-            restablecer tu contraseña. Revisa tu correo (y la carpeta de spam).
+            Si existe una cuenta con ese email y tu gimnasio tiene correo
+            configurado, te llegará un enlace para restablecer tu contraseña
+            (revisa también spam). <strong>Si no te llega en unos minutos, pídele a
+            recepción que te restablezca el acceso.</strong>
           </p>
           <Link
             to="/login"

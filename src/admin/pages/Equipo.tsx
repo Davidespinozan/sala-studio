@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshCcw, Ban, AlertTriangle } from 'lucide-react';
+import { RefreshCcw, Ban, AlertTriangle, KeyRound } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
+import { backendPost } from '@shared/lib/backend';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
@@ -64,6 +65,16 @@ export default function Equipo() {
   const [revoke, setRevoke] = useState<RevokeState>(null);
   const [eliminar, setEliminar] = useState<Usuario | null>(null);
   const [eliminando, setEliminando] = useState(false);
+  const [resetPwd, setResetPwd] = useState<{ nombre: string; password: string } | null>(null);
+
+  async function handleResetPassword(u: Usuario) {
+    try {
+      const res = await backendPost<{ password: string }>('reception-reset-password', { usuario_id: u.id });
+      setResetPwd({ nombre: capitalizar(u.nombre) || u.email, password: res.password });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No pudimos resetear la contraseña.');
+    }
+  }
 
   const refetch = useCallback(async () => {
     setIsLoading(true);
@@ -182,6 +193,7 @@ export default function Equipo() {
                   onCambiarRol={() => setCambioRol({ usuario: u, rol: 'admin' })}
                   onRevoke={() => startRevoke(u)}
                   onEliminar={() => setEliminar(u)}
+                  onResetPassword={() => handleResetPassword(u)}
                 />
               ))}
             </Section>
@@ -199,6 +211,7 @@ export default function Equipo() {
                   onCambiarRol={() => setCambioRol({ usuario: u, rol: 'recepcionista' })}
                   onRevoke={() => startRevoke(u)}
                   onEliminar={() => setEliminar(u)}
+                  onResetPassword={() => handleResetPassword(u)}
                 />
               ))}
             </Section>
@@ -313,6 +326,25 @@ export default function Equipo() {
         onConfirm={handleEliminar}
         onCancel={() => !eliminando && setEliminar(null)}
       />
+
+      {resetPwd && (
+        <div className="ek-modal-backdrop" onClick={() => setResetPwd(null)}>
+          <div className="ek-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420, textAlign: 'center' }}>
+            <div className="ek-modal-handle" />
+            <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: 0 }}>CONTRASEÑA RESTABLECIDA</p>
+            <h3 className="ek-h3" style={{ margin: '6px 0 10px' }}>{resetPwd.nombre}</h3>
+            <p style={{ fontSize: 13, color: 'var(--sala-text-secondary)', margin: '0 0 14px', lineHeight: 1.5 }}>
+              Pásale esta contraseña temporal. Al entrar deberá cambiarla por una suya.
+            </p>
+            <div style={{ background: 'var(--sala-surface)', border: '0.5px solid var(--sala-border)', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+              <p style={{ fontFamily: 'var(--ek-font-mono)', fontSize: 26, fontWeight: 800, letterSpacing: '0.08em', margin: 0, color: 'var(--sala-text-primary)' }}>{resetPwd.password}</p>
+            </div>
+            <button type="button" onClick={() => setResetPwd(null)} className="ek-cta" style={{ width: '100%' }}>
+              Listo
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -338,7 +370,8 @@ function PersonaCard({
   onChangeSucursal,
   onCambiarRol,
   onRevoke,
-  onEliminar
+  onEliminar,
+  onResetPassword
 }: {
   usuario: Usuario;
   currentUserId: string | undefined;
@@ -347,6 +380,7 @@ function PersonaCard({
   onCambiarRol: () => void;
   onRevoke: () => void;
   onEliminar: () => void;
+  onResetPassword: () => void;
 }) {
   const esYo = u.id === currentUserId;
   const nombre = capitalizar(u.nombre) || u.email;
@@ -423,6 +457,7 @@ function PersonaCard({
       <CardMenuDropdown
         items={[
           { label: 'Cambiar rol', icon: <RefreshCcw size={15} />, onClick: onCambiarRol },
+          { label: 'Resetear contraseña', icon: <KeyRound size={15} />, onClick: onResetPassword },
           { label: 'Revocar acceso', icon: <Ban size={15} />, onClick: onRevoke, danger: true, divider: true },
           ...(esYo ? [] : [
             { label: 'Eliminar definitivamente', icon: <AlertTriangle size={15} />, onClick: onEliminar, danger: true }

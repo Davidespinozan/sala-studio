@@ -67,9 +67,16 @@ export const handler: Handler = async (event) => {
       .select('id, tenant_id, rol, nombre, email, auth_id')
       .eq('id', body.usuario_id)
       .maybeSingle();
-    if (!socio) return badRequest('Socio no encontrado');
-    if (socio.tenant_id !== staff.tenant_id) return forbidden('Ese socio no pertenece a tu negocio');
-    if (socio.rol !== 'miembro') return forbidden('Solo se puede resetear la contraseña de un socio');
+    if (!socio) return badRequest('Persona no encontrada');
+    if (socio.tenant_id !== staff.tenant_id) return forbidden('No pertenece a tu negocio');
+    if (!['miembro', 'recepcionista', 'admin'].includes(socio.rol as string)) {
+      return forbidden('No se puede resetear la contraseña de este rol');
+    }
+    // Resetear a alguien del EQUIPO (recepción/admin) es más sensible: solo un admin.
+    const targetEsStaff = socio.rol === 'recepcionista' || socio.rol === 'admin';
+    if (targetEsStaff && staff.rol !== 'admin') {
+      return forbidden('Solo un admin puede resetear la contraseña de alguien del equipo');
+    }
 
     const password = PASSWORD_TEMPORAL;
     const emailLc = String(socio.email ?? '').trim().toLowerCase();
