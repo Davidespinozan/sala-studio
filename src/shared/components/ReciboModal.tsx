@@ -1,29 +1,34 @@
-import { useEffect, useState } from 'react';
-import { Printer, MessageCircle, X, Share2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Printer, Share2, X, Link2 } from 'lucide-react';
 import { backendPost } from '@shared/lib/backend';
 import { ReciboView, ReciboPrint } from './ReciboView';
-import { type ReciboData, reciboUrl, waReciboUrl, imprimirRecibo } from '@shared/lib/recibo';
+import { type ReciboData, reciboUrl, imprimirRecibo, compartirReciboImagen } from '@shared/lib/recibo';
 
 /**
- * Modal in-app que muestra el recibo de un pago y deja imprimirlo / guardarlo en
- * PDF (window.print) o mandarlo por WhatsApp al socio (solo staff). Pide el token
- * firmado a `recibo-token` (autenticado) y arma el recibo con `recibo` (público),
- * la MISMA fuente que usa la página pública /recibo — el documento es idéntico.
+ * Modal in-app que muestra el recibo de un pago y deja:
+ *   - Imprimir / guardar PDF (window.print).
+ *   - Compartir el recibo como IMAGEN por la hoja del sistema (WhatsApp a
+ *     cualquier contacto, sin número prefijado; en desktop descarga la imagen).
+ *   - Copiar el link público como respaldo.
+ * Pide el token firmado a `recibo-token` y arma el recibo con `recibo` (público),
+ * la MISMA fuente que la página pública /recibo — el documento es idéntico.
  */
 export function ReciboModal({
   pagoId,
-  modo,
+  modo: _modo,
   onClose
 }: {
   pagoId: string;
-  /** 'staff' muestra el botón de WhatsApp al socio; 'socio' solo imprime/comparte. */
+  /** Se conserva por compatibilidad; el flujo de compartir es igual para ambos. */
   modo: 'staff' | 'socio';
   onClose: () => void;
 }) {
   const [data, setData] = useState<ReciboData | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [telefono, setTelefono] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [compartiendo, setCompartiendo] = useState(false);
+  const capturaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancel = false;
@@ -34,7 +39,6 @@ export function ReciboModal({
         const r = await backendPost<{ recibo: ReciboData }>('recibo', { id: pagoId, t: t.token });
         if (cancel) return;
         setToken(t.token);
-        setTelefono(t.telefono);
         setData(r.recibo);
       } catch (e) {
         if (!cancel) setError(e instanceof Error ? e.message : 'No pudimos generar el recibo.');
@@ -45,13 +49,30 @@ export function ReciboModal({
 
   const url = token ? reciboUrl(window.location.origin, pagoId, token) : null;
 
-  function compartir() {
-    if (!url || !data) return;
-    if (navigator.share) {
-      void navigator.share({ title: `Recibo ${data.folio}`, text: `Tu recibo de ${data.gym.nombre}`, url });
-    } else {
-      void navigator.clipboard?.writeText(url);
+  async function compartir() {
+    if (!data || !capturaRef.current) return;
+    setCompartiendo(true);
+    setAviso(null);
+    try {
+      const res = await compartirReciboImagen(capturaRef.current, data);
+      if (res === 'descargado') setAviso('Se descargó la imagen del recibo — adjúntala en WhatsApp.');
+    } catch {
+      // Si no se pudo generar la imagen, caemos al link.
+      if (url && navigator.clipboard) {
+        await navigator.clipboard.writeText(url).catch(() => {});
+        setAviso('No se pudo generar la imagen. Copiamos el link del recibo.');
+      } else {
+        setAviso('No se pudo compartir el recibo. Intenta imprimirlo.');
+      }
+    } finally {
+      setCompartiendo(false);
     }
+  }
+
+  async function copiarLink() {
+    if (!url) return;
+    await navigator.clipboard?.writeText(url).catch(() => {});
+    setAviso('Link del recibo copiado.');
   }
 
   return (
@@ -79,31 +100,28 @@ export function ReciboModal({
             <ReciboPrint data={data} />
 
             <div className="no-print" style={{ display: 'flex', gap: 8, marginTop: 18, flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => imprimirRecibo()} className="ek-cta" style={{ flex: 1, minWidth: 140, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <button type="button" onClick={() => imprimirRecibo()} className="ek-cta ek-cta--secondary" style={{ flex: 1, minWidth: 140, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <Printer size={16} /> Imprimir / PDF
               </button>
-
-              {modo === 'staff' && telefono ? (
-                <a
-                  href={url ? waReciboUrl(telefono, url, data.gym.nombre) : undefined}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="ek-cta ek-cta--secondary"
-                  style={{ flex: 1, minWidth: 140, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none' }}
-                >
-                  <MessageCircle size={16} /> WhatsApp
-                </a>
-              ) : (
-                <button type="button" onClick={compartir} className="ek-cta ek-cta--secondary" style={{ flex: 1, minWidth: 140, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <Share2 size={16} /> Compartir link
-                </button>
-              )}
+              <button type="button" onClick={() => void compartir()} disabled={compartiendo} className="ek-cta" style={{ flex: 1, minWidth: 140, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <Share2 size={16} /> {compartiendo ? 'Preparando…' : 'Compartir recibo'}
+              </button>
             </div>
-            {modo === 'staff' && !telefono && (
-              <p className="no-print" style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--sala-text-tertiary)', textAlign: 'center' }}>
-                El socio no tiene teléfono guardado — usa “Compartir link”.
+
+            <button type="button" onClick={() => void copiarLink()} className="no-print" style={{ marginTop: 10, width: '100%', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sala-text-tertiary)', fontSize: 12.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'inherit' }}>
+              <Link2 size={14} /> Copiar link del recibo
+            </button>
+
+            {aviso && (
+              <p className="no-print" style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--sala-text-secondary)', textAlign: 'center', lineHeight: 1.45 }}>
+                {aviso}
               </p>
             )}
+
+            {/* Nodo oculto (fuera de pantalla, NO display:none) para capturar la imagen. */}
+            <div ref={capturaRef} aria-hidden="true" style={{ position: 'fixed', left: -10000, top: 0, width: 460, pointerEvents: 'none', background: '#fff' }}>
+              <ReciboView data={data} />
+            </div>
           </>
         )}
       </div>

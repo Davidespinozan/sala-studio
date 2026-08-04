@@ -110,3 +110,40 @@ export function waReciboUrl(telefono: string, url: string, gymNombre: string): s
   const msg = `Hola, aquí tienes tu recibo de ${gymNombre}: ${url}`;
   return `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
 }
+
+/**
+ * Comparte el recibo como IMAGEN (PNG) por la hoja de compartir del sistema. Así
+ * recepción/el socio eligen A QUIÉN y POR DÓNDE mandarlo (WhatsApp a cualquier
+ * contacto, sin que el número esté guardado, y el recibo se ve dentro del chat).
+ * En equipos sin compartir de archivos (típicamente desktop) DESCARGA la imagen
+ * para adjuntarla a mano. `node`: un ReciboView renderizado a capturar.
+ */
+export async function compartirReciboImagen(
+  node: HTMLElement,
+  data: ReciboData
+): Promise<'compartido' | 'descargado'> {
+  const { toBlob } = await import('html-to-image');
+  const blob = await toBlob(node, { pixelRatio: 2, backgroundColor: '#ffffff', cacheBust: true });
+  if (!blob) throw new Error('No se pudo generar la imagen del recibo.');
+  const file = new File([blob], `recibo-${data.folio}.png`, { type: 'image/png' });
+
+  const nav = navigator as Navigator & {
+    canShare?: (d: { files?: File[] }) => boolean;
+    share?: (d: { files?: File[]; title?: string; text?: string }) => Promise<void>;
+  };
+  if (nav.canShare?.({ files: [file] }) && nav.share) {
+    await nav.share({ files: [file], title: `Recibo ${data.folio}`, text: `Recibo de ${data.gym.nombre}` });
+    return 'compartido';
+  }
+
+  // Fallback (sin compartir de archivos): descarga la imagen para adjuntarla a mano.
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = file.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  return 'descargado';
+}

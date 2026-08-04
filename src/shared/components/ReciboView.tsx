@@ -37,6 +37,7 @@ export function ReciboView({ data }: { data: ReciboData }) {
           <img
             src={data.gym.logoUrl}
             alt={data.gym.nombre}
+            crossOrigin="anonymous"
             style={{ height: 48, maxWidth: 180, objectFit: 'contain', margin: '0 auto 6px' }}
           />
         ) : (
