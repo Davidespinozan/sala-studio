@@ -107,6 +107,21 @@ function hora(iso: string): string {
   });
 }
 
+/** Fecha local (del dispositivo = horario del gym) como YYYY-MM-DD. */
+function ymd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+/** Rango [desde, hasta) en horario LOCAL: incluye todo el día `fHasta`. */
+function rangoISO(fDesde: string, fHasta: string): { desde: string; hasta: string } {
+  const desde = new Date(`${fDesde}T00:00:00`);
+  const hasta = new Date(`${fHasta}T00:00:00`);
+  hasta.setDate(hasta.getDate() + 1);
+  return { desde: desde.toISOString(), hasta: hasta.toISOString() };
+}
+
 interface DatosCorte { razon_social?: string; rfc?: string; telefono?: string; direccion?: string }
 
 export default function Caja() {
@@ -614,6 +629,7 @@ function DevolverModal({
   onError: (msg: string) => void;
 }) {
   const disponible = pago.monto_centavos - yaDevuelto;
+  const [tipo, setTipo] = useState<'devolucion' | 'correccion'>('devolucion');
   const [monto, setMonto] = useState(String(Math.round(disponible / 100)));
   const [motivo, setMotivo] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -622,13 +638,20 @@ function DevolverModal({
   const montoValido =
     Number.isFinite(montoCentavos) && montoCentavos > 0 && montoCentavos <= disponible;
   const motivoValido = motivo.trim().length >= 3;
+  const esCorreccion = tipo === 'correccion';
+
+  const PRESETS = ['Cobro duplicado', 'Era cortesía (no pagó)', 'No pagó inscripción', 'Monto equivocado'];
 
   async function devolver() {
     setEnviando(true);
+    // El motivo lleva el TIPO para que en la auditoría se distinga una corrección
+    // de error de una devolución real al cliente (el efecto en la caja es el mismo:
+    // una entrada que revierte el cobro).
+    const motivoFinal = `${esCorreccion ? 'Corrección' : 'Devolución'}: ${motivo.trim()}`;
     const { data, error } = await supabase.rpc('registrar_reembolso' as never, {
       p_pago_id: pago.id,
       p_monto_centavos: montoCentavos,
-      p_motivo: motivo.trim()
+      p_motivo: motivoFinal
     } as never);
 
     if (error) {
@@ -639,9 +662,11 @@ function DevolverModal({
 
     const res = data as { requiere_accion_en_stripe?: boolean } | null;
     onHecho(
-      res?.requiere_accion_en_stripe
-        ? 'Reembolso registrado. Ojo: el dinero se devuelve desde Stripe.'
-        : 'Reembolso registrado.'
+      esCorreccion
+        ? 'Corrección registrada.'
+        : res?.requiere_accion_en_stripe
+          ? 'Devolución registrada. Ojo: el dinero se devuelve desde Stripe.'
+          : 'Devolución registrada.'
     );
   }
 
@@ -649,14 +674,29 @@ function DevolverModal({
     <div className="ek-modal-backdrop" onClick={onClose}>
       <div className="ek-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
         <div className="ek-modal-handle" />
-        <h3 className="ek-h3" style={{ marginBottom: '4px' }}>Devolver dinero</h3>
-        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 20px', lineHeight: 1.5 }}>
+        <h3 className="ek-h3" style={{ marginBottom: '4px' }}>Devolver / Corregir</h3>
+        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 14px', lineHeight: 1.5 }}>
           {pago.socio?.nombre ?? 'El socio'} · {CONCEPTO_LABEL[pago.concepto] ?? pago.concepto}
           {' · '}{money(pago.monto_centavos, pago.moneda)}
-          {yaDevuelto > 0 && ` (ya se devolvieron ${money(yaDevuelto, pago.moneda)})`}
+          {yaDevuelto > 0 && ` (ya se revirtieron ${money(yaDevuelto, pago.moneda)})`}
         </p>
 
-        {pago.metodo === 'stripe' && (
+        {/* Tipo: devolución real vs corrección de error */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+          <button type="button" onClick={() => setTipo('devolucion')} className={`ek-cta ${tipo === 'devolucion' ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 36, fontSize: 12.5 }}>
+            Devolución al cliente
+          </button>
+          <button type="button" onClick={() => setTipo('correccion')} className={`ek-cta ${esCorreccion ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 36, fontSize: 12.5 }}>
+            Corrección de error
+          </button>
+        </div>
+        <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '0 0 14px', lineHeight: 1.45 }}>
+          {esCorreccion
+            ? 'Se registró algo por error (duplicado, cortesía, inscripción que no pagó). Lo revierte sin que aparezca como un reembolso de dinero al cliente.'
+            : 'El cliente pidió su dinero de vuelta. Se asienta como devolución en la caja.'}
+        </p>
+
+        {pago.metodo === 'stripe' && !esCorreccion && (
           <p style={{
             fontSize: '12px',
             lineHeight: 1.5,
@@ -667,7 +707,7 @@ function DevolverModal({
             color: 'var(--sala-text-secondary)'
           }}>
             Este cobro fue online. Esto lo <strong>asienta en la caja</strong>, pero el dinero se
-            devuelve desde Stripe: hacelo también allá.
+            devuelve desde Stripe: hazlo también allá.
           </p>
         )}
 
@@ -682,17 +722,26 @@ function DevolverModal({
             max={Math.round(disponible / 100)}
           />
           <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
-            Se puede devolver hasta {money(disponible, pago.moneda)}. Podés devolver una parte.
+            Hasta {money(disponible, pago.moneda)}. Puedes revertir solo una parte.
           </p>
         </div>
 
         <div className="ek-form-field" style={{ marginTop: '12px' }}>
           <label className="ek-label">Motivo</label>
+          {esCorreccion && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+              {PRESETS.map((p) => (
+                <button key={p} type="button" onClick={() => setMotivo(p)} className="ek-cta ek-cta--secondary" style={{ minHeight: 28, padding: '0 10px', fontSize: 11.5 }}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          )}
           <input
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
             className="ek-input"
-            placeholder="Cobro duplicado, el socio se arrepintió…"
+            placeholder={esCorreccion ? 'Duplicado, era cortesía…' : 'El socio se arrepintió…'}
           />
           <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
             Obligatorio: sin motivo, el movimiento no se puede auditar después.
@@ -700,7 +749,7 @@ function DevolverModal({
         </div>
 
         <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '16px 0 0', lineHeight: 1.5 }}>
-          El cobro original no se toca: queda registrado, y este reembolso se asienta aparte.
+          El cobro original no se toca: queda registrado, y esta reversión se asienta aparte.
           Tampoco se da de baja el plan — eso se hace desde la ficha del socio.
         </p>
 
@@ -715,7 +764,7 @@ function DevolverModal({
             className="ek-cta"
             style={{ flex: 1 }}
           >
-            {enviando ? 'Devolviendo…' : 'Devolver'}
+            {enviando ? 'Guardando…' : esCorreccion ? 'Corregir' : 'Devolver'}
           </button>
         </div>
       </div>
@@ -744,23 +793,31 @@ function CorteModal({
   }) => void;
   onError: (msg: string) => void;
 }) {
+  const ayer = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return ymd(d); })();
+  const [fDesde, setFDesde] = useState(ayer);
+  const [fHasta, setFHasta] = useState(ayer);
   const [esperado, setEsperado] = useState<number | null>(null);
   const [fondo, setFondo] = useState('0');
   const [contado, setContado] = useState('');
   const [enviando, setEnviando] = useState(false);
 
+  const rangoValido = fDesde !== '' && fHasta !== '' && fHasta >= fDesde;
+
   useEffect(() => {
+    if (!rangoValido) { setEsperado(null); return; }
     let cancel = false;
+    setEsperado(null);
     (async () => {
+      const { desde, hasta } = rangoISO(fDesde, fHasta);
       const rpc = supabase.rpc.bind(supabase) as unknown as (
         name: string,
         args: unknown
       ) => Promise<{ data: { efectivo_esperado_centavos: number } | null; error: { message: string } | null }>;
-      const { data } = await rpc('preview_corte_caja', { p_sucursal_id: sucursalId });
+      const { data } = await rpc('preview_corte_caja', { p_desde: desde, p_hasta: hasta, p_sucursal_id: sucursalId });
       if (!cancel) setEsperado(data?.efectivo_esperado_centavos ?? 0);
     })();
     return () => { cancel = true; };
-  }, [sucursalId]);
+  }, [sucursalId, fDesde, fHasta, rangoValido]);
 
   const fondoC = Math.round(Number(fondo || '0') * 100);
   const contadoC = Math.round(Number(contado || '0') * 100);
@@ -769,13 +826,16 @@ function CorteModal({
   const contadoValido = contado.trim() !== '' && Number.isFinite(contadoC) && contadoC >= 0;
 
   async function confirmar() {
-    if (!contadoValido || esperado === null) return;
+    if (!contadoValido || esperado === null || !rangoValido) return;
     setEnviando(true);
+    const { desde, hasta } = rangoISO(fDesde, fHasta);
     const rpc = supabase.rpc.bind(supabase) as unknown as (
       name: string,
       args: unknown
     ) => Promise<{ data: { desde: string | null; hasta: string; efectivo_esperado_centavos: number; fondo_centavos: number; efectivo_contado_centavos: number; diferencia_centavos: number } | null; error: { message: string } | null }>;
     const { data, error } = await rpc('hacer_corte_caja', {
+      p_desde: desde,
+      p_hasta: hasta,
       p_sucursal_id: sucursalId,
       p_efectivo_contado_centavos: contadoC,
       p_fondo_centavos: Number.isFinite(fondoC) ? fondoC : 0,
@@ -786,20 +846,39 @@ function CorteModal({
     onHecho(data);
   }
 
+  function setDia(fecha: string) { setFDesde(fecha); setFHasta(fecha); }
+  const hoy = ymd(new Date());
+
   return (
     <div className="ek-modal-backdrop" onClick={onClose}>
       <div className="ek-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
         <div className="ek-modal-handle" />
         <h3 className="ek-h3" style={{ marginBottom: '4px' }}>Corte de caja</h3>
-        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 18px', lineHeight: 1.5 }}>
-          Cuenta el efectivo del cajón y captúralo. Lo comparamos con lo que registró el sistema
-          desde el último corte. Tarjeta, transferencia y online no cuentan.
+        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
+          Elige el rango, cuenta el efectivo del cajón y captúralo. Lo comparamos con lo que
+          registró el sistema en ese periodo. Tarjeta, transferencia y online no cuentan.
         </p>
+
+        {/* Rango de fechas (horario del gym) */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+          <button type="button" onClick={() => setDia(ayer)} className={`ek-cta ${fDesde === ayer && fHasta === ayer ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 34, fontSize: 12 }}>Ayer</button>
+          <button type="button" onClick={() => setDia(hoy)} className={`ek-cta ${fDesde === hoy && fHasta === hoy ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 34, fontSize: 12 }}>Hoy</button>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+          <label className="ek-form-field" style={{ flex: 1 }}>
+            <span className="ek-label">Del día</span>
+            <input type="date" className="ek-input" value={fDesde} max={fHasta || hoy} onChange={(e) => setFDesde(e.target.value)} />
+          </label>
+          <label className="ek-form-field" style={{ flex: 1 }}>
+            <span className="ek-label">Al día</span>
+            <input type="date" className="ek-input" value={fHasta} min={fDesde} onChange={(e) => setFHasta(e.target.value)} />
+          </label>
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', padding: '2px 0' }}>
             <span style={{ color: 'var(--sala-text-tertiary)' }}>Efectivo esperado (sistema)</span>
-            <span style={{ fontWeight: 700 }}>{esperado === null ? '…' : money(espC, moneda)}</span>
+            <span style={{ fontWeight: 700 }}>{!rangoValido ? '—' : esperado === null ? '…' : money(espC, moneda)}</span>
           </div>
           <div className="ek-form-field">
             <label className="ek-label">Fondo inicial (opcional)</label>
@@ -827,7 +906,7 @@ function CorteModal({
           <button type="button" onClick={onClose} disabled={enviando} className="ek-cta ek-cta--secondary" style={{ flex: 1 }}>
             Cancelar
           </button>
-          <button type="button" onClick={confirmar} disabled={!contadoValido || enviando || esperado === null} className="ek-cta" style={{ flex: 1 }}>
+          <button type="button" onClick={confirmar} disabled={!contadoValido || enviando || esperado === null || !rangoValido} className="ek-cta" style={{ flex: 1 }}>
             {enviando ? 'Guardando…' : 'Confirmar corte'}
           </button>
         </div>
