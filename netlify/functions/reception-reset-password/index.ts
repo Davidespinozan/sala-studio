@@ -9,18 +9,23 @@ import { ok, badRequest, unauthorized, forbidden, serverError } from '../_lib/ht
 import { requireEnv } from '../_lib/env';
 
 /**
- * POST /reception-reset-password — Recepción/admin genera una contraseña
- * TEMPORAL para un socio que quedó afuera del login (en el mostrador).
- * Auth: Bearer JWT del staff. Body: { usuario_id }.
- * Gate: caller recepcionista/admin activo + mismo tenant; target rol 'miembro'.
- * Devuelve { password } para entregársela. Queda en la bitácora.
+ * POST /reception-reset-password — Recepción/admin deja al socio con una clave
+ * TEMPORAL fija (Cambiar123) para que entre. Auth: Bearer JWT del staff.
+ * Body: { usuario_id }. Gate: caller recepcionista/admin activo + mismo tenant;
+ * target rol 'miembro'. Devuelve { password }. Queda en la bitácora.
+ *
+ * "Resetear" SIEMPRE debe dejar un login que funcione con Cambiar123:
+ *   - Si el socio YA tiene cuenta → resetea la clave Y sincroniza el email de la
+ *     cuenta con el de la ficha (si no coincidían, por eso no entraba).
+ *   - Si NO tiene cuenta (ficha sin login) → la CREA (como "dar acceso") y la liga.
  */
 
 interface Body { usuario_id?: string }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // Contraseña temporal fija = src/shared/lib/acceso.ts (pública a propósito; la app
-// obliga a cambiarla al entrar). "Resetear" = volver a dejarla en esta, para que
-// un socio que perdió su clave (o de un alta vieja con clave aleatoria) entre.
+// obliga a cambiarla al entrar).
 const PASSWORD_TEMPORAL = 'Cambiar123';
 
 export const handler: Handler = async (event) => {
@@ -65,12 +70,51 @@ export const handler: Handler = async (event) => {
     if (!socio) return badRequest('Socio no encontrado');
     if (socio.tenant_id !== staff.tenant_id) return forbidden('Ese socio no pertenece a tu negocio');
     if (socio.rol !== 'miembro') return forbidden('Solo se puede resetear la contraseña de un socio');
-    if (!socio.auth_id) return badRequest('El socio no tiene cuenta de acceso.');
 
-    // 3) Password temporal fija (Cambiar123). La app le exige cambiarla al entrar.
     const password = PASSWORD_TEMPORAL;
-    const { error: updErr } = await admin.auth.admin.updateUserById(socio.auth_id, { password });
-    if (updErr) return serverError(updErr.message);
+    const emailLc = String(socio.email ?? '').trim().toLowerCase();
+    const emailValido = EMAIL_RE.test(emailLc) && !emailLc.endsWith('@sin-correo.local');
+
+    if (socio.auth_id) {
+      // 3a) Tiene cuenta → reset de clave + sincronizar el email de la cuenta con
+      //     el de la ficha (si no coincidían, por eso no entraba con su correo).
+      const upd: { password: string; email?: string; email_confirm?: boolean } =
+        emailValido ? { password, email: emailLc, email_confirm: true } : { password };
+      let { error: updErr } = await admin.auth.admin.updateUserById(socio.auth_id, upd);
+      if (updErr && upd.email) {
+        // El email pudo fallar (ya tomado por otra cuenta): al menos deja la clave.
+        console.error('[reset] no se pudo sincronizar el email:', updErr.message);
+        ({ error: updErr } = await admin.auth.admin.updateUserById(socio.auth_id, { password }));
+      }
+      if (updErr) return serverError(updErr.message);
+    } else {
+      // 3b) Ficha SIN login → crear la cuenta (como "dar acceso") para que entre.
+      if (!emailValido) {
+        return badRequest('Este socio no tiene un correo válido. Edita su correo y vuelve a intentar.');
+      }
+      const { data: tenant } = await admin
+        .from('tenants')
+        .select('slug')
+        .eq('id', socio.tenant_id)
+        .maybeSingle();
+      if (!tenant?.slug) return serverError('No se pudo resolver el gimnasio');
+
+      const { data: authData, error: authErr } = await admin.auth.admin.createUser({
+        email: emailLc,
+        password,
+        email_confirm: true,
+        user_metadata: { tenant_slug: tenant.slug, nombre: socio.nombre ?? undefined }
+      });
+      if (authErr || !authData?.user) {
+        const msg = (authErr?.message || '').toLowerCase();
+        if (msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
+          return badRequest('Ya existe una cuenta con ese correo pero no está ligada a esta ficha. Probablemente hay una ficha duplicada; avísame para unirlas.');
+        }
+        return serverError('No pudimos crear el acceso.');
+      }
+      // Ligar la ficha a la cuenta nueva (el trigger hizo ON CONFLICT DO NOTHING).
+      await admin.from('usuarios').update({ auth_id: authData.user.id }).eq('id', socio.id).is('auth_id', null);
+    }
 
     // Aviso EN-APP para forzar el cambio (solo en-app, no push).
     await admin.from('notificaciones').insert({
