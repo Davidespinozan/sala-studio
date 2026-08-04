@@ -64,7 +64,32 @@ export const handler: Handler = async (event) => {
       .eq('email', emailLc)
       .maybeSingle();
     if (fichaPrevia?.auth_id) {
-      return CONFLICT('Esa cuenta ya está activa. Inicia sesión con tu contraseña.', 'YA_ACTIVA');
+      // La cuenta ya existe. Caso típico de socios creados por el flujo viejo (que
+      // creaba el login con Cambiar123 al dar de alta): tienen cuenta pero NUNCA
+      // la usaron, y como /activar decía "ya activa" nunca veían su clave temporal
+      // → quedaban atorados y solo el reset los metía. Ahora: si NUNCA iniciaron
+      // sesión, les reafirmamos y RE-MOSTRAMOS la temporal (Cambiar123, que es
+      // pública: no expone nada). Si ya entraron alguna vez, NO tocamos su clave.
+      const { data: authInfo } = await admin.auth.admin.getUserById(fichaPrevia.auth_id);
+      const nuncaInicioSesion = !authInfo?.user?.last_sign_in_at;
+      if (!nuncaInicioSesion) {
+        return CONFLICT('Esa cuenta ya está activa. Inicia sesión con tu contraseña.', 'YA_ACTIVA');
+      }
+      await admin.auth.admin.updateUserById(fichaPrevia.auth_id, {
+        password: PASSWORD_TEMPORAL,
+        email_confirm: true
+      });
+      // Aviso en-app para forzar el cambio (idempotente: si ya había uno sin leer,
+      // no pasa nada por tener otro).
+      await admin.from('notificaciones').insert({
+        tenant_id: tenant.id,
+        usuario_id: fichaPrevia.id,
+        tipo: 'cambiar_password',
+        titulo: 'Cambia tu contraseña',
+        mensaje: 'Entraste con una contraseña temporal. Por tu seguridad, cámbiala ahora por una tuya.',
+        push_enviado_at: new Date().toISOString()
+      } as never);
+      return ok({ success: true, nueva: false });
     }
     // Alta 100% en recepción: si el email no tiene ficha, NO lo creamos por
     // auto-servicio (evita fichas huérfanas cuando el socio teclea un email
