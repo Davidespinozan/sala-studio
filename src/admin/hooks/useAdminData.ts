@@ -264,6 +264,7 @@ export function useAdminMetrics() {
     proximasReservas: ReservaConJoin[];
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const tz = getTenantTimezone(tenant);
 
   useEffect(() => {
     let mounted = true;
@@ -272,7 +273,6 @@ export function useAdminMetrics() {
       // try/finally: una query que rechace no debe dejar las métricas colgadas.
       try {
       // Fronteras del día/mes en la zona del GYM (no del navegador del que mira).
-      const tz = getTenantTimezone(tenant);
       const hoyGym = hoyEnTimezone(tz);
       const inicioHoy = fromZonedTime(`${hoyGym}T00:00:00`, tz);
       const finHoy = fromZonedTime(`${sumarDias(hoyGym, 1)}T00:00:00`, tz);
@@ -374,7 +374,7 @@ export function useAdminMetrics() {
 
     load();
     return () => { mounted = false; };
-  }, [tenant.id]);
+  }, [tenant.id, tz]);
 
   return { metrics, isLoading };
 }
@@ -406,11 +406,11 @@ export function useDashboardData() {
   const tenant = useTenant();
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const tz = getTenantTimezone(tenant);
 
   const refetch = useCallback(async () => {
     setIsLoading(true);
     // Fronteras del día/mes en la zona del GYM (no del navegador del que mira).
-    const tz = getTenantTimezone(tenant);
     const hoyGym = hoyEnTimezone(tz);
     const [yGym, mGym] = hoyGym.split('-').map(Number);
     const prevY = mGym === 1 ? yGym - 1 : yGym;
@@ -537,7 +537,7 @@ export function useDashboardData() {
     } finally {
       setIsLoading(false);
     }
-  }, [tenant.id]);
+  }, [tenant.id, tz]);
 
   useEffect(() => {
     void refetch();

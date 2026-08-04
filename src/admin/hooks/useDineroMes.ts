@@ -27,6 +27,7 @@ export interface DineroMes {
 export function useDineroMes() {
   const tenant = useTenant();
   const { sucursalFiltro } = useSucursal();
+  const tz = getTenantTimezone(tenant);
   const [data, setData] = useState<DineroMes | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -37,7 +38,6 @@ export function useDineroMes() {
     (async () => {
       // Inicio del mes en la zona del GYM (no del navegador): si el dueño abre
       // desde otra zona, "este mes" seguía siendo el del gym.
-      const tz = getTenantTimezone(tenant);
       const hoy = hoyEnTimezone(tz);
       const inicioMesISO = fromZonedTime(`${hoy.slice(0, 8)}01T00:00:00`, tz).toISOString();
 
@@ -85,7 +85,7 @@ export function useDineroMes() {
     return () => {
       cancelled = true;
     };
-  }, [tenant.id, sucursalFiltro]);
+  }, [tenant.id, tz, sucursalFiltro]);
 
   return { data, isLoading };
 }

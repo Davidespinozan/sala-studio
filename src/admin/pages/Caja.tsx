@@ -200,7 +200,7 @@ export default function Caja() {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [tenant.id, rango, reload, sucursalFiltro]);
+  }, [tenant.id, rango, reload, sucursalFiltro, tz]);
 
   // Totales por método. La cortesía NO suma: es dinero que no entró. Los
   // reembolsos son negativos, así que restan solos — sin ninguna cuenta especial.
@@ -878,7 +878,7 @@ function CorteModal({
       const cD = c.desde ? Date.parse(c.desde) : -Infinity;
       return sD < Date.parse(c.hasta) && cD < sH;
     });
-  }, [fDesde, fHasta, rangoValido, cortesPrevios]);
+  }, [fDesde, fHasta, rangoValido, cortesPrevios, tz]);
 
   useEffect(() => {
     if (!rangoValido) { setEsperado(null); return; }
@@ -894,7 +894,7 @@ function CorteModal({
       if (!cancel) setEsperado(data?.efectivo_esperado_centavos ?? 0);
     })();
     return () => { cancel = true; };
-  }, [sucursalId, fDesde, fHasta, rangoValido]);
+  }, [sucursalId, fDesde, fHasta, rangoValido, tz]);
 
   const fondoC = Math.round(Number(fondo || '0') * 100);
   const contadoC = Math.round(Number(contado || '0') * 100);
