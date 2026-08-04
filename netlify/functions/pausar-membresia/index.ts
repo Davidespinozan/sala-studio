@@ -74,6 +74,11 @@ export const handler: Handler = async (event) => {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
+      // Aislamiento entre tenants: NO tocar el Stripe de una membresía de otro gym.
+      // El RPC de abajo ya valida, pero corre DESPUÉS de tocar Stripe; esto es antes.
+      if (mem && mem.tenant_id !== staff.tenant_id) {
+        return forbidden('No puedes modificar la membresía de otro gimnasio');
+      }
       subId = (mem?.stripe_subscription_id as string | null) ?? null;
       if (subId && !subId.startsWith('mock_') && mem?.tenant_id) {
         const { data: tenant } = await admin
