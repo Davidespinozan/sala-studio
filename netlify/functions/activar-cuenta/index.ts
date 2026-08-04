@@ -21,8 +21,10 @@ import { requireEnv } from '../_lib/env';
  *     ficha por auto-servicio: si el socio teclea un email distinto al que
  *     registró recepción, crearíamos una ficha huérfana duplicada.
  *
- * SEGURIDAD (decisión del owner): es abierto por email a propósito — el acceso
- * físico real es huella + recepción, y la clave se cambia de una. No hay código.
+ * SEGURIDAD: crear el login de una ficha SIN cuenta es abierto por email (el
+ * acceso físico real es huella + recepción, y la clave se cambia de una). Pero
+ * REACTIVAR una cuenta que YA existe NO se hace desde aquí (sería robo de cuenta
+ * por correo): eso pasa por recepción ("Dar acceso"), que valida identidad.
  */
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -64,32 +66,20 @@ export const handler: Handler = async (event) => {
       .eq('email', emailLc)
       .maybeSingle();
     if (fichaPrevia?.auth_id) {
-      // La cuenta ya existe. Caso típico de socios creados por el flujo viejo (que
-      // creaba el login con Cambiar123 al dar de alta): tienen cuenta pero NUNCA
-      // la usaron, y como /activar decía "ya activa" nunca veían su clave temporal
-      // → quedaban atorados y solo el reset los metía. Ahora: si NUNCA iniciaron
-      // sesión, les reafirmamos y RE-MOSTRAMOS la temporal (Cambiar123, que es
-      // pública: no expone nada). Si ya entraron alguna vez, NO tocamos su clave.
+      // La cuenta YA existe. Antes, si "nunca inició sesión", este endpoint
+      // reseteaba su clave a la temporal — pero eso es robo de cuenta: bastaba
+      // conocer el correo para tomar la cuenta de un socio inactivo. Ya NO se
+      // resetea desde aquí. Ya sea que haya entrado o no, se manda a recepción
+      // (que valida identidad con "Dar acceso" / reset de contraseña).
       const { data: authInfo } = await admin.auth.admin.getUserById(fichaPrevia.auth_id);
       const nuncaInicioSesion = !authInfo?.user?.last_sign_in_at;
       if (!nuncaInicioSesion) {
         return CONFLICT('Esa cuenta ya está activa. Inicia sesión con tu contraseña.', 'YA_ACTIVA');
       }
-      await admin.auth.admin.updateUserById(fichaPrevia.auth_id, {
-        password: PASSWORD_TEMPORAL,
-        email_confirm: true
-      });
-      // Aviso en-app para forzar el cambio (idempotente: si ya había uno sin leer,
-      // no pasa nada por tener otro).
-      await admin.from('notificaciones').insert({
-        tenant_id: tenant.id,
-        usuario_id: fichaPrevia.id,
-        tipo: 'cambiar_password',
-        titulo: 'Cambia tu contraseña',
-        mensaje: 'Entraste con una contraseña temporal. Por tu seguridad, cámbiala ahora por una tuya.',
-        push_enviado_at: new Date().toISOString()
-      } as never);
-      return ok({ success: true, nueva: false });
+      return CONFLICT(
+        'Tu cuenta ya existe pero necesita reactivarse. Pídele a recepción que te dé acceso.',
+        'VER_RECEPCION'
+      );
     }
     // Alta 100% en recepción: si el email no tiene ficha, NO lo creamos por
     // auto-servicio (evita fichas huérfanas cuando el socio teclea un email
