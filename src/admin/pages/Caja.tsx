@@ -38,6 +38,18 @@ interface PagoRow {
   tier: { nombre: string | null } | null;
 }
 
+interface CorteRow {
+  id: string;
+  desde: string | null;
+  hasta: string;
+  efectivo_esperado_centavos: number;
+  fondo_centavos: number;
+  efectivo_contado_centavos: number;
+  diferencia_centavos: number;
+  notas: string | null;
+  realizado_por: { nombre: string | null } | null;
+}
+
 const METODO_META: Record<Metodo, { label: string; Icon: typeof Banknote }> = {
   efectivo: { label: 'Efectivo', Icon: Banknote },
   tarjeta: { label: 'Tarjeta', Icon: CreditCard },
@@ -102,6 +114,23 @@ export default function Caja() {
   const [devolviendo, setDevolviendo] = useState<PagoRow | null>(null);
   const [reciboId, setReciboId] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
+  const [showCorte, setShowCorte] = useState(false);
+  const [cortes, setCortes] = useState<CorteRow[]>([]);
+  const [cortesReload, setCortesReload] = useState(0);
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from('cortes_caja')
+        .select('id, desde, hasta, efectivo_esperado_centavos, fondo_centavos, efectivo_contado_centavos, diferencia_centavos, notas, realizado_por:usuarios!cortes_caja_realizado_por_fkey(nombre)')
+        .eq('tenant_id', tenant.id)
+        .order('hasta', { ascending: false })
+        .limit(8);
+      if (!cancel) setCortes((data ?? []) as CorteRow[]);
+    })();
+    return () => { cancel = true; };
+  }, [tenant.id, cortesReload]);
 
   // sucursalFiltro es null en "Todas las sedes" o en un gym de una sola sede:
   // ahí no filtramos (y así no perdemos los cobros online, que llegan sin sede).
@@ -222,6 +251,9 @@ export default function Caja() {
           disabled={pagos.length === 0}
         >
           Exportar CSV
+        </button>
+        <button type="button" onClick={() => setShowCorte(true)} className="ek-cta">
+          Hacer corte
         </button>
       </div>
 
@@ -425,6 +457,37 @@ export default function Caja() {
       {reciboId && (
         <ReciboModal pagoId={reciboId} modo="staff" onClose={() => setReciboId(null)} />
       )}
+
+      {cortes.length > 0 && (
+        <section className="ek-card" style={{ padding: 0, overflow: 'hidden', marginTop: '20px' }}>
+          <p className="ek-eyebrow" style={{ padding: '14px 18px 4px', margin: 0 }}>ÚLTIMOS CORTES</p>
+          {cortes.map((c, i) => (
+            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 18px', borderTop: i === 0 ? 'none' : '0.5px solid var(--sala-border)' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--sala-text-primary)' }}>
+                  {hora(c.hasta)}{c.realizado_por?.nombre ? ` · ${c.realizado_por.nombre}` : ''}
+                </p>
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
+                  Esperado {money(c.efectivo_esperado_centavos + c.fondo_centavos, moneda)} · Contado {money(c.efectivo_contado_centavos, moneda)}
+                </p>
+              </div>
+              <span style={{ fontWeight: 700, fontSize: '14px', whiteSpace: 'nowrap', color: c.diferencia_centavos === 0 ? 'var(--sala-text-secondary)' : c.diferencia_centavos > 0 ? 'var(--sala-success)' : 'var(--sala-error)' }}>
+                {c.diferencia_centavos === 0 ? 'Cuadra' : (c.diferencia_centavos > 0 ? 'Sobra ' : 'Falta ') + money(Math.abs(c.diferencia_centavos), moneda)}
+              </span>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {showCorte && (
+        <CorteModal
+          sucursalId={sucursalFiltro}
+          moneda={moneda}
+          onClose={() => setShowCorte(false)}
+          onHecho={(msg) => { setShowCorte(false); toast.success(msg); setCortesReload((n) => n + 1); setReload((n) => n + 1); }}
+          onError={(msg) => toast.error(msg)}
+        />
+      )}
     </div>
   );
 }
@@ -549,6 +612,121 @@ function DevolverModal({
             style={{ flex: 1 }}
           >
             {enviando ? 'Devolviendo…' : 'Devolver'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Corte de caja
+// ============================================================================
+
+function CorteModal({
+  sucursalId,
+  moneda,
+  onClose,
+  onHecho,
+  onError
+}: {
+  sucursalId: string | null;
+  moneda: string;
+  onClose: () => void;
+  onHecho: (msg: string) => void;
+  onError: (msg: string) => void;
+}) {
+  const [esperado, setEsperado] = useState<number | null>(null);
+  const [fondo, setFondo] = useState('0');
+  const [contado, setContado] = useState('');
+  const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
+        name: string,
+        args: unknown
+      ) => Promise<{ data: { efectivo_esperado_centavos: number } | null; error: { message: string } | null }>;
+      const { data } = await rpc('preview_corte_caja', { p_sucursal_id: sucursalId });
+      if (!cancel) setEsperado(data?.efectivo_esperado_centavos ?? 0);
+    })();
+    return () => { cancel = true; };
+  }, [sucursalId]);
+
+  const fondoC = Math.round(Number(fondo || '0') * 100);
+  const contadoC = Math.round(Number(contado || '0') * 100);
+  const espC = esperado ?? 0;
+  const dif = (Number.isFinite(contadoC) ? contadoC : 0) - (espC + (Number.isFinite(fondoC) ? fondoC : 0));
+  const contadoValido = contado.trim() !== '' && Number.isFinite(contadoC) && contadoC >= 0;
+
+  async function confirmar() {
+    if (!contadoValido || esperado === null) return;
+    setEnviando(true);
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      name: string,
+      args: unknown
+    ) => Promise<{ error: { message: string } | null }>;
+    const { error } = await rpc('hacer_corte_caja', {
+      p_sucursal_id: sucursalId,
+      p_efectivo_contado_centavos: contadoC,
+      p_fondo_centavos: Number.isFinite(fondoC) ? fondoC : 0,
+      p_notas: null
+    });
+    setEnviando(false);
+    if (error) { onError('No se pudo hacer el corte. Intenta de nuevo.'); return; }
+    onHecho(
+      dif === 0
+        ? 'Corte hecho: la caja cuadra.'
+        : dif > 0
+          ? `Corte hecho: sobran ${money(Math.abs(dif), moneda)}.`
+          : `Corte hecho: faltan ${money(Math.abs(dif), moneda)}.`
+    );
+  }
+
+  return (
+    <div className="ek-modal-backdrop" onClick={onClose}>
+      <div className="ek-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+        <div className="ek-modal-handle" />
+        <h3 className="ek-h3" style={{ marginBottom: '4px' }}>Corte de caja</h3>
+        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 18px', lineHeight: 1.5 }}>
+          Cuenta el efectivo del cajón y captúralo. Lo comparamos con lo que registró el sistema
+          desde el último corte. Tarjeta, transferencia y online no cuentan.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', padding: '2px 0' }}>
+            <span style={{ color: 'var(--sala-text-tertiary)' }}>Efectivo esperado (sistema)</span>
+            <span style={{ fontWeight: 700 }}>{esperado === null ? '…' : money(espC, moneda)}</span>
+          </div>
+          <div className="ek-form-field">
+            <label className="ek-label">Fondo inicial (opcional)</label>
+            <input type="number" className="ek-input" value={fondo} min={0} onChange={(e) => setFondo(e.target.value)} />
+          </div>
+          <div className="ek-form-field">
+            <label className="ek-label">Efectivo contado</label>
+            <input type="number" className="ek-input" value={contado} min={0} placeholder="0" autoFocus onChange={(e) => setContado(e.target.value)} />
+          </div>
+        </div>
+
+        {contadoValido && esperado !== null && (
+          <div
+            style={{
+              marginTop: '14px', padding: '12px 14px', borderRadius: '12px', textAlign: 'center', fontWeight: 700,
+              background: dif === 0 ? 'var(--sala-surface)' : dif > 0 ? 'var(--sala-success-bg)' : 'var(--sala-error-bg)',
+              color: dif === 0 ? 'var(--sala-text-secondary)' : dif > 0 ? 'var(--sala-success)' : 'var(--sala-error)'
+            }}
+          >
+            {dif === 0 ? 'La caja cuadra' : (dif > 0 ? 'Sobran ' : 'Faltan ') + money(Math.abs(dif), moneda)}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+          <button type="button" onClick={onClose} disabled={enviando} className="ek-cta ek-cta--secondary" style={{ flex: 1 }}>
+            Cancelar
+          </button>
+          <button type="button" onClick={confirmar} disabled={!contadoValido || enviando || esperado === null} className="ek-cta" style={{ flex: 1 }}>
+            {enviando ? 'Guardando…' : 'Confirmar corte'}
           </button>
         </div>
       </div>
