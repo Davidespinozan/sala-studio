@@ -175,6 +175,13 @@ function VistaCalendario({
     [weekStart]
   );
 
+  // La sala solo se muestra si VARÍA entre las reservas: un gym de una sola sala
+  // no repite "Sala Numa" en cada evento; uno multi-sala sí la muestra.
+  const mostrarSala = useMemo(
+    () => new Set(reservas.map((r) => r.recurso?.id).filter(Boolean)).size > 1,
+    [reservas]
+  );
+
   return (
     <>
       <div className="adm-week-nav">
@@ -241,7 +248,7 @@ function VistaCalendario({
                       <p className="adm-cal-event-time">
                         {formatHoraEnTz(new Date(r.slot_inicio), tz)}
                       </p>
-                      <p className="adm-cal-event-recurso">{r.recurso?.nombre ?? '—'}</p>
+                      {mostrarSala && <p className="adm-cal-event-recurso">{r.recurso?.nombre ?? '—'}</p>}
                       <p className="adm-cal-event-usuario">
                         {r.usuario?.nombre ?? r.usuario?.email ?? '—'}
                       </p>

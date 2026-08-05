@@ -2365,7 +2365,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .adm-cal-event-time { font-family: var(--ek-font-mono); font-weight: 600; }
   .adm-cal-event-recurso { color: var(--ek-ink-muted); margin-top: 2px; }
-  .adm-cal-event-usuario { color: var(--ek-ink-faint); font-size: 10px; margin-top: 2px; }
+  .adm-cal-event-usuario { color: var(--ek-ink); font-size: 12px; font-weight: 500; margin-top: 2px; }
 
   .adm-cal-legend { margin-top: 12px; color: var(--ek-ink-faint); font-size: 11px; }
 
