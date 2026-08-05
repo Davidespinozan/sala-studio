@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { AccionModal } from '@shared/components/AccionModal';
 import { useToast } from '@shared/hooks/useToast';
@@ -55,6 +55,16 @@ function proximosDias(n = 7): { iso: string; label: string }[] {
   return out;
 }
 
+function stepBtn(disabled: boolean): CSSProperties {
+  return {
+    width: '34px', height: '34px', borderRadius: '999px',
+    border: '1px solid var(--sala-border)', background: 'var(--sala-surface)',
+    fontSize: '18px', fontWeight: 700, lineHeight: 1,
+    cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1,
+    color: 'var(--sala-text-primary)', fontFamily: 'inherit'
+  };
+}
+
 export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDone }: Props) {
   const toast = useToast();
   const { sucursalId } = useReceptionSucursal();
@@ -64,6 +74,10 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
   const [cargando, setCargando] = useState(true);
   const [elegida, setElegida] = useState<ClaseOpcion | null>(null);
   const [enviando, setEnviando] = useState(false);
+  // Bolsa de pases de invitado del SOCIO (no del staff). Un recepcionista puede
+  // consultarla: invitados_disponibles es SECURITY DEFINER y lo permite.
+  const [invitadosDisponibles, setInvitadosDisponibles] = useState(0);
+  const [invitados, setInvitados] = useState(0);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -93,12 +107,25 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
     return () => { cancelled = true; };
   }, [isOpen, fecha, sucursalId, toast, dias]);
 
+  // Pases de invitado que le quedan al socio este periodo (alimenta el stepper).
+  useEffect(() => {
+    if (!isOpen) { setInvitadosDisponibles(0); setInvitados(0); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.rpc('invitados_disponibles', { p_usuario_id: socioId });
+      if (cancelled) return;
+      const d = (data ?? {}) as { disponibles?: number };
+      setInvitadosDisponibles(d.disponibles ?? 0);
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, socioId]);
+
   // Mapa de salón: si la sala de la clase elegida usa lugares, hay que elegir uno.
   // Mismo hook que usa el socio y el mapa de recepción (una sola fuente de verdad).
   const { layout, tomados } = useLugaresSala(elegida?.recurso_id, elegida?.clase_id ?? null);
   const [lugarId, setLugarId] = useState<string | null>(null);
 
-  useEffect(() => { setLugarId(null); }, [elegida]);
+  useEffect(() => { setLugarId(null); setInvitados(0); }, [elegida]);
 
   async function confirmar() {
     if (!elegida) return;
@@ -112,7 +139,7 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
         p_clase_id: elegida.clase_id,
         p_horario_id: elegida.clase_id ? null : elegida.horario_recurrente_id,
         p_fecha: elegida.clase_id ? null : elegida.fecha,
-        p_invitados: 0,
+        p_invitados: invitados,
         p_notas: 'Walk-in en mostrador',
         p_lugar_id: lugarId,
         p_motivo: 'Walk-in en mostrador'
@@ -133,6 +160,12 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
   }
 
   const faltaLugar = !!layout && !lugarId;
+  // Invitados: solo en salas SIN mapa (las de mapa los bloquean por diseño) y si
+  // al socio le quedan pases. El techo respeta además el cupo libre de la clase
+  // (el socio ocupa 1 lugar; el resto puede ser para invitados).
+  const libresElegida = elegida ? elegida.cupo_max - elegida.reservados : 0;
+  const maxInvitados = layout ? 0 : Math.min(invitadosDisponibles, Math.max(libresElegida - 1, 0));
+  const mostrarInvitados = !!elegida && !layout && invitadosDisponibles > 0;
 
   return (
     <AccionModal
@@ -224,6 +257,40 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* Invitados: recepción suma los pases del socio (si su plan los incluye) */}
+      {mostrarInvitados && (
+        <div style={{ marginTop: '14px' }}>
+          <p className="ek-label" style={{ marginBottom: '4px' }}>Invitados</p>
+          <p style={{ fontSize: '12px', color: 'var(--sala-text-secondary)', margin: '0 0 8px' }}>
+            Le quedan {invitadosDisponibles} pase{invitadosDisponibles === 1 ? '' : 's'} de invitado este periodo.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              type="button"
+              onClick={() => setInvitados((n) => Math.max(0, n - 1))}
+              disabled={invitados <= 0}
+              style={stepBtn(invitados <= 0)}
+              aria-label="Quitar invitado"
+            >−</button>
+            <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 700, fontSize: '16px', fontVariantNumeric: 'tabular-nums' }}>
+              {invitados}
+            </span>
+            <button
+              type="button"
+              onClick={() => setInvitados((n) => Math.min(maxInvitados, n + 1))}
+              disabled={invitados >= maxInvitados}
+              style={stepBtn(invitados >= maxInvitados)}
+              aria-label="Agregar invitado"
+            >+</button>
+            {maxInvitados === 0 && (
+              <span style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)' }}>
+                Sin cupo para invitados en esta clase
+              </span>
+            )}
+          </div>
         </div>
       )}
 

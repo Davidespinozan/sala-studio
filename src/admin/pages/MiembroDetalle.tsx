@@ -50,6 +50,7 @@ export default function MiembroDetalle() {
   // admin y recepción coinciden.
   const [membresia, setMembresia] = useState<{ nombre: string | null; estado: string; periodoFin: Date | null; creditos: number | null; metodoPago: string | null } | null>(null);
   const [pagosReload, setPagosReload] = useState(0);
+  const [invitados, setInvitados] = useState<{ incluidos: number; usados: number; disponibles: number } | null>(null);
   useEffect(() => {
     if (!id) return;
     let mounted = true;
@@ -79,6 +80,20 @@ export default function MiembroDetalle() {
         creditos: (tier?.tipo === 'creditos' || tier?.tipo === 'hibrido') ? ((data.creditos_restantes as number | null) ?? null) : null,
         metodoPago: (data.metodo_pago as string | null) ?? null
       });
+    })();
+    return () => { mounted = false; };
+  }, [id, miembro]);
+
+  // Bolsa de invitados del socio (si su plan los incluye). Misma RPC que socio y
+  // recepción; el admin pasa is_recepcionista(), así que puede consultarla.
+  useEffect(() => {
+    if (!id) return;
+    let mounted = true;
+    void (async () => {
+      const { data } = await supabase.rpc('invitados_disponibles', { p_usuario_id: id });
+      if (!mounted) return;
+      const d = (data ?? null) as { incluidos?: number; usados?: number; disponibles?: number } | null;
+      setInvitados(d ? { incluidos: d.incluidos ?? 0, usados: d.usados ?? 0, disponibles: d.disponibles ?? 0 } : null);
     })();
     return () => { mounted = false; };
   }, [id, miembro]);
@@ -209,6 +224,18 @@ export default function MiembroDetalle() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', margin: '4px 0 24px' }}>
           <span className="ek-label" style={{ fontSize: '12px', color: 'var(--sala-text-secondary)' }}>Método de pago</span>
           <MetodoPagoMembresia usuarioId={miembro.id} valor={membresia.metodoPago} />
+        </div>
+      )}
+
+      {invitados && invitados.incluidos > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', margin: '4px 0 24px' }}>
+          <span className="ek-label" style={{ fontSize: '12px', color: 'var(--sala-text-secondary)' }}>Invitados este periodo</span>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--sala-text-primary)' }}>
+            {invitados.disponibles} de {invitados.incluidos} disponibles
+            <span style={{ color: 'var(--sala-text-tertiary)', fontWeight: 500 }}>
+              {' · '}{invitados.usados} usado{invitados.usados === 1 ? '' : 's'}
+            </span>
+          </span>
         </div>
       )}
 
