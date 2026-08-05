@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useReservasRango, useRecursosAdmin } from '../hooks/useAdminData';
 import { useSucursal } from '../providers/SucursalProvider';
-import { formatHora } from '@member/logic/reservaLogic';
+import { useTenant } from '@shared/hooks/useTenant';
+import { getTenantTimezone, hoyEnTimezone, sumarDias, fechaEnTz, formatHoraEnTz } from '@shared/lib/timezone';
+import { fromZonedTime } from 'date-fns-tz';
 import DetalleReservaModal from '../components/DetalleReservaModal';
 import CancelarReservaModal, {
   type ReservaParaCancelar
@@ -148,16 +150,19 @@ function VistaCalendario({
   refreshTick: number;
   onVerDetalle: (id: string) => void;
 }) {
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
-  const weekEnd = useMemo(() => {
-    const d = new Date(weekStart);
-    d.setDate(d.getDate() + 7);
-    return d;
-  }, [weekStart]);
-
+  const tz = getTenantTimezone(useTenant());
   const { recursos } = useRecursosAdmin();
   const { sucursalId } = useSucursal();
-  const { reservas, isLoading, refetch } = useReservasRango(weekStart, weekEnd, sucursalId);
+
+  // Semana en la zona del GYM: el lunes como 'YYYY-MM-DD' del gym. Así, mire desde
+  // donde mire (p. ej. España), los días y horas son los del gym, no del navegador.
+  const [weekStart, setWeekStart] = useState<string>(() => lunesDeLaSemana(hoyEnTimezone(tz)));
+  const weekEndISO = useMemo(() => sumarDias(weekStart, 7), [weekStart]);
+
+  // Rango [lunes, lunes+7) como instantes UTC de la medianoche del gym.
+  const desde = useMemo(() => fromZonedTime(`${weekStart}T00:00:00`, tz), [weekStart, tz]);
+  const hasta = useMemo(() => fromZonedTime(`${weekEndISO}T00:00:00`, tz), [weekEndISO, tz]);
+  const { reservas, isLoading, refetch } = useReservasRango(desde, hasta, sucursalId);
 
   useEffect(() => {
     if (refreshTick > 0) void refetch();
@@ -165,21 +170,16 @@ function VistaCalendario({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshTick]);
 
-  const days = useMemo(() => {
-    const arr: Date[] = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(weekStart);
-      d.setDate(d.getDate() + i);
-      arr.push(d);
-    }
-    return arr;
-  }, [weekStart]);
+  const days = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => sumarDias(weekStart, i)),
+    [weekStart]
+  );
 
   return (
     <>
       <div className="adm-week-nav">
         <button
-          onClick={() => setWeekStart(addDays(weekStart, -7))}
+          onClick={() => setWeekStart((w) => sumarDias(w, -7))}
           className="adm-link-btn"
           style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
         >
@@ -187,15 +187,10 @@ function VistaCalendario({
           Semana anterior
         </button>
         <span className="adm-week-label">
-          {weekStart.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} —{' '}
-          {addDays(weekStart, 6).toLocaleDateString('es-MX', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-          })}
+          {etiquetaRango(weekStart, sumarDias(weekStart, 6))}
         </span>
         <button
-          onClick={() => setWeekStart(addDays(weekStart, 7))}
+          onClick={() => setWeekStart((w) => sumarDias(w, 7))}
           className="adm-link-btn"
           style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
         >
@@ -208,17 +203,19 @@ function VistaCalendario({
         <p className="adm-body">Cargando…</p>
       ) : (
         <div className="adm-cal-grid">
-          {days.map((day) => {
-            const reservasDelDia = reservas.filter((r) =>
-              sameDay(new Date(r.slot_inicio), day)
+          {days.map((diaISO) => {
+            const reservasDelDia = reservas.filter(
+              (r) => fechaEnTz(new Date(r.slot_inicio), tz) === diaISO
             );
+            const [yy, mm, dd] = diaISO.split('-').map(Number);
+            const etiqueta = new Date(Date.UTC(yy, mm - 1, dd, 12));
             return (
-              <div key={day.toISOString()} className="adm-cal-day">
+              <div key={diaISO} className="adm-cal-day">
                 <div className="adm-cal-day-header">
                   <p className="adm-cal-day-name">
-                    {day.toLocaleDateString('es-MX', { weekday: 'short' })}
+                    {etiqueta.toLocaleDateString('es-MX', { weekday: 'short', timeZone: 'UTC' })}
                   </p>
-                  <p className="adm-cal-day-num">{day.getDate()}</p>
+                  <p className="adm-cal-day-num">{dd}</p>
                 </div>
                 <div className="adm-cal-events">
                   {reservasDelDia.length === 0 && <p className="adm-cal-empty">—</p>}
@@ -242,7 +239,7 @@ function VistaCalendario({
                       }}
                     >
                       <p className="adm-cal-event-time">
-                        {formatHora(new Date(r.slot_inicio))}
+                        {formatHoraEnTz(new Date(r.slot_inicio), tz)}
                       </p>
                       <p className="adm-cal-event-recurso">{r.recurso?.nombre ?? '—'}</p>
                       <p className="adm-cal-event-usuario">
@@ -266,25 +263,18 @@ function VistaCalendario({
   );
 }
 
-function startOfWeek(d: Date): Date {
-  const date = new Date(d);
-  const day = date.getDay();
-  const diff = day === 0 ? -6 : 1 - day; // semana inicia en lunes
-  date.setDate(date.getDate() + diff);
-  date.setHours(0, 0, 0, 0);
-  return date;
+/** Lunes (YYYY-MM-DD) de la semana que contiene `iso`, en fechas de calendario. */
+function lunesDeLaSemana(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0=dom..6=sab
+  return sumarDias(iso, dow === 0 ? -6 : 1 - dow);
 }
 
-function addDays(d: Date, n: number): Date {
-  const x = new Date(d);
-  x.setDate(x.getDate() + n);
-  return x;
-}
-
-function sameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
+/** "3 ago — 9 ago 2026" a partir de dos fechas 'YYYY-MM-DD'. */
+function etiquetaRango(aISO: string, bISO: string): string {
+  const fmt = (iso: string, opts: Intl.DateTimeFormatOptions) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString('es-MX', { ...opts, timeZone: 'UTC' });
+  };
+  return `${fmt(aISO, { day: 'numeric', month: 'short' })} — ${fmt(bISO, { day: 'numeric', month: 'short', year: 'numeric' })}`;
 }
