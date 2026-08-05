@@ -4,7 +4,19 @@ import { fetchWithTimeout } from './fetchWithTimeout';
 const FUNCTIONS_BASE = '/.netlify/functions';
 
 async function getAuthHeader(): Promise<Record<string, string>> {
-  const { data: { session } } = await supabase.auth.getSession();
+  let { data: { session } } = await supabase.auth.getSession();
+
+  // En una PWA de escritorio que queda abierta/suspendida horas, el access_token
+  // puede venir vencido (o a punto): getSession no siempre lo refresca a tiempo,
+  // y mandar un token muerto = "Token inválido" en el backend. Si está por expirar,
+  // forzamos un refresh para que la sesión se auto-cure sin que el usuario re-loguee.
+  const margenSeg = 60;
+  const ahoraSeg = Math.floor(Date.now() / 1000);
+  if (session && (session.expires_at ?? 0) - ahoraSeg < margenSeg) {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (!error && data.session) session = data.session;
+  }
+
   if (!session?.access_token) return {};
   return { Authorization: `Bearer ${session.access_token}` };
 }
