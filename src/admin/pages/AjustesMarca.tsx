@@ -91,6 +91,10 @@ export default function AjustesMarca() {
   const [originalJson, setOriginalJson] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  // El preview aplica el draft al :root; NO debe correr antes de cargar el branding
+  // real del tenant, o pinta un instante la paleta por defecto (flash de "color
+  // SALA") encima de los colores reales del gym.
+  const [cargado, setCargado] = useState(false);
 
   // Imagen de fondo de la pantalla "Mi QR" del socio (config.member.qr_bg_url).
   // Se guarda al instante (en su propio config, no en branding).
@@ -142,6 +146,7 @@ export default function AjustesMarca() {
     setDraft(parsed);
     setPersisted(parsed);
     setOriginalJson(JSON.stringify(parsed));
+    setCargado(true);
   }, [tenant.id]);
 
   useEffect(() => {
@@ -152,20 +157,22 @@ export default function AjustesMarca() {
   // :root para que toda la app se vea con la nueva paleta mientras el admin
   // edita. NO toca DB.
   useEffect(() => {
+    if (!cargado) return; // no pisar los colores reales del gym antes de cargar (evita el flash)
     applyBranding({
       color_primary: draft.color_primary,
       color_accent: draft.color_accent
     });
-  }, [draft.color_primary, draft.color_accent]);
+  }, [cargado, draft.color_primary, draft.color_accent]);
 
   // Preview en tiempo real de la TIPOGRAFÍA (fuente display/body + escala).
   useEffect(() => {
+    if (!cargado) return;
     applyTypography({
       font_display: draft.font_display,
       font_body: draft.font_body,
       font_scale: draft.font_scale
     });
-  }, [draft.font_display, draft.font_body, draft.font_scale]);
+  }, [cargado, draft.font_display, draft.font_body, draft.font_scale]);
 
   // Cleanup — si el admin sale de la pantalla SIN guardar, restaurar al
   // estado persistido para que el preview no quede pegado.
