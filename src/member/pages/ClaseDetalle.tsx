@@ -19,6 +19,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { supabase } from '@shared/lib/supabase';
 import { crearReserva, cancelarReserva as cancelarReservaRPC } from '@member/hooks/useReservas';
+import { guardarInvitados, ajustarInvitados, type InvitadoDetalle } from '@shared/lib/invitados';
 import { useMaxInvitados } from '@member/hooks/useMaxInvitados';
 import { useFavoritos } from '@member/hooks/useFavoritos';
 import { mensajeToastCancelacion, traducirErrorRPC } from '@member/logic/reservaLogic';
@@ -96,6 +97,7 @@ export default function ClaseDetalle() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showEsperaModal, setShowEsperaModal] = useState(false);
   const [invitados, setInvitados] = useState(0);
+  const [invitadosDetalle, setInvitadosDetalle] = useState<InvitadoDetalle[]>([]);
   const [lugarId, setLugarId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorReserva, setErrorReserva] = useState<string | null>(null);
@@ -229,6 +231,7 @@ export default function ClaseDetalle() {
     }
     setErrorReserva(null);
     setInvitados(0);
+    setInvitadosDetalle([]);
     setLugarId(null);
     setShowReservaModal(true);
   }
@@ -247,7 +250,7 @@ export default function ClaseDetalle() {
     setSubmitting(true);
     setErrorReserva(null);
     try {
-      await crearReserva({
+      const res = await crearReserva({
         claseId: clase.claseId,
         horarioId: clase.horarioId,
         fecha: clase.fechaISO,
@@ -255,6 +258,15 @@ export default function ClaseDetalle() {
         notas: undefined,
         lugarId
       });
+      // Guardar la identidad de los invitados (best-effort: la reserva ya existe).
+      const reservaId = (res as { reserva_id?: string } | null)?.reserva_id;
+      if (reservaId && invitados > 0) {
+        try {
+          await guardarInvitados({ reservaId, tenantId: tenant.id, invitados: invitadosDetalle });
+        } catch {
+          toast.error('Reserva confirmada, pero no pudimos guardar los datos del invitado. Recepción los puede completar.');
+        }
+      }
       setShowReservaModal(false);
       setSubmitting(false);
       toast.success('Reserva confirmada.');
@@ -842,7 +854,9 @@ export default function ClaseDetalle() {
           clase={clase}
           maxInvitados={maxInvitados}
           invitados={invitados}
-          onInvitadosChange={setInvitados}
+          onInvitadosChange={(n) => { setInvitados(n); setInvitadosDetalle((prev) => ajustarInvitados(prev, n)); }}
+          invitadosDetalle={invitadosDetalle}
+          onInvitadosDetalleChange={setInvitadosDetalle}
           costoCreditos={esPlanCreditos ? 1 + invitados : null}
           creditosRestantes={esPlanCreditos ? membresia?.creditos_restantes ?? null : null}
           lugarId={lugarId}

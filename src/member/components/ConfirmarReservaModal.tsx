@@ -1,12 +1,17 @@
 import type { Clase } from '@member/logic/claseAdapter';
 import { useLugaresSala } from '@member/hooks/useLugaresSala';
 import { SeleccionarLugar } from './SeleccionarLugar';
+import { InvitadosForm } from '@shared/components/InvitadosForm';
+import type { InvitadoDetalle } from '@shared/lib/invitados';
 
 interface Props {
   clase: Clase;
   maxInvitados: number;
   invitados: number;
   onInvitadosChange: (n: number) => void;
+  /** Datos de cada invitado (nombre/teléfono/email/INE) — se guardan tras reservar. */
+  invitadosDetalle: InvitadoDetalle[];
+  onInvitadosDetalleChange: (v: InvitadoDetalle[]) => void;
   /** Créditos que cuesta la reserva (1 + invitados) si el plan es por créditos.
    *  null = plan por tiempo (ilimitado) → no se muestra costo. */
   costoCreditos?: number | null;
@@ -28,6 +33,8 @@ export function ConfirmarReservaModal({
   maxInvitados,
   invitados,
   onInvitadosChange,
+  invitadosDetalle,
+  onInvitadosDetalleChange,
   costoCreditos,
   creditosRestantes,
   lugarId,
@@ -164,6 +171,14 @@ export function ConfirmarReservaModal({
               </span>
             </div>
           </div>
+        )}
+
+        {!layout && invitados > 0 && (
+          <InvitadosForm
+            count={invitados}
+            value={invitadosDetalle}
+            onChange={onInvitadosDetalleChange}
+          />
         )}
 
         {muestraSaldo && (

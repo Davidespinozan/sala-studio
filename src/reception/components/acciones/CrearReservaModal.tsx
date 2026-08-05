@@ -6,6 +6,9 @@ import { useReceptionSucursal } from '../../providers/ReceptionSucursalProvider'
 import { translateActionError } from '../../lib/traducirErrorAccion';
 import { SeleccionarLugar } from '@member/components/SeleccionarLugar';
 import { useLugaresSala } from '@member/hooks/useLugaresSala';
+import { useTenant } from '@shared/hooks/useTenant';
+import { InvitadosForm } from '@shared/components/InvitadosForm';
+import { guardarInvitados, ajustarInvitados, type InvitadoDetalle } from '@shared/lib/invitados';
 
 /**
  * WALK-IN — recepción inscribe a un socio en una clase.
@@ -68,6 +71,7 @@ function stepBtn(disabled: boolean): CSSProperties {
 export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDone }: Props) {
   const toast = useToast();
   const { sucursalId } = useReceptionSucursal();
+  const tenant = useTenant();
   const dias = useMemo(() => proximosDias(), []);
   const [fecha, setFecha] = useState(dias[0].iso);
   const [clases, setClases] = useState<ClaseOpcion[]>([]);
@@ -78,6 +82,7 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
   // consultarla: invitados_disponibles es SECURITY DEFINER y lo permite.
   const [invitadosDisponibles, setInvitadosDisponibles] = useState(0);
   const [invitados, setInvitados] = useState(0);
+  const [invitadosDetalle, setInvitadosDetalle] = useState<InvitadoDetalle[]>([]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -126,6 +131,8 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
   const [lugarId, setLugarId] = useState<string | null>(null);
 
   useEffect(() => { setLugarId(null); setInvitados(0); }, [elegida]);
+  // La lista de datos de invitados sigue al conteo del stepper.
+  useEffect(() => { setInvitadosDetalle((prev) => ajustarInvitados(prev, invitados)); }, [invitados]);
 
   async function confirmar() {
     if (!elegida) return;
@@ -134,7 +141,7 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
       const rpc = supabase.rpc.bind(supabase) as unknown as (
         name: string, args: Record<string, unknown>
       ) => Promise<{ data: unknown; error: { message: string } | null }>;
-      const { error } = await rpc('recepcion_crear_reserva', {
+      const { data, error } = await rpc('recepcion_crear_reserva', {
         p_usuario_id: socioId,
         p_clase_id: elegida.clase_id,
         p_horario_id: elegida.clase_id ? null : elegida.horario_recurrente_id,
@@ -148,6 +155,15 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
         toast.error(translateActionError(error.message));
         setEnviando(false);
         return;
+      }
+      // Guardar la identidad de los invitados (best-effort: la reserva ya existe).
+      const reservaId = (data as { reserva_id?: string } | null)?.reserva_id;
+      if (reservaId && invitados > 0) {
+        try {
+          await guardarInvitados({ reservaId, tenantId: tenant.id, invitados: invitadosDetalle });
+        } catch {
+          toast.error('Reserva creada, pero no pudimos guardar los datos del invitado.');
+        }
       }
       toast.success(`Reserva creada para ${socioNombre}.`);
       await onDone();
@@ -291,6 +307,11 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
               </span>
             )}
           </div>
+          {invitados > 0 && (
+            <div style={{ marginTop: '12px' }}>
+              <InvitadosForm count={invitados} value={invitadosDetalle} onChange={setInvitadosDetalle} />
+            </div>
+          )}
         </div>
       )}
 

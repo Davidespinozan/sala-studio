@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTenant } from '@shared/hooks/useTenant';
+import { guardarInvitados, ajustarInvitados, type InvitadoDetalle } from '@shared/lib/invitados';
 import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
@@ -79,6 +80,7 @@ export default function Reservar() {
   // Modal de reserva
   const [claseAReservar, setClaseAReservar] = useState<Clase | null>(null);
   const [invitados, setInvitados] = useState(0);
+  const [invitadosDetalle, setInvitadosDetalle] = useState<InvitadoDetalle[]>([]);
   const [lugarId, setLugarId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorReserva, setErrorReserva] = useState<string | null>(null);
@@ -183,6 +185,7 @@ export default function Reservar() {
     }
     setErrorReserva(null);
     setInvitados(0);
+    setInvitadosDetalle([]);
     setLugarId(null);
     setClaseAReservar(clase);
   }
@@ -215,7 +218,7 @@ export default function Reservar() {
     setSubmitting(true);
     setErrorReserva(null);
     try {
-      await crearReserva({
+      const res = await crearReserva({
         claseId: claseAReservar.claseId,
         horarioId: claseAReservar.horarioId,
         fecha: claseAReservar.fechaISO,
@@ -223,6 +226,15 @@ export default function Reservar() {
         notas: undefined,
         lugarId
       });
+      // Guardar la identidad de los invitados (best-effort: la reserva ya existe).
+      const reservaId = (res as { reserva_id?: string } | null)?.reserva_id;
+      if (reservaId && invitados > 0) {
+        try {
+          await guardarInvitados({ reservaId, tenantId: tenant.id, invitados: invitadosDetalle });
+        } catch {
+          toast.error('Reserva confirmada, pero no pudimos guardar los datos del invitado. Recepción los puede completar.');
+        }
+      }
       setClaseAReservar(null);
       setSubmitting(false);
       toast.success('Reserva confirmada.');
@@ -386,7 +398,9 @@ export default function Reservar() {
           clase={claseAReservar}
           maxInvitados={maxInvitados}
           invitados={invitados}
-          onInvitadosChange={setInvitados}
+          onInvitadosChange={(n) => { setInvitados(n); setInvitadosDetalle((prev) => ajustarInvitados(prev, n)); }}
+          invitadosDetalle={invitadosDetalle}
+          onInvitadosDetalleChange={setInvitadosDetalle}
           costoCreditos={esPlanCreditos ? 1 + invitados : null}
           creditosRestantes={esPlanCreditos ? membresia?.creditos_restantes ?? null : null}
           lugarId={lugarId}
