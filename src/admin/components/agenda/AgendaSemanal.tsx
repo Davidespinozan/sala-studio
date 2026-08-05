@@ -4,7 +4,7 @@ import { diasEntre } from '@shared/lib/timezone';
 import type { Clase } from '@member/logic/claseAdapter';
 import { ClaseCellAdmin } from './ClaseCellAdmin';
 
-const HORAS = Array.from({ length: 17 }, (_, i) => 6 + i); // 06:00..22:00
+const HORAS = Array.from({ length: 18 }, (_, i) => 5 + i); // 05:00..22:00 (numa abre 5am)
 
 interface Props {
   clases: Clase[];
