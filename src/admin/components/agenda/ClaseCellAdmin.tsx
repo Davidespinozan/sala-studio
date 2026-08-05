@@ -118,7 +118,7 @@ export function ClaseCellAdmin({ clase, onClick }: Props) {
           whiteSpace: 'nowrap'
         }}
       >
-        {clase.disciplina}
+        {clase.nombre}
       </span>
       <span
         style={{

@@ -3,6 +3,8 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { CalendarClock, CalendarDays, Users, Settings, ShoppingBag } from 'lucide-react';
 import { useReservasHoy } from './hooks/useReservasHoy';
 import { useAuth } from '@shared/hooks/useAuth';
+import { useTenant } from '@shared/hooks/useTenant';
+import { getTenantTimezone, formatHoraEnTz } from '@shared/lib/timezone';
 import { useModulo } from '@shared/hooks/useModulo';
 import { useToast } from '@shared/hooks/useToast';
 import { accesoRevocado } from '@shared/lib/accountStatus';
@@ -185,19 +187,16 @@ function SedeBar() {
 /** Bloque discreto del sidebar: estado del sistema (en línea + hora) + actividad
  *  del día (check-ins / reservas). Indicadores de "centro de operaciones". */
 function ReceptionStatus() {
+  const tz = getTenantTimezone(useTenant());
   const { reservas } = useReservasHoy();
   const checkins = reservas.filter((r) => r.status === 'completada').length;
   const total = reservas.filter((r) => r.status !== 'cancelada').length;
-  const [hora, setHora] = useState(() =>
-    new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })
-  );
+  // El reloj de operaciones muestra la hora del GYM, no la del navegador.
+  const [hora, setHora] = useState(() => formatHoraEnTz(new Date(), tz));
   useEffect(() => {
-    const id = setInterval(
-      () => setHora(new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })),
-      30000
-    );
+    const id = setInterval(() => setHora(formatHoraEnTz(new Date(), tz)), 30000);
     return () => clearInterval(id);
-  }, []);
+  }, [tz]);
 
   const num = { fontFamily: 'var(--ek-font-display)', fontSize: '18px', fontWeight: 700, color: 'rgba(255,255,255,0.95)', lineHeight: 1 } as const;
   const cap = { fontSize: '9px', letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginTop: '3px' } as const;

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useVisibilityAwarePolling } from '@shared/hooks/useVisibilityAwarePolling';
+import { getTenantTimezone, hoyEnTimezone, sumarDias, instanteDeClase } from '@shared/lib/timezone';
 import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
 import type { Database } from '@shared/types/database';
 
@@ -16,21 +17,23 @@ export interface ReservaConJoin extends Reserva {
 
 /**
  * Reservas de un día específico (default hoy) del tenant, ordenadas por hora.
+ * `fechaISO` es 'YYYY-MM-DD' en la zona del GYM (no del navegador): así la
+ * ventana del día es la del gym aunque el dueño mire desde otra zona horaria.
  * Polling cada 30s.
  */
-export function useReservasHoy(fecha?: Date) {
+export function useReservasHoy(fechaISO?: string) {
   const tenant = useTenant();
+  const tz = getTenantTimezone(tenant);
   const { sucursalId } = useReceptionSucursal();
   const [reservas, setReservas] = useState<ReservaConJoin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Normalizar fecha a inicio del día (memoizar para evitar re-render infinito)
-  const fechaMs = (fecha ?? new Date()).setHours(0, 0, 0, 0);
+  const dia = fechaISO ?? hoyEnTimezone(tz);
 
   const refetch = useCallback(async () => {
-    const inicio = new Date(fechaMs);
-    const fin = new Date(fechaMs);
-    fin.setDate(fin.getDate() + 1);
+    // Ventana [00:00 del día, 00:00 del día siguiente) en la zona del gym → UTC.
+    const inicio = instanteDeClase(dia, '00:00', tz);
+    const fin = instanteDeClase(sumarDias(dia, 1), '00:00', tz);
 
     // !inner + filtro por recurso.sucursal_id scopea la recepción a su sede
     // (las reservas no tienen sucursal_id directo; va por la sala). Mismo patrón
@@ -54,7 +57,7 @@ export function useReservasHoy(fecha?: Date) {
     }
     setReservas((data ?? []) as unknown as ReservaConJoin[]);
     setIsLoading(false);
-  }, [tenant.id, fechaMs, sucursalId]);
+  }, [tenant.id, dia, tz, sucursalId]);
 
   // Carga inicial + recarga al cambiar de día (cambia la identidad de refetch).
   useEffect(() => {
@@ -73,15 +76,16 @@ export function useReservasHoy(fecha?: Date) {
  */
 export function useReservasSemana(dias = 7) {
   const tenant = useTenant();
+  const tz = getTenantTimezone(tenant);
   const { sucursalId } = useReceptionSucursal();
   const [reservas, setReservas] = useState<ReservaConJoin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const refetch = useCallback(async () => {
-    const inicio = new Date();
-    inicio.setHours(0, 0, 0, 0);
-    const fin = new Date(inicio);
-    fin.setDate(fin.getDate() + dias);
+    // Desde 00:00 de hoy en la zona del gym, N días hacia adelante.
+    const hoy = hoyEnTimezone(tz);
+    const inicio = instanteDeClase(hoy, '00:00', tz);
+    const fin = instanteDeClase(sumarDias(hoy, dias), '00:00', tz);
 
     let query = supabase
       .from('reservas')
@@ -101,7 +105,7 @@ export function useReservasSemana(dias = 7) {
     }
     setReservas((data ?? []) as unknown as ReservaConJoin[]);
     setIsLoading(false);
-  }, [tenant.id, sucursalId, dias]);
+  }, [tenant.id, sucursalId, dias, tz]);
 
   useEffect(() => {
     refetch();

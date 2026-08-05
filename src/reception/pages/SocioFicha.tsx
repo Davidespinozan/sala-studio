@@ -24,6 +24,8 @@ import { MetodoPagoMembresia } from '@shared/components/MetodoPagoMembresia';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData } from '../hooks/useSocioFicha';
 import { useSocioNotas } from '../hooks/useSocioNotas';
 import { useHuellasSocio } from '@shared/hooks/useHuellasSocio';
+import { useTenant } from '@shared/hooks/useTenant';
+import { getTenantTimezone, hoyEnTimezone, fechaEnTz, formatHoraEnTz, diasEntre } from '@shared/lib/timezone';
 
 type ModalAccion =
   | null
@@ -60,11 +62,19 @@ function diasHasta(iso: string | null): number | null {
   const f = new Date(iso); f.setHours(0, 0, 0, 0);
   return Math.round((f.getTime() - hoy.getTime()) / 86400000);
 }
-function fmtReserva(iso: string): { dia: string; hora: string } {
-  const d = new Date(iso);
-  const dd = diasHasta(iso);
-  const dia = dd === 0 ? 'Hoy' : dd === 1 ? 'Mañana' : d.toLocaleDateString('es-MX', { weekday: 'short' });
-  const hora = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+// Día y hora de una reserva en la zona del GYM (no del navegador): si la
+// recepción se ve desde otra zona horaria, siguen siendo los del gym.
+function fmtReserva(iso: string, tz: string, hoyISO: string): { dia: string; hora: string } {
+  const diaISO = fechaEnTz(new Date(iso), tz);
+  const dd = diasEntre(hoyISO, diaISO);
+  let dia: string;
+  if (dd === 0) dia = 'Hoy';
+  else if (dd === 1) dia = 'Mañana';
+  else {
+    const [y, m, d] = diaISO.split('-').map(Number);
+    dia = new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString('es-MX', { weekday: 'short', timeZone: 'UTC' });
+  }
+  const hora = formatHoraEnTz(new Date(iso), tz);
   return { dia, hora };
 }
 const TIPO_LABEL: Record<string, string> = { tiempo: 'Por tiempo', creditos: 'Créditos', hibrido: 'Híbrido' };
@@ -134,6 +144,8 @@ function AccionBtn({ children, onClick }: { children: React.ReactNode; onClick: 
 
 export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDone?: () => Promise<void> | void }) {
   const { socio, membresia, estado, reservas, asistencia } = data;
+  const tz = getTenantTimezone(useTenant());
+  const hoyISO = hoyEnTimezone(tz);
   const badge = BADGE[estado];
   const [modalAbierto, setModalAbierto] = useState<ModalAccion>(null);
 
@@ -331,7 +343,7 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           </p>
         ) : (
           reservas.map((r, i) => {
-            const f = fmtReserva(r.slot_inicio);
+            const f = fmtReserva(r.slot_inicio, tz, hoyISO);
             return (
               <div
                 key={r.id}

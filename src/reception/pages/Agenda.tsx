@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { EmptyState } from '@shared/components/EmptyState';
 import { Avatar } from '@shared/components/Avatar';
+import { useTenant } from '@shared/hooks/useTenant';
+import { getTenantTimezone, hoyEnTimezone, fechaEnTz, formatHoraEnTz, diasEntre } from '@shared/lib/timezone';
 import { useReservasSemana, type ReservaConJoin } from '../hooks/useReservasHoy';
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
@@ -11,25 +13,25 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> =
   cancelada: { label: 'Cancelada', color: 'var(--sala-text-tertiary)', bg: 'var(--sala-bg)' }
 };
 
-function claveDia(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+// Todo se agrupa y muestra en la zona del GYM: si el dueño mira desde otra zona,
+// los días y horas siguen siendo los del gym (no los del navegador).
+function claveDia(iso: string, tz: string): string {
+  return fechaEnTz(new Date(iso), tz);
 }
 
-function etiquetaDia(iso: string): string {
-  const d = new Date(iso);
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const diaMs = new Date(d).setHours(0, 0, 0, 0);
-  const difDias = Math.round((diaMs - hoy.getTime()) / 86400000);
+function etiquetaDia(diaISO: string, hoyISO: string): string {
+  const difDias = diasEntre(hoyISO, diaISO);
   if (difDias === 0) return 'Hoy';
   if (difDias === 1) return 'Mañana';
-  const txt = d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
+  const [y, m, d] = diaISO.split('-').map(Number);
+  const txt = new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString('es-MX', {
+    weekday: 'long', day: 'numeric', month: 'short', timeZone: 'UTC'
+  });
   return txt.charAt(0).toUpperCase() + txt.slice(1);
 }
 
-function hora(iso: string): string {
-  return new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+function hora(iso: string, tz: string): string {
+  return formatHoraEnTz(new Date(iso), tz);
 }
 
 /** Una clase (recurso + horario) con sus reservas = su lista de asistentes. */
@@ -47,19 +49,21 @@ interface Dia {
 }
 
 export default function Agenda() {
+  const tz = getTenantTimezone(useTenant());
   const { reservas, isLoading } = useReservasSemana(7);
 
   // Día → clase → reservas. Puro reagrupado de la misma data (sin queries extra).
   const dias = useMemo<Dia[]>(() => {
+    const hoyISO = hoyEnTimezone(tz);
     const map = new Map<string, Dia>();
     for (const r of reservas) {
-      const dayKey = claveDia(r.slot_inicio);
-      if (!map.has(dayKey)) map.set(dayKey, { key: dayKey, label: etiquetaDia(r.slot_inicio), clases: [] });
+      const dayKey = claveDia(r.slot_inicio, tz);
+      if (!map.has(dayKey)) map.set(dayKey, { key: dayKey, label: etiquetaDia(dayKey, hoyISO), clases: [] });
       const dia = map.get(dayKey)!;
       const claseKey = `${r.recurso?.id ?? '·'}-${r.slot_inicio}`;
       let clase = dia.clases.find((c) => c.key === claseKey);
       if (!clase) {
-        clase = { key: claseKey, recursoNombre: r.recurso?.nombre ?? 'Clase', hora: hora(r.slot_inicio), slotISO: r.slot_inicio, reservas: [] };
+        clase = { key: claseKey, recursoNombre: r.recurso?.nombre ?? 'Clase', hora: hora(r.slot_inicio, tz), slotISO: r.slot_inicio, reservas: [] };
         dia.clases.push(clase);
       }
       clase.reservas.push(r);
@@ -69,7 +73,7 @@ export default function Agenda() {
       dia.clases.sort((a, b) => a.slotISO.localeCompare(b.slotISO));
     }
     return Array.from(map.values());
-  }, [reservas]);
+  }, [reservas, tz]);
 
   return (
     <div className="ek-page">

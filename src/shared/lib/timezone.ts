@@ -78,6 +78,11 @@ export function formatHoraEnTz(instant: Date, tz: string): string {
   return formatInTimeZone(instant, tz, 'HH:mm');
 }
 
+/** 'YYYY-MM-DD' del día calendario de un instante, en la timezone dada. */
+export function fechaEnTz(instant: Date, tz: string): string {
+  return formatInTimeZone(instant, tz, 'yyyy-MM-dd');
+}
+
 /** Fecha larga en español: "lunes 25 de mayo". Recibe 'YYYY-MM-DD'. */
 export function formatFechaLarga(fechaISO: string): string {
   const [y, m, d] = fechaISO.split('-').map(Number);

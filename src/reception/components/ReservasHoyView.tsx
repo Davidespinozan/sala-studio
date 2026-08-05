@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect, type ReactNode } from 'react';
 import { Check, CalendarClock, CalendarDays, Clock, Hourglass, TrendingUp, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTenant } from '@shared/hooks/useTenant';
+import { getTenantTimezone, hoyEnTimezone, sumarDias, diasEntre, formatHoraEnTz } from '@shared/lib/timezone';
 import { useReservasHoy, checkInManual, type ReservaConJoin } from '../hooks/useReservasHoy';
 import { playCheckInSuccess, playCheckInError } from '../lib/checkInFeedback';
 import { EmptyState } from '@shared/components/EmptyState';
@@ -23,21 +25,20 @@ interface Props {
 const FECHA_KEY = 'sala-recepcion-hoy-fecha';
 const FECHA_TTL_MS = 7 * 86400000;
 
-function leerFechaGuardada(): Date {
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
+/** El día visto se guarda como 'YYYY-MM-DD' en la zona del gym. */
+function leerFechaGuardada(tz: string): string {
+  const hoy = hoyEnTimezone(tz);
   try {
     const raw = localStorage.getItem(FECHA_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as { value?: number; savedAt?: number };
+      const parsed = JSON.parse(raw) as { value?: string; savedAt?: number };
       if (
-        typeof parsed.value === 'number' &&
+        typeof parsed.value === 'string' &&
+        /^\d{4}-\d{2}-\d{2}$/.test(parsed.value) &&
         typeof parsed.savedAt === 'number' &&
         Date.now() - parsed.savedAt <= FECHA_TTL_MS
       ) {
-        const d = new Date(parsed.value);
-        d.setHours(0, 0, 0, 0);
-        if (!Number.isNaN(d.getTime())) return d;
+        return parsed.value;
       }
     }
   } catch {
@@ -46,9 +47,9 @@ function leerFechaGuardada(): Date {
   return hoy;
 }
 
-function guardarFecha(d: Date): void {
+function guardarFecha(diaISO: string): void {
   try {
-    localStorage.setItem(FECHA_KEY, JSON.stringify({ value: d.getTime(), savedAt: Date.now() }));
+    localStorage.setItem(FECHA_KEY, JSON.stringify({ value: diaISO, savedAt: Date.now() }));
   } catch {
     // private mode / quota → no-op
   }
@@ -64,27 +65,29 @@ function capitalizarNombre(s: string | undefined | null): string {
     .join(' ');
 }
 
-function formatearDia(fecha: Date): string {
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const target = new Date(fecha);
-  target.setHours(0, 0, 0, 0);
-
-  const diffDias = Math.round((target.getTime() - hoy.getTime()) / 86400000);
+/** `diaISO` y `hoyISO` son 'YYYY-MM-DD' en la zona del gym. */
+function formatearDia(diaISO: string, hoyISO: string): string {
+  const diffDias = diasEntre(hoyISO, diaISO);
 
   if (diffDias === 0) return 'Hoy';
   if (diffDias === 1) return 'Mañana';
   if (diffDias === -1) return 'Ayer';
 
-  return target.toLocaleDateString('es-MX', {
+  // Mediodía UTC de las partes de fecha: solo se leen día/mes/semana, sin cruce.
+  const [y, m, d] = diaISO.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString('es-MX', {
     weekday: 'long',
     day: 'numeric',
-    month: 'short'
+    month: 'short',
+    timeZone: 'UTC'
   });
 }
 
 export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: Props = {}) {
-  const [fechaSeleccionada, setFechaSeleccionada] = useState<Date>(() => leerFechaGuardada());
+  const tz = getTenantTimezone(useTenant());
+  // El día visto es 'YYYY-MM-DD' en la zona del gym: si el dueño mira desde otra
+  // zona (p. ej. España), "Hoy" sigue siendo el día del gym, no el del navegador.
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(() => leerFechaGuardada(tz));
   const { reservas, isLoading, refetch } = useReservasHoy(fechaSeleccionada);
   const [selected, setSelected] = useState<ReservaConJoin | null>(null);
   const [accionReserva, setAccionReserva] = useState<AccionReserva | null>(null);
@@ -101,14 +104,11 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
     guardarFecha(fechaSeleccionada);
   }, [fechaSeleccionada]);
 
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const esHoy = fechaSeleccionada.getTime() === hoy.getTime();
+  const hoyISO = hoyEnTimezone(tz);
+  const esHoy = fechaSeleccionada === hoyISO;
 
   const cambiarDia = (delta: number) => {
-    const nueva = new Date(fechaSeleccionada);
-    nueva.setDate(nueva.getDate() + delta);
-    setFechaSeleccionada(nueva);
+    setFechaSeleccionada((actual) => sumarDias(actual, delta));
   };
 
   const { llegando, resto, kpis } = useMemo(() => {
@@ -209,7 +209,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
               color: 'var(--sala-text-primary)'
             }}
           >
-            {formatearDia(fechaSeleccionada)}
+            {formatearDia(fechaSeleccionada, hoyISO)}
           </span>
         </div>
         <button
@@ -267,7 +267,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {llegando.map((r) => (
-              <LlegandoCard key={r.id} reserva={r} onSelect={setSelected} onQuickCheckIn={quickCheckIn} />
+              <LlegandoCard key={r.id} reserva={r} tz={tz} onSelect={setSelected} onQuickCheckIn={quickCheckIn} />
             ))}
           </div>
         )}
@@ -313,7 +313,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {restoBuckets[restoActiva].map((r) => (
-                <ReservaCard key={r.id} reserva={r} onSelect={setSelected} />
+                <ReservaCard key={r.id} reserva={r} tz={tz} onSelect={setSelected} />
               ))}
             </div>
           </>
@@ -323,6 +323,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
       {selected && !accionReserva && (
         <ManualCheckInModal
           reserva={selected}
+          tz={tz}
           onClose={() => setSelected(null)}
           onAccion={(tipo) => setAccionReserva(tipo)}
           onDone={async (data) => {
@@ -334,7 +335,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
       )}
 
       {selected && accionReserva && (() => {
-        const horaSel = new Date(selected.slot_inicio).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+        const horaSel = formatHoraEnTz(new Date(selected.slot_inicio), tz);
         const nombreSel = capitalizarNombre(selected.usuario?.nombre) || selected.usuario?.email || '—';
         const label = `${selected.recurso?.nombre ?? 'Clase'} · ${horaSel} · ${nombreSel}`;
         const volver = () => setAccionReserva(null); // vuelve al modal de la reserva
@@ -429,10 +430,10 @@ function TierChip({ tier }: { tier: string | null | undefined }) {
 
 /** Tarjeta principal de "Llegando ahora": foto, membresía, clase, hora y
  *  check-in rápido (1 toque). Tocar el cuerpo abre el modal con todas las acciones. */
-function LlegandoCard({ reserva, onSelect, onQuickCheckIn }: {
-  reserva: ReservaConJoin; onSelect: (r: ReservaConJoin) => void; onQuickCheckIn: (r: ReservaConJoin) => Promise<void>;
+function LlegandoCard({ reserva, tz, onSelect, onQuickCheckIn }: {
+  reserva: ReservaConJoin; tz: string; onSelect: (r: ReservaConJoin) => void; onQuickCheckIn: (r: ReservaConJoin) => Promise<void>;
 }) {
-  const hora = new Date(reserva.slot_inicio).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const hora = formatHoraEnTz(new Date(reserva.slot_inicio), tz);
   const nombre = capitalizarNombre(reserva.usuario?.nombre) || reserva.usuario?.email || '—';
   const tier = reserva.usuario?.membresia_tier;
   const lugar = (reserva as { lugar_id?: string | null }).lugar_id;
@@ -499,8 +500,8 @@ function LlegandoCard({ reserva, onSelect, onQuickCheckIn }: {
   );
 }
 
-function ReservaCard({ reserva, onSelect }: { reserva: ReservaConJoin; onSelect: (r: ReservaConJoin) => void }) {
-  const hora = new Date(reserva.slot_inicio).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+function ReservaCard({ reserva, tz, onSelect }: { reserva: ReservaConJoin; tz: string; onSelect: (r: ReservaConJoin) => void }) {
+  const hora = formatHoraEnTz(new Date(reserva.slot_inicio), tz);
   const nombre = capitalizarNombre(reserva.usuario?.nombre) || reserva.usuario?.email || '—';
   const tier = reserva.usuario?.membresia_tier;
   // lugar_id viene del `*` pero aún no está en los tipos generados → cast.
@@ -552,11 +553,13 @@ function ReservaCard({ reserva, onSelect }: { reserva: ReservaConJoin; onSelect:
 
 function ManualCheckInModal({
   reserva,
+  tz,
   onClose,
   onDone,
   onAccion
 }: {
   reserva: ReservaConJoin;
+  tz: string;
   onClose: () => void;
   onDone: (data: any) => Promise<void>;
   onAccion: (tipo: AccionReserva) => void;
@@ -581,11 +584,7 @@ function ManualCheckInModal({
     }
   }
 
-  const hora = new Date(reserva.slot_inicio).toLocaleTimeString('es-MX', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
+  const hora = formatHoraEnTz(new Date(reserva.slot_inicio), tz);
 
   const nombreFormat =
     capitalizarNombre(reserva.usuario?.nombre) || reserva.usuario?.email || '—';

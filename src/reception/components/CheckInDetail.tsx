@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Check } from 'lucide-react';
 import { usePlanesDelTenant } from '@shared/hooks/usePlanesDelTenant';
+import { useTenant } from '@shared/hooks/useTenant';
+import { getTenantTimezone, formatHoraEnTz } from '@shared/lib/timezone';
 import { esCorreoMarcador } from '@shared/lib/sinCorreo';
 
 interface MiembroData {
@@ -64,6 +66,7 @@ const AUTO_CLOSE_MS = 15_000;
 export function CheckInDetail({ kind, miembro, recurso, reserva, stats, membresiaEstado, errorMessage, onClose }: Props) {
   const [secondsLeft, setSecondsLeft] = useState(Math.ceil(AUTO_CLOSE_MS / 1000));
   const { nombrePlan } = usePlanesDelTenant();
+  const tz = getTenantTimezone(useTenant());
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -98,9 +101,7 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, membresi
 
   if (!miembro || !recurso || !reserva) return null;
 
-  const hora = (iso: string) => new Date(iso).toLocaleTimeString('es-MX', {
-    hour: '2-digit', minute: '2-digit', hour12: false
-  });
+  const hora = (iso: string) => formatHoraEnTz(new Date(iso), tz);
 
   // El nombre REAL del plan del socio. Antes esto comparaba contra los slugs de
   // los planes de ejemplo del onboarding ('pro' / 'basica'), así que en un gym
