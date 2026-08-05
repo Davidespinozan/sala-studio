@@ -1114,21 +1114,13 @@ function EditarTierModal({
           </p>
         </div>
 
-        <div className="ek-form-field" style={{ marginTop: '16px' }}>
-          <label className="ek-label" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={enVenta}
-              onChange={(e) => setEnVenta(e.target.checked)}
-              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-            />
-            En venta
-          </label>
-          <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
-            Encendido = el plan se muestra en la landing y se puede vender a socios nuevos. Apágalo
-            para <strong>dejar de venderlo</strong> sin afectar a quienes ya lo tienen — ellos siguen
-            reservando normal. (Para eso, no lo archives.)
-          </p>
+        <div className="ek-form-field" style={{ marginTop: '12px' }}>
+          <Toggle
+            checked={enVenta}
+            onChange={setEnVenta}
+            label="En venta"
+            description="Encendido = el plan se muestra en la landing y se puede vender a socios nuevos. Apágalo para dejar de venderlo sin afectar a quienes ya lo tienen (ellos siguen reservando). Para eso, no lo archives."
+          />
         </div>
 
         <div className="ek-form-field" style={{ marginTop: '16px' }}>
