@@ -164,6 +164,10 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
   ] as const).filter(([k]) => restoBuckets[k].length > 0);
   const restoActiva = restoBuckets[restoTab].length > 0 ? restoTab : (restoTabs[0]?.[0] ?? 'pendientes');
 
+  // La sala solo se muestra si VARÍA entre las reservas: un gym de una sola sala
+  // no repite "Sala Numa" en cada tarjeta; uno multi-sala sí la muestra.
+  const mostrarSala = new Set(reservas.map((r) => r.recurso?.id).filter(Boolean)).size > 1;
+
   // Check-in rápido (1 toque) desde la tarjeta de "Llegando ahora". Misma acción
   // que el modal — si falla (ventana/ya hecho), abre el modal para ver el detalle.
   async function quickCheckIn(r: ReservaConJoin) {
@@ -267,7 +271,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {llegando.map((r) => (
-              <LlegandoCard key={r.id} reserva={r} tz={tz} onSelect={setSelected} onQuickCheckIn={quickCheckIn} />
+              <LlegandoCard key={r.id} reserva={r} tz={tz} mostrarSala={mostrarSala} onSelect={setSelected} onQuickCheckIn={quickCheckIn} />
             ))}
           </div>
         )}
@@ -313,7 +317,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {restoBuckets[restoActiva].map((r) => (
-                <ReservaCard key={r.id} reserva={r} tz={tz} onSelect={setSelected} />
+                <ReservaCard key={r.id} reserva={r} tz={tz} mostrarSala={mostrarSala} onSelect={setSelected} />
               ))}
             </div>
           </>
@@ -430,8 +434,8 @@ function TierChip({ tier }: { tier: string | null | undefined }) {
 
 /** Tarjeta principal de "Llegando ahora": foto, membresía, clase, hora y
  *  check-in rápido (1 toque). Tocar el cuerpo abre el modal con todas las acciones. */
-function LlegandoCard({ reserva, tz, onSelect, onQuickCheckIn }: {
-  reserva: ReservaConJoin; tz: string; onSelect: (r: ReservaConJoin) => void; onQuickCheckIn: (r: ReservaConJoin) => Promise<void>;
+function LlegandoCard({ reserva, tz, mostrarSala, onSelect, onQuickCheckIn }: {
+  reserva: ReservaConJoin; tz: string; mostrarSala: boolean; onSelect: (r: ReservaConJoin) => void; onQuickCheckIn: (r: ReservaConJoin) => Promise<void>;
 }) {
   const hora = formatHoraEnTz(new Date(reserva.slot_inicio), tz);
   const nombre = capitalizarNombre(reserva.usuario?.nombre) || reserva.usuario?.email || '—';
@@ -468,7 +472,7 @@ function LlegandoCard({ reserva, tz, onSelect, onQuickCheckIn }: {
             )}
           </div>
           <p style={{ fontSize: '12.5px', color: 'var(--sala-text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {reserva.recurso?.nombre ?? '—'} · {hora}
+            {mostrarSala && <>{reserva.recurso?.nombre ?? '—'} · </>}{hora}
             {esCorreoMarcador(reserva.usuario?.email) && <strong style={{ color: 'var(--ek-warning, #d97706)' }}> · pídele su email</strong>}
             {lugar && <strong style={{ color: 'var(--sala-primary)' }}> · Lugar {lugar.replace(/^L/i, '')}</strong>}
           </p>
@@ -500,7 +504,7 @@ function LlegandoCard({ reserva, tz, onSelect, onQuickCheckIn }: {
   );
 }
 
-function ReservaCard({ reserva, tz, onSelect }: { reserva: ReservaConJoin; tz: string; onSelect: (r: ReservaConJoin) => void }) {
+function ReservaCard({ reserva, tz, mostrarSala, onSelect }: { reserva: ReservaConJoin; tz: string; mostrarSala: boolean; onSelect: (r: ReservaConJoin) => void }) {
   const hora = formatHoraEnTz(new Date(reserva.slot_inicio), tz);
   const nombre = capitalizarNombre(reserva.usuario?.nombre) || reserva.usuario?.email || '—';
   const tier = reserva.usuario?.membresia_tier;
@@ -536,11 +540,11 @@ function ReservaCard({ reserva, tz, onSelect }: { reserva: ReservaConJoin; tz: s
       </span>
       <Avatar url={reserva.usuario?.avatar_url} nombre={nombre} size={38} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '-0.01em', margin: 0, marginBottom: '2px', color: 'var(--sala-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <p style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '-0.01em', margin: 0, marginBottom: '2px', color: 'var(--sala-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {nombre}
         </p>
         <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {reserva.recurso?.nombre ?? '—'}{tier && ` · ${tier}`}
+          {mostrarSala && (reserva.recurso?.nombre ?? '—')}{tier && (mostrarSala ? ` · ${tier}` : tier)}
           {lugar && <strong style={{ color: 'var(--sala-primary)' }}> · Lugar {lugar.replace(/^L/i, '')}</strong>}
         </p>
       </div>
