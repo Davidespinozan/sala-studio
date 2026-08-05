@@ -102,6 +102,7 @@ function useTiersPublicos() {
         .select('slug, nombre, precio_centavos, moneda, periodo, tipo, clases_incluidas, duracion_dias, descripcion, beneficios, reglas, orden')
         .eq('tenant_id', tenant.id)
         .eq('activo', true)
+        .eq('en_venta', true)
         // De menor a mayor: es el orden en que la gente compara precios.
         .order('precio_centavos', { ascending: true });
 

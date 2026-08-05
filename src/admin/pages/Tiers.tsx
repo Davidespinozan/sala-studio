@@ -616,6 +616,11 @@ function EditarTierModal({
   const [invitadosPorPeriodo, setInvitadosPorPeriodo] = useState<number>(
     () => tier?.invitados_por_periodo ?? 0
   );
+  // Visible en landing / vendible a socios nuevos. Apagarlo NO afecta el acceso
+  // de quienes YA lo tienen (a diferencia de archivar).
+  const [enVenta, setEnVenta] = useState<boolean>(
+    () => (tier as { en_venta?: boolean } | null)?.en_venta ?? true
+  );
   // Cuota única de alta. Se cobra una sola vez por socio.
   const [inscripcion, setInscripcion] = useState<string>(
     () => ((tier?.inscripcion_centavos ?? 0) / 100).toString()
@@ -758,6 +763,7 @@ function EditarTierModal({
         precio_centavos: precioCentavos,
         inscripcion_centavos: inscripcionCentavos,
         invitados_por_periodo: invitadosPorPeriodo,
+        en_venta: enVenta,
         moneda,
         periodo: periodoFinal,
         tipo,
@@ -792,6 +798,7 @@ function EditarTierModal({
       precio_centavos: precioCentavos,
       inscripcion_centavos: inscripcionCentavos,
       invitados_por_periodo: invitadosPorPeriodo,
+      en_venta: enVenta,
       moneda,
       periodo: periodoFinal,
       tipo,
@@ -1104,6 +1111,23 @@ function EditarTierModal({
             plan (ej. 10 al mes; en un plan quincenal, 10 por quincena), no por clase. La bolsa se
             reinicia al renovar, y cancelar una reserva devuelve los pases. <strong>0</strong> = el
             plan no incluye invitados.
+          </p>
+        </div>
+
+        <div className="ek-form-field" style={{ marginTop: '16px' }}>
+          <label className="ek-label" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={enVenta}
+              onChange={(e) => setEnVenta(e.target.checked)}
+              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+            />
+            En venta
+          </label>
+          <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
+            Encendido = el plan se muestra en la landing y se puede vender a socios nuevos. Apágalo
+            para <strong>dejar de venderlo</strong> sin afectar a quienes ya lo tienen — ellos siguen
+            reservando normal. (Para eso, no lo archives.)
           </p>
         </div>
 

@@ -72,6 +72,7 @@ function useTierParaSignup(slugPedido: string | null) {
         .select('id, slug, nombre, precio_centavos, moneda, periodo, tipo, clases_incluidas, beneficios, reglas, orden')
         .eq('tenant_id', tenant.id)
         .eq('activo', true)
+        .eq('en_venta', true)
         .order('precio_centavos', { ascending: true });
 
       if (!mounted) return;
