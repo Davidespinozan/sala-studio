@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Eye, Check, AlertTriangle, Ban, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
+import { getTenantTimezone } from '@shared/lib/timezone';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
 import CardMenuDropdown from './CardMenuDropdown';
@@ -67,6 +68,7 @@ interface Props {
 
 export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancelar }: Props) {
   const tenant = useTenant();
+  const tz = getTenantTimezone(tenant);
   const toast = useToast();
   const { usuario: currentUser } = useAuth();
 
@@ -420,6 +422,7 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
               <ReservaRow
                 key={r.id}
                 reserva={r}
+                tz={tz}
                 actioning={actioning}
                 onVerDetalle={() => onVerDetalle(r.id)}
                 onMarcarAsistencia={() => handleMarcarAsistencia(r)}
@@ -494,6 +497,7 @@ export default function ReservasVistaLista({ refreshTick, onVerDetalle, onCancel
 
 function ReservaRow({
   reserva,
+  tz,
   actioning,
   onVerDetalle,
   onMarcarAsistencia,
@@ -501,6 +505,7 @@ function ReservaRow({
   onCancelar
 }: {
   reserva: ReservaListada;
+  tz: string;
   actioning: boolean;
   onVerDetalle: () => void;
   onMarcarAsistencia: () => void;
@@ -547,10 +552,10 @@ function ReservaRow({
       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
     >
       <span style={{ color: 'var(--ek-ink-muted)' }}>
-        {fecha.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}
+        {fecha.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', timeZone: tz })}
       </span>
       <span style={{ color: 'var(--ek-ink)', fontWeight: 600 }}>
-        {fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true })}
+        {fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: tz })}
       </span>
       <span
         style={{
