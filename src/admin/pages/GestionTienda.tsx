@@ -24,6 +24,7 @@ interface Producto {
   nombre: string;
   categoria: string | null;
   precio_centavos: number;
+  costo_centavos: number | null;
   moneda: string;
   foto_url: string | null;
   activo: boolean;
@@ -51,7 +52,7 @@ export default function GestionTienda() {
     setCargando(true);
     const { data: prods } = await (supabase as any)
       .from('productos')
-      .select('id, nombre, categoria, precio_centavos, moneda, foto_url, activo')
+      .select('id, nombre, categoria, precio_centavos, costo_centavos, moneda, foto_url, activo')
       .order('nombre');
     setProductos((prods as Producto[]) ?? []);
 
@@ -78,6 +79,10 @@ export default function GestionTienda() {
   );
   const unidadesTotales = useMemo(
     () => productos.filter((p) => p.activo).reduce((a, p) => a + (stock[p.id] ?? 0), 0),
+    [productos, stock]
+  );
+  const valorInventario = useMemo(
+    () => productos.filter((p) => p.activo).reduce((a, p) => a + (stock[p.id] ?? 0) * (p.costo_centavos ?? 0), 0),
     [productos, stock]
   );
 
@@ -138,6 +143,7 @@ export default function GestionTienda() {
           <p className="ek-body-muted" style={{ marginTop: 6, fontSize: 13 }}>
             {multisede && sucursalActiva ? <>Stock de <b>{sucursalActiva.nombre}</b> · </> : null}
             {productos.filter((p) => p.activo).length} activos · {unidadesTotales} unidades en stock
+            {valorInventario > 0 && <> · valor {fmt(valorInventario, productos[0]?.moneda ?? 'MXN')}</>}
             {stockBajo > 0 && <> · <span style={{ color: 'var(--ek-danger)' }}>{stockBajo} con poco stock</span></>}
           </p>
         </div>
@@ -299,6 +305,7 @@ export default function GestionTienda() {
     const [nombre, setNombre] = useState(producto?.nombre ?? '');
     const [categoria, setCategoria] = useState(producto?.categoria ?? '');
     const [precio, setPrecio] = useState(producto ? String(producto.precio_centavos / 100) : '');
+    const [costo, setCosto] = useState(producto?.costo_centavos != null ? String(producto.costo_centavos / 100) : '');
     const [fotoUrl, setFotoUrl] = useState(producto?.foto_url ?? '');
     const [activo, setActivo] = useState(producto?.activo ?? true);
     const [guardando, setGuardando] = useState(false);
@@ -313,6 +320,7 @@ export default function GestionTienda() {
         nombre: nombre.trim(),
         categoria: categoria.trim() || null,
         precio_centavos: centavos,
+        costo_centavos: costo.trim() ? Math.round(Number(costo) * 100) : null,
         foto_url: fotoUrl || null,
         activo
       };
@@ -332,8 +340,10 @@ export default function GestionTienda() {
         <input className="ek-input" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Proteína chocolate" />
         <label style={lbl}>Categoría <span style={{ color: 'var(--ek-ink-faint)' }}>(opcional)</span></label>
         <input className="ek-input" value={categoria} onChange={(e) => setCategoria(e.target.value)} placeholder="Suplementos" />
-        <label style={lbl}>Precio</label>
+        <label style={lbl}>Precio <span style={{ color: 'var(--ek-ink-faint)' }}>(a cuánto lo vendes)</span></label>
         <input className="ek-input" type="number" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} placeholder="150" />
+        <label style={lbl}>Costo <span style={{ color: 'var(--ek-ink-faint)' }}>(a cuánto lo compras — para el margen)</span></label>
+        <input className="ek-input" type="number" inputMode="decimal" value={costo} onChange={(e) => setCosto(e.target.value)} placeholder="90" />
         <label style={lbl}>Foto <span style={{ color: 'var(--ek-ink-faint)' }}>(opcional)</span></label>
         <ImageUploader
           bucket="tenant-media"
