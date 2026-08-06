@@ -492,6 +492,13 @@ export default function GestionTienda() {
             </button>
           ))}
         </div>
+        <p style={{ fontSize: 12, color: 'var(--ek-ink-muted)', margin: '0 0 12px', lineHeight: 1.4 }}>
+          {tipo === 'entrada'
+            ? 'Llegó mercancía nueva (la compraste al proveedor). Suma al stock.'
+            : tipo === 'merma'
+              ? 'Se perdió, dañó, venció o robó. Resta del stock.'
+              : 'Corrige el conteo a lo que hay físicamente — ni compra ni merma. Usa − para restar.'}
+        </p>
         <label style={lbl}>{tipo === 'ajuste' ? 'Cantidad (con − para restar)' : 'Cantidad'}</label>
         <input className="ek-input" type="number" inputMode="numeric" value={cantidad} onChange={(e) => setCantidad(e.target.value)} placeholder="12" />
         <label style={lbl}>Motivo <span style={{ color: 'var(--ek-ink-faint)' }}>(opcional)</span></label>
