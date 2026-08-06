@@ -4,6 +4,7 @@ import { supabase } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
 
 import { COLUMNAS_USUARIO_CLIENTE } from '@shared/lib/usuariosSelect';
+import { setSentryUser } from '@shared/lib/sentry';
 
 type Usuario = Database['public']['Tables']['usuarios']['Row'];
 
@@ -41,6 +42,12 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
+
+  // Atar el usuario a Sentry: cada error reportado lleva id/email de quién lo
+  // sufrió (no-op si no hay DSN configurado).
+  useEffect(() => {
+    setSentryUser(usuario?.id ?? null, usuario?.email ?? undefined);
+  }, [usuario]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Función para hidratar usuario por auth_id
