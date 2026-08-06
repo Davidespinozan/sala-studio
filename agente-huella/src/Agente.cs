@@ -36,13 +36,15 @@ public sealed class Agente : IDisposable
     private async Task LoopAsync()
     {
         var ct = _cts.Token;
+        Log.Escribir("── Agente arrancando ──");
         try
         {
             _lector.Abrir();
             Avisar($"Lector listo: {_lector.Nombre}");
+            Log.Escribir($"Lector listo: {_lector.Nombre}");
             await Sync(ct); // arrancar con las huellas frescas
         }
-        catch (Exception ex) { Avisar($"Sin lector: {ex.Message}"); return; }
+        catch (Exception ex) { Avisar($"Sin lector: {ex.Message}"); Log.Escribir($"ARRANQUE FALLÓ: {ex}"); return; }
 
         while (!ct.IsCancellationRequested)
         {
@@ -63,9 +65,9 @@ public sealed class Agente : IDisposable
 
                 await RegistrarEntrada(usuarioId, ct);
             }
-            catch (LectorNoAutorizadoException ex) { Avisar($"Token inválido: {ex.Message}"); await Esperar(30, ct); }
+            catch (LectorNoAutorizadoException ex) { Avisar($"Token inválido: {ex.Message}"); Log.Escribir($"Token inválido: {ex.Message}"); await Esperar(30, ct); }
             catch (OperationCanceledException) { break; }
-            catch (Exception ex) { Avisar($"Error: {ex.Message}"); await Esperar(3, ct); }
+            catch (Exception ex) { Avisar($"Error: {ex.Message}"); Log.Escribir($"Error en loop: {ex}"); await Esperar(3, ct); }
         }
     }
 
@@ -87,9 +89,10 @@ public sealed class Agente : IDisposable
     private async Task Enrolar(PendienteResp p, CancellationToken ct)
     {
         Avisar($"Apoya el {p.Dedo}, {p.Socio}… (0/4)");
+        Log.Escribir($"Enrolar: toma abierta para {p.Socio} ({p.Dedo})");
         var captura = await _lector.EnrolarAsync(
             n => Avisar($"{p.Socio}: {n}/4 tomas — apoya de nuevo el {p.Dedo}"), ct);
-        if (captura is null) { Avisar("Enrolamiento cancelado"); return; }
+        if (captura is null) { Avisar("Enrolamiento cancelado"); Log.Escribir("Enrolar: cancelado / no juntó 4 tomas"); return; }
         try
         {
             await _api.EnrolarAsync(p.EnrolamientoId!, Convert.ToBase64String(captura.PlantillaIso), captura.Calidad, ct);
