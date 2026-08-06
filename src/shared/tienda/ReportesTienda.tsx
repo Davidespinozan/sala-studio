@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
+import { useTenant } from '@shared/hooks/useTenant';
+import { getTenantTimezone } from '@shared/lib/timezone';
+import { fromZonedTime } from 'date-fns-tz';
 
 /* ══════════════════════════════════════════════════════════════════════════
    REPORTES DE LA TIENDA — qué se vende y cuánto deja
@@ -34,11 +37,12 @@ export default function ReportesTienda({ sucursalId }: { sucursalId: string | nu
   const [filas, setFilas] = useState<Fila[]>([]);
   const [moneda, setMoneda] = useState('MXN');
   const [cargando, setCargando] = useState(true);
+  const tz = getTenantTimezone(useTenant());
 
   const cargar = useCallback(async () => {
     setCargando(true);
-    const dIni = new Date(`${desde}T00:00:00`);
-    const dFin = new Date(`${hasta}T23:59:59.999`);
+    const dIni = fromZonedTime(`${desde}T00:00:00`, tz);
+    const dFin = fromZonedTime(`${hasta}T23:59:59.999`, tz);
 
     // Catálogo (precio/costo para estimar ingreso y ganancia).
     const { data: prods } = await (supabase as any)
@@ -80,7 +84,7 @@ export default function ReportesTienda({ sucursalId }: { sucursalId: string | nu
 
     setFilas(rows);
     setCargando(false);
-  }, [desde, hasta, sucursalId]);
+  }, [desde, hasta, sucursalId, tz]);
 
   useEffect(() => { void cargar(); }, [cargar]);
 

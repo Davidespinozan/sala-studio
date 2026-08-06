@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { exportarCsv } from '@shared/lib/exportarCsv';
 import { useToast } from '@shared/hooks/useToast';
+import { useTenant } from '@shared/hooks/useTenant';
+import { getTenantTimezone } from '@shared/lib/timezone';
+import { fromZonedTime } from 'date-fns-tz';
 
 /* ══════════════════════════════════════════════════════════════════════════
    HISTORIAL DE VENTAS DE LA TIENDA — rastreable
@@ -38,14 +41,15 @@ export default function VentasTienda({ sucursalId }: { sucursalId: string | null
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [cargando, setCargando] = useState(true);
   const toast = useToast();
+  const tz = getTenantTimezone(useTenant());
   const [cancelando, setCancelando] = useState<Venta | null>(null);
   const [motivo, setMotivo] = useState('');
   const [procesando, setProcesando] = useState(false);
 
   const cargar = useCallback(async () => {
     setCargando(true);
-    const dIni = new Date(`${desde}T00:00:00`);
-    const dFin = new Date(`${hasta}T23:59:59.999`);
+    const dIni = fromZonedTime(`${desde}T00:00:00`, tz);
+    const dFin = fromZonedTime(`${hasta}T23:59:59.999`, tz);
 
     // 1) Las ventas (cabecera) desde la Caja.
     let pq = (supabase as any)
@@ -109,7 +113,7 @@ export default function VentasTienda({ sucursalId }: { sucursalId: string | null
       cancelada: canceladas.has(p.id)
     })));
     setCargando(false);
-  }, [desde, hasta, sucursalId]);
+  }, [desde, hasta, sucursalId, tz]);
 
   useEffect(() => { void cargar(); }, [cargar]);
 

@@ -689,6 +689,10 @@ function DevolverModal({
   onError: (msg: string) => void;
 }) {
   const disponible = pago.monto_centavos - yaDevuelto;
+  // Un producto se DEVUELVE completo (cancela la venta): reversa dinero Y regresa
+  // el stock vía cancelar_venta_producto. Sin esto, devolver un producto desde la
+  // Caja dejaba el inventario inflado y bloqueaba la cancelación de la Tienda.
+  const esProducto = pago.concepto === 'producto';
   const [tipo, setTipo] = useState<'devolucion' | 'correccion'>('devolucion');
   const [monto, setMonto] = useState(String(Math.round(disponible / 100)));
   const [motivo, setMotivo] = useState('');
@@ -704,6 +708,23 @@ function DevolverModal({
 
   async function devolver() {
     setEnviando(true);
+
+    // Producto: se cancela la venta completa (dinero + stock) con la RPC que
+    // mantiene el inventario en sincronía.
+    if (esProducto) {
+      const { error } = await supabase.rpc('cancelar_venta_producto' as never, {
+        p_pago_id: pago.id,
+        p_motivo: motivo.trim()
+      } as never);
+      if (error) {
+        setEnviando(false);
+        onError(translateActionError(error.message));
+        return;
+      }
+      onHecho('Venta cancelada — se devolvió el stock y el dinero.');
+      return;
+    }
+
     // El motivo lleva el TIPO para que en la auditoría se distinga una corrección
     // de error de una devolución real al cliente (el efecto en la caja es el mismo:
     // una entrada que revierte el cobro).
@@ -741,20 +762,28 @@ function DevolverModal({
           {yaDevuelto > 0 && ` (ya se revirtieron ${money(yaDevuelto, pago.moneda)})`}
         </p>
 
-        {/* Tipo: devolución real vs corrección de error */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-          <button type="button" onClick={() => setTipo('devolucion')} className={`ek-cta ${tipo === 'devolucion' ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 36, fontSize: 12.5 }}>
-            Devolución al cliente
-          </button>
-          <button type="button" onClick={() => setTipo('correccion')} className={`ek-cta ${esCorreccion ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 36, fontSize: 12.5 }}>
-            Corrección de error
-          </button>
-        </div>
-        <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '0 0 14px', lineHeight: 1.45 }}>
-          {esCorreccion
-            ? 'Se registró algo por error (duplicado, cortesía, inscripción que no pagó). Lo revierte sin que aparezca como un reembolso de dinero al cliente.'
-            : 'El cliente pidió su dinero de vuelta. Se asienta como devolución en la caja.'}
-        </p>
+        {esProducto ? (
+          <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '0 0 14px', lineHeight: 1.45 }}>
+            Se <strong>cancela la venta completa</strong>: se devuelve el stock a la Tienda y se reversa el dinero en la Caja.
+          </p>
+        ) : (
+          <>
+            {/* Tipo: devolución real vs corrección de error */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+              <button type="button" onClick={() => setTipo('devolucion')} className={`ek-cta ${tipo === 'devolucion' ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 36, fontSize: 12.5 }}>
+                Devolución al cliente
+              </button>
+              <button type="button" onClick={() => setTipo('correccion')} className={`ek-cta ${esCorreccion ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 36, fontSize: 12.5 }}>
+                Corrección de error
+              </button>
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '0 0 14px', lineHeight: 1.45 }}>
+              {esCorreccion
+                ? 'Se registró algo por error (duplicado, cortesía, inscripción que no pagó). Lo revierte sin que aparezca como un reembolso de dinero al cliente.'
+                : 'El cliente pidió su dinero de vuelta. Se asienta como devolución en la caja.'}
+            </p>
+          </>
+        )}
 
         {pago.metodo === 'stripe' && !esCorreccion && (
           <p style={{
@@ -771,20 +800,22 @@ function DevolverModal({
           </p>
         )}
 
-        <div className="ek-form-field">
-          <label className="ek-label">Monto a devolver</label>
-          <input
-            type="number"
-            value={monto}
-            onChange={(e) => setMonto(e.target.value)}
-            className="ek-input"
-            min={1}
-            max={Math.round(disponible / 100)}
-          />
-          <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
-            Hasta {money(disponible, pago.moneda)}. Puedes revertir solo una parte.
-          </p>
-        </div>
+        {!esProducto && (
+          <div className="ek-form-field">
+            <label className="ek-label">Monto a devolver</label>
+            <input
+              type="number"
+              value={monto}
+              onChange={(e) => setMonto(e.target.value)}
+              className="ek-input"
+              min={1}
+              max={Math.round(disponible / 100)}
+            />
+            <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
+              Hasta {money(disponible, pago.moneda)}. Puedes revertir solo una parte.
+            </p>
+          </div>
+        )}
 
         <div className="ek-form-field" style={{ marginTop: '12px' }}>
           <label className="ek-label">Motivo</label>
@@ -820,11 +851,11 @@ function DevolverModal({
           <button
             type="button"
             onClick={devolver}
-            disabled={!montoValido || !motivoValido || enviando}
+            disabled={(esProducto ? !motivoValido : (!montoValido || !motivoValido)) || enviando}
             className="ek-cta"
             style={{ flex: 1 }}
           >
-            {enviando ? 'Guardando…' : esCorreccion ? 'Corregir' : 'Devolver'}
+            {enviando ? 'Guardando…' : esProducto ? 'Cancelar venta' : esCorreccion ? 'Corregir' : 'Devolver'}
           </button>
         </div>
       </div>
