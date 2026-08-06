@@ -86,8 +86,9 @@ public sealed class Agente : IDisposable
 
     private async Task Enrolar(PendienteResp p, CancellationToken ct)
     {
-        Avisar($"Apoya el {p.Dedo}, {p.Socio}…");
-        var captura = await _lector.EnrolarAsync(ct);
+        Avisar($"Apoya el {p.Dedo}, {p.Socio}… (0/4)");
+        var captura = await _lector.EnrolarAsync(
+            n => Avisar($"{p.Socio}: {n}/4 tomas — apoya de nuevo el {p.Dedo}"), ct);
         if (captura is null) { Avisar("Enrolamiento cancelado"); return; }
         try
         {

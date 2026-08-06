@@ -41,7 +41,7 @@ public sealed class DigitalPersona4500(int umbralMatch) : ILectorHuella, IMatche
     }
 
     // ── Captura para ENROLAMIENTO (4 tomas → 1 plantilla robusta) ────────────
-    public async Task<Captura?> EnrolarAsync(CancellationToken ct)
+    public async Task<Captura?> EnrolarAsync(Action<int>? onAvance, CancellationToken ct)
     {
         var tomas = new List<Fmd>();
         while (tomas.Count < 4 && !ct.IsCancellationRequested)
@@ -51,7 +51,10 @@ public sealed class DigitalPersona4500(int umbralMatch) : ILectorHuella, IMatche
 
             var res = FeatureExtraction.CreateFmdFromFid(fid, Constants.Formats.Fmd.ANSI);
             if (res.ResultCode == Constants.ResultCode.DP_SUCCESS)
+            {
                 tomas.Add(res.Data);
+                onAvance?.Invoke(tomas.Count); // "vas 1/4, 2/4…" a la bandeja
+            }
         }
         if (tomas.Count < 4) return null; // cancelado antes de completar
 
@@ -89,8 +92,12 @@ public sealed class DigitalPersona4500(int umbralMatch) : ILectorHuella, IMatche
             _reader.Capabilities.Resolutions[0]);
 
         if (cr.ResultCode != Constants.ResultCode.DP_SUCCESS || cr.Data is null) return null;
-        // Calidad pobre (dedo mal apoyado) → como si no hubiera dedo: se reintenta.
-        return cr.Quality == Constants.CaptureQuality.DP_QUALITY_GOOD ? cr.Data : null;
+        // NO exigimos DP_QUALITY_GOOD: muchos lectores/dedos (secos, piel gastada)
+        // dan lecturas "aceptables" que igual extraen rasgos válidos. Dejamos que
+        // FeatureExtraction/Enrollment juzguen — una imagen inservible falla ahí y se
+        // reintenta. Exigir GOOD dejaba enrolamientos colgados para siempre: el foco
+        // se ponía rojo (capturaba) pero el agente tiraba TODAS las tomas.
+        return cr.Data;
     }, ct);
 
     /// <summary>

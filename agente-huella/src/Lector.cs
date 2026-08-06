@@ -25,8 +25,10 @@ public interface ILectorHuella : IDisposable
     /// <summary>
     /// Enrolamiento robusto: junta varias tomas del MISMO dedo en una sola
     /// plantilla ISO de mejor calidad. Devuelve null si se canceló/expiró.
+    /// <paramref name="onAvance"/> se llama con cuántas tomas buenas van (1..N) para
+    /// que la bandeja muestre el progreso y no parezca trabado.
     /// </summary>
-    Task<Captura?> EnrolarAsync(CancellationToken ct);
+    Task<Captura?> EnrolarAsync(Action<int>? onAvance, CancellationToken ct);
 }
 
 /// <summary>
