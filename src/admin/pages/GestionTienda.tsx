@@ -7,6 +7,7 @@ import { getTenantTimezone, fechaEnTz, formatHoraEnTz } from '@shared/lib/timezo
 import { useSucursal } from '../providers/SucursalProvider';
 import ImageUploader from '../components/ImageUploader';
 import VentasTienda from '@shared/tienda/VentasTienda';
+import ReportesTienda from '@shared/tienda/ReportesTienda';
 import { ventaSocioActiva, conVentaSocio, entregaOpciones, conEntrega, type OpcionesEntrega } from '@shared/lib/tiendaConfig';
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -41,7 +42,7 @@ export default function GestionTienda() {
 
   const [productos, setProductos] = useState<Producto[]>([]);
   const [stock, setStock] = useState<Record<string, number>>({});
-  const [vista, setVista] = useState<'productos' | 'ventas'>('productos');
+  const [vista, setVista] = useState<'productos' | 'ventas' | 'reportes'>('productos');
   const [cargando, setCargando] = useState(true);
   const [editando, setEditando] = useState<Producto | 'nuevo' | null>(null);
   const [cargandoStock, setCargandoStock] = useState<Producto | null>(null);
@@ -154,18 +155,20 @@ export default function GestionTienda() {
 
       {/* Pestañas: administrar el catálogo o ver el historial de ventas. */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-        {(['productos', 'ventas'] as const).map((v) => (
+        {(['productos', 'ventas', 'reportes'] as const).map((v) => (
           <button
             key={v}
             onClick={() => setVista(v)}
             className={vista === v ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
           >
-            {v === 'productos' ? 'Productos' : 'Ventas'}
+            {v === 'productos' ? 'Productos' : v === 'ventas' ? 'Ventas' : 'Reportes'}
           </button>
         ))}
       </div>
 
       {vista === 'ventas' && <VentasTienda sucursalId={sucursalId} />}
+
+      {vista === 'reportes' && <ReportesTienda sucursalId={sucursalId} />}
 
       {vista === 'productos' && (productos.length === 0 ? (
         <div className="ek-card" style={{ padding: 32, textAlign: 'center' }}>
