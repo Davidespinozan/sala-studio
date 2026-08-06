@@ -24,6 +24,7 @@ import ChecklistActivacion from '../components/ChecklistActivacion';
 import CentroPendientes from '../components/CentroPendientes';
 import CardMenuDropdown from '../components/CardMenuDropdown';
 import CancelarReservaModal, { type ReservaParaCancelar } from '../components/CancelarReservaModal';
+import { InfoTooltip } from '../components/InfoTooltip';
 
 function capitalizar(s: string | null | undefined): string {
   if (!s) return '';
@@ -322,12 +323,14 @@ function SeccionTuMes({ data }: { data: DashboardData }) {
           label="RESERVAS"
           tendencia={tendenciaReservas}
           mesAnteriorNombre={mesAnteriorNombre}
+          ayuda="Reservas que ocurrieron este mes: confirmadas, completadas y no-shows. No cuenta las canceladas. La flecha compara con el mes anterior."
         />
         <MetricaCard
           valor={data.miembrosNuevosMesActual}
           label="MIEMBROS NUEVOS"
           tendencia={tendenciaMiembros}
           mesAnteriorNombre={mesAnteriorNombre}
+          ayuda="Socios nuevos que se dieron de alta este mes. La flecha compara con el mes anterior."
         />
         <MetricaCard
           valor={`${pctActual}%`}
@@ -336,6 +339,7 @@ function SeccionTuMes({ data }: { data: DashboardData }) {
           tendenciaInversa
           mesAnteriorNombre={mesAnteriorNombre}
           subtexto={`${data.noShowsMesActual} de ${data.reservasMesActual}`}
+          ayuda="De las reservas del mes, qué % no se presentó ni canceló a tiempo. Menos es mejor: cada no-show quema un cupo que otro socio pudo usar."
         />
       </div>
 
@@ -350,7 +354,8 @@ function MetricaCard({
   tendencia,
   tendenciaInversa = false,
   mesAnteriorNombre,
-  subtexto
+  subtexto,
+  ayuda
 }: {
   valor: number | string;
   label: string;
@@ -358,6 +363,7 @@ function MetricaCard({
   tendenciaInversa?: boolean;
   mesAnteriorNombre: string;
   subtexto?: string;
+  ayuda?: string;
 }) {
   let tendenciaTexto = '';
   let tendenciaColor = 'var(--ek-ink-faint)';
@@ -378,7 +384,10 @@ function MetricaCard({
       className="ek-card"
       style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}
     >
-      <p className="ek-eyebrow" style={{ fontSize: '10px', margin: 0 }}>{label}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+        <p className="ek-eyebrow" style={{ fontSize: '10px', margin: 0 }}>{label}</p>
+        {ayuda && <InfoTooltip titulo={label} texto={ayuda} />}
+      </div>
       <p
         style={{
           fontFamily: 'var(--ek-font-display)',
@@ -404,6 +413,8 @@ function MetricaCard({
 
 function Grafica30Dias({ data }: { data: Array<{ fecha: string; count: number }> }) {
   const max = Math.max(1, ...data.map((d) => d.count));
+  const total = data.reduce((s, d) => s + d.count, 0);
+  const pico = data.length ? Math.max(...data.map((d) => d.count)) : 0;
   const WIDTH = 600;
   const HEIGHT = 120;
   const BAR_W = WIDTH / data.length;
@@ -414,9 +425,18 @@ function Grafica30Dias({ data }: { data: Array<{ fecha: string; count: number }>
       className="ek-card"
       style={{ padding: '20px' }}
     >
-      <p className="ek-eyebrow" style={{ fontSize: '10px', marginBottom: '12px' }}>
-        RESERVAS · ÚLTIMOS 30 DÍAS
-      </p>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        <p className="ek-eyebrow" style={{ fontSize: '10px', margin: 0, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+          RESERVAS · ÚLTIMOS 30 DÍAS
+          <InfoTooltip
+            titulo="Reservas últimos 30 días"
+            texto="Cada barra es un día; qué tan alta = cuántas reservas hubo ese día. Pasa el cursor por una barra para ver el número exacto. A la derecha, el total del período y el día más movido (pico)."
+          />
+        </p>
+        <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', fontVariantNumeric: 'tabular-nums' }}>
+          {total} en total · pico {pico}/día
+        </span>
+      </div>
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         width="100%"
@@ -503,12 +523,14 @@ function SeccionDinero() {
               : 'Cargando…'
           }
           loading={isLoading}
+          ayuda="Dinero real que entró este mes (efectivo, tarjeta, transferencia, Stripe), ya neto de devoluciones. Es lo que cuadra con la Caja."
         />
         <DineroCard
           label="DEVUELTO ESTE MES"
           valor={data ? formatearMoneda(data.devueltoCentavos, data.moneda) : '—'}
           sub="Reembolsos del mes"
           loading={isLoading}
+          ayuda="Reembolsos que hiciste este mes. Ya está descontado del cobrado, no se cuenta doble."
         />
       </div>
       <div
@@ -543,19 +565,24 @@ function DineroCard({
   label,
   valor,
   sub,
-  loading
+  loading,
+  ayuda
 }: {
   label: string;
   valor: string;
   sub: string;
   loading: boolean;
+  ayuda?: string;
 }) {
   return (
     <div
       className="ek-card"
       style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}
     >
-      <p className="ek-eyebrow" style={{ fontSize: '10px', margin: 0 }}>{label}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+        <p className="ek-eyebrow" style={{ fontSize: '10px', margin: 0 }}>{label}</p>
+        {ayuda && <InfoTooltip titulo={label} texto={ayuda} />}
+      </div>
       <p
         style={{
           fontFamily: 'var(--ek-font-display)',
