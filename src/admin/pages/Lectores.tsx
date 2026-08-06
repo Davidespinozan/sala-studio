@@ -26,7 +26,7 @@ function estaVivo(ultimoVisto: string | null): boolean {
 // como Release con tag fijo 'agente' (repo público → URL pública estable). El
 // botón se enciende en cuanto exista la primera Release; antes de eso, GitHub
 // devuelve 404 y el paso 1 igual explica qué hacer.
-const AGENTE_DESCARGA_URL = 'https://github.com/Davidespinozan/sala-studio/releases/download/agente/SalaAgente.exe';
+const AGENTE_DESCARGA_URL = 'https://github.com/Davidespinozan/sala-studio/releases/download/agente/SalaAgente.zip';
 // Base de las functions que el agente usa para hablar con SALA (debe calzar con
 // la del agente / netlify).
 const SALA_API_BASE = 'https://www.salastudio.app/.netlify/functions';
@@ -352,7 +352,7 @@ function TokenModal({ token, onClose }: { token: string; onClose: () => void }) 
         La configuración ya lleva la clave adentro: no tienes que copiar ni pegar nada a mano.
       </p>
 
-      <Paso n={1} titulo="Descarga e instala el agente">
+      <Paso n={1} titulo="Descarga el agente (.zip) y descomprímelo">
         {AGENTE_DESCARGA_URL ? (
           <a
             className="ek-cta ek-cta--secondary"
@@ -367,6 +367,9 @@ function TokenModal({ token, onClose }: { token: string; onClose: () => void }) 
             archivo que te compartimos.
           </p>
         )}
+        <p style={{ margin: '6px 0 0', fontSize: '12.5px', color: 'var(--sala-text-tertiary)', lineHeight: 1.5 }}>
+          Baja el <code>.zip</code> → clic derecho → <strong>Extraer todo</strong>. Adentro está <code>SalaAgente.exe</code>.
+        </p>
       </Paso>
 
       <Paso n={2} titulo="Descarga tu configuración">
@@ -384,8 +387,10 @@ function TokenModal({ token, onClose }: { token: string; onClose: () => void }) 
 
       <Paso n={3} titulo="Ponlos juntos y abre el agente" ultimo>
         <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
-          Deja <code>sala-lector.config.json</code> en la MISMA carpeta del agente y ábrelo.
-          Conecta el lector por USB. En esta lista lo verás como <strong>Conectado</strong>.
+          Mete <code>sala-lector.config.json</code> en la carpeta que salió al descomprimir (junto a{' '}
+          <code>SalaAgente.exe</code>) y abre <code>SalaAgente.exe</code>. La primera vez Windows dirá
+          "app desconocida" → <strong>Más información → Ejecutar de todos modos</strong>. Conecta el
+          lector por USB. En esta lista lo verás como <strong>Conectado</strong>.
         </p>
       </Paso>
 

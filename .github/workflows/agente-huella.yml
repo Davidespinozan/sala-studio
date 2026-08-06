@@ -20,27 +20,33 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      # DPUruNet ahora viene de NuGet (ver el .csproj): `dotnet publish` lo restaura
-      # solo. Ya no hay que bajar DLLs a mano ni poner secrets.
-      - name: Compilar el .exe (un solo archivo, autocontenido)
+      # DPUruNet viene de NuGet (ver el .csproj): `dotnet publish` lo restaura solo.
+      # Se compila como CARPETA autocontenida (NO single-file) y se empaqueta en un
+      # .zip: Windows/Edge bloquean un .exe suelto sin firma ("no se descarga
+      # habitualmente" / lo borran), pero un .zip se descarga sin pelea. El gym
+      # descomprime y corre SalaAgente.exe con un solo "Ejecutar de todos modos".
+      - name: Compilar (carpeta autocontenida)
         working-directory: agente-huella
-        run: >
-          dotnet publish -c Release -r win-x64 --self-contained true
-          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+        run: dotnet publish -c Release -r win-x64 --self-contained true -o publish
 
-      # Respaldo: el .exe queda descargable desde la página de esta corrida.
+      - name: Empaquetar como .zip
+        working-directory: agente-huella
+        shell: pwsh
+        run: Compress-Archive -Path publish/* -DestinationPath SalaAgente.zip -Force
+
+      # Respaldo: el .zip queda descargable desde la página de esta corrida.
       - name: Guardar como artefacto
         uses: actions/upload-artifact@v4
         with:
           name: SalaAgente
-          path: agente-huella/bin/Release/net8.0-windows/win-x64/publish/SalaAgente.exe
+          path: agente-huella/SalaAgente.zip
 
       # La descarga PÚBLICA para los gyms: un Release con tag fijo 'agente', así la
       # URL nunca cambia y el botón de Lectores siempre apunta a la última versión.
-      - name: Publicar el .exe como Release (URL pública estable)
+      - name: Publicar el .zip como Release (URL pública estable)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: agente
           name: Agente de huella SALA
-          body: Instalador del agente del lector de huella. Generado automáticamente.
-          files: agente-huella/bin/Release/net8.0-windows/win-x64/publish/SalaAgente.exe
+          body: Agente del lector de huella (.zip). Descomprímelo y corre SalaAgente.exe.
+          files: agente-huella/SalaAgente.zip
