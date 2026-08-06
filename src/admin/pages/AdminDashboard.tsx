@@ -1,6 +1,16 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  LabelList
+} from 'recharts';
+import {
   ArrowRight,
   Ban,
   CloudSun,
@@ -412,79 +422,56 @@ function MetricaCard({
 }
 
 function Grafica30Dias({ data }: { data: Array<{ fecha: string; count: number }> }) {
-  const max = Math.max(1, ...data.map((d) => d.count));
+  const tenant = useTenant();
+  const branding = (tenant.branding ?? {}) as Record<string, unknown>;
+  const primario = typeof branding.color_primary === 'string' ? branding.color_primary : '#3D6B52';
   const total = data.reduce((s, d) => s + d.count, 0);
   const pico = data.length ? Math.max(...data.map((d) => d.count)) : 0;
-  const WIDTH = 600;
-  const HEIGHT = 120;
-  const BAR_W = WIDTH / data.length;
-  const PAD = 1;
 
   return (
-    <div
-      className="ek-card"
-      style={{ padding: '20px' }}
-    >
+    <div className="ek-card" style={{ padding: '20px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
         <p className="ek-eyebrow" style={{ fontSize: '10px', margin: 0, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
           RESERVAS · ÚLTIMOS 30 DÍAS
           <InfoTooltip
             titulo="Reservas últimos 30 días"
-            texto="Cada barra es un día; qué tan alta = cuántas reservas hubo ese día. Pasa el cursor por una barra para ver el número exacto. A la derecha, el total del período y el día más movido (pico)."
+            texto="Cada barra es un día. El número arriba de la barra es cuántas reservas hubo, y el eje de abajo es la fecha (día/mes). Toca una barra para ver el día completo."
           />
         </p>
         <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', fontVariantNumeric: 'tabular-nums' }}>
           {total} en total · pico {pico}/día
         </span>
       </div>
-      <svg
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        width="100%"
-        height={HEIGHT}
-        preserveAspectRatio="none"
-        style={{ display: 'block' }}
-        role="img"
-        aria-label="Reservas por día en los últimos 30 días"
-      >
-        {/* Línea base en 0: los días sin reservas se leen como "cero", no como vacío. */}
-        <rect x={0} y={HEIGHT - 1} width={WIDTH} height={1} fill="var(--ek-line)" />
-        {data.map((d, i) => {
-          // Todos los días muestran algo: los de 0 quedan como un tick tenue sobre la
-          // base, así el mes se ve completo (gym nuevo = muchos días todavía en cero).
-          const h = d.count === 0 ? 3 : Math.max(6, (d.count / max) * (HEIGHT - 12));
-          return (
-            <rect
-              key={d.fecha}
-              x={i * BAR_W + PAD}
-              y={HEIGHT - h}
-              width={BAR_W - PAD * 2}
-              height={h}
-              fill="var(--ek-mustard)"
-              opacity={d.count === 0 ? 0.18 : 0.9}
-              rx={2}
-            >
-              <title>
-                {d.count} {d.count === 1 ? 'reserva' : 'reservas'} ·{' '}
-                {new Date(d.fecha).toLocaleDateString('es-MX', {
-                  weekday: 'short',
-                  day: 'numeric',
-                  month: 'short',
-                  timeZone: 'UTC'
-                })}
-              </title>
-            </rect>
-          );
-        })}
-      </svg>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          fontSize: '10px',
-          color: 'var(--ek-ink-faint)',
-          marginTop: '6px'
-        }}
-      >
+      <ResponsiveContainer width="100%" height={210}>
+        <BarChart data={data} margin={{ top: 18, right: 6, bottom: 0, left: -22 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--sala-border)" vertical={false} />
+          <XAxis
+            dataKey="fecha"
+            tickFormatter={(f: string) => `${Number(f.slice(8, 10))}/${Number(f.slice(5, 7))}`}
+            tick={{ fontSize: 11 }}
+            stroke="var(--sala-text-tertiary)"
+            interval="preserveStartEnd"
+            minTickGap={22}
+          />
+          <YAxis allowDecimals={false} tick={{ fontSize: 12 }} stroke="var(--sala-text-tertiary)" width={30} />
+          <Tooltip
+            formatter={(v) => [`${v} reserva${Number(v) === 1 ? '' : 's'}`, '']}
+            labelFormatter={(f) =>
+              new Date(String(f)).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'UTC' })
+            }
+          />
+          <Bar dataKey="count" name="Reservas" radius={[4, 4, 0, 0]} fill={primario}>
+            <LabelList
+              dataKey="count"
+              position="top"
+              formatter={(v) => (Number(v) > 0 ? String(v) : '')}
+              fontSize={10}
+              fill="var(--sala-text-secondary)"
+            />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--ek-ink-faint)', marginTop: '2px' }}>
         <span>Hace 30 días</span>
         <span>Hoy</span>
       </div>
