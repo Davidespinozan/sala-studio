@@ -402,7 +402,7 @@ function BloqueHeatmap({ hm }: { hm: ReportesHeatmapData }) {
                           key={d.dow}
                           title={`${d.label} ${String(h).padStart(2, '0')}:00 · ${c} reserva${c === 1 ? '' : 's'}`}
                           style={{
-                            aspectRatio: '1',
+                            height: '30px',
                             borderRadius: '4px',
                             border: '1px solid var(--sala-border)',
                             background:
