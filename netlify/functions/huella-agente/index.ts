@@ -51,7 +51,7 @@ export const handler: Handler = async (event) => {
     if (!token) return unauthorized('Falta el token del lector');
 
     const supabase = createClient(
-      requireEnv('SUPABASE_URL'),
+      requireEnv('VITE_SUPABASE_URL'),
       // service_role: estas funciones no se le conceden a nadie más. Si el
       // navegador pudiera llamarlas, cualquiera se bajaría las huellas del gym.
       requireEnv('SUPABASE_SERVICE_ROLE_KEY'),

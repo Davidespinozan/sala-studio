@@ -65,7 +65,7 @@ export const handler: Handler = async (event) => {
     if (Number.isNaN(at.getTime())) return badRequest('El momento no es una fecha válida');
 
     const supabase = createClient(
-      requireEnv('SUPABASE_URL'),
+      requireEnv('VITE_SUPABASE_URL'),
       // service_role: check_in_por_huella no se le concede a nadie más. Si el
       // navegador pudiera llamarla, cualquiera con el token del lector marcaría
       // entradas desde su casa.
