@@ -446,30 +446,33 @@ function Grafica30Dias({ data }: { data: Array<{ fecha: string; count: number }>
         role="img"
         aria-label="Reservas por día en los últimos 30 días"
       >
+        {/* Línea base en 0: los días sin reservas se leen como "cero", no como vacío. */}
+        <rect x={0} y={HEIGHT - 1} width={WIDTH} height={1} fill="var(--ek-line)" />
         {data.map((d, i) => {
-          const h = (d.count / max) * (HEIGHT - 10);
+          // Todos los días muestran algo: los de 0 quedan como un tick tenue sobre la
+          // base, así el mes se ve completo (gym nuevo = muchos días todavía en cero).
+          const h = d.count === 0 ? 3 : Math.max(6, (d.count / max) * (HEIGHT - 12));
           return (
-            <g key={d.fecha}>
-              <rect
-                x={i * BAR_W + PAD}
-                y={HEIGHT - h}
-                width={BAR_W - PAD * 2}
-                height={h}
-                fill="var(--ek-mustard)"
-                opacity={d.count === 0 ? 0.15 : 0.85}
-                rx={2}
-              >
-                <title>
-                  {d.count} {d.count === 1 ? 'reserva' : 'reservas'} ·{' '}
-                  {new Date(d.fecha).toLocaleDateString('es-MX', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                    timeZone: 'UTC'
-                  })}
-                </title>
-              </rect>
-            </g>
+            <rect
+              key={d.fecha}
+              x={i * BAR_W + PAD}
+              y={HEIGHT - h}
+              width={BAR_W - PAD * 2}
+              height={h}
+              fill="var(--ek-mustard)"
+              opacity={d.count === 0 ? 0.18 : 0.9}
+              rx={2}
+            >
+              <title>
+                {d.count} {d.count === 1 ? 'reserva' : 'reservas'} ·{' '}
+                {new Date(d.fecha).toLocaleDateString('es-MX', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                  timeZone: 'UTC'
+                })}
+              </title>
+            </rect>
           );
         })}
       </svg>
