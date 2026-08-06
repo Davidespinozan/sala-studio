@@ -548,6 +548,7 @@ function BloqueOcupacion({ data }: { data: ReportesData }) {
         <KpiCard
           label="Clases en el período"
           valor={o.totalClases}
+          ayuda="Cuántas clases se dieron en el período. Es la base sobre la que se calcula la ocupación (lugares reservados ÷ cupo de esas clases)."
           comparar={comp ? { actual: o.totalClases, anterior: comp.totalClases } : undefined}
         />
         <KpiCard
@@ -603,14 +604,27 @@ function BloqueMiembros({ data }: { data: ReportesData }) {
       <KpiRow>
         {/* activos/bajas/total son snapshots — su comparación real está en
             el bloque avanzado (vía historial). Acá van sin flecha. */}
-        <KpiCard label="Miembros activos" valor={m.activos} />
+        <KpiCard
+          label="Miembros activos"
+          valor={m.activos}
+          ayuda="Socios con una membresía vigente ahora mismo (al día o en periodo de gracia). Es tu base que paga."
+        />
         <KpiCard
           label="Altas nuevas"
           valor={m.altasNuevas}
+          ayuda="Socios que se dieron de alta en el período. La flecha compara con el período anterior."
           comparar={comp ? { actual: m.altasNuevas, anterior: comp.altasNuevas } : undefined}
         />
-        <KpiCard label="Bajas" valor={m.bajas} />
-        <KpiCard label="Total de miembros" valor={m.total} />
+        <KpiCard
+          label="Bajas"
+          valor={m.bajas}
+          ayuda="Socios que dejaron de estar activos en el período (su membresía venció o se canceló)."
+        />
+        <KpiCard
+          label="Total de miembros"
+          valor={m.total}
+          ayuda="Todas las personas registradas en el gym, activas o no (incluye ex-socios e inactivos)."
+        />
       </KpiRow>
       <ChartCard titulo="Miembros por plan">
         {m.porPlan.length === 0 ? (
@@ -651,11 +665,13 @@ function BloqueReservas({ data }: { data: ReportesData }) {
         <KpiCard
           label="Confirmadas"
           valor={r.confirmadas}
+          ayuda="Reservas que siguen en pie: aún no pasan, o la persona todavía no hace check-in. Son parte del total."
           comparar={comp ? { actual: r.confirmadas, anterior: comp.confirmadas } : undefined}
         />
         <KpiCard
           label="Canceladas"
           valor={r.canceladas}
+          ayuda="Reservas que se cancelaron a tiempo. NO cuentan en el total ni queman cupo — a diferencia de un no-show."
           comparar={
             comp ? { actual: r.canceladas, anterior: comp.canceladas, inversa: true } : undefined
           }
@@ -663,6 +679,7 @@ function BloqueReservas({ data }: { data: ReportesData }) {
         <KpiCard
           label="Promedio por día"
           valor={r.promedioPorDia}
+          ayuda="Reservas del período ÷ días del período. Da el ritmo diario típico de tu gym."
           comparar={
             comp ? { actual: r.promedioPorDia, anterior: comp.promedioPorDia } : undefined
           }
@@ -714,6 +731,7 @@ function BloqueRetencion({ av }: { av: ReportesAvanzadosData }) {
         <KpiCard
           label="Miembros activos"
           valor={miembrosActivos.actual}
+          ayuda="Socios con membresía vigente hoy. Aquí se compara contra el período anterior para ver si tu base crece o se encoge."
           comparar={{ actual: miembrosActivos.actual, anterior: miembrosActivos.anterior }}
         />
         <KpiCard
@@ -721,6 +739,7 @@ function BloqueRetencion({ av }: { av: ReportesAvanzadosData }) {
           valor={churn.bajas}
           alerta={churn.bajas > 0}
           nota={`de ${churn.activosInicio} activos al inicio`}
+          ayuda="Socios que se dieron de baja en el período. Es la base para calcular la tasa de churn."
           comparar={{ actual: churn.bajas, anterior: churn.bajasAnterior, inversa: true }}
         />
         <KpiCard
