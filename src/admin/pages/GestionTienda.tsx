@@ -3,6 +3,7 @@ import { supabase } from '@shared/lib/supabase';
 import { backendPost } from '@shared/lib/backend';
 import { useTenant, useTenantRefetch } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
+import { getTenantTimezone, fechaEnTz, formatHoraEnTz } from '@shared/lib/timezone';
 import { useSucursal } from '../providers/SucursalProvider';
 import ImageUploader from '../components/ImageUploader';
 import VentasTienda from '@shared/tienda/VentasTienda';
@@ -43,6 +44,7 @@ export default function GestionTienda() {
   const [cargando, setCargando] = useState(true);
   const [editando, setEditando] = useState<Producto | 'nuevo' | null>(null);
   const [cargandoStock, setCargandoStock] = useState<Producto | null>(null);
+  const [verMovimientos, setVerMovimientos] = useState<Producto | null>(null);
   const [cancelando, setCancelando] = useState(false);
 
   const cargar = useCallback(async () => {
@@ -72,6 +74,10 @@ export default function GestionTienda() {
 
   const stockBajo = useMemo(
     () => productos.filter((p) => p.activo && (stock[p.id] ?? 0) <= 3).length,
+    [productos, stock]
+  );
+  const unidadesTotales = useMemo(
+    () => productos.filter((p) => p.activo).reduce((a, p) => a + (stock[p.id] ?? 0), 0),
     [productos, stock]
   );
 
@@ -131,7 +137,7 @@ export default function GestionTienda() {
           <h1 className="ek-h2" style={{ margin: 0 }}>Tus productos</h1>
           <p className="ek-body-muted" style={{ marginTop: 6, fontSize: 13 }}>
             {multisede && sucursalActiva ? <>Stock de <b>{sucursalActiva.nombre}</b> · </> : null}
-            {productos.filter((p) => p.activo).length} activos
+            {productos.filter((p) => p.activo).length} activos · {unidadesTotales} unidades en stock
             {stockBajo > 0 && <> · <span style={{ color: 'var(--ek-danger)' }}>{stockBajo} con poco stock</span></>}
           </p>
         </div>
@@ -190,6 +196,7 @@ export default function GestionTienda() {
                       {s}
                     </td>
                     <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <button className="ek-cta ek-cta--secondary" onClick={() => setVerMovimientos(p)} style={btnMini}>Movimientos</button>
                       <button className="ek-cta ek-cta--secondary" onClick={() => setCargandoStock(p)} style={btnMini}>Stock</button>
                       <button className="ek-cta ek-cta--secondary" onClick={() => setEditando(p)} style={btnMini}>Editar</button>
                     </td>
@@ -273,6 +280,14 @@ export default function GestionTienda() {
           onGuardado={() => { setCargandoStock(null); void cargar(); }}
         />
       )}
+
+      {verMovimientos && (
+        <MovimientosModal
+          producto={verMovimientos}
+          sucursalId={sucursalId}
+          onClose={() => setVerMovimientos(null)}
+        />
+      )}
     </div>
   );
 
@@ -337,6 +352,86 @@ export default function GestionTienda() {
             {guardando ? 'Guardando…' : 'Guardar'}
           </button>
         </div>
+      </Overlay>
+    );
+  }
+
+  function MovimientosModal({
+    producto, sucursalId, onClose
+  }: { producto: Producto; sucursalId: string | null; onClose: () => void }) {
+    const tz = getTenantTimezone(tenant);
+    const MOV_LABEL: Record<string, string> = {
+      entrada: 'Entrada', venta: 'Venta', merma: 'Merma', ajuste: 'Ajuste', devolucion: 'Devolución'
+    };
+    type Fila = { id: string; tipo: string; cantidad: number; motivo: string | null; created_at: string; saldo: number; autor: string };
+    const [movs, setMovs] = useState<Fila[]>([]);
+    const [cargandoMov, setCargandoMov] = useState(true);
+
+    useEffect(() => {
+      let vivo = true;
+      void (async () => {
+        let q = (supabase as any)
+          .from('producto_movimientos')
+          .select('id, tipo, cantidad, motivo, created_at, created_by')
+          .eq('producto_id', producto.id)
+          .order('created_at', { ascending: true });
+        if (sucursalId) q = q.eq('sucursal_id', sucursalId);
+        const { data } = await q;
+        const filas = (data as { id: string; tipo: string; cantidad: number; motivo: string | null; created_at: string; created_by: string | null }[]) ?? [];
+        // Nombres de quién hizo cada movimiento.
+        const ids = [...new Set(filas.map((m) => m.created_by).filter(Boolean))] as string[];
+        const nombres: Record<string, string> = {};
+        if (ids.length) {
+          const { data: us } = await (supabase as any).from('usuarios').select('id, nombre').in('id', ids);
+          for (const u of (us as { id: string; nombre: string | null }[]) ?? []) nombres[u.id] = u.nombre ?? '—';
+        }
+        // Saldo corrido (ascendente) y luego se muestra el más reciente primero.
+        let saldo = 0;
+        const conSaldo: Fila[] = filas.map((m) => {
+          saldo += m.cantidad;
+          return {
+            id: m.id, tipo: m.tipo, cantidad: m.cantidad, motivo: m.motivo, created_at: m.created_at, saldo,
+            autor: m.created_by ? (nombres[m.created_by] ?? '—') : (m.tipo === 'venta' ? 'Venta (POS)' : '—')
+          };
+        }).reverse();
+        if (vivo) { setMovs(conSaldo); setCargandoMov(false); }
+      })();
+      return () => { vivo = false; };
+    }, [producto.id, sucursalId]);
+
+    return (
+      <Overlay onClose={onClose}>
+        <h2 className="ek-h3" style={{ marginTop: 0 }}>Movimientos · {producto.nombre}</h2>
+        <p className="ek-body-muted" style={{ marginTop: 0, fontSize: 13 }}>
+          Todo lo que entró y salió. El <b>saldo</b> es el stock después de cada movimiento.
+        </p>
+        {cargandoMov ? (
+          <p className="ek-body-muted" style={{ textAlign: 'center', padding: 16, margin: 0 }}>Cargando…</p>
+        ) : movs.length === 0 ? (
+          <p className="ek-body-muted" style={{ textAlign: 'center', padding: 16, margin: 0 }}>Sin movimientos todavía.</p>
+        ) : (
+          <div style={{ maxHeight: 380, overflowY: 'auto', marginTop: 4 }}>
+            {movs.map((m) => (
+              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 2px', borderTop: '1px solid var(--ek-line)' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>
+                    {MOV_LABEL[m.tipo] ?? m.tipo}
+                    {m.motivo && <span style={{ fontWeight: 400, color: 'var(--ek-ink-muted)' }}> · {m.motivo}</span>}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ek-ink-faint)' }}>
+                    {fechaEnTz(new Date(m.created_at), tz)} · {formatHoraEnTz(new Date(m.created_at), tz)} · {m.autor}
+                  </div>
+                </div>
+                <div style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, fontSize: 14, minWidth: 42, textAlign: 'right', color: m.cantidad > 0 ? 'var(--ek-success)' : 'var(--ek-danger)' }}>
+                  {m.cantidad > 0 ? '+' : ''}{m.cantidad}
+                </div>
+                <div style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, fontSize: 13, minWidth: 50, textAlign: 'right', color: 'var(--ek-ink-muted)' }}>
+                  = {m.saldo}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Overlay>
     );
   }
