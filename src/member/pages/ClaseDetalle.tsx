@@ -18,7 +18,9 @@ import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { supabase } from '@shared/lib/supabase';
-import { crearReserva, cancelarReserva as cancelarReservaRPC } from '@member/hooks/useReservas';
+import { crearReserva, cancelarReserva as cancelarReservaRPC, MultaRequeridaError } from '@member/hooks/useReservas';
+import { ConfirmarMultaModal } from '@member/components/ConfirmarMultaModal';
+import { formatearMoneda } from '@shared/lib/dinero';
 import { guardarInvitados, ajustarInvitados, type InvitadoDetalle } from '@shared/lib/invitados';
 import { useMaxInvitados } from '@member/hooks/useMaxInvitados';
 import { useFavoritos } from '@member/hooks/useFavoritos';
@@ -101,6 +103,7 @@ export default function ClaseDetalle() {
   const [lugarId, setLugarId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorReserva, setErrorReserva] = useState<string | null>(null);
+  const [multaPendiente, setMultaPendiente] = useState<number | null>(null);
 
   // Refresh tick
   const [refreshTick, setRefreshTick] = useState(0);
@@ -245,7 +248,7 @@ export default function ClaseDetalle() {
     setShowEsperaModal(true);
   }
 
-  async function confirmarReserva() {
+  async function confirmarReserva(aceptaMulta = false) {
     if (!clase) return;
     setSubmitting(true);
     setErrorReserva(null);
@@ -256,7 +259,8 @@ export default function ClaseDetalle() {
         fecha: clase.fechaISO,
         invitados,
         notas: undefined,
-        lugarId
+        lugarId,
+        aceptaMulta
       });
       // Guardar la identidad de los invitados (best-effort: la reserva ya existe).
       const reservaId = (res as { reserva_id?: string } | null)?.reserva_id;
@@ -267,11 +271,23 @@ export default function ClaseDetalle() {
           toast.error('Reserva confirmada, pero no pudimos guardar los datos del invitado. Recepción los puede completar.');
         }
       }
+      const multa = (res as { multa_centavos?: number } | null)?.multa_centavos ?? 0;
       setShowReservaModal(false);
+      setMultaPendiente(null);
       setSubmitting(false);
-      toast.success('Reserva confirmada.');
+      toast.success(
+        multa > 0
+          ? `Reserva confirmada. Multa de ${formatearMoneda(multa)} — se cobra en recepción.`
+          : 'Reserva confirmada.'
+      );
       triggerRefresh();
     } catch (e) {
+      // El tope diario pide confirmar la multa (Modelo A): abrir el modal en vez de error.
+      if (e instanceof MultaRequeridaError) {
+        setMultaPendiente(e.centavos);
+        setSubmitting(false);
+        return;
+      }
       const msg = e instanceof Error ? traducirErrorRPC(e.message) : 'Error reservando';
       setErrorReserva(msg);
       setSubmitting(false);
@@ -863,8 +879,17 @@ export default function ClaseDetalle() {
           onLugarChange={setLugarId}
           submitting={submitting}
           error={errorReserva}
-          onConfirm={confirmarReserva}
+          onConfirm={() => confirmarReserva()}
           onClose={() => !submitting && setShowReservaModal(false)}
+        />
+      )}
+
+      {multaPendiente !== null && (
+        <ConfirmarMultaModal
+          centavos={multaPendiente}
+          submitting={submitting}
+          onConfirm={() => confirmarReserva(true)}
+          onClose={() => !submitting && setMultaPendiente(null)}
         />
       )}
 

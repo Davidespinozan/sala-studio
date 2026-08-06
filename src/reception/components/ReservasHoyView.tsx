@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect, type ReactNode } from 'react';
 import { Check, CalendarClock, CalendarDays, Clock, Hourglass, TrendingUp, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTenant } from '@shared/hooks/useTenant';
 import { getTenantTimezone, hoyEnTimezone, sumarDias, diasEntre, formatHoraEnTz } from '@shared/lib/timezone';
-import { useReservasHoy, checkInManual, type ReservaConJoin } from '../hooks/useReservasHoy';
+import { useReservasHoy, checkInManual, cobrarMultaReserva, type ReservaConJoin } from '../hooks/useReservasHoy';
+import { formatearMoneda } from '@shared/lib/dinero';
 import { playCheckInSuccess, playCheckInError } from '../lib/checkInFeedback';
 import { EmptyState } from '@shared/components/EmptyState';
 import { esCorreoMarcador } from '@shared/lib/sinCorreo';
@@ -571,8 +572,24 @@ function ManualCheckInModal({
   const [motivo, setMotivo] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cobrandoMulta, setCobrandoMulta] = useState(false);
+  const [metodoMulta, setMetodoMulta] = useState<'efectivo' | 'tarjeta' | 'transferencia'>('efectivo');
 
   const yaCheckIn = reserva.status === 'completada';
+  const multaCentavos = (reserva as { multa_centavos?: number }).multa_centavos ?? 0;
+  const multaPagada = (reserva as { multa_pagada?: boolean }).multa_pagada ?? false;
+
+  async function cobrarMulta() {
+    setCobrandoMulta(true);
+    setError(null);
+    try {
+      const result = await cobrarMultaReserva(reserva.id, metodoMulta);
+      await onDone(result);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo cobrar la multa');
+      setCobrandoMulta(false);
+    }
+  }
 
   async function handleConfirm() {
     setSubmitting(true);
@@ -616,6 +633,64 @@ function ManualCheckInModal({
         <p style={{ color: 'var(--ek-ink-muted)', marginTop: '0.25rem' }}>
           {reserva.recurso?.nombre} · {hora}
         </p>
+
+        {multaCentavos > 0 && !multaPagada && (
+          <div
+            style={{
+              marginTop: '0.85rem',
+              padding: '12px 14px',
+              borderRadius: '12px',
+              background: 'var(--sala-primary-light)',
+              border: '1px solid var(--sala-border)'
+            }}
+          >
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--ek-ink)' }}>
+              Multa pendiente · {formatearMoneda(multaCentavos)}
+            </p>
+            <p style={{ margin: '4px 0 10px', fontSize: '12px', color: 'var(--ek-ink-muted)', lineHeight: 1.4 }}>
+              Reservó otra clase tras faltar hoy. Cóbrala aquí.
+            </p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select
+                value={metodoMulta}
+                onChange={(e) =>
+                  setMetodoMulta(e.target.value as 'efectivo' | 'tarjeta' | 'transferencia')
+                }
+                className="ek-input"
+                style={{ flex: 1, fontSize: '13px' }}
+                disabled={cobrandoMulta}
+              >
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="transferencia">Transferencia</option>
+              </select>
+              <button
+                type="button"
+                onClick={cobrarMulta}
+                disabled={cobrandoMulta}
+                className="ek-cta"
+                style={{ flex: 1, fontSize: '13px' }}
+              >
+                {cobrandoMulta ? 'Cobrando…' : `Cobrar ${formatearMoneda(multaCentavos)}`}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {multaCentavos > 0 && multaPagada && (
+          <p
+            style={{
+              marginTop: '0.6rem',
+              fontSize: '12px',
+              color: 'var(--ek-success)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <Check size={13} strokeWidth={2.5} /> Multa de {formatearMoneda(multaCentavos)} cobrada
+          </p>
+        )}
 
         {tieneMapa && (
           <button

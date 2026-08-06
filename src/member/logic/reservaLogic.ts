@@ -148,6 +148,9 @@ export function traducirErrorRPC(message: string): string {
     const n = message.match(/permite (\d+)/)?.[1];
     return n ? `Tu plan permite ${n} reserva(s) por día. Ya llegaste al tope de hoy.` : 'Ya llegaste al máximo de reservas de hoy con tu plan.';
   }
+  // Fallback: normalmente se intercepta como MultaRequeridaError antes de traducir.
+  if (message.includes('MULTA_REQUERIDA'))
+    return 'Faltaste a tu clase de hoy. Para reservar otra hay que asumir una multa.';
   if (message.includes('DIA_NO_PERMITIDO')) {
     // El RPC ya trae el día ("… los sábados"); mostramos esa parte humana.
     const dia = message.split('los ')[1]?.trim();

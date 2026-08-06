@@ -10,6 +10,8 @@ type ReglasDraft = {
   permitir_continuas: boolean;
   cancelacion_min_horas: number;
   no_show_bloqueo_dias: number;
+  multa_rereserva_activa: boolean;
+  multa_rereserva_pesos: number;
   timezone: string;
 };
 
@@ -28,6 +30,8 @@ const DEFAULT: ReglasDraft = {
   permitir_continuas: false,
   cancelacion_min_horas: 4, // debe coincidir con el default del RPC cancelar_reserva_atomic
   no_show_bloqueo_dias: 0, // registrar la falta, no castigar. Castigar se elige.
+  multa_rereserva_activa: false, // Modelo A apagado por default: nada cambia.
+  multa_rereserva_pesos: 75,
   timezone: DEFAULT_TIMEZONE
 };
 
@@ -46,6 +50,10 @@ function readDraft(config: Record<string, unknown> | null): ReglasDraft {
     permitir_continuas: Boolean(reserva.permitir_continuas ?? DEFAULT.permitir_continuas),
     cancelacion_min_horas: num(reserva.cancelacion_min_horas, DEFAULT.cancelacion_min_horas),
     no_show_bloqueo_dias: num(penalizaciones.no_show_bloqueo_dias, DEFAULT.no_show_bloqueo_dias),
+    multa_rereserva_activa: Boolean(penalizaciones.multa_rereserva_activa ?? DEFAULT.multa_rereserva_activa),
+    multa_rereserva_pesos: Math.round(
+      num(penalizaciones.multa_rereserva_centavos, DEFAULT.multa_rereserva_pesos * 100) / 100
+    ),
     timezone:
       typeof config?.timezone === 'string' && config.timezone
         ? (config.timezone as string)
@@ -128,6 +136,10 @@ export default function AjustesReglas() {
       toast.error('El bloqueo por inasistencia no puede ser negativo.');
       return;
     }
+    if (!Number.isFinite(draft.multa_rereserva_pesos) || draft.multa_rereserva_pesos < 0) {
+      toast.error('La multa por re-reservar no puede ser negativa.');
+      return;
+    }
 
     // Merge no destructivo: solo escribimos los campos consumidos.
     // Los campos DEAD (cupos_por_recurso, etc) se preservan en BD.
@@ -144,7 +156,9 @@ export default function AjustesReglas() {
       },
       penalizaciones: {
         ...penalizaciones,
-        no_show_bloqueo_dias: draft.no_show_bloqueo_dias
+        no_show_bloqueo_dias: draft.no_show_bloqueo_dias,
+        multa_rereserva_activa: draft.multa_rereserva_activa,
+        multa_rereserva_centavos: Math.round(draft.multa_rereserva_pesos * 100)
       },
       timezone: draft.timezone
     };
@@ -264,6 +278,32 @@ export default function AjustesReglas() {
             className="ek-input"
           />
         </FormField>
+
+        <div style={{ marginTop: '8px', marginBottom: '14px' }}>
+          <Toggle
+            checked={draft.multa_rereserva_activa}
+            onChange={(v) => setDraft({ ...draft, multa_rereserva_activa: v })}
+            label="Multa por reservar de nuevo tras faltar"
+            description="Si un miembro falta a su clase (sin cancelarla) y quiere reservar otra el mismo día, se le permite pagando una multa que se cobra en recepción. Apagado: no puede reservar de nuevo ese día."
+          />
+        </div>
+
+        {draft.multa_rereserva_activa && (
+          <FormField
+            label="Monto de la multa (pesos)"
+            helper="Lo que paga el miembro en recepción por reservar otra clase el mismo día tras faltar. Ejemplo: 75."
+          >
+            <input
+              type="number"
+              min={0}
+              value={draft.multa_rereserva_pesos}
+              onChange={(e) =>
+                setDraft({ ...draft, multa_rereserva_pesos: parseInt(e.target.value) || 0 })
+              }
+              className="ek-input"
+            />
+          </FormField>
+        )}
       </Section>
 
       <Section title="ZONA HORARIA">

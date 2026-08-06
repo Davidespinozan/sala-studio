@@ -8,8 +8,11 @@ import { supabase } from '@shared/lib/supabase';
 import {
   useRecursosDelTenant,
   crearReserva,
-  cancelarReserva as cancelarReservaRPC
+  cancelarReserva as cancelarReservaRPC,
+  MultaRequeridaError
 } from '@member/hooks/useReservas';
+import { ConfirmarMultaModal } from '@member/components/ConfirmarMultaModal';
+import { formatearMoneda } from '@shared/lib/dinero';
 import {
   generarFechasReservables,
   mensajeToastCancelacion,
@@ -84,6 +87,7 @@ export default function Reservar() {
   const [lugarId, setLugarId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorReserva, setErrorReserva] = useState<string | null>(null);
+  const [multaPendiente, setMultaPendiente] = useState<number | null>(null);
 
   // Cancelación (confirmación + flag)
   const [claseACancelar, setClaseACancelar] = useState<Clase | null>(null);
@@ -213,7 +217,7 @@ export default function Reservar() {
     setClaseACancelar(clase);
   }
 
-  async function confirmarReserva() {
+  async function confirmarReserva(aceptaMulta = false) {
     if (!claseAReservar) return;
     setSubmitting(true);
     setErrorReserva(null);
@@ -224,7 +228,8 @@ export default function Reservar() {
         fecha: claseAReservar.fechaISO,
         invitados,
         notas: undefined,
-        lugarId
+        lugarId,
+        aceptaMulta
       });
       // Guardar la identidad de los invitados (best-effort: la reserva ya existe).
       const reservaId = (res as { reserva_id?: string } | null)?.reserva_id;
@@ -235,11 +240,23 @@ export default function Reservar() {
           toast.error('Reserva confirmada, pero no pudimos guardar los datos del invitado. Recepción los puede completar.');
         }
       }
+      const multa = (res as { multa_centavos?: number } | null)?.multa_centavos ?? 0;
       setClaseAReservar(null);
+      setMultaPendiente(null);
       setSubmitting(false);
-      toast.success('Reserva confirmada.');
+      toast.success(
+        multa > 0
+          ? `Reserva confirmada. Multa de ${formatearMoneda(multa)} — se cobra en recepción.`
+          : 'Reserva confirmada.'
+      );
       triggerRefresh();
     } catch (e) {
+      // El tope diario pide confirmar la multa (Modelo A): abrir el modal en vez de error.
+      if (e instanceof MultaRequeridaError) {
+        setMultaPendiente(e.centavos);
+        setSubmitting(false);
+        return;
+      }
       const msg = e instanceof Error ? traducirErrorRPC(e.message) : 'Error reservando';
       setErrorReserva(msg);
       setSubmitting(false);
@@ -407,8 +424,17 @@ export default function Reservar() {
           onLugarChange={setLugarId}
           submitting={submitting}
           error={errorReserva}
-          onConfirm={confirmarReserva}
+          onConfirm={() => confirmarReserva()}
           onClose={() => !submitting && setClaseAReservar(null)}
+        />
+      )}
+
+      {multaPendiente !== null && (
+        <ConfirmarMultaModal
+          centavos={multaPendiente}
+          submitting={submitting}
+          onConfirm={() => confirmarReserva(true)}
+          onClose={() => !submitting && setMultaPendiente(null)}
         />
       )}
 

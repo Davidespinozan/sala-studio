@@ -129,6 +129,27 @@ export async function checkInManual(reservaId: string, motivo?: string) {
   return data;
 }
 
+/** Cobra la multa (Modelo A) de una reserva y la registra en la Caja. */
+export async function cobrarMultaReserva(
+  reservaId: string,
+  metodo: 'efectivo' | 'tarjeta' | 'transferencia'
+) {
+  // cobrar_multa_reserva no está en los tipos generados todavía → cast.
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    name: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc('cobrar_multa_reserva', {
+    p_reserva_id: reservaId,
+    p_metodo: metodo
+  });
+  if (error) {
+    const code = error.message.match(/[A-Z][A-Z0-9]*_[A-Z0-9_]+/)?.[0] ?? 'ERROR';
+    throw new Error(translateError(code, error.message));
+  }
+  return data;
+}
+
 function translateError(code: string, fallback: string): string {
   const map: Record<string, string> = {
     RESERVA_NO_EXISTE: 'No encontramos esa reserva',
@@ -138,7 +159,10 @@ function translateError(code: string, fallback: string): string {
     DEMASIADO_TEMPRANO: 'Todavía es muy temprano para el check-in',
     DEMASIADO_TARDE: 'El check-in ya cerró',
     SUCURSAL_DIFERENTE: 'Esta reserva es de otra sede',
-    NO_AUTORIZADO: 'No tienes permiso para hacer esta acción'
+    NO_AUTORIZADO: 'No tienes permiso para hacer esta acción',
+    SIN_MULTA: 'Esta reserva no tiene multa que cobrar',
+    MULTA_YA_PAGADA: 'Esta multa ya se cobró',
+    METODO_INVALIDO: 'Método de pago no válido'
   };
   return map[code] ?? fallback.replace(code + ':', '').trim();
 }

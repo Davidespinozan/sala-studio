@@ -60,6 +60,20 @@ export function useReservasDelUsuario() {
  * y el RPC reservar_clase_virtual la materializa y reserva en un paso. Ambos
  * validan cupo/tier/anticipación/etc. igual.
  */
+/**
+ * El socio topó su cupo del día por un no-show y el Modelo A (multa por re-reservar)
+ * está activo: hay que confirmar la multa antes de reservar. Se sube tipada con el
+ * monto para que la pantalla muestre el modal y reintente por el wrapper _con_multa.
+ */
+export class MultaRequeridaError extends Error {
+  readonly centavos: number;
+  constructor(centavos: number) {
+    super('MULTA_REQUERIDA');
+    this.name = 'MultaRequeridaError';
+    this.centavos = centavos;
+  }
+}
+
 export async function crearReserva(params: {
   claseId?: string | null;
   horarioId?: string | null;
@@ -68,29 +82,41 @@ export async function crearReserva(params: {
   notas?: string;
   /** Lugar elegido en el Mapa de Salón (si la sala tiene layout). */
   lugarId?: string | null;
+  /** El socio aceptó la multa (Modelo A): reintenta por el wrapper _con_multa. */
+  aceptaMulta?: boolean;
 }) {
-  // reservar_clase_virtual no está en los tipos generados todavía → cast.
+  // reservar_clase_virtual / los wrappers _con_multa no están en los tipos generados → cast.
   const rpc = supabase.rpc.bind(supabase) as unknown as (
     name: string,
     args: Record<string, unknown>
   ) => Promise<{ data: unknown; error: { message: string } | null }>;
 
-  const { data, error } = params.claseId
-    ? await rpc('reservar_clase_atomic', {
+  const fn = params.claseId
+    ? params.aceptaMulta ? 'reservar_clase_atomic_con_multa' : 'reservar_clase_atomic'
+    : params.aceptaMulta ? 'reservar_clase_virtual_con_multa' : 'reservar_clase_virtual';
+
+  const args = params.claseId
+    ? {
         p_clase_id: params.claseId,
         p_invitados: params.invitados ?? 0,
         p_notas: params.notas,
         p_lugar_id: params.lugarId ?? null
-      })
-    : await rpc('reservar_clase_virtual', {
+      }
+    : {
         p_horario_id: params.horarioId,
         p_fecha: params.fecha,
         p_invitados: params.invitados ?? 0,
         p_notas: params.notas,
         p_lugar_id: params.lugarId ?? null
-      });
+      };
+
+  const { data, error } = await rpc(fn, args);
 
   if (error) {
+    if (error.message.includes('MULTA_REQUERIDA')) {
+      const centavos = parseInt(error.message.match(/MULTA_REQUERIDA:\s*(\d+)/)?.[1] ?? '0', 10);
+      throw new MultaRequeridaError(centavos);
+    }
     throw new Error(traducirErrorRPC(error.message));
   }
   return data;
