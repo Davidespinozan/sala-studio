@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Fingerprint, Copy, Check } from 'lucide-react';
+import { Fingerprint, Copy, Check, Trash2 } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useSucursal } from '../providers/SucursalProvider';
+import { useToast } from '@shared/hooks/useToast';
 
 interface Lector {
   id: string;
@@ -142,6 +143,7 @@ export default function Lectores() {
               sedeNombre={
                 multisede ? sucursales.find((s) => s.id === l.sucursal_id)?.nombre ?? 'Todas las sedes' : null
               }
+              onEliminado={refetch}
             />
           ))}
         </div>
@@ -163,8 +165,20 @@ export default function Lectores() {
   );
 }
 
-function LectorRow({ lector, sedeNombre }: { lector: Lector; sedeNombre: string | null }) {
+function LectorRow({ lector, sedeNombre, onEliminado }: { lector: Lector; sedeNombre: string | null; onEliminado: () => void }) {
   const vivo = estaVivo(lector.ultimo_visto_at);
+  const toast = useToast();
+  const [borrando, setBorrando] = useState(false);
+
+  async function eliminar() {
+    if (!confirm(`¿Eliminar el lector "${lector.nombre}"? El agente que use su token dejará de funcionar. Las huellas de los socios NO se borran.`)) return;
+    setBorrando(true);
+    const { error } = await supabase.from('lectores_biometricos').delete().eq('id', lector.id);
+    setBorrando(false);
+    if (error) { toast.error('No se pudo eliminar: ' + error.message); return; }
+    toast.success('Lector eliminado.');
+    onEliminado();
+  }
 
   return (
     <div
@@ -202,6 +216,29 @@ function LectorRow({ lector, sedeNombre }: { lector: Lector; sedeNombre: string 
       >
         {vivo ? '● Conectado' : lector.ultimo_visto_at ? 'Sin señal' : 'Sin conectar'}
       </span>
+      <button
+        type="button"
+        onClick={eliminar}
+        disabled={borrando}
+        aria-label="Eliminar lector"
+        title="Eliminar lector"
+        style={{
+          flexShrink: 0,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 34,
+          height: 34,
+          borderRadius: 8,
+          border: '1px solid var(--sala-border)',
+          background: 'transparent',
+          color: 'var(--sala-error)',
+          cursor: borrando ? 'default' : 'pointer',
+          opacity: borrando ? 0.5 : 1
+        }}
+      >
+        <Trash2 size={16} strokeWidth={2} />
+      </button>
     </div>
   );
 }
