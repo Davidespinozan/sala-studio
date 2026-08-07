@@ -21,4 +21,21 @@
     <PackageReference Include="DigitalPersona.dpUruNet" Version="3.4.4.127" />
   </ItemGroup>
 
+  <!--
+    Quitamos las librerías NATIVAS de DigitalPersona (3.4.4) del publish, para que
+    el agente use las que YA están instaladas en la compu del gym (su U.are.U SDK,
+    la versión que empata con su driver). Con las 3.4.4 nuestras, el lector CONECTA
+    pero NO captura (desajuste de versión vs el driver 4.1.0.217). Windows resuelve
+    las nativas por el sistema, así que al no traerlas nosotros, toma las de ellos.
+    Si una compu NO tuviera el SDK instalado, el log dirá DllNotFound y ahí las
+    volvemos a empaquetar.
+  -->
+  <Target Name="QuitarNativasDigitalPersona" AfterTargets="Publish">
+    <ItemGroup>
+      <NativasDP Include="$(PublishDir)dpfpdd.dll;$(PublishDir)dpfpdd_4k.dll;$(PublishDir)dpfpdd_ptapi.dll;$(PublishDir)dpfj.dll;$(PublishDir)dpfr6.dll;$(PublishDir)dpfr7.dll;$(PublishDir)dpuareu_jni.dll;$(PublishDir)tfm.dll" />
+    </ItemGroup>
+    <Delete Files="@(NativasDP)" />
+    <Message Importance="high" Text="Nativas DP quitadas del publish (usa las del sistema del gym)." />
+  </Target>
+
 </Project>

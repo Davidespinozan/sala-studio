@@ -31,35 +31,21 @@ public sealed class Agente : IDisposable
         _lector = new DigitalPersona4500(cfg.UmbralMatch);
     }
 
-    /// <summary>
-    /// DEBE llamarse desde el hilo de la UI CON el message pump corriendo
-    /// (Application.Run ya arrancado). El streaming del SDK entrega los eventos
-    /// On_Captured por el pump del hilo que llamó a CaptureAsync; si se abre en un
-    /// hilo de pool (Task.Run), CaptureAsync devuelve éxito pero los eventos del
-    /// dedo NUNCA llegan. Por eso abrimos el lector aquí (UI) y solo el loop que
-    /// CONSUME (sync/pendiente/enrolar) corre en segundo plano.
-    /// </summary>
-    public void Iniciar()
-    {
-        Log.Escribir("── Agente arrancando ──");
-        try
-        {
-            _lector.Abrir(); // Open + CaptureAsync + On_Captured, en el hilo de UI
-            Avisar($"Lector listo: {_lector.Nombre}");
-            Log.Escribir($"Lector listo: {_lector.Nombre}");
-        }
-        catch (Exception ex)
-        {
-            Avisar($"Sin lector: {ex.Message}");
-            Log.Escribir($"ARRANQUE FALLÓ: {ex}");
-            return;
-        }
-        _ = Task.Run(LoopAsync);
-    }
+    public void Iniciar() => _ = Task.Run(LoopAsync);
 
     private async Task LoopAsync()
     {
         var ct = _cts.Token;
+        Log.Escribir("── Agente arrancando (v3 · nativas del sistema) ──");
+        try
+        {
+            _lector.Abrir();
+            Avisar($"Lector listo: {_lector.Nombre}");
+            Log.Escribir($"Lector listo: {_lector.Nombre}");
+            await Sync(ct); // arrancar con las huellas frescas
+        }
+        catch (Exception ex) { Avisar($"Sin lector: {ex.Message}"); Log.Escribir($"ARRANQUE FALLÓ: {ex}"); return; }
+
         while (!ct.IsCancellationRequested)
         {
             try

@@ -50,20 +50,7 @@ sealed class BandejaContext : ApplicationContext
         };
 
         _agente.Estado += MostrarEstado;
-
-        // Arrancar el lector una vez que el message pump YA corre. El streaming del
-        // SDK entrega On_Captured por el pump del hilo de UI: si abriéramos el lector
-        // aquí (el pump aún no arranca hasta Application.Run), los eventos del dedo no
-        // llegarían. Un Timer de WinForms dispara su Tick en el hilo de UI cuando el
-        // pump ya está activo → ahí abrimos el lector.
-        var arranque = new System.Windows.Forms.Timer { Interval = 250 };
-        arranque.Tick += (_, _) =>
-        {
-            arranque.Stop();
-            arranque.Dispose();
-            _agente.Iniciar();
-        };
-        arranque.Start();
+        _agente.Iniciar();
     }
 
     private void MostrarEstado(string s)
