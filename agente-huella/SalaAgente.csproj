@@ -22,20 +22,18 @@
   </ItemGroup>
 
   <!--
-    Quitamos las librerías NATIVAS de DigitalPersona (3.4.4) del publish, para que
-    el agente use las que YA están instaladas en la compu del gym (su U.are.U SDK,
-    la versión que empata con su driver). Con las 3.4.4 nuestras, el lector CONECTA
-    pero NO captura (desajuste de versión vs el driver 4.1.0.217). Windows resuelve
-    las nativas por el sistema, así que al no traerlas nosotros, toma las de ellos.
-    Si una compu NO tuviera el SDK instalado, el log dirá DllNotFound y ahí las
-    volvemos a empaquetar.
+    Las nativas de DigitalPersona 3.4.4 (del NuGet) CONECTAN el lector pero NO
+    capturan con el driver legacy 4.1.0.217 del gym. Su SDK U.are.U 3.2.0.89 (el
+    que su programa viejo usa y SÍ captura) trae otras nativas. Metemos ESAS 3.2
+    (x64, sacadas del propio instalador del gym) al publish, PISANDO las 3.4.4.
+    El wrapper .NET (DPUruNet 3.4.4) se queda: la API nativa dpfpdd/dpfj es estable.
   -->
-  <Target Name="QuitarNativasDigitalPersona" AfterTargets="Publish">
-    <ItemGroup>
-      <NativasDP Include="$(PublishDir)dpfpdd.dll;$(PublishDir)dpfpdd_4k.dll;$(PublishDir)dpfpdd_ptapi.dll;$(PublishDir)dpfj.dll;$(PublishDir)dpfr6.dll;$(PublishDir)dpfr7.dll;$(PublishDir)dpuareu_jni.dll;$(PublishDir)tfm.dll" />
-    </ItemGroup>
-    <Delete Files="@(NativasDP)" />
-    <Message Importance="high" Text="Nativas DP quitadas del publish (usa las del sistema del gym)." />
+  <ItemGroup>
+    <NativasDP32 Include="lib-dp-x64/*.dll" />
+  </ItemGroup>
+  <Target Name="ReemplazarNativasDigitalPersona" AfterTargets="Publish">
+    <Copy SourceFiles="@(NativasDP32)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" />
+    <Message Importance="high" Text="Nativas DigitalPersona 3.2 (del SDK del gym) copiadas al publish, reemplazando las 3.4.4." />
   </Target>
 
 </Project>

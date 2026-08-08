@@ -36,7 +36,7 @@ public sealed class Agente : IDisposable
     private async Task LoopAsync()
     {
         var ct = _cts.Token;
-        Log.Escribir("── Agente arrancando (v3 · nativas del sistema) ──");
+        Log.Escribir("── Agente arrancando (v4 · nativas 3.2 empacadas) ──");
         try
         {
             _lector.Abrir();
