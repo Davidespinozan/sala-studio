@@ -693,7 +693,7 @@ function DevolverModal({
   // el stock vía cancelar_venta_producto. Sin esto, devolver un producto desde la
   // Caja dejaba el inventario inflado y bloqueaba la cancelación de la Tienda.
   const esProducto = pago.concepto === 'producto';
-  const [tipo, setTipo] = useState<'devolucion' | 'correccion'>('devolucion');
+  const [tipo, setTipo] = useState<'devolucion' | 'correccion' | 'cortesia'>('devolucion');
   const [monto, setMonto] = useState(String(Math.round(disponible / 100)));
   const [motivo, setMotivo] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -703,6 +703,7 @@ function DevolverModal({
     Number.isFinite(montoCentavos) && montoCentavos > 0 && montoCentavos <= disponible;
   const motivoValido = motivo.trim().length >= 3;
   const esCorreccion = tipo === 'correccion';
+  const esCortesiaTipo = tipo === 'cortesia';
 
   const PRESETS = ['Cobro duplicado', 'Era cortesía (no pagó)', 'No pagó inscripción', 'Monto equivocado'];
 
@@ -722,6 +723,23 @@ function DevolverModal({
         return;
       }
       onHecho('Venta cancelada — se devolvió el stock y el dinero.');
+      return;
+    }
+
+    // "Fue cortesía": reembolsa el cobro Y lo asienta como cortesía (cuenta en el
+    // total de cortesías, ingreso neto 0). Una sola operación atómica en el RPC.
+    if (esCortesiaTipo) {
+      const { error } = await supabase.rpc('reembolsar_como_cortesia' as never, {
+        p_pago_id: pago.id,
+        p_monto_centavos: montoCentavos,
+        p_motivo: motivo.trim()
+      } as never);
+      if (error) {
+        setEnviando(false);
+        onError(translateActionError(error.message));
+        return;
+      }
+      onHecho('Devuelto y registrado como cortesía.');
       return;
     }
 
@@ -768,19 +786,24 @@ function DevolverModal({
           </p>
         ) : (
           <>
-            {/* Tipo: devolución real vs corrección de error */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-              <button type="button" onClick={() => setTipo('devolucion')} className={`ek-cta ${tipo === 'devolucion' ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 36, fontSize: 12.5 }}>
-                Devolución al cliente
+            {/* Tipo: devolución al cliente · corrección de error · fue cortesía */}
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '14px' }}>
+              <button type="button" onClick={() => setTipo('devolucion')} className={`ek-cta ${tipo === 'devolucion' ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 36, fontSize: 12 }}>
+                Devolución
               </button>
-              <button type="button" onClick={() => setTipo('correccion')} className={`ek-cta ${esCorreccion ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 36, fontSize: 12.5 }}>
-                Corrección de error
+              <button type="button" onClick={() => setTipo('correccion')} className={`ek-cta ${esCorreccion ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 36, fontSize: 12 }}>
+                Corrección
+              </button>
+              <button type="button" onClick={() => setTipo('cortesia')} className={`ek-cta ${esCortesiaTipo ? '' : 'ek-cta--secondary'}`} style={{ flex: 1, minHeight: 36, fontSize: 12 }}>
+                Fue cortesía
               </button>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '0 0 14px', lineHeight: 1.45 }}>
-              {esCorreccion
-                ? 'Se registró algo por error (duplicado, cortesía, inscripción que no pagó). Lo revierte sin que aparezca como un reembolso de dinero al cliente.'
-                : 'El cliente pidió su dinero de vuelta. Se asienta como devolución en la caja.'}
+              {esCortesiaTipo
+                ? 'Se cobró pero en realidad fue cortesía. Se reembolsa el cobro y se registra como cortesía: cuenta en el total de cortesías, y el ingreso real queda en 0.'
+                : esCorreccion
+                  ? 'Se registró algo por error (duplicado, inscripción que no pagó). Lo revierte sin que aparezca como un reembolso de dinero al cliente.'
+                  : 'El cliente pidió su dinero de vuelta. Se asienta como devolución en la caja.'}
             </p>
           </>
         )}
