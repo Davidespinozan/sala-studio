@@ -10,6 +10,7 @@ import { exportarCsv } from '@shared/lib/exportarCsv';
 import { ReciboModal } from '@shared/components/ReciboModal';
 import { CorteTicket, CortePrint, type CorteTicketData } from '@shared/components/CorteTicket';
 import CardMenuDropdown, { type DropdownItem } from '../components/CardMenuDropdown';
+import { PorCobrarCard } from '../components/PorCobrarCard';
 import { imprimirCorte, compartirCorteImagen, conceptoLabel } from '@shared/lib/recibo';
 import { getTenantTimezone, hoyEnTimezone, sumarDias } from '@shared/lib/timezone';
 import { fromZonedTime } from 'date-fns-tz';
@@ -358,6 +359,8 @@ export default function Caja() {
           Hacer corte
         </button>
       </div>
+
+      <PorCobrarCard tenantId={tenant.id} onCambio={() => setReload((r) => r + 1)} />
 
       {/* Corte: total cobrado + desglose por método */}
       <section

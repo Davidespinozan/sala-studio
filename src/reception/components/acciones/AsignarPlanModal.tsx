@@ -26,6 +26,7 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
   const [tierId, setTierId] = useState('');
   const [tiers, setTiers] = useState<TierOption[]>([]);
   const [metodo, setMetodo] = useState<MetodoPago | ''>('efectivo');
+  const [pendiente, setPendiente] = useState(false);
   // La inscripción se cobra UNA vez por socio: si ya la pagó, no se vuelve a sumar.
   const [yaPagoInscripcion, setYaPagoInscripcion] = useState(false);
   const { ejecutar } = useAccionRecepcion({ rpcName: 'recepcion_asignar_plan' });
@@ -76,9 +77,29 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
           p_usuario_id: socioId,
           p_tier_id: tierId,
           p_motivo: motivo,
+          // Pendiente → se asigna el plan SIN cobro; el cobro queda "por cobrar".
           // Sin método → el plan se activa pero no se registra ningún cobro.
-          p_metodo_pago: metodo === '' ? null : metodo
+          p_metodo_pago: pendiente ? null : (metodo === '' ? null : metodo)
         });
+        if (pendiente && tier) {
+          const monto = (tier.precio_centavos ?? 0) + inscripcionACobrar;
+          if (monto > 0) {
+            // registrar_cargo_pendiente aún no está en los tipos generados → cast.
+            const rpc = supabase.rpc.bind(supabase) as unknown as (
+              name: string,
+              args: Record<string, unknown>
+            ) => Promise<{ data: unknown; error: { message: string } | null }>;
+            const { error } = await rpc('registrar_cargo_pendiente', {
+              p_usuario_id: socioId,
+              p_monto_centavos: monto,
+              p_concepto: 'plan',
+              p_descripcion: tier.nombre
+            });
+            if (error) {
+              throw new Error('El plan se asignó, pero no se pudo dejar el pendiente: ' + error.message);
+            }
+          }
+        }
         await onDone();
       }}
       onClose={onClose}
@@ -99,6 +120,20 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
       </div>
 
       {tier && (
+        <div className="ek-form-field" style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+            <input type="checkbox" checked={pendiente} onChange={(e) => setPendiente(e.target.checked)} />
+            Dejar pendiente (pagar al llegar)
+          </label>
+          {pendiente && (
+            <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px', lineHeight: 1.45 }}>
+              El plan se activa ya. El cobro queda <strong>“Por cobrar”</strong> y se cobra en la Caja cuando llegue — no cuenta como ingreso ni como cortesía hasta entonces.
+            </p>
+          )}
+        </div>
+      )}
+
+      {tier && !pendiente && (
         <MetodoPagoField
           value={metodo}
           onChange={setMetodo}
