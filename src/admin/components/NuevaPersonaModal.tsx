@@ -18,7 +18,7 @@ import { QrChico } from '@shared/components/QrChico';
  * así que se podía fabricar un admin desde la lista de clientes.
  */
 const ROL_FIJO = 'miembro' as const;
-type FormaActivacion = 'efectivo' | 'tarjeta' | 'transferencia' | 'cortesia';
+type FormaActivacion = 'efectivo' | 'tarjeta' | 'transferencia' | 'cortesia' | 'pendiente';
 
 // Asignar un plan activa al miembro (gestionar_membresia_socio pasa el status a
 // 'activo'). Si se cobró (efectivo/transferencia) también SE REGISTRA EL PAGO en
@@ -28,6 +28,7 @@ const MOTIVO_ALTA: Record<FormaActivacion, string> = {
   tarjeta: 'Alta con pago por terminal',
   transferencia: 'Alta con pago por transferencia',
   cortesia: 'Alta de cortesía (sin cargo)',
+  pendiente: 'Alta pendiente (pagar al llegar)',
 };
 
 // El método que va al RPC: efectivo/tarjeta/transferencia registran pago;
@@ -37,6 +38,7 @@ const METODO_PAGO: Record<FormaActivacion, string | null> = {
   tarjeta: 'tarjeta',
   transferencia: 'transferencia',
   cortesia: null,
+  pendiente: null, // no cobra ahora: se registra como "por cobrar"
 };
 
 interface Props {
@@ -130,6 +132,22 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
             name: string, args: unknown
           ) => Promise<{ error: unknown }>;
           await rpc('establecer_metodo_pago', { p_usuario_id: res.usuario_id, p_metodo: metodo });
+        }
+
+        // Pendiente: deja el cobro "por cobrar" (se cobra en la Caja al llegar).
+        if (formaActivacion === 'pendiente') {
+          const tierSel = tiers.find((t) => t.id === tierId);
+          if (tierSel && (tierSel.precio_centavos ?? 0) > 0) {
+            const rpcCargo = supabase.rpc.bind(supabase) as unknown as (
+              name: string, args: unknown
+            ) => Promise<{ error: unknown }>;
+            await rpcCargo('registrar_cargo_pendiente', {
+              p_usuario_id: res.usuario_id,
+              p_monto_centavos: tierSel.precio_centavos,
+              p_concepto: 'plan',
+              p_descripcion: tierSel.nombre
+            });
+          }
         }
       }
 
@@ -254,6 +272,7 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
                 <option value="tarjeta">Activar — pagó con terminal</option>
                 <option value="transferencia">Activar — pagó por transferencia</option>
                 <option value="cortesia">Cortesía / gratis (sin cargo)</option>
+                <option value="pendiente">Pendiente (pagar al llegar)</option>
               </select>
               <p className="ek-helper-text">
                 Con <strong>efectivo</strong> o <strong>transferencia</strong> se registra el

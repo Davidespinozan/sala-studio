@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Circle, CircleDot } from 'lucide-react';
+import { supabase } from '@shared/lib/supabase';
 import { useToast } from '@shared/hooks/useToast';
 import {
   useTiersAdmin,
@@ -50,7 +51,7 @@ export function GestionarMembresiaModal({
   // en la Caja (por el precio del plan); cortesía activa sin cobrar. Antes esto no
   // existía y el cobro "se gestionaba afuera" → el dinero de una renovación hecha
   // desde admin no quedaba registrado.
-  const [formaPago, setFormaPago] = useState<'efectivo' | 'tarjeta' | 'transferencia' | 'cortesia'>('efectivo');
+  const [formaPago, setFormaPago] = useState<'efectivo' | 'tarjeta' | 'transferencia' | 'cortesia' | 'pendiente'>('efectivo');
   const [saving, setSaving] = useState(false);
   // Baja de membresía (recepcion_cancelar_membresia).
   const [showBaja, setShowBaja] = useState(false);
@@ -101,15 +102,35 @@ export function GestionarMembresiaModal({
       // La pantalla YA le mostró al admin "el socio pierde N clases" (ver preview).
       // Confirmamos esa pérdida contra la base, que sin esto rechaza el cambio.
       confirmar_perdida: (preview?.creditosPerdidos ?? 0) > 0,
-      // Registra el pago en la Caja si se cobró; cortesía → null (no cobra). El
-      // monto lo pone el RPC con el precio de lista del plan elegido.
-      metodo_pago: formaPago === 'cortesia' ? null : formaPago
+      // Registra el pago en la Caja si se cobró; cortesía/pendiente → null (no
+      // cobra ahora). El monto lo pone el RPC con el precio de lista del plan.
+      metodo_pago: formaPago === 'cortesia' || formaPago === 'pendiente' ? null : formaPago
     });
-    setSaving(false);
     if (error || !data) {
+      setSaving(false);
       toast.error(error ?? 'No pudimos actualizar la membresía.');
       return;
     }
+
+    // Pendiente: dejar el cobro "por cobrar" (se cobra en la Caja al llegar).
+    if (formaPago === 'pendiente' && tierElegido && (tierElegido.precio_centavos ?? 0) > 0) {
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
+        name: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const { error: cargoErr } = await rpc('registrar_cargo_pendiente', {
+        p_usuario_id: usuarioId,
+        p_monto_centavos: tierElegido.precio_centavos,
+        p_concepto: 'plan',
+        p_descripcion: tierElegido.nombre
+      });
+      if (cargoErr) {
+        setSaving(false);
+        toast.error('El plan se activó, pero no se pudo dejar el pendiente: ' + cargoErr.message);
+        return;
+      }
+    }
+    setSaving(false);
     toast.success(
       data.modo === 'alta'
         ? `Membresía creada para ${nombreMiembro}.`
@@ -361,7 +382,7 @@ export function GestionarMembresiaModal({
             <select
               id="gm-forma-pago"
               value={formaPago}
-              onChange={(e) => setFormaPago(e.target.value as 'efectivo' | 'tarjeta' | 'transferencia' | 'cortesia')}
+              onChange={(e) => setFormaPago(e.target.value as 'efectivo' | 'tarjeta' | 'transferencia' | 'cortesia' | 'pendiente')}
               className="ek-input"
               disabled={saving}
             >
@@ -369,7 +390,13 @@ export function GestionarMembresiaModal({
               <option value="tarjeta">Pagó con terminal</option>
               <option value="transferencia">Pagó por transferencia</option>
               <option value="cortesia">Cortesía / gratis (sin cargo)</option>
+              <option value="pendiente">Pendiente (pagar al llegar)</option>
             </select>
+            {formaPago === 'pendiente' && (
+              <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px', lineHeight: 1.45 }}>
+                Se activa ya; el cobro queda <strong>“Por cobrar”</strong> en la Caja y se cobra cuando llegue. No cuenta como ingreso ni cortesía hasta entonces.
+              </p>
+            )}
             <p style={{ fontSize: '11.5px', color: 'var(--sala-text-tertiary)', margin: '6px 0 0', lineHeight: 1.45 }}>
               Efectivo o transferencia registran el pago en la Caja por el precio del plan.
               Cortesía activa sin cobrar.
