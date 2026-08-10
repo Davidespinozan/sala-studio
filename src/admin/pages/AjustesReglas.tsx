@@ -12,6 +12,8 @@ type ReglasDraft = {
   no_show_bloqueo_dias: number;
   multa_rereserva_activa: boolean;
   multa_rereserva_pesos: number;
+  multa_inasistencia_activa: boolean;
+  multa_inasistencia_pesos: number;
   timezone: string;
 };
 
@@ -32,6 +34,8 @@ const DEFAULT: ReglasDraft = {
   no_show_bloqueo_dias: 0, // registrar la falta, no castigar. Castigar se elige.
   multa_rereserva_activa: false, // Modelo A apagado por default: nada cambia.
   multa_rereserva_pesos: 75,
+  multa_inasistencia_activa: false, // Modelo B apagado por default.
+  multa_inasistencia_pesos: 75,
   timezone: DEFAULT_TIMEZONE
 };
 
@@ -53,6 +57,10 @@ function readDraft(config: Record<string, unknown> | null): ReglasDraft {
     multa_rereserva_activa: Boolean(penalizaciones.multa_rereserva_activa ?? DEFAULT.multa_rereserva_activa),
     multa_rereserva_pesos: Math.round(
       num(penalizaciones.multa_rereserva_centavos, DEFAULT.multa_rereserva_pesos * 100) / 100
+    ),
+    multa_inasistencia_activa: Boolean(penalizaciones.multa_inasistencia_activa ?? DEFAULT.multa_inasistencia_activa),
+    multa_inasistencia_pesos: Math.round(
+      num(penalizaciones.multa_inasistencia_centavos, DEFAULT.multa_inasistencia_pesos * 100) / 100
     ),
     timezone:
       typeof config?.timezone === 'string' && config.timezone
@@ -140,6 +148,10 @@ export default function AjustesReglas() {
       toast.error('La multa por re-reservar no puede ser negativa.');
       return;
     }
+    if (!Number.isFinite(draft.multa_inasistencia_pesos) || draft.multa_inasistencia_pesos < 0) {
+      toast.error('La multa por faltar no puede ser negativa.');
+      return;
+    }
 
     // Merge no destructivo: solo escribimos los campos consumidos.
     // Los campos DEAD (cupos_por_recurso, etc) se preservan en BD.
@@ -158,7 +170,9 @@ export default function AjustesReglas() {
         ...penalizaciones,
         no_show_bloqueo_dias: draft.no_show_bloqueo_dias,
         multa_rereserva_activa: draft.multa_rereserva_activa,
-        multa_rereserva_centavos: Math.round(draft.multa_rereserva_pesos * 100)
+        multa_rereserva_centavos: Math.round(draft.multa_rereserva_pesos * 100),
+        multa_inasistencia_activa: draft.multa_inasistencia_activa,
+        multa_inasistencia_centavos: Math.round(draft.multa_inasistencia_pesos * 100)
       },
       timezone: draft.timezone
     };
@@ -299,6 +313,32 @@ export default function AjustesReglas() {
               value={draft.multa_rereserva_pesos}
               onChange={(e) =>
                 setDraft({ ...draft, multa_rereserva_pesos: parseInt(e.target.value) || 0 })
+              }
+              className="ek-input"
+            />
+          </FormField>
+        )}
+
+        <div style={{ marginTop: '8px', marginBottom: '14px' }}>
+          <Toggle
+            checked={draft.multa_inasistencia_activa}
+            onChange={(v) => setDraft({ ...draft, multa_inasistencia_activa: v })}
+            label="Multa automática por faltar"
+            description="Cobra una multa cuando el miembro no asiste a una reserva que no canceló, aunque no vuelva a reservar. Se cobra en recepción la próxima vez que llegue. Es independiente de la multa por re-reservar."
+          />
+        </div>
+
+        {draft.multa_inasistencia_activa && (
+          <FormField
+            label="Monto de la multa por faltar (pesos)"
+            helper="Lo que se le cobra al miembro por no asistir sin cancelar. Ejemplo: 75."
+          >
+            <input
+              type="number"
+              min={0}
+              value={draft.multa_inasistencia_pesos}
+              onChange={(e) =>
+                setDraft({ ...draft, multa_inasistencia_pesos: parseInt(e.target.value) || 0 })
               }
               className="ek-input"
             />

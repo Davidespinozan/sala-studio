@@ -24,6 +24,10 @@ import { MetodoPagoMembresia } from '@shared/components/MetodoPagoMembresia';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData } from '../hooks/useSocioFicha';
 import { useSocioNotas } from '../hooks/useSocioNotas';
 import { useHuellasSocio } from '@shared/hooks/useHuellasSocio';
+import { useMultasSocio, type MultaPendiente } from '../hooks/useMultasSocio';
+import { cobrarMultaReserva } from '../hooks/useReservasHoy';
+import { formatearMoneda } from '@shared/lib/dinero';
+import { useToast } from '@shared/hooks/useToast';
 import { useTenant } from '@shared/hooks/useTenant';
 import { getTenantTimezone, hoyEnTimezone, fechaEnTz, formatHoraEnTz, diasEntre } from '@shared/lib/timezone';
 
@@ -47,6 +51,59 @@ type ModalAccion =
   | 'huella';
 
 // ── Helpers de formato ──────────────────────────────────────────────────────
+/** Una multa pendiente en la ficha: monto + falta + método + cobrar (a la Caja). */
+function MultaRow({ multa, onCobrada }: { multa: MultaPendiente; onCobrada: () => Promise<void> }) {
+  const toast = useToast();
+  const [metodo, setMetodo] = useState<'efectivo' | 'tarjeta' | 'transferencia'>('efectivo');
+  const [cobrando, setCobrando] = useState(false);
+
+  async function cobrar() {
+    setCobrando(true);
+    try {
+      await cobrarMultaReserva(multa.id, metodo);
+      toast.success(`Multa de ${formatearMoneda(multa.multa_centavos)} cobrada.`);
+      await onCobrada();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo cobrar la multa');
+      setCobrando(false);
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+      <div style={{ flex: 1, minWidth: '140px' }}>
+        <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--sala-text-primary)' }}>
+          {formatearMoneda(multa.multa_centavos)}
+        </p>
+        <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
+          Faltó · {fmtFechaCorta(multa.slot_inicio)}
+          {multa.recurso_nombre ? ` · ${multa.recurso_nombre}` : ''}
+        </p>
+      </div>
+      <select
+        value={metodo}
+        onChange={(e) => setMetodo(e.target.value as 'efectivo' | 'tarjeta' | 'transferencia')}
+        className="ek-input"
+        style={{ width: 'auto', fontSize: '13px' }}
+        disabled={cobrando}
+      >
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+        <option value="transferencia">Transferencia</option>
+      </select>
+      <button
+        type="button"
+        onClick={cobrar}
+        disabled={cobrando}
+        className="ek-cta"
+        style={{ fontSize: '13px' }}
+      >
+        {cobrando ? 'Cobrando…' : 'Cobrar'}
+      </button>
+    </div>
+  );
+}
+
 function fmtFechaCorta(iso: string | null): string {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -152,6 +209,7 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
   const socioNombre = socio.nombre ?? socio.email;
   const { notas, refetch: refetchNotas } = useSocioNotas(socio.id);
   const { huellas, refetch: refetchHuellas } = useHuellasSocio(socio.id);
+  const { multas, refetch: refetchMultas } = useMultasSocio(socio.id);
   const [pagosReload, setPagosReload] = useState(0);
   const cerrar = () => setModalAbierto(null);
   const handleDone = async () => {
@@ -233,6 +291,27 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           {huellas.length > 0 ? `Huella (${huellas.length})` : 'Registrar huella'}
         </AccionBtn>
       </div>
+
+      {multas.length > 0 && (
+        <div
+          className="ek-card ek-card--md"
+          style={{ marginBottom: '12px', border: '1px solid var(--sala-primary)' }}
+        >
+          <span className="ek-eyebrow">MULTAS PENDIENTES</span>
+          <div style={{ display: 'grid', gap: '10px', marginTop: '10px' }}>
+            {multas.map((m) => (
+              <MultaRow
+                key={m.id}
+                multa={m}
+                onCobrada={async () => {
+                  await refetchMultas();
+                  setPagosReload((n) => n + 1);
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* MEMBRESÍA */}
       <div className="ek-card ek-card--md" style={{ marginBottom: '12px' }}>
