@@ -162,7 +162,8 @@ export default function Miembros() {
                     Membresía
                     <InfoTooltip
                       titulo="Membresía"
-                      texto="Si su plan o paquete está vigente HOY. «Vencida» = tuvo algo y ya se le terminó (el sistema lo marca solo cada noche). «Sin plan» = nunca ha tenido uno."
+                      texto="Si su plan o paquete sigue vigente hoy."
+                      align="right"
                     />
                   </span>
                 </th>
@@ -171,7 +172,8 @@ export default function Miembros() {
                     Status
                     <InfoTooltip
                       titulo="Status"
-                      texto="El estado de la CUENTA: si puede entrar a su app y aparecer en el sistema. NO dice si su plan está vigente — eso lo dice la columna Membresía. Un day pass vencido sigue con cuenta activa para que esa persona pueda volver."
+                      texto="Si su cuenta puede entrar a la app. No dice nada del plan — eso es Membresía."
+                      align="right"
                     />
                   </span>
                 </th>

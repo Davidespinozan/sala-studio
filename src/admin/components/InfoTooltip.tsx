@@ -6,7 +6,16 @@ import { Info } from 'lucide-react';
  * Click-toggle, con backdrop invisible para cerrar al tocar fuera (táctil).
  * Compartido por Reportes y el Dashboard para explicar cada número.
  */
-export function InfoTooltip({ titulo, texto }: { titulo: string; texto: string }) {
+export function InfoTooltip({
+  titulo,
+  texto,
+  align = 'left'
+}: {
+  titulo: string;
+  texto: string;
+  /** 'right' = el popover crece hacia la izquierda (para íconos pegados al borde derecho). */
+  align?: 'left' | 'right';
+}) {
   const [open, setOpen] = useState(false);
   return (
     <span style={{ position: 'relative', display: 'inline-flex', lineHeight: 0 }}>
@@ -43,7 +52,7 @@ export function InfoTooltip({ titulo, texto }: { titulo: string; texto: string }
             style={{
               position: 'absolute',
               top: 'calc(100% + 6px)',
-              left: 0,
+              ...(align === 'right' ? { right: 0 } : { left: 0 }),
               zIndex: 41,
               width: 'min(240px, 70vw)',
               padding: '10px 12px',
