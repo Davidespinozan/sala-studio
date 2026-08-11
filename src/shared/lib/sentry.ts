@@ -14,10 +14,20 @@ export function initSentry(): void {
     environment,
     tracesSampleRate: environment === 'production' ? 0.1 : 0,
     beforeSend(event) {
-      const msg = event.exception?.values?.[0]?.value ?? '';
+      const ex = event.exception?.values?.[0];
+      const msg = ex?.value ?? '';
       // No es accionable: aborts intencionales y errores de red de chunks
       if (msg.includes('AbortError')) return null;
       if (msg.includes('ChunkLoadError')) return null;
+      // Registro del SW rechazado por el navegador (Safari en privado, iOS
+      // restringido): lo registra el script inyectado de vite-plugin-pwa, sin
+      // catch nuestro posible. No rompe nada del usuario (E: SALA-STUDIO-3).
+      if (
+        msg === 'Rejected' &&
+        (ex?.stacktrace?.frames ?? []).some((f) => (f.function ?? '').includes('ServiceWorkerContainer'))
+      ) {
+        return null;
+      }
       return event;
     }
   });
