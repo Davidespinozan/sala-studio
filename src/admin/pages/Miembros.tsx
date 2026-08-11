@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { User, CreditCard, Lock, Unlock } from 'lucide-react';
+import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useMiembros } from '../hooks/useAdminData';
+import { InfoTooltip } from '../components/InfoTooltip';
 import { NuevaPersonaModal } from '../components/NuevaPersonaModal';
 import { ImportarMiembrosModal } from '../components/ImportarMiembrosModal';
 import { exportarCsv } from '@shared/lib/exportarCsv';
@@ -13,6 +15,12 @@ import { BloquearAccesoModal } from '../components/miembro/BloquearAccesoModal';
 import type { Database } from '@shared/types/database';
 
 type MiembroLista = Database['public']['Tables']['usuarios']['Row'];
+
+/** Última membresía de cada socio (para la columna "Membresía" de la tabla). */
+interface UltimaMembresia {
+  status: string;
+  fin: string | null;
+}
 
 export default function Miembros() {
   const tenant = useTenant();
@@ -35,6 +43,28 @@ export default function Miembros() {
   // "Vigentes" = con plan o paquete activo (cache membresia_activa_id). El resto
   // son registrados que hoy no tienen nada: day passes de una visita, bajas, etc.
   const vigentesCount = miembros.filter((m) => m.status === 'activo' && m.membresia_activa_id).length;
+
+  // Última membresía por socio, para que la columna "Membresía" distinga
+  // "Vencida" (tuvo algo y se le terminó) de "Sin plan" (nunca ha tenido).
+  const [ultimas, setUltimas] = useState<Map<string, UltimaMembresia>>(new Map());
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { data, error } = await supabase
+        .from('membresias')
+        .select('usuario_id, status, periodo_actual_fin')
+        .eq('tenant_id', tenant.id)
+        .order('created_at', { ascending: false });
+      if (cancelled) return;
+      if (error) { console.error('[Miembros] membresias', error); return; }
+      const map = new Map<string, UltimaMembresia>();
+      for (const r of data ?? []) {
+        if (!map.has(r.usuario_id)) map.set(r.usuario_id, { status: r.status, fin: r.periodo_actual_fin });
+      }
+      setUltimas(map);
+    })();
+    return () => { cancelled = true; };
+  }, [tenant.id, miembros]);
 
   return (
     <div className="adm-page">
@@ -127,7 +157,24 @@ export default function Miembros() {
                 <th>Nombre</th>
                 <th>Email</th>
                 <th>Plan</th>
-                <th>Status</th>
+                <th>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                    Membresía
+                    <InfoTooltip
+                      titulo="Membresía"
+                      texto="Si su plan o paquete está vigente HOY. «Vencida» = tuvo algo y ya se le terminó (el sistema lo marca solo cada noche). «Sin plan» = nunca ha tenido uno."
+                    />
+                  </span>
+                </th>
+                <th>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                    Status
+                    <InfoTooltip
+                      titulo="Status"
+                      texto="El estado de la CUENTA: si puede entrar a su app y aparecer en el sistema. NO dice si su plan está vigente — eso lo dice la columna Membresía. Un day pass vencido sigue con cuenta activa para que esa persona pueda volver."
+                    />
+                  </span>
+                </th>
                 <th>Alta</th>
                 <th></th>
               </tr>
@@ -147,6 +194,9 @@ export default function Miembros() {
                       ) : m.email}
                     </td>
                     <td>{m.membresia_tier ?? '—'}</td>
+                    <td>
+                      <MembresiaBadge ultima={ultimas.get(m.id)} />
+                    </td>
                     <td>
                       <StatusBadge status={m.status} />
                     </td>
@@ -292,6 +342,39 @@ function EmptyMiembros({
         <button onClick={onNuevo} className="ek-cta">+ Nuevo miembro</button>
       )}
     </div>
+  );
+}
+
+/**
+ * Estado de la MEMBRESÍA (no de la cuenta): Vigente / Pausada / Vencida (con
+ * fecha) / Sin plan. Deriva "vencida" por FECHA aunque la base diga 'activa'
+ * (misma defensa que las fichas: el cron puede ir atrasado).
+ */
+function MembresiaBadge({ ultima }: { ultima?: UltimaMembresia }) {
+  let label = 'Sin plan';
+  let color = 'var(--ek-ink-muted)';
+  if (ultima) {
+    const activa = ['activa', 'trialing', 'past_due'].includes(ultima.status);
+    const finPasado = !!ultima.fin && new Date(ultima.fin).getTime() < Date.now();
+    if (ultima.status === 'congelada') {
+      label = 'Pausada';
+      color = 'var(--ek-warning)';
+    } else if (activa && !finPasado) {
+      label = 'Vigente';
+      color = 'var(--ek-success)';
+    } else if ((activa && finPasado) || ultima.status === 'expirada' || ultima.status === 'cancelada') {
+      label = ultima.fin
+        ? `Vencida · ${new Date(ultima.fin).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}`
+        : 'Vencida';
+      color = 'var(--ek-danger)';
+    }
+    // 'pendiente' u otros → se queda en "Sin plan" (todavía no tiene nada usable).
+  }
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
+      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color }} />
+      {label}
+    </span>
   );
 }
 
