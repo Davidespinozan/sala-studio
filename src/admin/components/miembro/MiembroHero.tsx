@@ -12,6 +12,7 @@ interface Props {
   estaBloqueado: boolean;
   onCambiarPlan: () => void;
   onBloquearAcceso: () => void;
+  onEditarDatos: () => void;
 }
 
 function capitalizar(s: string | null | undefined): string {
@@ -63,7 +64,8 @@ export function MiembroHero({
   creditosRestantes,
   estaBloqueado,
   onCambiarPlan,
-  onBloquearAcceso
+  onBloquearAcceso,
+  onEditarDatos
 }: Props) {
   const nombreFmt = capitalizar(miembro.nombre);
   const statusCfg = STATUS_LABEL[miembro.status] ?? {
@@ -258,6 +260,14 @@ export function MiembroHero({
           style={{ padding: '10px 18px', minHeight: '40px', fontSize: '13px' }}
         >
           Cambiar plan
+        </button>
+        <button
+          type="button"
+          onClick={onEditarDatos}
+          className="ek-cta ek-cta--secondary"
+          style={{ padding: '10px 18px', minHeight: '40px', fontSize: '13px' }}
+        >
+          Editar datos
         </button>
         <button
           type="button"

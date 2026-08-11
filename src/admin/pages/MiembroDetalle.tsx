@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Check } from 'lucide-react';
 import {
   useMiembroDetalle,
@@ -106,6 +106,8 @@ export default function MiembroDetalle() {
 
   const [showCambiarPlan, setShowCambiarPlan] = useState(false);
   const [showBloquear, setShowBloquear] = useState(false);
+  // "Editar datos" del hero abre el colapsable y te lleva a él.
+  const editarRef = useRef<HTMLDetailsElement>(null);
   const [showAviso, setShowAviso] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -222,6 +224,12 @@ export default function MiembroDetalle() {
         estaBloqueado={!!bloqueadoHasta}
         onCambiarPlan={() => setShowCambiarPlan(true)}
         onBloquearAcceso={() => setShowBloquear(true)}
+        onEditarDatos={() => {
+          const el = editarRef.current;
+          if (!el) return;
+          el.open = true;
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }}
       />
 
       <MiembroKPIs kpis={kpis} isLoading={loadingKpis} />
@@ -245,51 +253,9 @@ export default function MiembroDetalle() {
         </div>
       )}
 
-      <section style={{ marginBottom: '32px' }}>
-        <SectionHeading>Próximas reservas</SectionHeading>
-        <MiembroProximasReservas
-          reservas={proximasReservas}
-          usuarioNombre={miembro.nombre ?? miembro.email}
-          onAfterCancel={handleAfterChange}
-        />
-      </section>
-
-      <section style={{ marginBottom: '32px' }}>
-        <SectionHeading hint="Últimos 30 días">Historial de asistencia</SectionHeading>
-        <MiembroHistorial items={historialItems} />
-      </section>
-
-      <section style={{ marginBottom: '32px' }}>
-        <SectionHeading hint="Recibo por cobro">Pagos y recibos</SectionHeading>
-        <HistorialPagosSocio usuarioId={miembro.id} reloadKey={pagosReload} />
-      </section>
-
-      <section style={{ marginBottom: '32px' }}>
-        <SectionHeading hint="Quién hizo qué">Historial de cambios</SectionHeading>
-        <MiembroHistorialCambios usuarioId={miembro.id} />
-      </section>
-
-      <section style={{ marginBottom: '32px' }}>
-        <SectionHeading>Comunicación</SectionHeading>
-        <button type="button" className="ek-cta ek-cta--secondary" onClick={() => setShowAviso(true)}>
-          Enviar aviso
-        </button>
-        <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', marginTop: '8px' }}>
-          Le llega al socio en su campana de notificaciones. Queda en el historial de cambios.
-        </p>
-      </section>
-
-      <section style={{ marginBottom: '32px' }}>
-        <SectionHeading>Notas internas</SectionHeading>
-        <MiembroNotasInternas
-          usuarioId={miembro.id}
-          notasIniciales={(miembro as { notas_admin?: string | null }).notas_admin ?? null}
-          onSaved={refetch}
-        />
-      </section>
-
       {/* Editar datos del miembro — colapsible */}
       <details
+        ref={editarRef}
         style={{
           background: 'var(--sala-surface)',
           border: '1px solid var(--sala-border)',
@@ -388,6 +354,49 @@ export default function MiembroDetalle() {
           </FieldGroup>
         </div>
       </details>
+
+      <section style={{ marginBottom: '32px' }}>
+        <SectionHeading>Próximas reservas</SectionHeading>
+        <MiembroProximasReservas
+          reservas={proximasReservas}
+          usuarioNombre={miembro.nombre ?? miembro.email}
+          onAfterCancel={handleAfterChange}
+        />
+      </section>
+
+      <section style={{ marginBottom: '32px' }}>
+        <SectionHeading hint="Últimos 30 días">Historial de asistencia</SectionHeading>
+        <MiembroHistorial items={historialItems} />
+      </section>
+
+      <section style={{ marginBottom: '32px' }}>
+        <SectionHeading hint="Recibo por cobro">Pagos y recibos</SectionHeading>
+        <HistorialPagosSocio usuarioId={miembro.id} reloadKey={pagosReload} />
+      </section>
+
+      <section style={{ marginBottom: '32px' }}>
+        <SectionHeading hint="Quién hizo qué">Historial de cambios</SectionHeading>
+        <MiembroHistorialCambios usuarioId={miembro.id} />
+      </section>
+
+      <section style={{ marginBottom: '32px' }}>
+        <SectionHeading>Comunicación</SectionHeading>
+        <button type="button" className="ek-cta ek-cta--secondary" onClick={() => setShowAviso(true)}>
+          Enviar aviso
+        </button>
+        <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', marginTop: '8px' }}>
+          Le llega al socio en su campana de notificaciones. Queda en el historial de cambios.
+        </p>
+      </section>
+
+      <section style={{ marginBottom: '32px' }}>
+        <SectionHeading>Notas internas</SectionHeading>
+        <MiembroNotasInternas
+          usuarioId={miembro.id}
+          notasIniciales={(miembro as { notas_admin?: string | null }).notas_admin ?? null}
+          onSaved={refetch}
+        />
+      </section>
 
       {/* Zona peligrosa (FIX02) */}
       <section
