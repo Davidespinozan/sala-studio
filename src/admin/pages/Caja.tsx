@@ -146,6 +146,10 @@ export default function Caja() {
   const toast = useToast();
   const { sucursalFiltro, sucursalActiva } = useSucursal();
   const tz = getTenantTimezone(tenant);
+  // Corte sin arqueo (config.caja.corte_simple, por tenant — lo pidió numa):
+  // el corte solo asienta el desglose de lo cobrado; sin fondo inicial, sin
+  // contar efectivo y sin sobra/falta. El resto de los gyms no cambia.
+  const corteSimple = (tenant.config as { caja?: { corte_simple?: boolean } } | null)?.caja?.corte_simple === true;
   const [ticketData, setTicketData] = useState<CorteTicketData | null>(null);
   const corteRef = useRef<HTMLDivElement>(null);
   const [compartiendoCorte, setCompartiendoCorte] = useState(false);
@@ -281,8 +285,11 @@ export default function Caja() {
       recepcion: c.recepcion,
       desde: c.desde, hasta: c.hasta,
       porConcepto, totalCentavos: total, porMetodo, moneda,
-      efectivoEsperadoCentavos: c.efectivo_esperado_centavos, fondoCentavos: c.fondo_centavos,
-      efectivoContadoCentavos: c.efectivo_contado_centavos, diferenciaCentavos: c.diferencia_centavos
+      // Corte simple: sin cuadre en el ticket (CorteTicket lo omite si contado es null).
+      efectivoEsperadoCentavos: corteSimple ? null : c.efectivo_esperado_centavos,
+      fondoCentavos: corteSimple ? null : c.fondo_centavos,
+      efectivoContadoCentavos: corteSimple ? null : c.efectivo_contado_centavos,
+      diferenciaCentavos: corteSimple ? null : c.diferencia_centavos
     });
   }
 
@@ -593,13 +600,23 @@ export default function Caja() {
                 <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--sala-text-primary)' }}>
                   {hora(c.hasta, tz)}{c.realizado_por?.nombre ? ` · ${c.realizado_por.nombre}` : ''}
                 </p>
-                <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
-                  Esperado {money(c.efectivo_esperado_centavos + c.fondo_centavos, moneda)} · Contado {money(c.efectivo_contado_centavos, moneda)}
-                </p>
+                {!corteSimple && (
+                  <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
+                    Esperado {money(c.efectivo_esperado_centavos + c.fondo_centavos, moneda)} · Contado {money(c.efectivo_contado_centavos, moneda)}
+                  </p>
+                )}
               </div>
-              <span style={{ fontWeight: 700, fontSize: '14px', whiteSpace: 'nowrap', color: c.diferencia_centavos === 0 ? 'var(--sala-text-secondary)' : c.diferencia_centavos > 0 ? 'var(--sala-success)' : 'var(--sala-error)' }}>
-                {c.diferencia_centavos === 0 ? 'Cuadra' : (c.diferencia_centavos > 0 ? 'Sobra ' : 'Falta ') + money(Math.abs(c.diferencia_centavos), moneda)}
-              </span>
+              {corteSimple ? (
+                c.resumen?.total_centavos != null && (
+                  <span style={{ fontWeight: 700, fontSize: '14px', whiteSpace: 'nowrap', color: 'var(--sala-text-secondary)' }}>
+                    {money(c.resumen.total_centavos, moneda)}
+                  </span>
+                )
+              ) : (
+                <span style={{ fontWeight: 700, fontSize: '14px', whiteSpace: 'nowrap', color: c.diferencia_centavos === 0 ? 'var(--sala-text-secondary)' : c.diferencia_centavos > 0 ? 'var(--sala-success)' : 'var(--sala-error)' }}>
+                  {c.diferencia_centavos === 0 ? 'Cuadra' : (c.diferencia_centavos > 0 ? 'Sobra ' : 'Falta ') + money(Math.abs(c.diferencia_centavos), moneda)}
+                </span>
+              )}
             </button>
           ))}
         </section>
@@ -610,11 +627,12 @@ export default function Caja() {
           sucursalId={sucursalFiltro}
           moneda={moneda}
           tz={tz}
+          simple={corteSimple}
           cortesPrevios={cortes}
           onClose={() => setShowCorte(false)}
           onHecho={(r) => {
             setShowCorte(false);
-            toast.success(r.diferencia_centavos === 0 ? 'Corte hecho: la caja cuadra.' : r.diferencia_centavos > 0 ? `Corte hecho: sobran ${money(Math.abs(r.diferencia_centavos), moneda)}.` : `Corte hecho: faltan ${money(Math.abs(r.diferencia_centavos), moneda)}.`);
+            toast.success(corteSimple ? 'Corte hecho.' : r.diferencia_centavos === 0 ? 'Corte hecho: la caja cuadra.' : r.diferencia_centavos > 0 ? `Corte hecho: sobran ${money(Math.abs(r.diferencia_centavos), moneda)}.` : `Corte hecho: faltan ${money(Math.abs(r.diferencia_centavos), moneda)}.`);
             setCortesReload((n) => n + 1);
             setReload((n) => n + 1);
             void mostrarTicket({ ...r, recepcion: usuario?.nombre ?? 'Recepción' });
@@ -897,6 +915,7 @@ function CorteModal({
   sucursalId,
   moneda,
   tz,
+  simple,
   cortesPrevios,
   onClose,
   onHecho,
@@ -905,6 +924,8 @@ function CorteModal({
   sucursalId: string | null;
   moneda: string;
   tz: string;
+  /** Corte sin arqueo (config.caja.corte_simple): solo rango + confirmar. */
+  simple: boolean;
   cortesPrevios: { desde: string | null; hasta: string }[];
   onClose: () => void;
   onHecho: (r: {
@@ -957,7 +978,8 @@ function CorteModal({
   const contadoC = Math.round(Number(contado || '0') * 100);
   const espC = esperado ?? 0;
   const dif = (Number.isFinite(contadoC) ? contadoC : 0) - (espC + (Number.isFinite(fondoC) ? fondoC : 0));
-  const contadoValido = contado.trim() !== '' && Number.isFinite(contadoC) && contadoC >= 0;
+  // Simple: no se captura nada — basta con que el esperado ya haya cargado.
+  const contadoValido = simple || (contado.trim() !== '' && Number.isFinite(contadoC) && contadoC >= 0);
 
   async function confirmar() {
     if (!contadoValido || esperado === null || !rangoValido) return;
@@ -971,8 +993,10 @@ function CorteModal({
       p_desde: desde,
       p_hasta: hasta,
       p_sucursal_id: sucursalId,
-      p_efectivo_contado_centavos: contadoC,
-      p_fondo_centavos: Number.isFinite(fondoC) ? fondoC : 0,
+      // Simple: se asienta contado = esperado (sin fondo) → diferencia 0. El
+      // ticket y la lista no muestran cuadre para este tenant de todas formas.
+      p_efectivo_contado_centavos: simple ? espC : contadoC,
+      p_fondo_centavos: simple ? 0 : (Number.isFinite(fondoC) ? fondoC : 0),
       p_notas: null
     });
     setEnviando(false);
@@ -998,8 +1022,9 @@ function CorteModal({
         <div className="ek-modal-handle" />
         <h3 className="ek-h3" style={{ marginBottom: '4px' }}>Corte de caja</h3>
         <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
-          Elige el rango, cuenta el efectivo del cajón y captúralo. Lo comparamos con lo que
-          registró el sistema en ese periodo. Tarjeta, transferencia y online no cuentan.
+          {simple
+            ? 'Elige el rango y confirma. El corte asienta el desglose de lo cobrado en ese periodo.'
+            : 'Elige el rango, cuenta el efectivo del cajón y captúralo. Lo comparamos con lo que registró el sistema en ese periodo. Tarjeta, transferencia y online no cuentan.'}
         </p>
 
         {/* Rango de fechas (horario del gym) — atajos + personalizado */}
@@ -1038,17 +1063,21 @@ function CorteModal({
             <span style={{ color: 'var(--sala-text-tertiary)' }}>Efectivo esperado (sistema)</span>
             <span style={{ fontWeight: 700 }}>{!rangoValido ? '—' : esperado === null ? '…' : money(espC, moneda)}</span>
           </div>
-          <div className="ek-form-field">
-            <label className="ek-label">Fondo inicial (opcional)</label>
-            <input type="number" className="ek-input" value={fondo} min={0} onChange={(e) => setFondo(e.target.value)} />
-          </div>
-          <div className="ek-form-field">
-            <label className="ek-label">Efectivo contado</label>
-            <input type="number" className="ek-input" value={contado} min={0} placeholder="0" autoFocus onChange={(e) => setContado(e.target.value)} />
-          </div>
+          {!simple && (
+            <>
+              <div className="ek-form-field">
+                <label className="ek-label">Fondo inicial (opcional)</label>
+                <input type="number" className="ek-input" value={fondo} min={0} onChange={(e) => setFondo(e.target.value)} />
+              </div>
+              <div className="ek-form-field">
+                <label className="ek-label">Efectivo contado</label>
+                <input type="number" className="ek-input" value={contado} min={0} placeholder="0" autoFocus onChange={(e) => setContado(e.target.value)} />
+              </div>
+            </>
+          )}
         </div>
 
-        {contadoValido && esperado !== null && (
+        {!simple && contadoValido && esperado !== null && (
           <div
             style={{
               marginTop: '14px', padding: '12px 14px', borderRadius: '12px', textAlign: 'center', fontWeight: 700,
