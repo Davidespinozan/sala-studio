@@ -25,9 +25,12 @@ function capitalizar(s: string | null | undefined): string {
 }
 
 
+// El status de `usuarios` es de la CUENTA (login/app/historial), no del plan —
+// un day pass vencido NO apaga la cuenta. El label lo dice explícito para que
+// no se lea como "miembro con plan vigente" junto a un chip de plan vencido.
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
   activo: {
-    label: 'Activo',
+    label: 'Cuenta activa',
     color: 'var(--sala-success)',
     bg: 'var(--sala-success-bg)'
   },
