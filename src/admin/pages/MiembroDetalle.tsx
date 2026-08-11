@@ -236,7 +236,7 @@ export default function MiembroDetalle() {
 
       {membresia && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', margin: '4px 0 24px' }}>
-          <span className="ek-label" style={{ fontSize: '12px', color: 'var(--sala-text-secondary)' }}>Método de pago</span>
+          <span className="ek-label" style={{ fontSize: '12px', color: 'var(--sala-text-secondary)' }}>Suele pagar con</span>
           <MetodoPagoMembresia usuarioId={miembro.id} valor={membresia.metodoPago} />
         </div>
       )}

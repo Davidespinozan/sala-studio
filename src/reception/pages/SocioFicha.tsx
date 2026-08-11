@@ -366,7 +366,7 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
 
         {membresia && estado !== 'sin_plan' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
-            <span className="ek-label" style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)' }}>Método de pago</span>
+            <span className="ek-label" style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)' }}>Suele pagar con</span>
             <MetodoPagoMembresia usuarioId={socio.id} valor={membresia.metodoPago} />
           </div>
         )}
