@@ -237,13 +237,29 @@ export async function promoverManualEspera(
 export async function inscribirMiembroManual(params: {
   claseId: string;
   usuarioId: string;
-}): Promise<{ error: string | null }> {
-  const { error } = await supabase.rpc('recepcion_crear_reserva' as never, {
+  /** Walk-in: hacer check-in inmediato tras inscribir (clase de hoy en curso). */
+  checkInInmediato?: boolean;
+}): Promise<{ error: string | null; checkInError?: string | null }> {
+  const { data, error } = await supabase.rpc('recepcion_crear_reserva' as never, {
     p_usuario_id: params.usuarioId,
     p_clase_id: params.claseId,
     p_invitados: 0,
     p_motivo: 'Inscripción manual desde la agenda del admin.'
   } as never);
 
-  return { error: error ? translateActionError(error.message) : null };
+  if (error) return { error: translateActionError(error.message) };
+
+  if (params.checkInInmediato) {
+    const reservaId = (data as { reserva_id?: string } | null)?.reserva_id;
+    if (reservaId) {
+      const { error: errCheckin } = await supabase.rpc('check_in_manual_atomic', {
+        p_reserva_id: reservaId,
+        p_motivo: 'Walk-in desde la agenda del admin'
+      });
+      // La reserva ya existe: un check-in fallido se reporta aparte, no la tira.
+      if (errCheckin) return { error: null, checkInError: translateActionError(errCheckin.message) };
+    }
+  }
+
+  return { error: null };
 }

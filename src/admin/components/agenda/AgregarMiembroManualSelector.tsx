@@ -29,6 +29,10 @@ export function AgregarMiembroManualSelector({
   const [resultados, setResultados] = useState<MiembroBuscable[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [agregandoId, setAgregandoId] = useState<string | null>(null);
+  // Walk-in: la clase ya empezó (o arranca en <30 min) → ofrecer check-in en el
+  // mismo paso, prendido por default si ya está corriendo.
+  const claseEnVentana = clase.slotInicio.getTime() <= Date.now() + 30 * 60_000;
+  const [checkInYa, setCheckInYa] = useState(() => clase.slotInicio.getTime() <= Date.now());
 
   // Búsqueda con debounce simple
   useEffect(() => {
@@ -66,9 +70,11 @@ export function AgregarMiembroManualSelector({
       }
     }
     setAgregandoId(m.id);
-    const { error } = await inscribirMiembroManual({
+    const conCheckIn = checkInYa && claseEnVentana;
+    const { error, checkInError } = await inscribirMiembroManual({
       claseId: clase.claseId,
-      usuarioId: m.id
+      usuarioId: m.id,
+      checkInInmediato: conCheckIn
     });
     setAgregandoId(null);
     if (error) {
@@ -81,7 +87,11 @@ export function AgregarMiembroManualSelector({
     // Toast contextual según anticipación al inicio de la clase
     const nombre = m.nombre ?? m.email;
     const minutosHastaClase = (clase.slotInicio.getTime() - Date.now()) / 60000;
-    if (minutosHastaClase < 0) {
+    if (conCheckIn && checkInError) {
+      toast.error(`${nombre} quedó inscrito, pero el check-in no pasó: ${checkInError}`);
+    } else if (conCheckIn) {
+      toast.success(`Listo: ${nombre} inscrito y con check-in.`);
+    } else if (minutosHastaClase < 0) {
       toast.info(`Inscribiste a ${nombre} en una clase que ya comenzó.`);
     } else if (minutosHastaClase < 15) {
       toast.info(`Inscribiste a ${nombre} en una clase que arranca en menos de 15 minutos.`);
@@ -150,6 +160,27 @@ export function AgregarMiembroManualSelector({
         className="ek-input"
         style={{ marginBottom: '10px' }}
       />
+
+      {/* Walk-in: la clase es de ahorita — inscribir y hacer check-in en un paso */}
+      {claseEnVentana && (
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '10px',
+            padding: '8px 10px',
+            borderRadius: '10px',
+            background: 'var(--sala-primary-light)',
+            fontSize: '12.5px',
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          <input type="checkbox" checked={checkInYa} onChange={(e) => setCheckInYa(e.target.checked)} />
+          Hacer check-in de una vez (ya está aquí)
+        </label>
+      )}
 
       {buscando && (
         <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: 0 }}>

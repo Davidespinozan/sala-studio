@@ -25,6 +25,7 @@ interface ClaseOpcion {
   horario_recurrente_id: string | null;
   fecha: string;
   hora_inicio: string;
+  duracion_minutos: number | null;
   nombre: string;
   cupo_max: number;
   reservados: number;
@@ -98,13 +99,14 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
       });
       if (cancelled) return;
       if (error) toast.error('No pudimos cargar las clases de ese día.');
-      // Para HOY se ocultan las que ya terminaron; las que están por empezar (o
-      // recién empezadas) siguen disponibles: eso es exactamente un walk-in.
+      // Para HOY se ocultan solo las que ya TERMINARON: una clase en curso sigue
+      // disponible hasta su último minuto — el walk-in que llega tarde también
+      // cuenta (numa: llegaban con day pass ya empezada la clase y no se podía).
       const ahora = Date.now();
       const rows = (data ?? []).filter((c) => {
         if (fecha !== dias[0].iso) return true;
         const inicio = new Date(`${c.fecha}T${c.hora_inicio}`).getTime();
-        return inicio + 30 * 60_000 >= ahora;
+        return inicio + (c.duracion_minutos ?? 60) * 60_000 >= ahora;
       });
       setClases(rows);
       setCargando(false);
@@ -130,7 +132,21 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
   const { layout, tomados } = useLugaresSala(elegida?.recurso_id, elegida?.clase_id ?? null);
   const [lugarId, setLugarId] = useState<string | null>(null);
 
-  useEffect(() => { setLugarId(null); setInvitados(0); }, [elegida]);
+  // Walk-in: si la clase elegida es de hoy y ya empezó (o empieza en <30 min),
+  // se ofrece hacer el check-in en el mismo paso — prendido por default cuando
+  // la clase ya está corriendo (el socio obviamente está aquí).
+  const [checkInYa, setCheckInYa] = useState(false);
+  const elegidaInicio = elegida ? new Date(`${elegida.fecha}T${elegida.hora_inicio}`).getTime() : null;
+  const puedeCheckIn =
+    !!elegida && elegida.fecha === dias[0].iso &&
+    elegidaInicio !== null && elegidaInicio <= Date.now() + 30 * 60_000;
+
+  useEffect(() => {
+    setLugarId(null);
+    setInvitados(0);
+    const inicio = elegida ? new Date(`${elegida.fecha}T${elegida.hora_inicio}`).getTime() : null;
+    setCheckInYa(!!elegida && elegida.fecha === dias[0].iso && inicio !== null && inicio <= Date.now());
+  }, [elegida, dias]);
   // La lista de datos de invitados sigue al conteo del stepper.
   useEffect(() => { setInvitadosDetalle((prev) => ajustarInvitados(prev, invitados)); }, [invitados]);
 
@@ -165,11 +181,25 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
           toast.error('Reserva creada, pero no pudimos guardar los datos del invitado.');
         }
       }
-      toast.success(`Reserva creada para ${socioNombre}.`);
+      // Check-in inmediato (walk-in): la reserva ya existe; si el check-in
+      // falla se avisa, pero no se pierde nada.
+      if (reservaId && checkInYa && puedeCheckIn) {
+        const { error: errCheckin } = await supabase.rpc('check_in_manual_atomic', {
+          p_reserva_id: reservaId,
+          p_motivo: 'Walk-in en mostrador'
+        });
+        if (errCheckin) {
+          toast.error('Reserva creada, pero el check-in no pasó: ' + translateActionError(errCheckin.message));
+        } else {
+          toast.success(`Listo: ${socioNombre} reservado y con check-in.`);
+        }
+      } else {
+        toast.success(`Reserva creada para ${socioNombre}.`);
+      }
       await onDone();
       onClose();
     } catch {
-      toast.error('No pudimos crear la reserva. Probá de nuevo.');
+      toast.error('No pudimos crear la reserva. Intenta de nuevo.');
     } finally {
       setEnviando(false);
     }
@@ -187,7 +217,7 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
     <AccionModal
       isOpen={isOpen}
       title="Crear reserva"
-      description={`Inscribís a ${socioNombre} en una clase. Se descuenta su crédito si el plan es por clases.`}
+      description={`Inscribes a ${socioNombre} en una clase. Se descuenta su crédito si el plan es por clases.`}
       variant="info"
       confirmLabel={enviando ? 'Reservando…' : 'Reservar'}
       canConfirm={!!elegida && !faltaLugar && !enviando}
@@ -274,6 +304,27 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
             );
           })}
         </div>
+      )}
+
+      {/* Walk-in: reservar y hacer check-in en un solo paso */}
+      {puedeCheckIn && (
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginTop: '14px',
+            padding: '10px 12px',
+            borderRadius: '10px',
+            background: 'var(--sala-primary-light)',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          <input type="checkbox" checked={checkInYa} onChange={(e) => setCheckInYa(e.target.checked)} />
+          Hacer check-in de una vez (ya está aquí)
+        </label>
       )}
 
       {/* Invitados: recepción suma los pases del socio (si su plan los incluye) */}
