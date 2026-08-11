@@ -69,15 +69,21 @@ export default function MiembroDetalle() {
       } | null;
       if (!mounted) return;
       if (!data) { setMembresia(null); return; }
-      const estado = String(data.status ?? '');
-      const activa = estado === 'activa' || estado === 'trialing' || estado === 'past_due';
-      const tier = data.tier as { nombre?: string; tipo?: string } | null;
+      let estado = String(data.status ?? '');
       const fin = (data.periodo_actual_fin as string | undefined) ?? null;
+      // Defensa por fecha: si el periodo ya terminó, se muestra vencida AUNQUE
+      // la base aún diga 'activa' (el cron de expiración puede ir atrasado).
+      const statusActivo = estado === 'activa' || estado === 'trialing' || estado === 'past_due';
+      if (statusActivo && fin && new Date(fin).getTime() < Date.now()) estado = 'expirada';
+      const activa = statusActivo && estado !== 'expirada';
+      const tier = data.tier as { nombre?: string; tipo?: string } | null;
       setMembresia({
         nombre: tier?.nombre ?? null,
         estado,
         periodoFin: activa && fin ? new Date(fin) : null,
-        creditos: (tier?.tipo === 'creditos' || tier?.tipo === 'hibrido') ? ((data.creditos_restantes as number | null) ?? null) : null,
+        // Créditos solo de un plan VIGENTE: "1 clase restante" de un day pass
+        // vencido es mentira útil para nadie.
+        creditos: activa && (tier?.tipo === 'creditos' || tier?.tipo === 'hibrido') ? ((data.creditos_restantes as number | null) ?? null) : null,
         metodoPago: (data.metodo_pago as string | null) ?? null
       });
     })();

@@ -65,10 +65,16 @@ interface ReservaQueryRow {
   recurso: { nombre: string | null } | { nombre: string | null }[] | null;
 }
 
-function mapEstado(status: string | null | undefined): EstadoMembresia {
+function mapEstado(status: string | null | undefined, periodoFin: string | null | undefined): EstadoMembresia {
   if (!status) return 'sin_plan';
   if (status === 'congelada') return 'pausada';
-  if (status === 'activa' || status === 'trialing' || status === 'past_due') return 'activa';
+  if (status === 'activa' || status === 'trialing' || status === 'past_due') {
+    // Defensa por fecha: si el periodo ya terminó, está vencida AUNQUE la base
+    // aún diga 'activa' (el cron de expiración puede ir atrasado o caerse —
+    // pasó: E de 53 vencidas 'activas' porque los crons nunca corrieron).
+    if (periodoFin && new Date(periodoFin).getTime() < Date.now()) return 'vencida';
+    return 'activa';
+  }
   if (status === 'expirada' || status === 'cancelada') return 'vencida';
   return 'sin_plan'; // 'pendiente' u otros → todavía sin plan usable
 }
@@ -161,7 +167,7 @@ export function useSocioFicha(id: string | undefined) {
       const membresia: FichaMembresia | null = mem
         ? {
             status: mem.status,
-            estado: mapEstado(mem.status),
+            estado: mapEstado(mem.status, mem.periodo_actual_fin),
             periodoFin: mem.periodo_actual_fin,
             creditos: mem.creditos_restantes,
             tierId: tier?.id ?? null,
