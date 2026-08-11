@@ -32,6 +32,9 @@ export default function Miembros() {
   const [soloSinCorreo, setSoloSinCorreo] = useState(false);
   const sinCorreoCount = miembros.filter((m) => esCorreoMarcador(m.email)).length;
   const visibles = soloSinCorreo ? miembros.filter((m) => esCorreoMarcador(m.email)) : miembros;
+  // "Vigentes" = con plan o paquete activo (cache membresia_activa_id). El resto
+  // son registrados que hoy no tienen nada: day passes de una visita, bajas, etc.
+  const vigentesCount = miembros.filter((m) => m.status === 'activo' && m.membresia_activa_id).length;
 
   return (
     <div className="adm-page">
@@ -44,7 +47,9 @@ export default function Miembros() {
           <h1 className="ek-h2">Tus clientes en {tenant.nombre || 'tu gym'}</h1>
           {!isLoading && (
             <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span>{miembros.length} {miembros.length === 1 ? 'cliente' : 'clientes'}</span>
+              <span>
+                {miembros.length} {miembros.length === 1 ? 'cliente' : 'clientes'} · {vigentesCount} con plan o paquete vigente
+              </span>
               {sinCorreoCount > 0 && (
                 <button
                   type="button"

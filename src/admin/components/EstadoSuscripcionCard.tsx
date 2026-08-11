@@ -336,7 +336,7 @@ export function EstadoSuscripcionCard({
             }}
           >
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--sala-text-primary)' }}>
-              Miembros activos
+              Miembros con plan o paquete activo
             </span>
             <span
               style={{
@@ -370,6 +370,13 @@ export function EstadoSuscripcionCard({
               />
             </div>
           )}
+
+          {/* Solo los vigentes ocupan lugar del plan: un day pass que expiró y no
+              volvió queda registrado pero no cuenta al límite. */}
+          <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '6px 0 0' }}>
+            {uso.miembrosRegistrados.toLocaleString('es-MX')} registrados en total · al límite solo
+            cuentan los que tienen un plan o paquete vigente
+          </p>
 
           {/* Avisos de límite */}
           {uso.excedido && (
