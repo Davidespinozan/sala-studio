@@ -6,6 +6,7 @@ if (!globalThis.WebSocket) {
 import type { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { ok, serverError } from '../_lib/http';
+import { reportarErrorServidor } from '../_lib/sentry';
 import { requireEnv } from '../_lib/env';
 
 /**
@@ -25,14 +26,14 @@ export const handler: Handler = async () => {
 
     const { data, error } = await supabase.rpc('generar_recordatorios_reservas');
     if (error) {
-      console.error('[cron-recordatorios] generar_recordatorios_reservas', error);
+      await reportarErrorServidor('cron-recordatorios', new Error(error.message));
       return serverError(error.message);
     }
 
     console.log('[cron-recordatorios] OK', { recordatorios: data });
     return ok({ recordatorios: data });
   } catch (e) {
-    console.error('[cron-recordatorios] Error', e);
+    await reportarErrorServidor('cron-recordatorios', e);
     return serverError(e instanceof Error ? e.message : 'Unknown error');
   }
 };

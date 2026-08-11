@@ -6,6 +6,7 @@ if (!globalThis.WebSocket) {
 import type { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { ok, serverError } from '../_lib/http';
+import { reportarErrorServidor } from '../_lib/sentry';
 import { requireEnv } from '../_lib/env';
 
 /**
@@ -29,11 +30,14 @@ export const handler: Handler = async () => {
     const { data, error } = await admin.rpc('avisar_membresias_por_vencer', {
       p_dias: DIAS_DE_AVISO
     });
-    if (error) return serverError(error.message);
+    if (error) {
+      await reportarErrorServidor('cron-membresias-por-vencer', new Error(error.message));
+      return serverError(error.message);
+    }
 
     return ok({ avisados: data ?? 0 });
   } catch (err) {
-    console.error('[cron-membresias-por-vencer]', err instanceof Error ? err.message : err);
+    await reportarErrorServidor('cron-membresias-por-vencer', err);
     return serverError('No pudimos avisar los vencimientos');
   }
 };

@@ -6,6 +6,7 @@ if (!globalThis.WebSocket) {
 import type { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { ok, serverError } from '../_lib/http';
+import { reportarErrorServidor } from '../_lib/sentry';
 import { requireEnv } from '../_lib/env';
 import { enviarPushAUsuario } from '../_lib/push';
 
@@ -56,7 +57,10 @@ export const handler: Handler = async () => {
       .order('creada_at', { ascending: true })
       .limit(200);
 
-    if (error) return serverError(error.message);
+    if (error) {
+      await reportarErrorServidor('cron-push', new Error(error.message));
+      return serverError(error.message);
+    }
     if (!pendientes || pendientes.length === 0) return ok({ enviadas: 0 });
 
     let entregas = 0;
@@ -80,7 +84,7 @@ export const handler: Handler = async () => {
 
     return ok({ notificaciones: pendientes.length, entregas });
   } catch (err) {
-    console.error('[cron-push]', err instanceof Error ? err.message : err);
+    await reportarErrorServidor('cron-push', err);
     return serverError('No pudimos repartir los avisos');
   }
 };

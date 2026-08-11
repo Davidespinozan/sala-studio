@@ -6,6 +6,7 @@ if (!globalThis.WebSocket) {
 import type { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { ok, serverError } from '../_lib/http';
+import { reportarErrorServidor } from '../_lib/sentry';
 import { requireEnv } from '../_lib/env';
 
 /**
@@ -29,7 +30,7 @@ export const handler: Handler = async () => {
 
     const { data: noShowsData, error: noShowsErr } = await supabase.rpc('marcar_no_shows');
     if (noShowsErr) {
-      console.error('[cron-no-shows] marcar_no_shows', noShowsErr);
+      await reportarErrorServidor('cron-no-shows', new Error(noShowsErr.message), { rpc: 'marcar_no_shows' });
       return serverError(noShowsErr.message);
     }
 
@@ -38,14 +39,14 @@ export const handler: Handler = async () => {
       'expirar_listas_espera_vencidas'
     );
     if (expiradasErr) {
-      console.error('[cron-no-shows] expirar_listas_espera_vencidas', expiradasErr);
+      await reportarErrorServidor('cron-no-shows', new Error(expiradasErr.message), { rpc: 'expirar_listas_espera_vencidas' });
       return serverError(expiradasErr.message);
     }
 
     console.log('[cron-no-shows] OK', { noShows: noShowsData, expiradas: expiradasData });
     return ok({ noShows: noShowsData, expiradas: expiradasData });
   } catch (e) {
-    console.error('[cron-no-shows] Error', e);
+    await reportarErrorServidor('cron-no-shows', e);
     return serverError(e instanceof Error ? e.message : 'Unknown error');
   }
 };

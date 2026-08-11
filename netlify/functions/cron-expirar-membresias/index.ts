@@ -6,6 +6,7 @@ if (!globalThis.WebSocket) {
 import type { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { ok, serverError } from '../_lib/http';
+import { reportarErrorServidor } from '../_lib/sentry';
 import { requireEnv } from '../_lib/env';
 
 /**
@@ -27,14 +28,14 @@ export const handler: Handler = async () => {
 
     const { data, error } = await supabase.rpc('expirar_membresias_vencidas');
     if (error) {
-      console.error('[cron-expirar-membresias] expirar_membresias_vencidas', error);
+      await reportarErrorServidor('cron-expirar-membresias', new Error(error.message));
       return serverError(error.message);
     }
 
     console.log('[cron-expirar-membresias] OK', { expiradas: data });
     return ok({ expiradas: data });
   } catch (e) {
-    console.error('[cron-expirar-membresias] Error', e);
+    await reportarErrorServidor('cron-expirar-membresias', e);
     return serverError(e instanceof Error ? e.message : 'Unknown error');
   }
 };

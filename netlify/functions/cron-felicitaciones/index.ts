@@ -6,6 +6,7 @@ if (!globalThis.WebSocket) {
 import type { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { ok, serverError } from '../_lib/http';
+import { reportarErrorServidor } from '../_lib/sentry';
 import { requireEnv } from '../_lib/env';
 
 /**
@@ -21,11 +22,14 @@ export const handler: Handler = async () => {
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     const { data, error } = await admin.rpc('generar_felicitaciones_cumpleanos');
-    if (error) return serverError(error.message);
+    if (error) {
+      await reportarErrorServidor('cron-felicitaciones', new Error(error.message));
+      return serverError(error.message);
+    }
 
     return ok({ felicitados: data ?? 0 });
   } catch (err) {
-    console.error('[cron-felicitaciones]', err instanceof Error ? err.message : err);
+    await reportarErrorServidor('cron-felicitaciones', err);
     return serverError('No pudimos generar las felicitaciones');
   }
 };
