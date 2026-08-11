@@ -32,6 +32,7 @@ import { formatearMoneda } from '@shared/lib/dinero';
 import { useGymSetup, gymOperativo } from '../hooks/useGymSetup';
 import ChecklistActivacion from '../components/ChecklistActivacion';
 import CentroPendientes from '../components/CentroPendientes';
+import { CumpleanosCard } from '@shared/components/CumpleanosCard';
 import CardMenuDropdown from '../components/CardMenuDropdown';
 import CancelarReservaModal, { type ReservaParaCancelar } from '../components/CancelarReservaModal';
 import { InfoTooltip } from '../components/InfoTooltip';
@@ -97,6 +98,8 @@ export default function AdminDashboard() {
 
       {setup && !gymOperativo(setup) && <ChecklistActivacion setup={setup} />}
       {setup && gymOperativo(setup) && <CentroPendientes />}
+
+      <CumpleanosCard linkBase="/admin/miembros" />
 
       <SeccionHoy data={data} onCancelar={setCancelar} />
       <SeccionTuMes data={data} />

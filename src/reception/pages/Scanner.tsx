@@ -6,6 +6,7 @@ import { CameraModal } from '../components/CameraModal';
 import { useScannerHID } from '../hooks/useScannerHID';
 import { playCheckInSuccess, playCheckInError } from '../lib/checkInFeedback';
 import { PageHeader } from '@shared/components/PageHeader';
+import { CumpleanosCard } from '@shared/components/CumpleanosCard';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
 
 interface VerifyResponse {
@@ -64,6 +65,8 @@ export default function Scanner() {
     <div className="rec-shell">
       <div className="rec-main">
         <PageHeader eyebrow="RECEPCIÓN" title="Hoy" />
+
+        <CumpleanosCard linkBase="/recepcion/socios" />
 
         <ReservasHoyView
           key={refreshTick}
