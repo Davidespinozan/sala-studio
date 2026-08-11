@@ -644,6 +644,8 @@ function EditarTierModal({
   });
   // Pago único: el plan por tiempo NO es una suscripción autorenovable.
   const [pagoUnico, setPagoUnico] = useState<boolean>(() => (tier as { pago_unico?: boolean } | null)?.pago_unico === true);
+  // Pase suelto (Day Pass): su vigencia se extiende hasta el día de la clase reservada.
+  const [esPase, setEsPase] = useState<boolean>(() => (tier as { es_pase?: boolean } | null)?.es_pase === true);
   // Días de acceso (0=dom … 6=sáb). Vacío = todos los días (sin restricción).
   const tierDias = (tier as { dias_acceso?: number[] | null } | null)?.dias_acceso;
   const [limitarDias, setLimitarDias] = useState<boolean>(() => Array.isArray(tierDias) && tierDias.length > 0);
@@ -770,6 +772,7 @@ function EditarTierModal({
         clases_incluidas: clasesVal,
         duracion_dias: duracionVal,
         pago_unico: pagoUnicoVal,
+        es_pase: esPase,
         dias_acceso: diasAccesoVal,
         max_reservas_dia: maxResVal,
         beneficios: beneficios as never,
@@ -805,6 +808,7 @@ function EditarTierModal({
       clases_incluidas: clasesVal,
       duracion_dias: duracionVal,
       pago_unico: pagoUnicoVal,
+      es_pase: esPase,
       dias_acceso: diasAccesoVal,
       max_reservas_dia: maxResVal,
       beneficios,
@@ -976,6 +980,17 @@ function EditarTierModal({
             />
           </div>
         )}
+
+        {/* Pase suelto: la vigencia sigue a la clase reservada (trigger en la base).
+            Aplica a cualquier modelo (el Day Pass típico es un paquete de 1 clase). */}
+        <div className="ek-form-field" style={{ marginTop: '12px' }}>
+          <Toggle
+            checked={esPase}
+            onChange={setEsPase}
+            label="Es un pase suelto (Day Pass)"
+            description="Si quien lo compra reserva una clase para después de su vigencia, el pase se extiende hasta el día de esa clase. Enciéndelo solo en pases (día o semana suelta), nunca en planes."
+          />
+        </div>
 
         {/* Tope de reservas por día. Vacío = sin límite. */}
         <label className="ek-label" style={{ marginTop: '12px', display: 'block' }}>
