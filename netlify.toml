@@ -44,29 +44,30 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(self), microphone=(), geolocation=()"
 
-[[scheduled_functions]]
-  name = "cron-no-shows"
-  cron = "0 * * * *"
+# ── Crons ────────────────────────────────────────────────────────────────────
+# OJO: la sintaxis de Netlify para funciones programadas es [functions."nombre"]
+# con `schedule`. El bloque [[scheduled_functions]] que había antes NO existe en
+# Netlify: lo ignoraba en silencio y ningún cron corrió jamás (E: 53 membresías
+# vencidas sin expirar en numa). Verificar tras el deploy que cada función diga
+# "Scheduled" en el panel de Netlify.
 
-[[scheduled_functions]]
-  name = "cron-expirar-membresias"
-  cron = "0 7 * * *"
+[functions."cron-no-shows"]
+  schedule = "0 * * * *"
 
-[[scheduled_functions]]
-  name = "cron-recordatorios"
-  cron = "*/15 * * * *"
+[functions."cron-expirar-membresias"]
+  schedule = "0 7 * * *"
+
+[functions."cron-recordatorios"]
+  schedule = "*/15 * * * *"
 
 # Reparte por push las notificaciones pendientes (de cualquier origen).
-[[scheduled_functions]]
-  name = "cron-push"
-  cron = "* * * * *"
+[functions."cron-push"]
+  schedule = "* * * * *"
 
 # Avisa al socio 3 días antes de que su plan venza.
-[[scheduled_functions]]
-  name = "cron-membresias-por-vencer"
-  cron = "0 8 * * *"
+[functions."cron-membresias-por-vencer"]
+  schedule = "0 8 * * *"
 
 # Felicita por cumpleaños (≈9am hora de México = 15:00 UTC).
-[[scheduled_functions]]
-  name = "cron-felicitaciones"
-  cron = "0 15 * * *"
+[functions."cron-felicitaciones"]
+  schedule = "0 15 * * *"

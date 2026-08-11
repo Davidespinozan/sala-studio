@@ -11,7 +11,7 @@ import { requireEnv } from '../_lib/env';
 /**
  * Cron: cada 15 min genera recordatorios in-app de las clases que empiezan en
  * ~45-75 min (una notificación por reserva confirmada, sin duplicar). Feature de
- * retención. Programado en netlify.toml como [[scheduled_functions]] cada 15 min.
+ * retención. Programado en netlify.toml como [functions."cron-recordatorios"] cada 15 min.
  * Usa service_role: escribe notificaciones de cualquier tenant sin sesión.
  */
 export const handler: Handler = async () => {

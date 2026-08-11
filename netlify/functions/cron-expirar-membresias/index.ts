@@ -13,7 +13,7 @@ import { requireEnv } from '../_lib/env';
  * periodo_actual_fin ya pasó. Sin esto, la expiración era solo "lazy" (al
  * reservar) y los reportes sobrecontaban socios activos.
  *
- * Programado en netlify.toml como [[scheduled_functions]] con cron "0 7 * * *".
+ * Programado en netlify.toml como [functions."cron-expirar-membresias"] con schedule "0 7 * * *".
  * Usa service_role: modifica membresías de cualquier tenant sin sesión.
  */
 export const handler: Handler = async () => {
