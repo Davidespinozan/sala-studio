@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/node';
+import type { Handler, HandlerEvent, HandlerContext, HandlerResponse } from '@netlify/functions';
 
 /**
  * Sentry para el BACKEND (funciones de Netlify). El frontend ya reporta desde
@@ -23,6 +24,42 @@ function init(): void {
     environment: process.env.CONTEXT === 'production' ? 'production' : 'preview'
   });
   inicializado = true;
+}
+
+/**
+ * Envuelve un handler de cron con un Cron Monitor de Sentry (dead-man switch):
+ * check-in al empezar, 'ok' si respondió < 500, 'error' si no. Si el cron NO
+ * corre a su hora (el modo de falla que tuvimos: [[scheduled_functions]]
+ * ignorado por semanas), Sentry avisa por correo solo.
+ *
+ * El plan gratuito incluye UN monitor: se usa en cron-expirar-membresias (los
+ * crons mueren en grupo — config/deploy/env — así que un centinela detecta la
+ * clase entera; los individuales se cubren con los chequeos de frescura).
+ */
+export function conMonitorCron(slug: string, cronExpr: string, handler: Handler): Handler {
+  return async (event: HandlerEvent, context: HandlerContext) => {
+    if (!dsn) return (await handler(event, context)) as HandlerResponse;
+    init();
+    const monitorConfig = {
+      schedule: { type: 'crontab', value: cronExpr },
+      checkinMargin: 60, // min de gracia antes de alertar "no corrió"
+      maxRuntime: 10,
+      timezone: 'Etc/UTC'
+    } as const;
+    const checkInId = Sentry.captureCheckIn({ monitorSlug: slug, status: 'in_progress' }, monitorConfig);
+    let res: HandlerResponse | undefined = undefined;
+    try {
+      res = (await handler(event, context)) as HandlerResponse | undefined;
+    } finally {
+      const okRun = !!res && typeof res.statusCode === 'number' && res.statusCode < 500;
+      Sentry.captureCheckIn(
+        { checkInId, monitorSlug: slug, status: okRun ? 'ok' : 'error' },
+        monitorConfig
+      );
+      await Sentry.flush(2000).catch(() => {});
+    }
+    return res as HandlerResponse;
+  };
 }
 
 /** Reporta un error del backend a Sentry (y siempre a console, como antes). */
