@@ -307,6 +307,7 @@ export default function Caja() {
       sucursalNombre: sucursalActiva?.nombre ?? null,
       recepcion: c.recepcion,
       desde: c.desde, hasta: c.hasta,
+      tz,
       porConcepto, totalCentavos: total, porMetodo, moneda,
       // Corte simple: sin cuadre en el ticket (CorteTicket lo omite si contado es null).
       efectivoEsperadoCentavos: corteSimple ? null : c.efectivo_esperado_centavos,

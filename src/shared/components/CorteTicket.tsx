@@ -7,6 +7,9 @@ export interface CorteTicketData {
   recepcion: string | null;
   desde: string | null;
   hasta: string;
+  /** Zona horaria IANA del GYM: las horas del ticket se anclan a ella, no al
+   *  navegador de quien mira (el dueño en otro huso veía el corte "de 9 a 9"). */
+  tz?: string;
   porConcepto: { label: string; centavos: number }[];
   totalCentavos: number;
   porMetodo: { label: string; centavos: number }[];
@@ -25,8 +28,12 @@ function money(centavos: number, moneda = 'MXN'): string {
     return `$${(centavos / 100).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
   }
 }
-function fechaLarga(iso: string): string {
-  return new Date(iso).toLocaleString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+function fechaLarga(iso: string, tz?: string): string {
+  return new Date(iso).toLocaleString('es-MX', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+    ...(tz ? { timeZone: tz } : {})
+  });
 }
 
 const ink = '#1a1f1c';
@@ -54,8 +61,8 @@ export function CorteTicket({ data }: { data: CorteTicketData }) {
       <Sep />
 
       <div style={{ textAlign: 'center', lineHeight: 1.5, fontSize: 12 }}>
-        {data.desde && <p style={{ margin: 0 }}>Del: {fechaLarga(data.desde)}</p>}
-        <p style={{ margin: 0 }}>Al: {fechaLarga(data.hasta)}</p>
+        {data.desde && <p style={{ margin: 0 }}>Del: {fechaLarga(data.desde, data.tz)}</p>}
+        <p style={{ margin: 0 }}>Al: {fechaLarga(data.hasta, data.tz)}</p>
       </div>
 
       <Sep />
