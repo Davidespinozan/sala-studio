@@ -130,6 +130,22 @@ function hora(iso: string, tz: string): string {
   });
 }
 
+/**
+ * Etiqueta humana del PERIODO de un corte. El límite superior es exclusivo
+ * (medianoche del día siguiente), así que mostrar `hasta` tal cual engañaba:
+ * un corte del día 3 se pintaba "4 ago, 12:00 a.m." y parecían cortes de otro
+ * día (E: "hay 4 cortes del 4 de agosto" — eran del 3).
+ */
+function etiquetaCorte(desde: string | null, hasta: string, tz: string): string {
+  const dia = (iso: string) =>
+    new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', timeZone: tz });
+  // Último instante DENTRO del periodo (hasta es exclusivo).
+  const finDia = dia(new Date(Date.parse(hasta) - 1000).toISOString());
+  if (!desde) return `Corte al ${finDia}`;
+  const inicioDia = dia(desde);
+  return inicioDia === finDia ? `Corte del ${inicioDia}` : `Corte del ${inicioDia} al ${finDia}`;
+}
+
 /** Rango [desde, hasta) en la timezone del GYM: incluye todo el día `fHasta`. */
 function rangoISO(fDesde: string, fHasta: string, tz: string): { desde: string; hasta: string } {
   return {
@@ -605,7 +621,7 @@ export default function Caja() {
             >
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--sala-text-primary)' }}>
-                  {hora(c.hasta, tz)}{c.realizado_por?.nombre ? ` · ${c.realizado_por.nombre}` : ''}
+                  {etiquetaCorte(c.desde, c.hasta, tz)}{c.realizado_por?.nombre ? ` · ${c.realizado_por.nombre}` : ''}
                 </p>
                 {!corteSimple && (
                   <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
