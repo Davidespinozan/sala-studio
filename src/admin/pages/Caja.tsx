@@ -164,6 +164,10 @@ export default function Caja() {
   const [showCorte, setShowCorte] = useState(false);
   const [cortes, setCortes] = useState<CorteRow[]>([]);
   const [cortesReload, setCortesReload] = useState(0);
+  // "Últimos cortes" muestra 8 y crece por tandas con "Ver más" (un gym con un
+  // año de operación acumula cientos; no se cargan todos de golpe).
+  const [cortesLimit, setCortesLimit] = useState(8);
+  const [hayMasCortes, setHayMasCortes] = useState(false);
 
   useEffect(() => {
     let cancel = false;
@@ -173,11 +177,14 @@ export default function Caja() {
         .select('id, desde, hasta, efectivo_esperado_centavos, fondo_centavos, efectivo_contado_centavos, diferencia_centavos, notas, resumen, realizado_por:usuarios!cortes_caja_realizado_por_fkey(nombre)')
         .eq('tenant_id', tenant.id)
         .order('hasta', { ascending: false })
-        .limit(8);
-      if (!cancel) setCortes((data ?? []) as CorteRow[]);
+        .limit(cortesLimit + 1); // uno extra: solo para saber si hay más
+      if (cancel) return;
+      const rows = (data ?? []) as CorteRow[];
+      setHayMasCortes(rows.length > cortesLimit);
+      setCortes(rows.slice(0, cortesLimit));
     })();
     return () => { cancel = true; };
-  }, [tenant.id, cortesReload]);
+  }, [tenant.id, cortesReload, cortesLimit]);
 
   // sucursalFiltro es null en "Todas las sedes" o en un gym de una sola sede:
   // ahí no filtramos (y así no perdemos los cobros online, que llegan sin sede).
@@ -619,6 +626,26 @@ export default function Caja() {
               )}
             </button>
           ))}
+          {hayMasCortes && (
+            <button
+              type="button"
+              onClick={() => setCortesLimit((n) => n + 30)}
+              style={{
+                width: '100%',
+                padding: '12px 18px',
+                border: 'none',
+                borderTop: '0.5px solid var(--sala-border)',
+                background: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: 'var(--sala-primary)'
+              }}
+            >
+              Ver más cortes
+            </button>
+          )}
         </section>
       )}
 
