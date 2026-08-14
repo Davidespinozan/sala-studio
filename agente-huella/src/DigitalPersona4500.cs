@@ -27,11 +27,27 @@ public sealed class DigitalPersona4500(int umbralMatch) : ILectorHuella, IMatche
             throw new InvalidOperationException("No hay ningún lector conectado. Revisa el USB y el driver.");
 
         _reader = readers[0]; // un mostrador = un lector
-        var r = _reader.Open(Constants.CapturePriority.DP_PRIORITY_COOPERATIVE);
-        Log.Escribir($"Open → {r}");
+
+        // EXCLUSIVO primero: si otro programa (el sistema anterior del gym, la app
+        // demo de DigitalPersona…) tiene el lector, con COOPERATIVE nos quedábamos
+        // en TIMED_OUT eterno "sin ver el dedo" y sin pista alguna (E: numa, ago
+        // 2026). Exclusivo o truena aquí con mensaje claro, o el lector es nuestro.
+        var r = _reader.Open(Constants.CapturePriority.DP_PRIORITY_EXCLUSIVE);
+        Log.Escribir($"Open (exclusivo) → {r}");
+        if (r != Constants.ResultCode.DP_SUCCESS)
+        {
+            Log.Escribir("⚠ No se pudo abrir en exclusivo: OTRO PROGRAMA está usando el lector.");
+            Log.Escribir("⚠ Cierra el otro sistema de huellas (o quítalo del arranque) y vuelve a abrir este agente.");
+            r = _reader.Open(Constants.CapturePriority.DP_PRIORITY_COOPERATIVE);
+            Log.Escribir($"Open (cooperativo, plan B) → {r}");
+        }
         if (r != Constants.ResultCode.DP_SUCCESS)
             throw new InvalidOperationException($"No se pudo abrir el lector ({r}).");
     }
+
+    // Timeouts seguidos: con dedo puesto no deberían pasar. Si se acumulan, casi
+    // siempre es conflicto con otro programa o falta el runtime de DigitalPersona.
+    private int _timeoutsSeguidos;
 
     // ── Captura para CHECK-IN ───────────────────────────────────────────────
     public async Task<Captura?> CapturarUnaAsync(TimeSpan timeout, CancellationToken ct)
@@ -104,6 +120,19 @@ public sealed class DigitalPersona4500(int umbralMatch) : ILectorHuella, IMatche
         Log.Escribir($"Capture → RC={cr?.ResultCode} Quality={cr?.Quality} Data={(cr?.Data is null ? "null" : "ok")}");
 
         if (cr is null || cr.ResultCode != Constants.ResultCode.DP_SUCCESS || cr.Data is null) return null;
+
+        // TIMED_OUT = no hubo dedo en la ventana: el Data que acompaña es basura y
+        // extraer rasgos de él solo ensuciaba el log con DP_INVALID_FID (van 0/4).
+        if (cr.Quality == Constants.CaptureQuality.DP_QUALITY_TIMED_OUT)
+        {
+            _timeoutsSeguidos++;
+            if (_timeoutsSeguidos % 20 == 0)
+                Log.Escribir("⚠ Muchas capturas sin dedo seguidas. Si SÍ están poniendo el dedo: " +
+                             "otro programa está usando el lector (ciérralo) o falta el runtime de DigitalPersona.");
+            return null;
+        }
+        _timeoutsSeguidos = 0;
+
         // NO exigimos DP_QUALITY_GOOD: dejamos que FeatureExtraction juzgue. Una
         // imagen inservible falla en la extracción y se reintenta.
         return cr.Data;
