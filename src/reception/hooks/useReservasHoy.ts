@@ -150,6 +150,26 @@ export async function cobrarMultaReserva(
   return data;
 }
 
+/**
+ * Corrige la asistencia: marca 'presente' una reserva que quedó no_show o
+ * cancelada (el socio fue y no le hicieron el check-in). Recepción o admin.
+ */
+export async function marcarAsistioReserva(reservaId: string, motivo?: string) {
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    name: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc('admin_marcar_asistencia', {
+    p_reserva_id: reservaId,
+    p_motivo: motivo ?? 'Corrección de asistencia en mostrador'
+  });
+  if (error) {
+    const code = error.message.match(/[A-Z][A-Z0-9]*_[A-Z0-9_]+/)?.[0] ?? 'ERROR';
+    throw new Error(translateError(code, error.message));
+  }
+  return data;
+}
+
 function translateError(code: string, fallback: string): string {
   const map: Record<string, string> = {
     RESERVA_NO_EXISTE: 'No encontramos esa reserva',
@@ -162,7 +182,9 @@ function translateError(code: string, fallback: string): string {
     NO_AUTORIZADO: 'No tienes permiso para hacer esta acción',
     SIN_MULTA: 'Esta reserva no tiene multa que cobrar',
     MULTA_YA_PAGADA: 'Esta multa ya se cobró',
-    METODO_INVALIDO: 'Método de pago no válido'
+    METODO_INVALIDO: 'Método de pago no válido',
+    CLASE_NO_INICIADA: 'Esa clase todavía no empieza; no se puede marcar asistencia',
+    YA_CHECK_IN_PRESENTE: 'Este socio ya figura como presente'
   };
   return map[code] ?? fallback.replace(code + ':', '').trim();
 }

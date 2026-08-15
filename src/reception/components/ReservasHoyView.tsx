@@ -9,10 +9,11 @@ import { EmptyState } from '@shared/components/EmptyState';
 import { esCorreoMarcador } from '@shared/lib/sinCorreo';
 import { CancelarReservaModal } from './acciones/CancelarReservaModal';
 import { MarcarNoShowModal } from './acciones/MarcarNoShowModal';
+import { MarcarAsistioModal } from './acciones/MarcarAsistioModal';
 import { CorregirCheckinModal } from './acciones/CorregirCheckinModal';
 import { MapaClaseModal } from './acciones/MapaClaseModal';
 
-type AccionReserva = 'cancelar' | 'no_show' | 'corregir' | 'mapa';
+type AccionReserva = 'cancelar' | 'no_show' | 'corregir' | 'mapa' | 'marcar_asistio';
 
 interface Props {
   onManualCheckInSuccess?: (data: any) => void;
@@ -353,6 +354,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
         const props = { reservaId: selected.id, reservaLabel: label, isOpen: true, onClose: volver, onDone: hecho };
         if (accionReserva === 'cancelar') return <CancelarReservaModal {...props} />;
         if (accionReserva === 'no_show') return <MarcarNoShowModal {...props} />;
+        if (accionReserva === 'marcar_asistio') return <MarcarAsistioModal {...props} />;
         return <CorregirCheckinModal {...props} />;
       })()}
     </div>
@@ -763,27 +765,45 @@ function ManualCheckInModal({
               </button>
             </div>
 
-            {/* Acciones sobre la reserva (no son check-in). */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+            {/* Ya quedó como no_show o cancelada pero el socio SÍ fue (no le hicieron
+                el check-in): corregir a presente. */}
+            {(reserva.status === 'no_show' ||
+              reserva.status === 'cancelada' ||
+              reserva.status === 'cancelada_admin') && (
               <button
                 type="button"
-                onClick={() => onAccion('no_show')}
+                onClick={() => onAccion('marcar_asistio')}
                 disabled={submitting}
-                className="ek-cta ek-cta--secondary"
-                style={{ flex: 1, fontSize: '13px' }}
+                className="ek-cta"
+                style={{ width: '100%', marginTop: '0.5rem', fontSize: '13px' }}
               >
-                Marcar no-show
+                ✓ Sí asistió (corregir)
               </button>
-              <button
-                type="button"
-                onClick={() => onAccion('cancelar')}
-                disabled={submitting}
-                className="ek-cta ek-cta--secondary"
-                style={{ flex: 1, fontSize: '13px', color: 'var(--ek-danger)' }}
-              >
-                Cancelar reserva
-              </button>
-            </div>
+            )}
+
+            {/* No-show / cancelar: solo tiene sentido sobre una reserva confirmada. */}
+            {reserva.status === 'confirmada' && (
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => onAccion('no_show')}
+                  disabled={submitting}
+                  className="ek-cta ek-cta--secondary"
+                  style={{ flex: 1, fontSize: '13px' }}
+                >
+                  Marcar no-show
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onAccion('cancelar')}
+                  disabled={submitting}
+                  className="ek-cta ek-cta--secondary"
+                  style={{ flex: 1, fontSize: '13px', color: 'var(--ek-danger)' }}
+                >
+                  Cancelar reserva
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
