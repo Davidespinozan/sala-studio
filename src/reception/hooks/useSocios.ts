@@ -13,6 +13,8 @@ export interface SocioListItem {
   membresia_tier: string | null;
   status: string;
   sucursal_id: string | null;
+  /** Llegó como invitado (ligado desde reserva_invitados). Para etiquetar "Invitado". */
+  es_invitado: boolean;
 }
 
 // Normaliza para búsqueda insensible a acentos: "José" ≈ "Jose". Postgres ilike
@@ -58,13 +60,23 @@ export function useSocios(query: string) {
         .order('nombre', { ascending: true })
         .limit(1000);
 
+      // Socios que llegaron como invitados (vínculo en reserva_invitados) → para
+      // etiquetarlos "Invitado". Best-effort: si falla, nadie queda etiquetado.
+      const { data: invRows } = await (supabase.from as unknown as (t: string) => {
+        select: (c: string) => Promise<{ data: { usuario_id: string | null }[] | null }>;
+      })('reserva_invitados').select('usuario_id');
+      const invSet = new Set(((invRows ?? []).map((r) => r.usuario_id).filter(Boolean)) as string[]);
+
       if (cancelled) return;
       if (queryError) {
         setError(translateReadError(queryError));
         setPadron([]);
       } else {
         setError(null);
-        setPadron((data ?? []) as SocioListItem[]);
+        setPadron(((data ?? []) as Omit<SocioListItem, 'es_invitado'>[]).map((s) => ({
+          ...s,
+          es_invitado: invSet.has(s.id),
+        })));
       }
       setIsLoading(false);
     })();

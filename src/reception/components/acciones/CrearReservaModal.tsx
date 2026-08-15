@@ -9,7 +9,7 @@ import { useLugaresSala } from '@member/hooks/useLugaresSala';
 import { useTenant } from '@shared/hooks/useTenant';
 import { getTenantTimezone, hoyEnTimezone, sumarDias, instanteDeClase } from '@shared/lib/timezone';
 import { InvitadosForm } from '@shared/components/InvitadosForm';
-import { guardarInvitados, ajustarInvitados, type InvitadoDetalle } from '@shared/lib/invitados';
+import { ajustarInvitados, type InvitadoDetalle } from '@shared/lib/invitados';
 
 /**
  * WALK-IN — recepción inscribe a un socio en una clase.
@@ -256,13 +256,21 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
         setEnviando(false);
         return;
       }
-      // Guardar la identidad de los invitados (best-effort: la reserva ya existe).
+      // Registrar a cada invitado: queda como socio (etiqueta "Invitado") ligado a
+      // esta reserva. Best-effort: la reserva ya existe.
       const reservaId = (data as { reserva_id?: string } | null)?.reserva_id;
       if (reservaId && invitados > 0) {
-        try {
-          await guardarInvitados({ reservaId, tenantId: tenant.id, invitados: invitadosDetalle });
-        } catch {
-          toast.error('Reserva creada, pero no pudimos guardar los datos del invitado.');
+        for (const g of invitadosDetalle.slice(0, invitados)) {
+          if (!g.nombre.trim()) continue;
+          const { error: eInv } = await rpc('recepcion_agregar_invitado', {
+            p_reserva_id: reservaId,
+            p_nombre: g.nombre.trim(),
+            p_telefono: g.telefono.trim() || null,
+            p_email: g.email.trim() || null,
+          });
+          if (eInv) {
+            toast.error('Reserva creada, pero no se registró un invitado: ' + translateActionError(eInv.message));
+          }
         }
       }
       // Check-in inmediato (walk-in): la reserva ya existe; si el check-in
@@ -348,6 +356,12 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
   const libresElegida = elegida ? elegida.cupo_max - elegida.reservados : 0;
   const maxInvitados = layout ? 0 : Math.min(invitadosDisponibles, Math.max(libresElegida - 1, 0));
   const mostrarInvitados = !!elegida && !layout && invitadosDisponibles > 0;
+  // Cada invitado se registra como socio → necesita nombre y (teléfono o email).
+  const invitadosValidos =
+    invitados === 0 ||
+    invitadosDetalle
+      .slice(0, invitados)
+      .every((g) => g.nombre.trim() !== '' && (g.telefono.trim() !== '' || g.email.trim() !== ''));
   const paseSel = pases.find((p) => p.id === paseTierId) ?? null;
 
   return (
@@ -368,7 +382,7 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
       canConfirm={
         pasePanel
           ? !!paseTierId && !cobrando
-          : !!elegida && !faltaLugar && !enviando
+          : !!elegida && !faltaLugar && !enviando && invitadosValidos
       }
       onConfirm={pasePanel ? confirmarPaseDia : confirmar}
       onClose={onClose}
@@ -596,6 +610,9 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
           </div>
           {invitados > 0 && (
             <div style={{ marginTop: '12px' }}>
+              <p style={{ fontSize: '11px', color: 'var(--sala-text-tertiary)', margin: '0 0 8px', lineHeight: 1.4 }}>
+                Cada invitado queda registrado como socio: necesita <strong>nombre</strong> y <strong>teléfono o email</strong>.
+              </p>
               <InvitadosForm count={invitados} value={invitadosDetalle} onChange={setInvitadosDetalle} />
             </div>
           )}

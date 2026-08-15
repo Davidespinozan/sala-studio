@@ -179,6 +179,11 @@ function SocioRow({ socio, sedeBadge }: { socio: SocioListItem; sedeBadge: strin
           {socio.nombre ?? socio.email}
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginTop: '4px', minWidth: 0 }}>
+          {socio.es_invitado && !socio.membresia_tier && (
+            <span style={{ flexShrink: 0, fontSize: '10px', fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--sala-accent)', background: 'var(--sala-accent-light)', borderRadius: '999px', padding: '2px 8px', lineHeight: 1.5 }}>
+              Invitado
+            </span>
+          )}
           {socio.membresia_tier && (
             <span style={{ flexShrink: 0, fontSize: '10px', fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--sala-primary)', background: 'var(--sala-primary-light)', borderRadius: '999px', padding: '2px 8px', lineHeight: 1.5 }}>
               {socio.membresia_tier}
