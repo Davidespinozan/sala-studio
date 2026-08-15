@@ -52,6 +52,10 @@ function dinero(centavos: number, moneda: string | null): string {
   return (centavos / 100).toLocaleString('es-MX', { style: 'currency', currency: moneda ?? 'MXN' });
 }
 
+// Señal interna (no es un error real): la usamos para que AccionModal NO cierre el
+// modal cuando queremos abrir el panel de day pass en su lugar.
+const SENAL_PANEL_PASE = '__mostrar_panel_pase__';
+
 interface Props {
   socioId: string;
   socioNombre: string;
@@ -243,7 +247,10 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
             return;
           }
           setPasePanel(true);
-          return;
+          // AccionModal cierra el modal cuando onConfirm resuelve sin lanzar. Para
+          // MOSTRAR el panel (no cerrar) lanzamos una señal; el catch de abajo la
+          // relanza VACÍA para que el modal quede abierto sin pintar texto de error.
+          throw new Error(SENAL_PANEL_PASE);
         }
         toast.error(translateActionError(error.message));
         setEnviando(false);
@@ -275,7 +282,10 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
       }
       await onDone();
       onClose();
-    } catch {
+    } catch (e) {
+      // Señal para abrir el panel de day pass: se relanza VACÍA para que AccionModal
+      // mantenga el modal abierto (y no pinte error). Cualquier otro error sí se avisa.
+      if (e instanceof Error && e.message === SENAL_PANEL_PASE) throw new Error('');
       toast.error('No pudimos crear la reserva. Intenta de nuevo.');
     } finally {
       setEnviando(false);
