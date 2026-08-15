@@ -58,6 +58,8 @@ export interface SocioFichaData {
   reservas: FichaReserva[];
   historial: FichaHistorialReserva[];
   asistencia: FichaAsistencia;
+  /** Bolsa de pases de invitado del periodo vigente (incluidos = 0 → el plan no los da). */
+  invitadosBolsa: { incluidos: number; usados: number; disponibles: number };
 }
 
 // Shapes laxos para los joins (evita pelear con los tipos generados de supabase).
@@ -189,6 +191,15 @@ export function useSocioFicha(id: string | undefined) {
       const ns = noShowRes.count ?? 0;
       const pct = comp + ns > 0 ? Math.round((comp / (comp + ns)) * 100) : null;
 
+      // Bolsa de pases de invitado del periodo (misma fuente que valida el backend).
+      const { data: invBolsaData } = await supabase.rpc('invitados_disponibles', { p_usuario_id: id });
+      const ib = (invBolsaData ?? {}) as { incluidos?: number; usados?: number; disponibles?: number };
+      const invitadosBolsa = {
+        incluidos: ib.incluidos ?? 0,
+        usados: ib.usados ?? 0,
+        disponibles: ib.disponibles ?? 0,
+      };
+
       const tier = unwrap(mem?.tier);
       const membresia: FichaMembresia | null = mem
         ? {
@@ -245,6 +256,7 @@ export function useSocioFicha(id: string | undefined) {
         reservas,
         historial,
         asistencia: { semana: semanaRes.count ?? 0, mes: mesRes.count ?? 0, pct },
+        invitadosBolsa,
       });
       setIsLoading(false);
     } catch (err) {

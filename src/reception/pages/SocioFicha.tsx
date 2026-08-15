@@ -207,7 +207,7 @@ const HIST_STATUS: Record<FichaHistorialReserva['status'], { label: string; colo
 };
 
 export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDone?: () => Promise<void> | void }) {
-  const { socio, membresia, estado, reservas, historial, asistencia } = data;
+  const { socio, membresia, estado, reservas, historial, asistencia, invitadosBolsa } = data;
   const tz = getTenantTimezone(useTenant());
   const hoyISO = hoyEnTimezone(tz);
   const badge = BADGE[estado];
@@ -536,6 +536,13 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           <Stat n={String(asistencia.mes)} l="mes" />
           <Stat n={asistencia.pct == null ? '—' : `${asistencia.pct}%`} l="asist." />
         </div>
+        {invitadosBolsa.incluidos > 0 && (
+          <p style={{ margin: '10px 0 0', fontSize: '12px', color: 'var(--sala-text-secondary)' }}>
+            Invitados: le quedan{' '}
+            <strong style={{ color: 'var(--sala-text-primary)' }}>{invitadosBolsa.disponibles}</strong>{' '}
+            de {invitadosBolsa.incluidos} este periodo.
+          </p>
+        )}
       </div>
 
       {/* PAGOS Y RECIBOS */}
