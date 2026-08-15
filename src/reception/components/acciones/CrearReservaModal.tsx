@@ -34,6 +34,23 @@ interface ClaseOpcion {
   instructor_nombre: string | null;
 }
 
+interface PaseTier {
+  id: string;
+  nombre: string;
+  precio_centavos: number;
+  moneda: string | null;
+}
+
+const METODOS: { value: 'efectivo' | 'tarjeta' | 'transferencia'; label: string }[] = [
+  { value: 'efectivo', label: 'Efectivo' },
+  { value: 'tarjeta', label: 'Tarjeta' },
+  { value: 'transferencia', label: 'Transferencia' }
+];
+
+function dinero(centavos: number, moneda: string | null): string {
+  return (centavos / 100).toLocaleString('es-MX', { style: 'currency', currency: moneda ?? 'MXN' });
+}
+
 interface Props {
   socioId: string;
   socioNombre: string;
@@ -84,6 +101,13 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
   const [invitadosDisponibles, setInvitadosDisponibles] = useState(0);
   const [invitados, setInvitados] = useState(0);
   const [invitadosDetalle, setInvitadosDetalle] = useState<InvitadoDetalle[]>([]);
+  // Day pass: cuando el plan del socio no cubre ese día, la reserva falla con
+  // DIA_NO_PERMITIDO y ofrecemos venderle un pase suelto (sin tocar su plan).
+  const [pases, setPases] = useState<PaseTier[]>([]);
+  const [pasePanel, setPasePanel] = useState(false);
+  const [paseTierId, setPaseTierId] = useState<string | null>(null);
+  const [metodoPago, setMetodoPago] = useState<'efectivo' | 'tarjeta' | 'transferencia'>('efectivo');
+  const [cobrando, setCobrando] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -127,6 +151,38 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
     return () => { cancelled = true; };
   }, [isOpen, socioId]);
 
+  // Pases sueltos del gym (es_pase). Se cobran cuando el día cae fuera del plan.
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      const from = supabase.from.bind(supabase) as unknown as (
+        t: string
+      ) => {
+        select: (c: string) => {
+          eq: (k: string, v: unknown) => {
+            eq: (k: string, v: unknown) => {
+              eq: (k: string, v: unknown) => {
+                order: (c: string, o: { ascending: boolean }) => Promise<{ data: PaseTier[] | null }>;
+              };
+            };
+          };
+        };
+      };
+      const { data } = await from('tiers')
+        .select('id, nombre, precio_centavos, moneda')
+        .eq('tenant_id', tenant.id)
+        .eq('es_pase', true)
+        .eq('activo', true)
+        .order('precio_centavos', { ascending: true });
+      if (cancelled) return;
+      const rows = data ?? [];
+      setPases(rows);
+      setPaseTierId((prev) => prev ?? rows[0]?.id ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, tenant.id]);
+
   // Mapa de salón: si la sala de la clase elegida usa lugares, hay que elegir uno.
   // Mismo hook que usa el socio y el mapa de recepción (una sola fuente de verdad).
   const { layout, tomados } = useLugaresSala(elegida?.recurso_id, elegida?.clase_id ?? null);
@@ -144,6 +200,7 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
   useEffect(() => {
     setLugarId(null);
     setInvitados(0);
+    setPasePanel(false); // al cambiar de clase, se cierra el panel de day pass
     const inicio = elegida ? new Date(`${elegida.fecha}T${elegida.hora_inicio}`).getTime() : null;
     setCheckInYa(!!elegida && elegida.fecha === dias[0].iso && inicio !== null && inicio <= Date.now());
   }, [elegida, dias]);
@@ -168,6 +225,17 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
         p_motivo: 'Walk-in en mostrador'
       });
       if (error) {
+        // El plan no cubre ese día: en vez de un toast muerto, ofrecemos venderle
+        // un day pass (sin tocar su plan). El resto de errores sí se muestran.
+        if (error.message.includes('DIA_NO_PERMITIDO')) {
+          setEnviando(false);
+          if (pases.length === 0) {
+            toast.error('El plan del socio no incluye ese día y no hay un Day Pass configurado para cobrarle.');
+            return;
+          }
+          setPasePanel(true);
+          return;
+        }
         toast.error(translateActionError(error.message));
         setEnviando(false);
         return;
@@ -205,6 +273,55 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
     }
   }
 
+  // Cobra un day pass y crea la reserva del día que su plan no cubre. El socio
+  // CONSERVA su plan: no se crea membresía; solo entra un cobro suelto a la Caja.
+  async function confirmarPaseDia() {
+    if (!elegida || !paseTierId) return;
+    setCobrando(true);
+    try {
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
+        name: string, args: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const { data, error } = await rpc('recepcion_reservar_pase_dia', {
+        p_usuario_id: socioId,
+        p_metodo_pago: metodoPago,
+        p_pase_tier_id: paseTierId,
+        p_clase_id: elegida.clase_id,
+        p_horario_id: elegida.clase_id ? null : elegida.horario_recurrente_id,
+        p_fecha: elegida.clase_id ? null : elegida.fecha,
+        p_lugar_id: lugarId,
+        p_motivo: 'Day pass — día fuera de su plan'
+      });
+      if (error) {
+        toast.error(translateActionError(error.message));
+        setCobrando(false);
+        return;
+      }
+      const res = data as { reserva?: { reserva_id?: string } } | null;
+      const reservaId = res?.reserva?.reserva_id;
+      // Check-in inmediato si ya está aquí (mismo criterio que el walk-in normal).
+      if (reservaId && checkInYa && puedeCheckIn) {
+        const { error: errCheckin } = await supabase.rpc('check_in_manual_atomic', {
+          p_reserva_id: reservaId,
+          p_motivo: 'Walk-in con day pass'
+        });
+        if (errCheckin) {
+          toast.error('Day pass cobrado y reserva creada, pero el check-in no pasó: ' + translateActionError(errCheckin.message));
+        } else {
+          toast.success(`Day pass cobrado. ${socioNombre} reservado y con check-in.`);
+        }
+      } else {
+        toast.success(`Day pass cobrado. Reserva creada para ${socioNombre}.`);
+      }
+      await onDone();
+      onClose();
+    } catch {
+      toast.error('No pudimos cobrar el day pass. Intenta de nuevo.');
+    } finally {
+      setCobrando(false);
+    }
+  }
+
   const faltaLugar = !!layout && !lugarId;
   // Invitados: solo en salas SIN mapa (las de mapa los bloquean por diseño) y si
   // al socio le quedan pases. El techo respeta además el cupo libre de la clase
@@ -212,6 +329,7 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
   const libresElegida = elegida ? elegida.cupo_max - elegida.reservados : 0;
   const maxInvitados = layout ? 0 : Math.min(invitadosDisponibles, Math.max(libresElegida - 1, 0));
   const mostrarInvitados = !!elegida && !layout && invitadosDisponibles > 0;
+  const paseSel = pases.find((p) => p.id === paseTierId) ?? null;
 
   return (
     <AccionModal
@@ -219,11 +337,110 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
       title="Crear reserva"
       description={`Inscribes a ${socioNombre} en una clase. Se descuenta su crédito si el plan es por clases.`}
       variant="info"
-      confirmLabel={enviando ? 'Reservando…' : 'Reservar'}
-      canConfirm={!!elegida && !faltaLugar && !enviando}
-      onConfirm={confirmar}
+      confirmLabel={
+        pasePanel
+          ? cobrando
+            ? 'Cobrando…'
+            : paseSel
+              ? `Cobrar ${dinero(paseSel.precio_centavos, paseSel.moneda)} y reservar`
+              : 'Cobrar y reservar'
+          : enviando ? 'Reservando…' : 'Reservar'
+      }
+      canConfirm={
+        pasePanel
+          ? !!paseTierId && !cobrando
+          : !!elegida && !faltaLugar && !enviando
+      }
+      onConfirm={pasePanel ? confirmarPaseDia : confirmar}
       onClose={onClose}
     >
+      {/* Day pass: el plan no cubre ese día → cobrar un pase suelto sin tocar el plan */}
+      {pasePanel && elegida && (
+        <div
+          style={{
+            marginBottom: '14px',
+            padding: '14px',
+            borderRadius: '10px',
+            border: '1px solid var(--sala-primary)',
+            background: 'var(--sala-primary-light)'
+          }}
+        >
+          <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 700 }}>
+            El plan de {socioNombre} no incluye los{' '}
+            {new Date(`${elegida.fecha}T12:00:00`).toLocaleDateString('es-MX', { weekday: 'long' })}
+          </p>
+          <p style={{ margin: '0 0 12px', fontSize: '12px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
+            Véndele un day pass para que entre a <strong>{elegida.nombre}</strong> ({elegida.hora_inicio.slice(0, 5)}).
+            Conserva su plan; se registra el cobro en la Caja.
+          </p>
+
+          {/* Qué pase (si hay más de uno) */}
+          {pases.length > 1 && (
+            <div style={{ marginBottom: '12px' }}>
+              <p className="ek-label" style={{ marginBottom: '4px' }}>Pase</p>
+              <select
+                className="ek-input"
+                value={paseTierId ?? ''}
+                onChange={(e) => setPaseTierId(e.target.value)}
+              >
+                {pases.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre} — {dinero(p.precio_centavos, p.moneda)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Cómo se cobró */}
+          <p className="ek-label" style={{ marginBottom: '6px' }}>¿Cómo se cobró?</p>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {METODOS.map((m) => {
+              const activo = metodoPago === m.value;
+              return (
+                <button
+                  key={m.value}
+                  type="button"
+                  onClick={() => setMetodoPago(m.value)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '999px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    background: activo ? 'var(--grad-primary)' : 'var(--sala-surface)',
+                    color: activo ? 'var(--sala-text-on-primary)' : 'var(--sala-text-secondary)',
+                    border: `1px solid ${activo ? 'var(--sala-primary)' : 'var(--sala-border)'}`
+                  }}
+                >
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setPasePanel(false)}
+            style={{
+              marginTop: '12px',
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              fontSize: '12px',
+              fontWeight: 600,
+              color: 'var(--sala-text-secondary)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              textDecoration: 'underline'
+            }}
+          >
+            ← Elegir otra clase
+          </button>
+        </div>
+      )}
+
       {/* Día */}
       <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '14px' }}>
         {dias.map((d) => {
