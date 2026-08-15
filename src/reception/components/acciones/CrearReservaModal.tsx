@@ -7,6 +7,7 @@ import { translateActionError } from '../../lib/traducirErrorAccion';
 import { SeleccionarLugar } from '@member/components/SeleccionarLugar';
 import { useLugaresSala } from '@member/hooks/useLugaresSala';
 import { useTenant } from '@shared/hooks/useTenant';
+import { getTenantTimezone, hoyEnTimezone, sumarDias, instanteDeClase } from '@shared/lib/timezone';
 import { InvitadosForm } from '@shared/components/InvitadosForm';
 import { guardarInvitados, ajustarInvitados, type InvitadoDetalle } from '@shared/lib/invitados';
 
@@ -59,18 +60,23 @@ interface Props {
   onDone: () => Promise<void> | void;
 }
 
-/** Los próximos 7 días, empezando hoy. Un walk-in casi siempre es para hoy. */
-function proximosDias(n = 7): { iso: string; label: string }[] {
+/** Los próximos 7 días, empezando hoy EN LA ZONA DEL GYM (no la del navegador:
+ *  recepción puede estar en otra tz y "hoy" es el de la sede). */
+function proximosDias(tz: string, n = 7): { iso: string; label: string }[] {
   const out: { iso: string; label: string }[] = [];
-  const hoy = new Date();
+  const hoyISO = hoyEnTimezone(tz);
   for (let i = 0; i < n; i++) {
-    const d = new Date(hoy);
-    d.setDate(hoy.getDate() + i);
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const label =
-      i === 0 ? 'Hoy'
-        : i === 1 ? 'Mañana'
-          : d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' });
+    const iso = sumarDias(hoyISO, i);
+    let label: string;
+    if (i === 0) label = 'Hoy';
+    else if (i === 1) label = 'Mañana';
+    else {
+      // Etiqueta (día de semana) sin que la tz del navegador la corra: se lee la
+      // fecha como mediodía UTC y se formatea en UTC.
+      const [y, m, d] = iso.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d, 12));
+      label = dt.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', timeZone: 'UTC' });
+    }
     out.push({ iso, label });
   }
   return out;
@@ -90,7 +96,8 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
   const toast = useToast();
   const { sucursalId } = useReceptionSucursal();
   const tenant = useTenant();
-  const dias = useMemo(() => proximosDias(), []);
+  const tz = getTenantTimezone(tenant);
+  const dias = useMemo(() => proximosDias(tz), [tz]);
   const [fecha, setFecha] = useState(dias[0].iso);
   const [clases, setClases] = useState<ClaseOpcion[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -129,14 +136,16 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
       const ahora = Date.now();
       const rows = (data ?? []).filter((c) => {
         if (fecha !== dias[0].iso) return true;
-        const inicio = new Date(`${c.fecha}T${c.hora_inicio}`).getTime();
+        // El instante de la clase se calcula en la ZONA DEL GYM, no la del
+        // navegador: si no, desde otra tz las clases de hoy se ven "ya pasadas".
+        const inicio = instanteDeClase(c.fecha, c.hora_inicio, tz).getTime();
         return inicio + (c.duracion_minutos ?? 60) * 60_000 >= ahora;
       });
       setClases(rows);
       setCargando(false);
     })();
     return () => { cancelled = true; };
-  }, [isOpen, fecha, sucursalId, toast, dias]);
+  }, [isOpen, fecha, sucursalId, toast, dias, tz]);
 
   // Pases de invitado que le quedan al socio este periodo (alimenta el stepper).
   useEffect(() => {
@@ -192,7 +201,7 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
   // se ofrece hacer el check-in en el mismo paso — prendido por default cuando
   // la clase ya está corriendo (el socio obviamente está aquí).
   const [checkInYa, setCheckInYa] = useState(false);
-  const elegidaInicio = elegida ? new Date(`${elegida.fecha}T${elegida.hora_inicio}`).getTime() : null;
+  const elegidaInicio = elegida ? instanteDeClase(elegida.fecha, elegida.hora_inicio, tz).getTime() : null;
   const puedeCheckIn =
     !!elegida && elegida.fecha === dias[0].iso &&
     elegidaInicio !== null && elegidaInicio <= Date.now() + 30 * 60_000;
@@ -201,9 +210,9 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
     setLugarId(null);
     setInvitados(0);
     setPasePanel(false); // al cambiar de clase, se cierra el panel de day pass
-    const inicio = elegida ? new Date(`${elegida.fecha}T${elegida.hora_inicio}`).getTime() : null;
+    const inicio = elegida ? instanteDeClase(elegida.fecha, elegida.hora_inicio, tz).getTime() : null;
     setCheckInYa(!!elegida && elegida.fecha === dias[0].iso && inicio !== null && inicio <= Date.now());
-  }, [elegida, dias]);
+  }, [elegida, dias, tz]);
   // La lista de datos de invitados sigue al conteo del stepper.
   useEffect(() => { setInvitadosDetalle((prev) => ajustarInvitados(prev, invitados)); }, [invitados]);
 
