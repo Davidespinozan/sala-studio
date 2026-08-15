@@ -11,6 +11,7 @@ import { ReciboModal } from '@shared/components/ReciboModal';
 import { CorteTicket, CortePrint, type CorteTicketData } from '@shared/components/CorteTicket';
 import CardMenuDropdown, { type DropdownItem } from '../components/CardMenuDropdown';
 import { PorCobrarCard } from '../components/PorCobrarCard';
+import { useTenantConfigEditor } from '../hooks/useTenantConfigEditor';
 import { imprimirCorte, compartirCorteImagen, conceptoLabel } from '@shared/lib/recibo';
 import { getTenantTimezone, hoyEnTimezone, sumarDias } from '@shared/lib/timezone';
 import { fromZonedTime } from 'date-fns-tz';
@@ -987,36 +988,67 @@ function CorteModal({
   const [contado, setContado] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  const rangoValido = fDesde !== '' && fHasta !== '' && fHasta >= fDesde;
+  // Cortes por TURNO: la hora de cambio de turno la define el gym (config.caja).
+  const { config: cfgTenant, saveTopLevel } = useTenantConfigEditor();
+  const horaGuardada =
+    (cfgTenant?.caja as { turno_corte_hora?: string } | undefined)?.turno_corte_hora ?? '14:00';
+  const [horaTurno, setHoraTurno] = useState(horaGuardada);
+  useEffect(() => { setHoraTurno(horaGuardada); }, [horaGuardada]);
+  const [turno, setTurno] = useState<'matutino' | 'vespertino' | null>(null);
+  // "Ahora" del corte vespertino se congela al elegir el turno (no cada render).
+  const [turnoHasta, setTurnoHasta] = useState<string | null>(null);
+
+  // Rango EFECTIVO: por turno (instantes con hora del gym) o por fechas (día completo).
+  const { desde: desdeEf, hasta: hastaEf } = useMemo(() => {
+    if (turno) {
+      const hoyD = hoyEnTimezone(tz);
+      const split = fromZonedTime(`${hoyD}T${horaTurno}:00`, tz).toISOString();
+      return turno === 'matutino'
+        ? { desde: fromZonedTime(`${hoyD}T00:00:00`, tz).toISOString(), hasta: split }
+        : { desde: split, hasta: turnoHasta ?? new Date().toISOString() };
+    }
+    return rangoISO(fDesde, fHasta, tz);
+  }, [turno, horaTurno, turnoHasta, fDesde, fHasta, tz]);
+
+  const rangoValido = turno
+    ? Date.parse(hastaEf) > Date.parse(desdeEf)
+    : (fDesde !== '' && fHasta !== '' && fHasta >= fDesde);
 
   // Aviso (no bloquea): el rango elegido se enclima con un corte ya hecho, así que
   // los mismos cobros contarían en dos cortes. Se compara por timestamp real.
   const seEnclima = useMemo(() => {
     if (!rangoValido) return false;
-    const { desde, hasta } = rangoISO(fDesde, fHasta, tz);
-    const sD = Date.parse(desde);
-    const sH = Date.parse(hasta);
+    const sD = Date.parse(desdeEf);
+    const sH = Date.parse(hastaEf);
     return cortesPrevios.some((c) => {
       const cD = c.desde ? Date.parse(c.desde) : -Infinity;
       return sD < Date.parse(c.hasta) && cD < sH;
     });
-  }, [fDesde, fHasta, rangoValido, cortesPrevios, tz]);
+  }, [desdeEf, hastaEf, rangoValido, cortesPrevios]);
 
   useEffect(() => {
     if (!rangoValido) { setEsperado(null); return; }
     let cancel = false;
     setEsperado(null);
     (async () => {
-      const { desde, hasta } = rangoISO(fDesde, fHasta, tz);
       const rpc = supabase.rpc.bind(supabase) as unknown as (
         name: string,
         args: unknown
       ) => Promise<{ data: { efectivo_esperado_centavos: number } | null; error: { message: string } | null }>;
-      const { data } = await rpc('preview_corte_caja', { p_desde: desde, p_hasta: hasta, p_sucursal_id: sucursalId });
+      const { data } = await rpc('preview_corte_caja', { p_desde: desdeEf, p_hasta: hastaEf, p_sucursal_id: sucursalId });
       if (!cancel) setEsperado(data?.efectivo_esperado_centavos ?? 0);
     })();
     return () => { cancel = true; };
-  }, [sucursalId, fDesde, fHasta, rangoValido, tz]);
+  }, [sucursalId, desdeEf, hastaEf, rangoValido]);
+
+  // Elegir un turno congela su rango; guarda la hora si numa la cambió.
+  function elegirTurno(t: 'matutino' | 'vespertino') {
+    setTurno(t);
+    setTurnoHasta(t === 'vespertino' ? new Date().toISOString() : null);
+    if (horaTurno !== horaGuardada && /^\d{2}:\d{2}$/.test(horaTurno)) {
+      void saveTopLevel({ caja: { ...(cfgTenant?.caja as object ?? {}), turno_corte_hora: horaTurno } });
+    }
+  }
 
   const fondoC = Math.round(Number(fondo || '0') * 100);
   const contadoC = Math.round(Number(contado || '0') * 100);
@@ -1028,14 +1060,13 @@ function CorteModal({
   async function confirmar() {
     if (!contadoValido || esperado === null || !rangoValido) return;
     setEnviando(true);
-    const { desde, hasta } = rangoISO(fDesde, fHasta, tz);
     const rpc = supabase.rpc.bind(supabase) as unknown as (
       name: string,
       args: unknown
     ) => Promise<{ data: { desde: string | null; hasta: string; efectivo_esperado_centavos: number; fondo_centavos: number; efectivo_contado_centavos: number; diferencia_centavos: number } | null; error: { message: string } | null }>;
     const { data, error } = await rpc('hacer_corte_caja', {
-      p_desde: desde,
-      p_hasta: hasta,
+      p_desde: desdeEf,
+      p_hasta: hastaEf,
       p_sucursal_id: sucursalId,
       // Simple: se asienta contado = esperado (sin fondo) → diferencia 0. El
       // ticket y la lista no muestran cuadre para este tenant de todas formas.
@@ -1048,7 +1079,7 @@ function CorteModal({
     onHecho(data);
   }
 
-  function setRango(d: string, h: string) { setFDesde(d); setFHasta(h); }
+  function setRango(d: string, h: string) { setTurno(null); setTurnoHasta(null); setFDesde(d); setFHasta(h); }
   const hoy = hoyEnTimezone(tz);
   const dow = (new Date(`${hoy}T00:00:00Z`).getUTCDay() + 6) % 7;
   const inicioSemana = sumarDias(hoy, -dow);
@@ -1078,13 +1109,54 @@ function CorteModal({
               key={p.label}
               type="button"
               onClick={() => setRango(p.d, p.h)}
-              className={`ek-cta ${fDesde === p.d && fHasta === p.h ? '' : 'ek-cta--secondary'}`}
+              className={`ek-cta ${!turno && fDesde === p.d && fHasta === p.h ? '' : 'ek-cta--secondary'}`}
               style={{ flex: '1 1 calc(50% - 4px)', minHeight: 34, fontSize: 12 }}
             >
               {p.label}
             </button>
           ))}
         </div>
+
+        {/* Corte por turno (matutino / vespertino). La hora de cambio la define el gym. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => elegirTurno('matutino')}
+            className={`ek-cta ${turno === 'matutino' ? '' : 'ek-cta--secondary'}`}
+            style={{ flex: '1 1 calc(50% - 52px)', minHeight: 34, fontSize: 12 }}
+          >
+            Matutino
+          </button>
+          <button
+            type="button"
+            onClick={() => elegirTurno('vespertino')}
+            className={`ek-cta ${turno === 'vespertino' ? '' : 'ek-cta--secondary'}`}
+            style={{ flex: '1 1 calc(50% - 52px)', minHeight: 34, fontSize: 12 }}
+          >
+            Vespertino
+          </button>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 11, color: 'var(--sala-text-tertiary)' }}>
+            corte
+            <input
+              type="time"
+              className="ek-input"
+              value={horaTurno}
+              onChange={(e) => setHoraTurno(e.target.value)}
+              onBlur={() => {
+                if (/^\d{2}:\d{2}$/.test(horaTurno) && horaTurno !== horaGuardada) {
+                  void saveTopLevel({ caja: { ...(cfgTenant?.caja as object ?? {}), turno_corte_hora: horaTurno } });
+                }
+              }}
+              style={{ width: 90, padding: '4px 6px' }}
+            />
+          </label>
+        </div>
+        {turno && rangoValido && (
+          <p style={{ fontSize: 12, color: 'var(--sala-text-secondary)', margin: '0 0 12px' }}>
+            {turno === 'matutino' ? 'Turno matutino' : 'Turno vespertino'}: {hora(desdeEf, tz)} – {hora(hastaEf, tz)}
+          </p>
+        )}
+
         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
           <label className="ek-form-field" style={{ flex: 1 }}>
             <span className="ek-label">Del día</span>
