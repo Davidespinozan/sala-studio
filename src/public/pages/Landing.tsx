@@ -103,6 +103,7 @@ function useTiersPublicos() {
         .eq('tenant_id', tenant.id)
         .eq('activo', true)
         .eq('en_venta', true)
+        .eq('visible_landing', true)
         // De menor a mayor: es el orden en que la gente compara precios.
         .order('precio_centavos', { ascending: true });
 

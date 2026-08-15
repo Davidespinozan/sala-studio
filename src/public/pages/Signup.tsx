@@ -73,6 +73,7 @@ function useTierParaSignup(slugPedido: string | null) {
         .eq('tenant_id', tenant.id)
         .eq('activo', true)
         .eq('en_venta', true)
+        .eq('visible_landing', true)
         .order('precio_centavos', { ascending: true });
 
       if (!mounted) return;

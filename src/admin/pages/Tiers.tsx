@@ -616,10 +616,15 @@ function EditarTierModal({
   const [invitadosPorPeriodo, setInvitadosPorPeriodo] = useState<number>(
     () => tier?.invitados_por_periodo ?? 0
   );
-  // Visible en landing / vendible a socios nuevos. Apagarlo NO afecta el acceso
+  // Vendible a socios nuevos (recepción y alta). Apagarlo NO afecta el acceso
   // de quienes YA lo tienen (a diferencia de archivar).
   const [enVenta, setEnVenta] = useState<boolean>(
     () => (tier as { en_venta?: boolean } | null)?.en_venta ?? true
+  );
+  // Aparece en la landing pública / signup. Independiente de "en venta": un plan
+  // puede venderse SOLO en recepción (ej. Day Pass) sin anunciarse al público.
+  const [visibleLanding, setVisibleLanding] = useState<boolean>(
+    () => (tier as { visible_landing?: boolean } | null)?.visible_landing ?? true
   );
   // Cuota única de alta. Se cobra una sola vez por socio.
   const [inscripcion, setInscripcion] = useState<string>(
@@ -766,6 +771,7 @@ function EditarTierModal({
         inscripcion_centavos: inscripcionCentavos,
         invitados_por_periodo: invitadosPorPeriodo,
         en_venta: enVenta,
+        visible_landing: visibleLanding,
         moneda,
         periodo: periodoFinal,
         tipo,
@@ -802,6 +808,7 @@ function EditarTierModal({
       inscripcion_centavos: inscripcionCentavos,
       invitados_por_periodo: invitadosPorPeriodo,
       en_venta: enVenta,
+      visible_landing: visibleLanding,
       moneda,
       periodo: periodoFinal,
       tipo,
@@ -1134,9 +1141,20 @@ function EditarTierModal({
             checked={enVenta}
             onChange={setEnVenta}
             label="En venta"
-            description="Encendido = el plan se muestra en la landing y se puede vender a socios nuevos. Apágalo para dejar de venderlo sin afectar a quienes ya lo tienen (ellos siguen reservando). Para eso, no lo archives."
+            description="Encendido = se puede vender a socios nuevos (en recepción y en el alta). Apágalo para dejar de venderlo sin afectar a quienes ya lo tienen (ellos siguen reservando). Para eso, no lo archives."
           />
         </div>
+
+        {enVenta && (
+          <div className="ek-form-field" style={{ marginTop: '12px' }}>
+            <Toggle
+              checked={visibleLanding}
+              onChange={setVisibleLanding}
+              label="Mostrar en la landing"
+              description="Encendido = aparece en la página pública y en el signup. Apágalo para venderlo SOLO en recepción, sin anunciarlo al público (ej. un day pass)."
+            />
+          </div>
+        )}
 
         <div className="ek-form-field" style={{ marginTop: '16px' }}>
           <label className="ek-label">Beneficios del plan</label>

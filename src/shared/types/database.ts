@@ -1268,6 +1268,7 @@ export type Database = {
           inscripcion_centavos: number
           invitados_por_periodo: number
           en_venta: boolean
+          visible_landing: boolean
           moneda: string
           nombre: string
           orden: number
@@ -1292,6 +1293,7 @@ export type Database = {
           inscripcion_centavos?: number
           invitados_por_periodo?: number
           en_venta?: boolean
+          visible_landing?: boolean
           moneda?: string
           nombre: string
           orden?: number
@@ -1316,6 +1318,7 @@ export type Database = {
           inscripcion_centavos?: number
           invitados_por_periodo?: number
           en_venta?: boolean
+          visible_landing?: boolean
           moneda?: string
           nombre?: string
           orden?: number
