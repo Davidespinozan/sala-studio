@@ -23,6 +23,13 @@ export interface FichaReserva {
   recursoNombre: string | null;
 }
 
+export interface FichaHistorialReserva {
+  id: string;
+  slot_inicio: string;
+  recursoNombre: string | null;
+  status: 'completada' | 'no_show' | 'cancelada' | 'cancelada_admin';
+}
+
 export interface FichaAsistencia {
   semana: number;
   mes: number;
@@ -47,6 +54,7 @@ export interface SocioFichaData {
   membresia: FichaMembresia | null;
   estado: EstadoMembresia;
   reservas: FichaReserva[];
+  historial: FichaHistorialReserva[];
   asistencia: FichaAsistencia;
 }
 
@@ -62,6 +70,12 @@ interface ReservaQueryRow {
   id: string;
   slot_inicio: string;
   slot_fin: string;
+  recurso: { nombre: string | null } | { nombre: string | null }[] | null;
+}
+interface HistorialQueryRow {
+  id: string;
+  slot_inicio: string;
+  status: FichaHistorialReserva['status'];
   recurso: { nombre: string | null } | { nombre: string | null }[] | null;
 }
 
@@ -138,6 +152,16 @@ export function useSocioFicha(id: string | undefined) {
         .order('slot_inicio', { ascending: true })
         .limit(5);
 
+      // Historial: reservas ya pasadas (asistió / no-show / cancelada), recientes primero.
+      const { data: histData } = await supabase
+        .from('reservas')
+        .select('id, slot_inicio, status, recurso:recursos(nombre)')
+        .eq('usuario_id', id)
+        .in('status', ['completada', 'no_show', 'cancelada', 'cancelada_admin'])
+        .lt('slot_inicio', nowISO)
+        .order('slot_inicio', { ascending: false })
+        .limit(10);
+
       // Asistencia: semana, mes, % (completadas / (completadas + no-shows)).
       const now = new Date();
       const startMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
@@ -184,12 +208,20 @@ export function useSocioFicha(id: string | undefined) {
         recursoNombre: unwrap(r.recurso)?.nombre ?? null,
       }));
 
+      const historial: FichaHistorialReserva[] = ((histData ?? []) as HistorialQueryRow[]).map((r) => ({
+        id: r.id,
+        slot_inicio: r.slot_inicio,
+        status: r.status,
+        recursoNombre: unwrap(r.recurso)?.nombre ?? null,
+      }));
+
       if (reqIdRef.current !== myReq) return; // respuesta vieja → descartar
       setData({
         socio: socioRow as FichaSocio,
         membresia,
         estado: membresia?.estado ?? 'sin_plan',
         reservas,
+        historial,
         asistencia: { semana: semanaRes.count ?? 0, mes: mesRes.count ?? 0, pct },
       });
       setIsLoading(false);

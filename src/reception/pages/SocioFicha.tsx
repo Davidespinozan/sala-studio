@@ -21,11 +21,11 @@ import { HuellaModal } from '../components/acciones/HuellaModal';
 import { Avatar } from '@shared/components/Avatar';
 import { HistorialPagosSocio } from '@shared/components/HistorialPagosSocio';
 import { MetodoPagoMembresia } from '@shared/components/MetodoPagoMembresia';
-import { useSocioFicha, type EstadoMembresia, type SocioFichaData } from '../hooks/useSocioFicha';
+import { useSocioFicha, type EstadoMembresia, type SocioFichaData, type FichaHistorialReserva } from '../hooks/useSocioFicha';
 import { useSocioNotas } from '../hooks/useSocioNotas';
 import { useHuellasSocio } from '@shared/hooks/useHuellasSocio';
 import { useMultasSocio, type MultaPendiente } from '../hooks/useMultasSocio';
-import { cobrarMultaReserva } from '../hooks/useReservasHoy';
+import { cobrarMultaReserva, marcarAsistioReserva } from '../hooks/useReservasHoy';
 import { formatearMoneda } from '@shared/lib/dinero';
 import { useToast } from '@shared/hooks/useToast';
 import { useTenant } from '@shared/hooks/useTenant';
@@ -199,12 +199,34 @@ function AccionBtn({ children, onClick }: { children: React.ReactNode; onClick: 
   );
 }
 
+const HIST_STATUS: Record<FichaHistorialReserva['status'], { label: string; color: string; bg: string }> = {
+  completada: { label: 'Asistió', color: 'var(--sala-success)', bg: 'var(--sala-primary-light)' },
+  no_show: { label: 'No-show', color: 'var(--sala-accent)', bg: 'var(--sala-accent-light)' },
+  cancelada: { label: 'Cancelada', color: 'var(--sala-text-tertiary)', bg: 'var(--sala-bg)' },
+  cancelada_admin: { label: 'Cancelada', color: 'var(--sala-text-tertiary)', bg: 'var(--sala-bg)' }
+};
+
 export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDone?: () => Promise<void> | void }) {
-  const { socio, membresia, estado, reservas, asistencia } = data;
+  const { socio, membresia, estado, reservas, historial, asistencia } = data;
   const tz = getTenantTimezone(useTenant());
   const hoyISO = hoyEnTimezone(tz);
   const badge = BADGE[estado];
+  const toast = useToast();
   const [modalAbierto, setModalAbierto] = useState<ModalAccion>(null);
+  const [corrigiendo, setCorrigiendo] = useState<string | null>(null);
+
+  async function marcarAsistio(reservaId: string) {
+    setCorrigiendo(reservaId);
+    try {
+      await marcarAsistioReserva(reservaId);
+      if (onAccionDone) await onAccionDone();
+      toast.success('Asistencia corregida a "presente".');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo corregir la asistencia.');
+    } finally {
+      setCorrigiendo(null);
+    }
+  }
 
   const socioNombre = socio.nombre ?? socio.email;
   const { notas, refetch: refetchNotas } = useSocioNotas(socio.id);
@@ -441,6 +463,54 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
                   }}
                 >
                   Confirmada
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* HISTORIAL DE RESERVAS */}
+      <div className="ek-card ek-card--md" style={{ marginBottom: '12px' }}>
+        <p className="ek-eyebrow" style={{ marginBottom: '9px' }}>HISTORIAL DE RESERVAS</p>
+        {historial.length === 0 ? (
+          <p style={{ textAlign: 'center', color: 'var(--sala-text-tertiary)', fontSize: '13px', padding: '6px 0', margin: 0 }}>
+            Sin reservas pasadas todavía.
+          </p>
+        ) : (
+          historial.map((r, i) => {
+            const f = fmtReserva(r.slot_inicio, tz, hoyISO);
+            const cfg = HIST_STATUS[r.status];
+            const corregible = r.status === 'no_show' || r.status === 'cancelada' || r.status === 'cancelada_admin';
+            return (
+              <div
+                key={r.id}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0', borderTop: i === 0 ? 'none' : '1px solid var(--sala-border-subtle, var(--sala-border))' }}
+              >
+                <div style={{ fontFamily: 'var(--ek-font-display)', fontWeight: 700, fontSize: '13px', minWidth: '70px' }}>
+                  {f.dia} {f.hora}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '13px' }}>{r.recursoNombre ?? 'Clase'}</div>
+                </div>
+                {corregible && (
+                  <button
+                    type="button"
+                    onClick={() => void marcarAsistio(r.id)}
+                    disabled={corrigiendo === r.id}
+                    className="ek-cta ek-cta--secondary"
+                    style={{ fontSize: '11px', padding: '4px 10px' }}
+                  >
+                    {corrigiendo === r.id ? '…' : 'Sí asistió'}
+                  </button>
+                )}
+                <span
+                  style={{
+                    fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
+                    color: cfg.color, background: cfg.bg, padding: '3px 8px', borderRadius: '999px', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {cfg.label}
                 </span>
               </div>
             );
