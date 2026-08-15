@@ -455,6 +455,11 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: '13px' }}>{r.recursoNombre ?? 'Clase'}</div>
+                  {r.invitados.length > 0 && (
+                    <div style={{ fontSize: '11px', color: 'var(--sala-text-secondary)', marginTop: '2px' }}>
+                      + {r.invitados.length} invitado{r.invitados.length === 1 ? '' : 's'}: {r.invitados.join(', ')}
+                    </div>
+                  )}
                 </div>
                 <span
                   style={{
@@ -492,6 +497,11 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: '13px' }}>{r.recursoNombre ?? 'Clase'}</div>
+                  {r.invitados.length > 0 && (
+                    <div style={{ fontSize: '11px', color: 'var(--sala-text-secondary)', marginTop: '2px' }}>
+                      + {r.invitados.length} invitado{r.invitados.length === 1 ? '' : 's'}: {r.invitados.join(', ')}
+                    </div>
+                  )}
                 </div>
                 {corregible && (
                   <button

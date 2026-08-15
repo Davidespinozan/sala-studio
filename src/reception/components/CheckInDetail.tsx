@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Check } from 'lucide-react';
+import { supabase } from '@shared/lib/supabase';
 import { usePlanesDelTenant } from '@shared/hooks/usePlanesDelTenant';
 import { useTenant } from '@shared/hooks/useTenant';
 import { getTenantTimezone, formatHoraEnTz } from '@shared/lib/timezone';
@@ -67,6 +68,22 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, membresi
   const [secondsLeft, setSecondsLeft] = useState(Math.ceil(AUTO_CLOSE_MS / 1000));
   const { nombrePlan } = usePlanesDelTenant();
   const tz = getTenantTimezone(useTenant());
+
+  // Nombres de los invitados de esta reserva (la identidad vive en
+  // reserva_invitados, aparte del conteo). Así recepción sabe A QUIÉN recibe.
+  const [invitados, setInvitados] = useState<string[]>([]);
+  useEffect(() => {
+    if (!reserva || reserva.invitados_count <= 0) { setInvitados([]); return; }
+    const rid = reserva.id;
+    let cancel = false;
+    void (async () => {
+      const { data } = await (supabase.from as unknown as (t: string) => {
+        select: (c: string) => { eq: (k: string, v: string) => Promise<{ data: { nombre: string }[] | null }> };
+      })('reserva_invitados').select('nombre').eq('reserva_id', rid);
+      if (!cancel) setInvitados((data ?? []).map((r) => r.nombre));
+    })();
+    return () => { cancel = true; };
+  }, [reserva]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -146,6 +163,13 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, membresi
           <Cell label="LUGAR" value={reserva.lugar_id.replace(/^L/i, '')} color="var(--sala-primary)" />
         )}
       </div>
+
+      {invitados.length > 0 && (
+        <div>
+          <p className="rec-detail-section-label">INVITADO{invitados.length === 1 ? '' : 'S'}</p>
+          <p className="rec-detail-notas">{invitados.join(', ')}</p>
+        </div>
+      )}
 
       <div className="rec-detail-divider" />
 

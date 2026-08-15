@@ -21,6 +21,7 @@ export interface FichaReserva {
   slot_inicio: string;
   slot_fin: string;
   recursoNombre: string | null;
+  invitados: string[];              // nombres de los invitados de esta reserva
 }
 
 export interface FichaHistorialReserva {
@@ -28,6 +29,7 @@ export interface FichaHistorialReserva {
   slot_inicio: string;
   recursoNombre: string | null;
   status: 'completada' | 'no_show' | 'cancelada' | 'cancelada_admin';
+  invitados: string[];
 }
 
 export interface FichaAsistencia {
@@ -201,11 +203,30 @@ export function useSocioFicha(id: string | undefined) {
           }
         : null;
 
+      // Nombres de los invitados de esas reservas (próximas + historial), en una
+      // sola consulta. La identidad vive en reserva_invitados (aparte del conteo).
+      const idsReserva = [
+        ...((reservasData ?? []) as ReservaQueryRow[]).map((r) => r.id),
+        ...((histData ?? []) as HistorialQueryRow[]).map((r) => r.id),
+      ];
+      const invMap: Record<string, string[]> = {};
+      if (idsReserva.length > 0) {
+        const { data: invData } = await (supabase.from as unknown as (t: string) => {
+          select: (c: string) => {
+            in: (k: string, v: string[]) => Promise<{ data: { reserva_id: string; nombre: string }[] | null }>;
+          };
+        })('reserva_invitados').select('reserva_id, nombre').in('reserva_id', idsReserva);
+        for (const row of invData ?? []) {
+          (invMap[row.reserva_id] ??= []).push(row.nombre);
+        }
+      }
+
       const reservas: FichaReserva[] = ((reservasData ?? []) as ReservaQueryRow[]).map((r) => ({
         id: r.id,
         slot_inicio: r.slot_inicio,
         slot_fin: r.slot_fin,
         recursoNombre: unwrap(r.recurso)?.nombre ?? null,
+        invitados: invMap[r.id] ?? [],
       }));
 
       const historial: FichaHistorialReserva[] = ((histData ?? []) as HistorialQueryRow[]).map((r) => ({
@@ -213,6 +234,7 @@ export function useSocioFicha(id: string | undefined) {
         slot_inicio: r.slot_inicio,
         status: r.status,
         recursoNombre: unwrap(r.recurso)?.nombre ?? null,
+        invitados: invMap[r.id] ?? [],
       }));
 
       if (reqIdRef.current !== myReq) return; // respuesta vieja → descartar
