@@ -4,6 +4,7 @@ import { ReservasHoyView } from '../components/ReservasHoyView';
 import { CheckInDetail } from '../components/CheckInDetail';
 import { CameraModal } from '../components/CameraModal';
 import { useScannerHID } from '../hooks/useScannerHID';
+import { useHuellaCheckins, type HuellaCheckinData } from '../hooks/useHuellaCheckins';
 import { playCheckInSuccess, playCheckInError } from '../lib/checkInFeedback';
 import { PageHeader } from '@shared/components/PageHeader';
 import { CumpleanosCard } from '@shared/components/CumpleanosCard';
@@ -54,6 +55,15 @@ export default function Scanner() {
   // Listener de scanner HID. Se pausa cuando hay modales abiertos (el overlay de
   // check-in del Scanner, la cámara, o un modal de la agenda en ReservasHoyView).
   useScannerHID(handleQRPayload, detail.kind === 'none' && !cameraOpen && !agendaModalOpen);
+
+  // Check-in por HUELLA: el agente lo marca en la base y la pantalla lo detecta y
+  // muestra al socio (misma pantalla que el QR), sin que recepción toque nada.
+  const handleHuellaCheckIn = useCallback((data: HuellaCheckinData) => {
+    playCheckInSuccess();
+    setDetail({ kind: 'success', data });
+    setRefreshTick((t) => t + 1);
+  }, []);
+  useHuellaCheckins(handleHuellaCheckIn, detail.kind === 'none' && !cameraOpen && !agendaModalOpen);
 
   const closeDetail = () => setDetail({ kind: 'none' });
   const handleManualCheckIn = (data: VerifyResponse['data']) => {
