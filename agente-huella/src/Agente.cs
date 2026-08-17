@@ -36,7 +36,7 @@ public sealed class Agente : IDisposable
     private async Task LoopAsync()
     {
         var ct = _cts.Token;
-        Log.Escribir("── Agente arrancando (v5 · lector en exclusivo + aviso de conflicto) ──");
+        Log.Escribir("── Agente arrancando (v6 · auto-reconexión del lector) ──");
         try
         {
             _lector.Abrir();
@@ -65,9 +65,41 @@ public sealed class Agente : IDisposable
 
                 await RegistrarEntrada(usuarioId, ct);
             }
+            catch (LectorDesconectadoException ex)
+            {
+                Avisar("Lector desconectado — reconectando…");
+                Log.Escribir($"Lector desconectado: {ex.Message}. Reconectando…");
+                await ReconectarAsync(ct);
+            }
             catch (LectorNoAutorizadoException ex) { Avisar($"Token inválido: {ex.Message}"); Log.Escribir($"Token inválido: {ex.Message}"); await Esperar(30, ct); }
             catch (OperationCanceledException) { break; }
             catch (Exception ex) { Avisar($"Error: {ex.Message}"); Log.Escribir($"Error en loop: {ex}"); await Esperar(3, ct); }
+        }
+    }
+
+    /// <summary>
+    /// El lector se cayó (se desenchufó o dejó de responder). Espera a que vuelva a
+    /// aparecer físicamente y lo reabre solo — sin que nadie reinicie el agente.
+    /// Reintenta en bucle hasta lograrlo (o hasta que se cancele el agente).
+    /// </summary>
+    private async Task ReconectarAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            await Esperar(2, ct);
+            if (!_lector.HayLectorFisico()) continue; // aún desconectado: seguir esperando
+            try
+            {
+                _lector.Reabrir();
+                Avisar($"Lector reconectado: {_lector.Nombre}");
+                Log.Escribir("Lector reconectado ✓");
+                await Sync(ct); // refrescar huellas al volver
+                return;
+            }
+            catch (Exception ex)
+            {
+                Log.Escribir($"Reintento de reconexión falló, sigo intentando: {ex.Message}");
+            }
         }
     }
 

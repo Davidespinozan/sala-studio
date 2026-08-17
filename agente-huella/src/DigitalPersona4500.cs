@@ -110,16 +110,32 @@ public sealed class DigitalPersona4500(int umbralMatch) : ILectorHuella, IMatche
     /// </summary>
     private Task<Fid?> CapturarFidAsync(TimeSpan timeout, CancellationToken ct) => Task.Run(() =>
     {
-        if (_reader is null) throw new InvalidOperationException("Lector no abierto.");
-        var cr = _reader.Capture(
-            Constants.Formats.Fid.ANSI,
-            Constants.CaptureProcessing.DP_IMG_PROC_DEFAULT,
-            (int)timeout.TotalMilliseconds,
-            _reader.Capabilities.Resolutions[0]);
+        if (_reader is null) throw new LectorDesconectadoException("Lector no abierto.");
+
+        CaptureResult cr;
+        try
+        {
+            cr = _reader.Capture(
+                Constants.Formats.Fid.ANSI,
+                Constants.CaptureProcessing.DP_IMG_PROC_DEFAULT,
+                (int)timeout.TotalMilliseconds,
+                _reader.Capabilities.Resolutions[0]);
+        }
+        catch (Exception ex)
+        {
+            // El SDK lanzó (típico al desenchufar el lector a media captura).
+            throw new LectorDesconectadoException($"Capture lanzó: {ex.Message}");
+        }
 
         Log.Escribir($"Capture → RC={cr?.ResultCode} Quality={cr?.Quality} Data={(cr?.Data is null ? "null" : "ok")}");
 
-        if (cr is null || cr.ResultCode != Constants.ResultCode.DP_SUCCESS || cr.Data is null) return null;
+        // Lector desconectado: Capture no devuelve nada, o devuelve un código que NO
+        // es éxito. Un TIMED_OUT normal (sin dedo) viene como DP_SUCCESS + calidad,
+        // así que esto SOLO pega cuando el aparato falla / se desenchufa → reconectar.
+        if (cr is null || cr.ResultCode != Constants.ResultCode.DP_SUCCESS)
+            throw new LectorDesconectadoException($"Capture RC={cr?.ResultCode.ToString() ?? "null"}");
+
+        if (cr.Data is null) return null;
 
         // TIMED_OUT = no hubo dedo en la ventana: el Data que acompaña es basura y
         // extraer rasgos de él solo ensuciaba el log con DP_INVALID_FID (van 0/4).
@@ -138,6 +154,21 @@ public sealed class DigitalPersona4500(int umbralMatch) : ILectorHuella, IMatche
         return cr.Data;
     }, ct);
 
+    /// <summary>¿Hay un lector físicamente conectado? (para esperar a que vuelva).</summary>
+    public bool HayLectorFisico()
+    {
+        try { return ReaderCollection.GetReaders().Count > 0; }
+        catch { return false; }
+    }
+
+    /// <summary>Cierra el handle viejo y vuelve a abrir el lector (tras reconectarlo).</summary>
+    public void Reabrir()
+    {
+        try { _reader?.Dispose(); } catch { /* handle ya inválido */ }
+        _reader = null;
+        Abrir();
+    }
+
     /// <summary>
     /// Carga bytes de plantilla (formato ANSI 378) como Fmd comparable.
     /// Nota: este build de DPUruNet expone ANSI en el enum Fmd, no ISO — por eso
@@ -149,3 +180,6 @@ public sealed class DigitalPersona4500(int umbralMatch) : ILectorHuella, IMatche
 
     public void Dispose() => _reader?.Dispose();
 }
+
+/// <summary>El lector se desconectó (o dejó de responder). El agente lo reabre solo.</summary>
+public sealed class LectorDesconectadoException(string mensaje) : Exception(mensaje);
