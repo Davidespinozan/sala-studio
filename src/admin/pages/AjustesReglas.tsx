@@ -5,7 +5,7 @@ import { DEFAULT_TIMEZONE, TIMEZONE_OPTIONS } from '@shared/lib/timezone';
 import Toggle from '../components/Toggle';
 
 type ReglasDraft = {
-  anticipacion_min_horas: number;
+  anticipacion_min_minutos: number;
   duracion_default_min: number;
   permitir_continuas: boolean;
   cancelacion_min_horas: number;
@@ -27,7 +27,7 @@ type ReglasDraft = {
  * el sistema decide por vos cuando no dijiste nada — y decidía en contra.
  */
 const DEFAULT: ReglasDraft = {
-  anticipacion_min_horas: 0, // sin umbral: se reserva hasta que arranca la clase
+  anticipacion_min_minutos: 0, // sin umbral: se reserva hasta que arranca la clase
   duracion_default_min: 60,
   permitir_continuas: false,
   cancelacion_min_horas: 4, // debe coincidir con el default del RPC cancelar_reserva_atomic
@@ -49,7 +49,13 @@ function readDraft(config: Record<string, unknown> | null): ReglasDraft {
   };
 
   return {
-    anticipacion_min_horas: num(reserva.anticipacion_min_horas, DEFAULT.anticipacion_min_horas),
+    // Lee minutos; si el gym solo tenía la vieja en horas, la convierte ×60.
+    anticipacion_min_minutos: num(
+      reserva.anticipacion_min_minutos,
+      reserva.anticipacion_min_horas != null
+        ? num(reserva.anticipacion_min_horas, 0) * 60
+        : DEFAULT.anticipacion_min_minutos
+    ),
     duracion_default_min: num(reserva.duracion_default_min, DEFAULT.duracion_default_min),
     permitir_continuas: Boolean(reserva.permitir_continuas ?? DEFAULT.permitir_continuas),
     cancelacion_min_horas: num(reserva.cancelacion_min_horas, DEFAULT.cancelacion_min_horas),
@@ -128,7 +134,7 @@ export default function AjustesReglas() {
   const dirty = JSON.stringify(draft) !== originalJson;
 
   async function handleSave() {
-    if (!Number.isFinite(draft.anticipacion_min_horas) || draft.anticipacion_min_horas < 0) {
+    if (!Number.isFinite(draft.anticipacion_min_minutos) || draft.anticipacion_min_minutos < 0) {
       toast.error('Anticipación mínima debe ser un número positivo.');
       return;
     }
@@ -161,7 +167,7 @@ export default function AjustesReglas() {
     const patch = {
       reserva: {
         ...reserva,
-        anticipacion_min_horas: draft.anticipacion_min_horas,
+        anticipacion_min_minutos: draft.anticipacion_min_minutos,
         duracion_default_min: draft.duracion_default_min,
         permitir_continuas: draft.permitir_continuas,
         cancelacion_min_horas: draft.cancelacion_min_horas
@@ -221,15 +227,15 @@ export default function AjustesReglas() {
 
       <Section title="TIEMPO Y ANTICIPACIÓN">
         <FormField
-          label="Anticipación mínima (horas)"
-          helper="Cuántas horas antes de la sesión debe reservar el miembro. Ejemplo: 24 horas."
+          label="Anticipación mínima (minutos)"
+          helper="Cuántos minutos antes de la sesión debe reservar el miembro. Ejemplo: 15. Pon 0 para permitir reservar hasta el último momento."
         >
           <input
             type="number"
             min={0}
-            value={draft.anticipacion_min_horas}
+            value={draft.anticipacion_min_minutos}
             onChange={(e) =>
-              setDraft({ ...draft, anticipacion_min_horas: parseInt(e.target.value) || 0 })
+              setDraft({ ...draft, anticipacion_min_minutos: parseInt(e.target.value) || 0 })
             }
             className="ek-input"
           />
