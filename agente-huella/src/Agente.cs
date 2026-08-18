@@ -36,7 +36,7 @@ public sealed class Agente : IDisposable
     private async Task LoopAsync()
     {
         var ct = _cts.Token;
-        Log.Escribir("── Agente arrancando (v6 · auto-reconexión del lector) ──");
+        Log.Escribir("── Agente arrancando (v7 · auto-reconexión + refresco si se duerme) ──");
         try
         {
             _lector.Abrir();
@@ -46,6 +46,13 @@ public sealed class Agente : IDisposable
         }
         catch (Exception ex) { Avisar($"Sin lector: {ex.Message}"); Log.Escribir($"ARRANQUE FALLÓ: {ex}"); return; }
 
+        // Si el lector se DUERME sin dar error (Windows suspende el USB), Capture solo
+        // devuelve "sin dedo" para siempre y la auto-reconexión del v6 no se enteraba.
+        // Backstop: tras mucho rato de puras capturas "sin dedo", refrescamos el lector
+        // por dentro (reabrir) por si se durmió — sin que nadie cierre/abra el agente.
+        int sinActividad = 0;
+        const int RefrescoTrasSinActividad = 60; // ~3 min de capturas "sin dedo" seguidas
+
         while (!ct.IsCancellationRequested)
         {
             try
@@ -54,11 +61,22 @@ public sealed class Agente : IDisposable
                 await TalvezDrenar(ct);
 
                 var pendiente = await TalvezPendiente(ct);
-                if (pendiente is not null) { await Enrolar(pendiente, ct); continue; }
+                if (pendiente is not null) { sinActividad = 0; await Enrolar(pendiente, ct); continue; }
 
                 // Check-in: esperar un dedo, con timeout corto para volver a revisar pendientes.
                 var captura = await _lector.CapturarUnaAsync(TimeSpan.FromSeconds(3), ct);
-                if (captura is null) continue;
+                if (captura is null)
+                {
+                    if (++sinActividad >= RefrescoTrasSinActividad)
+                    {
+                        sinActividad = 0;
+                        Log.Escribir("Refresco preventivo del lector (mucho rato sin actividad)…");
+                        try { _lector.Reabrir(); Log.Escribir("Lector refrescado ✓"); await Sync(ct); }
+                        catch (Exception ex) { Log.Escribir($"Refresco falló: {ex.Message}"); await ReconectarAsync(ct); }
+                    }
+                    continue;
+                }
+                sinActividad = 0;
 
                 var usuarioId = _lector.Identificar(captura.PlantillaIso, _almacen.Huellas);
                 if (usuarioId is null) { Avisar("Huella no reconocida"); continue; }
@@ -67,6 +85,7 @@ public sealed class Agente : IDisposable
             }
             catch (LectorDesconectadoException ex)
             {
+                sinActividad = 0;
                 Avisar("Lector desconectado — reconectando…");
                 Log.Escribir($"Lector desconectado: {ex.Message}. Reconectando…");
                 await ReconectarAsync(ct);
