@@ -36,7 +36,7 @@ public sealed class Agente : IDisposable
     private async Task LoopAsync()
     {
         var ct = _cts.Token;
-        Log.Escribir("── Agente arrancando (v7 · auto-reconexión + refresco si se duerme) ──");
+        Log.Escribir("── Agente arrancando (v7 · auto-reconexión + refresco + arranque resiliente) ──");
         try
         {
             _lector.Abrir();
@@ -44,7 +44,15 @@ public sealed class Agente : IDisposable
             Log.Escribir($"Lector listo: {_lector.Nombre}");
             await Sync(ct); // arrancar con las huellas frescas
         }
-        catch (Exception ex) { Avisar($"Sin lector: {ex.Message}"); Log.Escribir($"ARRANQUE FALLÓ: {ex}"); return; }
+        catch (Exception ex)
+        {
+            // Arranque resiliente: si el lector no está listo al abrir el agente (aún
+            // no conectado, o Windows no cargó el driver al encender), NO morimos —
+            // esperamos a que aparezca y lo abrimos solos (misma reconexión del loop).
+            Avisar("Sin lector al arrancar — esperando a que lo conecten…");
+            Log.Escribir($"Arranque sin lector: {ex.Message}. Esperando a que aparezca…");
+            await ReconectarAsync(ct);
+        }
 
         // Si el lector se DUERME sin dar error (Windows suspende el USB), Capture solo
         // devuelve "sin dedo" para siempre y la auto-reconexión del v6 no se enteraba.
