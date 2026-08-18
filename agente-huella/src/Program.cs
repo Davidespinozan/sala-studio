@@ -1,4 +1,5 @@
 using System.Windows.Forms;
+using Microsoft.Win32;
 
 namespace SalaAgente;
 
@@ -8,6 +9,7 @@ static class Program
     static void Main()
     {
         ApplicationConfiguration.Initialize();
+        RegistrarAutoArranque();
         try
         {
             var cfg = Config.Cargar(Path.Combine(AppContext.BaseDirectory, "sala-lector.config.json"));
@@ -22,6 +24,26 @@ static class Program
             MessageBox.Show(ex.Message, "Agente SALA — no pudo arrancar",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
+    }
+
+    /// <summary>
+    /// El agente se registra para arrancar SOLO con Windows (al iniciar sesión el
+    /// usuario del mostrador). Así, tras encender la compu, ya está corriendo sin que
+    /// nadie abra nada — como el sistema anterior. Idempotente: reescribe la ruta
+    /// actual del .exe cada vez (por si lo movieron de carpeta). No requiere admin
+    /// (va en HKEY_CURRENT_USER). Si falla, no es fatal: el agente corre igual.
+    /// </summary>
+    static void RegistrarAutoArranque()
+    {
+        try
+        {
+            var exe = Environment.ProcessPath;
+            if (string.IsNullOrEmpty(exe)) return;
+            using var key = Registry.CurrentUser.OpenSubKey(
+                @"Software\Microsoft\Windows\CurrentVersion\Run", writable: true);
+            key?.SetValue("SalaAgente", $"\"{exe}\"");
+        }
+        catch { /* si no se puede registrar el auto-arranque, no es fatal */ }
     }
 }
 

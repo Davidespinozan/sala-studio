@@ -36,7 +36,7 @@ public sealed class Agente : IDisposable
     private async Task LoopAsync()
     {
         var ct = _cts.Token;
-        Log.Escribir("── Agente arrancando (v7 · auto-reconexión + refresco + arranque resiliente) ──");
+        Log.Escribir("── Agente arrancando (v8 · auto-inicio con Windows + auto-reconexión del lector) ──");
         try
         {
             _lector.Abrir();
