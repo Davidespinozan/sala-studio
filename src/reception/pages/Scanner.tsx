@@ -5,6 +5,7 @@ import { CheckInDetail } from '../components/CheckInDetail';
 import { CameraModal } from '../components/CameraModal';
 import { useScannerHID } from '../hooks/useScannerHID';
 import { useHuellaCheckins, type HuellaCheckinData } from '../hooks/useHuellaCheckins';
+import { useLectorEstado } from '../hooks/useLectorEstado';
 import { playCheckInSuccess, playCheckInError } from '../lib/checkInFeedback';
 import { PageHeader } from '@shared/components/PageHeader';
 import { CumpleanosCard } from '@shared/components/CumpleanosCard';
@@ -28,6 +29,29 @@ type DetailState =
   | { kind: 'none' }
   | { kind: 'success'; data: VerifyResponse['data'] }
   | { kind: 'error'; message: string };
+
+/** Estado del lector de huella, a la vista de recepción (son quienes lo usan). */
+function LectorBadge() {
+  const estado = useLectorEstado();
+  if (estado === 'sin_lector') return null; // sin lector dado de alta → no estorbar
+  const conectado = estado === 'conectado';
+  return (
+    <div
+      title={conectado ? 'El lector de huella está respondiendo.' : 'El lector no da señal. Revisa que el agente esté abierto y el lector conectado.'}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: '7px',
+        padding: '6px 12px', borderRadius: '999px', whiteSpace: 'nowrap',
+        fontSize: '12px', fontWeight: 700,
+        background: conectado ? 'var(--ek-success-soft)' : 'var(--ek-danger-soft)',
+        color: conectado ? 'var(--ek-success)' : 'var(--ek-danger)',
+        border: `1px solid ${conectado ? 'var(--ek-success)' : 'var(--ek-danger)'}`
+      }}
+    >
+      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'currentColor', flexShrink: 0 }} />
+      {conectado ? 'Lector conectado' : 'Lector sin señal'}
+    </div>
+  );
+}
 
 export default function Scanner() {
   const [detail, setDetail] = useState<DetailState>({ kind: 'none' });
@@ -74,7 +98,10 @@ export default function Scanner() {
   return (
     <div className="rec-shell">
       <div className="rec-main">
-        <PageHeader eyebrow="RECEPCIÓN" title="Hoy" />
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+          <PageHeader eyebrow="RECEPCIÓN" title="Hoy" />
+          <LectorBadge />
+        </div>
 
         <CumpleanosCard linkBase="/recepcion/socios" />
 
