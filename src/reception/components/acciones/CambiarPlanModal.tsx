@@ -65,7 +65,11 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
         .from('membresias')
         .select('creditos_restantes, tier:tiers(tipo)')
         .eq('usuario_id', socioId)
-        .in('status', ['activa', 'congelada', 'past_due', 'trialing'])
+        // Incluir 'expirada': el backend (gestionar_membresia_socio) sí la mira y
+        // bloquea el cambio si tiene créditos. Si acá NO la miramos, la casilla de
+        // "confirmar pérdida" no aparece y recepción queda sin forma de confirmar
+        // (callejón sin salida para un socio vencido con clases sin usar).
+        .in('status', ['activa', 'congelada', 'past_due', 'trialing', 'expirada'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -155,7 +159,7 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
             </p>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
               El plan nuevo es de otro tipo y las clases sueltas no se pueden llevar a él. Si no
-              querés que las pierda, esperá a que las use antes de cambiarle el plan.
+              quieres que las pierda, espera a que las use antes de cambiarle el plan.
             </p>
             <label
               style={{
