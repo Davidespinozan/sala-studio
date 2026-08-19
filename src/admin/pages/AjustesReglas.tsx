@@ -269,7 +269,7 @@ export default function AjustesReglas() {
       <Section title="CANCELACIONES">
         <FormField
           label="Ventana de cancelación (horas antes)"
-          helper="Hasta cuántas horas antes de la clase el miembro puede cancelar y recuperar su crédito. Si cancela más tarde, el crédito se pierde (cuenta como asistida). No aplica a planes de mensualidad."
+          helper="Hasta cuántas horas antes de la clase el miembro puede cancelar sin castigo. Si cancela más tarde —o falta—, esa clase cuenta como consumida: en planes de créditos pierde el crédito, y en TODOS los planes (incluida mensualidad) usa su cupo del día, así que para volver a reservar ese día deberá pagar la multa (si está activada abajo)."
         >
           <input
             type="number"
