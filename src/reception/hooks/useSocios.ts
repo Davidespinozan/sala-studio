@@ -87,24 +87,23 @@ export function useSocios(query: string) {
   }, [nonce]);
 
   // Filtrado local instantáneo (solo CPU, sin debounce ni race conditions).
+  // Devuelve la lista COMPLETA (sin cortar): la página la pagina en la UI, así
+  // recepción puede recorrer todos los socios por páginas, no solo los primeros.
   const socios = useMemo(() => {
     const term = query.trim();
-    // Sin query → primeros 30 de ESTA sede (vista por defecto del mostrador).
+    // Sin query → TODOS los de ESTA sede, alfabético (vista por defecto).
     if (!term) {
-      const deSede = sucursalId ? padron.filter((s) => s.sucursal_id === sucursalId) : padron;
-      return deSede.slice(0, 30);
+      return sucursalId ? padron.filter((s) => s.sucursal_id === sucursalId) : padron;
     }
     // Con query → busca en TODO el tenant (encuentra socios visitantes).
     const q = normalize(term);
-    return padron
-      .filter((s) => {
-        if (normalize(s.nombre ?? '').includes(q)) return true;
-        if (normalize(s.email ?? '').includes(q)) return true;
-        // Teléfono sin normalizar (los números no tienen acentos).
-        if ((s.telefono ?? '').includes(term)) return true;
-        return false;
-      })
-      .slice(0, 50); // tope 50 (más amplio que server-side porque es local)
+    return padron.filter((s) => {
+      if (normalize(s.nombre ?? '').includes(q)) return true;
+      if (normalize(s.email ?? '').includes(q)) return true;
+      // Teléfono sin normalizar (los números no tienen acentos).
+      if ((s.telefono ?? '').includes(term)) return true;
+      return false;
+    });
   }, [padron, query, sucursalId]);
 
   return { socios, isLoading, error, refetch: () => setNonce((n) => n + 1) };

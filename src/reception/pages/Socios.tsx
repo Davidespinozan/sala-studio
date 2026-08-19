@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ChevronRight } from 'lucide-react';
 import { EmptyState } from '@shared/components/EmptyState';
@@ -79,6 +79,14 @@ export default function Socios() {
     guardarQuery(q);
   }, [q]);
 
+  // Paginación: recepción recorre TODOS los socios por páginas (no solo A–C).
+  const POR_PAGINA = 30;
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [q]); // nueva búsqueda → volver a la página 1
+  const totalPaginas = Math.max(1, Math.ceil(socios.length / POR_PAGINA));
+  const paginaSegura = Math.min(pagina, totalPaginas);
+  const visibles = socios.slice((paginaSegura - 1) * POR_PAGINA, paginaSegura * POR_PAGINA);
+
   return (
     <div className="ek-page">
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '16px 20px' }}>
@@ -118,7 +126,9 @@ export default function Socios() {
 
         {!isLoading && !error && socios.length > 0 && (
           <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--sala-text-tertiary)', margin: '0 0 12px 2px' }}>
-            {q.trim() ? `${socios.length} resultado${socios.length === 1 ? '' : 's'}` : 'Socios de esta sede'}
+            {q.trim()
+              ? `${socios.length} resultado${socios.length === 1 ? '' : 's'}`
+              : `Socios de esta sede (${socios.length})${totalPaginas > 1 ? ` · pág. ${paginaSegura} de ${totalPaginas}` : ''}`}
           </p>
         )}
 
@@ -141,11 +151,14 @@ export default function Socios() {
             subtitle={q.trim() ? 'Prueba con otro nombre o teléfono.' : 'Los socios aparecen acá al darlos de alta.'}
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {socios.map((s) => (
-              <SocioRow key={s.id} socio={s} sedeBadge={sedeDe(s.sucursal_id)} />
-            ))}
-          </div>
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {visibles.map((s) => (
+                <SocioRow key={s.id} socio={s} sedeBadge={sedeDe(s.sucursal_id)} />
+              ))}
+            </div>
+            <Paginador pagina={paginaSegura} total={totalPaginas} onCambio={setPagina} />
+          </>
         )}
       </div>
 
@@ -155,6 +168,52 @@ export default function Socios() {
         onDone={refetch}
       />
     </div>
+  );
+}
+
+/** Números de página abajo de la lista (con ventana + elipsis si son muchas). */
+function Paginador({ pagina, total, onCambio }: { pagina: number; total: number; onCambio: (p: number) => void }) {
+  if (total <= 1) return null;
+  const nums: (number | 'gap')[] = [];
+  const from = Math.max(2, pagina - 1);
+  const to = Math.min(total - 1, pagina + 1);
+  nums.push(1);
+  if (from > 2) nums.push('gap');
+  for (let i = from; i <= to; i++) nums.push(i);
+  if (to < total - 1) nums.push('gap');
+  if (total > 1) nums.push(total);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '18px' }}>
+      <PagBtn disabled={pagina <= 1} onClick={() => onCambio(pagina - 1)}>‹</PagBtn>
+      {nums.map((n, i) =>
+        n === 'gap' ? (
+          <span key={`gap-${i}`} style={{ color: 'var(--sala-text-tertiary)', padding: '0 2px' }}>…</span>
+        ) : (
+          <PagBtn key={n} activo={n === pagina} onClick={() => onCambio(n)}>{n}</PagBtn>
+        )
+      )}
+      <PagBtn disabled={pagina >= total} onClick={() => onCambio(pagina + 1)}>›</PagBtn>
+    </div>
+  );
+}
+
+function PagBtn({ children, onClick, activo, disabled }: { children: ReactNode; onClick: () => void; activo?: boolean; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      style={{
+        minWidth: '34px', height: '34px', padding: '0 8px', borderRadius: '8px',
+        fontSize: '13px', fontWeight: 700, fontFamily: 'inherit',
+        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1,
+        border: `1px solid ${activo ? 'var(--sala-primary)' : 'var(--sala-border)'}`,
+        background: activo ? 'var(--grad-primary)' : 'var(--sala-surface)',
+        color: activo ? 'var(--sala-text-on-primary)' : 'var(--sala-text-secondary)'
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
