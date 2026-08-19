@@ -5,9 +5,19 @@ namespace SalaAgente;
 
 static class Program
 {
+    // Mantiene viva la señal de "instancia única" durante toda la ejecución.
+    private static Mutex? _instancia;
+
     [STAThread]
     static void Main()
     {
+        // Un solo agente a la vez: si ya hay uno corriendo (p. ej. porque el arranque
+        // se disparó por dos vías, o alguien abrió el .exe teniéndolo ya arriba), este
+        // segundo se sale sin ruido. Así nunca hay dos peleándose por el lector, que
+        // se abre en modo EXCLUSIVO.
+        _instancia = new Mutex(initiallyOwned: true, @"Local\SalaAgenteInstanciaUnica", out bool esNueva);
+        if (!esNueva) return;
+
         ApplicationConfiguration.Initialize();
         RegistrarAutoArranque();
         try
@@ -29,15 +39,13 @@ static class Program
     /// <summary>
     /// El agente se configura para arrancar SOLO con Windows (al iniciar sesión el
     /// usuario del mostrador). Así, tras encender la compu, ya está corriendo sin que
-    /// nadie abra nada — como el sistema anterior. Se hace por DOS vías, porque en
-    /// algunas PCs Windows ignora la del registro:
-    ///   1) HKCU\...\Run (rápida, pero no siempre confiable).
-    ///   2) Un acceso directo en la carpeta de Inicio del usuario — el mismo
-    ///      mecanismo del sistema anterior, que Windows SIEMPRE respeta al iniciar
-    ///      sesión. Esta es la que de verdad garantiza el arranque.
-    /// Ambas son idempotentes: reapuntan al .exe actual cada vez (por si lo movieron).
-    /// No requieren admin (todo va en el perfil del usuario). Si algo falla, no es
-    /// fatal: el agente corre igual.
+    /// nadie abra nada — como el sistema anterior. El v8 lo intentaba por el registro
+    /// (HKCU\...\Run), pero hay PCs donde Windows lo IGNORA (confirmado en la de numa).
+    /// Por eso el v9 borra esa vía vieja y usa la CONFIABLE: un acceso directo en la
+    /// carpeta de Inicio del usuario — el mismo mecanismo del sistema anterior, que
+    /// Windows siempre respeta al iniciar sesión. Idempotente: reapunta al .exe actual
+    /// cada vez (por si lo movieron). No requiere admin (va en el perfil del usuario).
+    /// Si algo falla, no es fatal: el agente corre igual.
     /// </summary>
     static void RegistrarAutoArranque()
     {
@@ -45,17 +53,20 @@ static class Program
         if (string.IsNullOrEmpty(exe)) return;
         var dir = Path.GetDirectoryName(exe) ?? "";
 
-        // Vía 1: registro HKCU\...\Run. Barata, pero hay PCs donde Windows no la
-        // dispara; por eso ya no dependemos solo de esto.
+        // Limpiamos la vía VIEJA (registro HKCU\...\Run) que usaba el v8: en algunas
+        // PCs no se dispara (la de numa entre ellas) y, si conviviera con el acceso
+        // directo, podría abrir el agente dos veces. La borramos y nos quedamos solo
+        // con el acceso directo, que es el método que sí funciona en esa compu.
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(
                 @"Software\Microsoft\Windows\CurrentVersion\Run", writable: true);
-            key?.SetValue("SalaAgente", $"\"{exe}\"");
+            key?.DeleteValue("SalaAgente", throwOnMissingValue: false);
         }
         catch { /* no es fatal */ }
 
-        // Vía 2 (la confiable): un acceso directo (.lnk) en la carpeta de Inicio.
+        // La vía CONFIABLE: un acceso directo (.lnk) en la carpeta de Inicio — el
+        // mismo mecanismo del sistema anterior, que Windows siempre respeta al entrar.
         // Windows lo lanza al iniciar sesión, siempre. WorkingDirectory = la carpeta
         // del .exe para que encuentre sus DLLs y el config. Se crea con WScript.Shell
         // (COM estándar de Windows), sin dependencias extra.
