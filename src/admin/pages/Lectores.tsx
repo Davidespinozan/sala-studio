@@ -14,8 +14,9 @@ interface Lector {
   ultimo_visto_at: string | null;
 }
 
-/** Un lector que no da señales hace más de 10 min está desenchufado o sin internet. */
-const VIVO_MS = 10 * 60 * 1000;
+/** El agente avisa cada ~2s. Sin señal hace más de 90s = desenchufado o sin internet.
+ *  (Antes 10 min: se veía "conectado" hasta 10 minutos después de morir el agente.) */
+const VIVO_MS = 90 * 1000;
 
 function estaVivo(ultimoVisto: string | null): boolean {
   if (!ultimoVisto) return false;

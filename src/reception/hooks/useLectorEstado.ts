@@ -3,8 +3,10 @@ import { supabase } from '@shared/lib/supabase';
 import { useVisibilityAwarePolling } from '@shared/hooks/useVisibilityAwarePolling';
 import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
 
-/** Igual que en Admin → Lectores: sin señal hace >10 min = desenchufado / agente caído. */
-const VIVO_MS = 10 * 60 * 1000;
+/** Igual que en Admin → Lectores: el agente avisa cada ~2s, así que sin señal hace
+ *  >90s ya es desenchufado / agente caído. (Antes eran 10 min → mostraba "conectado"
+ *  hasta 10 minutos después de morir; imposible saber rápido si de verdad está vivo.) */
+const VIVO_MS = 90 * 1000;
 
 export type EstadoLector = 'conectado' | 'sin_senal' | 'sin_lector';
 
