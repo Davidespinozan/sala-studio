@@ -27,23 +27,57 @@ static class Program
     }
 
     /// <summary>
-    /// El agente se registra para arrancar SOLO con Windows (al iniciar sesión el
+    /// El agente se configura para arrancar SOLO con Windows (al iniciar sesión el
     /// usuario del mostrador). Así, tras encender la compu, ya está corriendo sin que
-    /// nadie abra nada — como el sistema anterior. Idempotente: reescribe la ruta
-    /// actual del .exe cada vez (por si lo movieron de carpeta). No requiere admin
-    /// (va en HKEY_CURRENT_USER). Si falla, no es fatal: el agente corre igual.
+    /// nadie abra nada — como el sistema anterior. Se hace por DOS vías, porque en
+    /// algunas PCs Windows ignora la del registro:
+    ///   1) HKCU\...\Run (rápida, pero no siempre confiable).
+    ///   2) Un acceso directo en la carpeta de Inicio del usuario — el mismo
+    ///      mecanismo del sistema anterior, que Windows SIEMPRE respeta al iniciar
+    ///      sesión. Esta es la que de verdad garantiza el arranque.
+    /// Ambas son idempotentes: reapuntan al .exe actual cada vez (por si lo movieron).
+    /// No requieren admin (todo va en el perfil del usuario). Si algo falla, no es
+    /// fatal: el agente corre igual.
     /// </summary>
     static void RegistrarAutoArranque()
     {
+        var exe = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(exe)) return;
+        var dir = Path.GetDirectoryName(exe) ?? "";
+
+        // Vía 1: registro HKCU\...\Run. Barata, pero hay PCs donde Windows no la
+        // dispara; por eso ya no dependemos solo de esto.
         try
         {
-            var exe = Environment.ProcessPath;
-            if (string.IsNullOrEmpty(exe)) return;
             using var key = Registry.CurrentUser.OpenSubKey(
                 @"Software\Microsoft\Windows\CurrentVersion\Run", writable: true);
             key?.SetValue("SalaAgente", $"\"{exe}\"");
         }
-        catch { /* si no se puede registrar el auto-arranque, no es fatal */ }
+        catch { /* no es fatal */ }
+
+        // Vía 2 (la confiable): un acceso directo (.lnk) en la carpeta de Inicio.
+        // Windows lo lanza al iniciar sesión, siempre. WorkingDirectory = la carpeta
+        // del .exe para que encuentre sus DLLs y el config. Se crea con WScript.Shell
+        // (COM estándar de Windows), sin dependencias extra.
+        try
+        {
+            var inicio = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
+            if (!string.IsNullOrEmpty(inicio))
+            {
+                var lnk = Path.Combine(inicio, "SalaAgente.lnk");
+                var tipo = Type.GetTypeFromProgID("WScript.Shell");
+                if (tipo != null)
+                {
+                    dynamic shell = Activator.CreateInstance(tipo)!;
+                    var sc = shell.CreateShortcut(lnk);
+                    sc.TargetPath = exe;
+                    sc.WorkingDirectory = dir;
+                    sc.Description = "Agente de huella SALA";
+                    sc.Save();
+                }
+            }
+        }
+        catch { /* si no se pudo crear el acceso directo, no es fatal */ }
     }
 }
 
