@@ -19,6 +19,11 @@ public sealed class Agente : IDisposable
     private readonly CancellationTokenSource _cts = new();
     private DateTimeOffset _ultimoSync = DateTimeOffset.MinValue;
     private DateTimeOffset _ultimoPendiente = DateTimeOffset.MinValue;
+    // Marca de "el loop sigue avanzando". El watchdog la vigila: si se congela (la
+    // captura nativa del lector se cuelga porque la compu durmió y suspendió el USB),
+    // rompe el lector para forzar la reconexión — sin que nadie toque el agente.
+    private long _ultimoProgresoTicks = DateTime.UtcNow.Ticks;
+    private void MarcarProgreso() => Volatile.Write(ref _ultimoProgresoTicks, DateTime.UtcNow.Ticks);
 
     /// <summary>Último mensaje de estado (para la bandeja / logs).</summary>
     public event Action<string>? Estado;
@@ -31,12 +36,16 @@ public sealed class Agente : IDisposable
         _lector = new DigitalPersona4500(cfg.UmbralMatch);
     }
 
-    public void Iniciar() => _ = Task.Run(LoopAsync);
+    public void Iniciar()
+    {
+        _ = Task.Run(LoopAsync);
+        _ = Task.Run(() => WatchdogAsync(_cts.Token)); // vigila que el loop no se cuelgue
+    }
 
     private async Task LoopAsync()
     {
         var ct = _cts.Token;
-        Log.Escribir("── Agente arrancando (v9 · auto-inicio por acceso directo en Inicio + auto-reconexión del lector) ──");
+        Log.Escribir("── Agente arrancando (v10 · watchdog anti-cuelgue + auto-inicio + auto-reconexión) ──");
         try
         {
             _lector.Abrir();
@@ -63,6 +72,7 @@ public sealed class Agente : IDisposable
 
         while (!ct.IsCancellationRequested)
         {
+            MarcarProgreso(); // "sigo vivo" para el watchdog
             try
             {
                 await TalvezSync(ct);
@@ -113,6 +123,7 @@ public sealed class Agente : IDisposable
     {
         while (!ct.IsCancellationRequested)
         {
+            MarcarProgreso(); // reconectando cuenta como progreso (que el watchdog no re-dispare)
             await Esperar(2, ct);
             if (!_lector.HayLectorFisico()) continue; // aún desconectado: seguir esperando
             try
@@ -190,6 +201,31 @@ public sealed class Agente : IDisposable
                 try { await _api.CheckInAsync(e.UsuarioId, e.Momento, ct); return true; }
                 catch { return false; }
             });
+
+    /// <summary>
+    /// Perro guardián: vigila que el loop siga avanzando. Si se congela por más de
+    /// AtoradoSeg (típico: la compu durmió y la captura nativa del lector quedó colgada
+    /// esperando un dedo que nunca devuelve control), ROMPE el lector para que la
+    /// llamada bloqueada truene y el loop reconecte solo — sin que nadie pique Salir.
+    /// Corre en su propio hilo y cuenta tiempo REAL, así sobrevive al sueño de la compu.
+    /// </summary>
+    private async Task WatchdogAsync(CancellationToken ct)
+    {
+        const int RevisarCadaSeg = 15;
+        const int AtoradoSeg = 90; // el loop normal avanza cada ~3s; 90s = de verdad colgado
+        while (!ct.IsCancellationRequested)
+        {
+            try { await Esperar(RevisarCadaSeg, ct); } catch (OperationCanceledException) { break; }
+            var quietoSeg = (DateTime.UtcNow - new DateTime(Volatile.Read(ref _ultimoProgresoTicks), DateTimeKind.Utc)).TotalSeconds;
+            if (quietoSeg >= AtoradoSeg)
+            {
+                Log.Escribir($"Watchdog: {quietoSeg:F0}s sin avanzar (lector colgado / compu dormida). Rompo la captura para reconectar…");
+                Avisar("Reconectando el lector…");
+                try { _lector.Interrumpir(); } catch { /* handle ya inválido */ }
+                MarcarProgreso(); // no re-disparar de inmediato: el loop hace la reconexión
+            }
+        }
+    }
 
     private static Task Esperar(int seg, CancellationToken ct) => Task.Delay(TimeSpan.FromSeconds(seg), ct);
     private void Avisar(string s) => Estado?.Invoke(s);

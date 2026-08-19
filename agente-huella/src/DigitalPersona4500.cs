@@ -170,6 +170,18 @@ public sealed class DigitalPersona4500(int umbralMatch) : ILectorHuella, IMatche
     }
 
     /// <summary>
+    /// Rompe una captura COLGADA desde otro hilo: cierra el handle para que la llamada
+    /// nativa bloqueada (lector dormido por suspensión USB tras dormir la compu)
+    /// devuelva error, y así el loop pueda entrar a reconectar. Lo llama el watchdog.
+    /// Seguro aunque no haya captura en curso o el handle ya sea inválido.
+    /// </summary>
+    public void Interrumpir()
+    {
+        try { _reader?.Dispose(); } catch { /* handle ya inválido */ }
+        _reader = null;
+    }
+
+    /// <summary>
     /// Carga bytes de plantilla (formato ANSI 378) como Fmd comparable.
     /// Nota: este build de DPUruNet expone ANSI en el enum Fmd, no ISO — por eso
     /// todo el agente usa ANSI 378. Como el matching es local y consistente
