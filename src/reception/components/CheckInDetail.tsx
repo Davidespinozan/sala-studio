@@ -85,6 +85,28 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, membresi
     return () => { cancel = true; };
   }, [reserva]);
 
+  // Vencimiento del plan del socio — numa lo quiere a la vista en CADA check-in.
+  // Se trae aparte (como los invitados) para que sirva igual por huella, QR o manual.
+  const [vence, setVence] = useState<{ fin: string | null; status: string } | null>(null);
+  useEffect(() => {
+    const uid = miembro?.id;
+    if (!uid) { setVence(null); return; }
+    let cancel = false;
+    void (async () => {
+      const { data } = await supabase
+        .from('membresias')
+        .select('periodo_actual_fin, status')
+        .eq('usuario_id', uid)
+        .in('status', ['activa', 'trialing', 'past_due', 'congelada', 'expirada'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const row = data as { periodo_actual_fin: string | null; status: string } | null;
+      if (!cancel) setVence(row ? { fin: row.periodo_actual_fin, status: row.status } : null);
+    })();
+    return () => { cancel = true; };
+  }, [miembro?.id]);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setSecondsLeft((s) => Math.max(0, s - 1));
@@ -134,6 +156,19 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, membresi
   const membresiaMuerta =
     membresiaEstado && membresiaEstado !== 'ok' ? MEMBRESIA_AVISO[membresiaEstado] : null;
 
+  // Texto del vencimiento: fecha (en la zona del gym), "Vencido" en rojo si ya pasó
+  // o el plan está expirado, o "Sin vencimiento" para planes de solo créditos.
+  const vencimiento = (() => {
+    if (!vence) return null;
+    if (vence.fin == null) return { txt: 'Sin vencimiento', rojo: false };
+    const d = new Date(vence.fin);
+    const fecha = new Intl.DateTimeFormat('es-MX', {
+      day: '2-digit', month: 'short', year: 'numeric', timeZone: tz,
+    }).format(d);
+    const vencido = vence.status === 'expirada' || d.getTime() <= Date.now();
+    return { txt: vencido ? `Vencido ${fecha}` : fecha, rojo: vencido };
+  })();
+
   return (
     <div className="rec-detail rec-detail--success">
       <p className="rec-detail-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Check size={15} strokeWidth={2.5} />CHECK-IN OK</p>
@@ -179,6 +214,13 @@ export function CheckInDetail({ kind, miembro, recurso, reserva, stats, membresi
           value={membresiaMuerta ? `${tierLabel} · ${membresiaMuerta}` : tierLabel}
           color={membresiaMuerta ? 'var(--sala-error)' : tierColor}
         />
+        {vencimiento && (
+          <Cell
+            label="VENCE"
+            value={vencimiento.txt}
+            color={vencimiento.rojo ? 'var(--sala-error)' : 'var(--ek-ink)'}
+          />
+        )}
         <Cell label="CHECK-IN HOY" value={`${stats?.check_ins_hoy ?? 1}`} />
         <Cell label="CHECK-IN SEMANA" value={`${stats?.check_ins_semana ?? 1}`} />
       </div>
