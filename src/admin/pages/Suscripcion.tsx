@@ -62,6 +62,18 @@ export default function Suscripcion() {
   // Demo → modal mock. Real → checkout de Stripe (o "pago en camino" si Stripe
   // todavía no está conectado). El backend decide; acá solo ruteamos.
   async function elegirPlan(tier: TierSaas) {
+    // Payment Link propio de Stripe por tier: si el tenant tiene uno en
+    // config.saas.payment_links[tier] (trato negociado, caso numa/Starter), su botón
+    // manda a ESE link en vez del checkout normal. El estado de la sub en SALA lo
+    // maneja el dueño aparte (asignar plan); esto es solo para COBRAR por su link.
+    const links = (tenant.config as { saas?: { payment_links?: Partial<Record<TierSaas, string>> } } | null)
+      ?.saas?.payment_links;
+    const link = links?.[tier];
+    if (link) {
+      window.location.href = link;
+      return;
+    }
+
     if (esDemo) {
       setCheckout(tier);
       return;
