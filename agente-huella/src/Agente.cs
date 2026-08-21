@@ -45,7 +45,7 @@ public sealed class Agente : IDisposable
     private async Task LoopAsync()
     {
         var ct = _cts.Token;
-        Log.Escribir("── Agente arrancando (v10 · watchdog anti-cuelgue + auto-inicio + auto-reconexión) ──");
+        Log.Escribir("── Agente arrancando (v11 · watchdog con reinicio total + auto-inicio + auto-reconexión) ──");
         try
         {
             _lector.Abrir();
@@ -212,17 +212,39 @@ public sealed class Agente : IDisposable
     private async Task WatchdogAsync(CancellationToken ct)
     {
         const int RevisarCadaSeg = 15;
-        const int AtoradoSeg = 90; // el loop normal avanza cada ~3s; 90s = de verdad colgado
+        const int InterrumpirSeg = 90;   // 1er intento: romper la captura colgada en sitio
+        const int ReiniciarSeg = 180;    // si NI eso la destraba: reiniciar el proceso entero
         while (!ct.IsCancellationRequested)
         {
             try { await Esperar(RevisarCadaSeg, ct); } catch (OperationCanceledException) { break; }
-            var quietoSeg = (DateTime.UtcNow - new DateTime(Volatile.Read(ref _ultimoProgresoTicks), DateTimeKind.Utc)).TotalSeconds;
-            if (quietoSeg >= AtoradoSeg)
+            var quieto = (DateTime.UtcNow - new DateTime(Volatile.Read(ref _ultimoProgresoTicks), DateTimeKind.Utc)).TotalSeconds;
+
+            if (quieto >= ReiniciarSeg)
             {
-                Log.Escribir($"Watchdog: {quietoSeg:F0}s sin avanzar (lector colgado / compu dormida). Rompo la captura para reconectar…");
+                // Interrumpir no bastó: la llamada nativa del lector quedó colgada tan
+                // feo que ni cerrar el handle la despierta. Reiniciamos el proceso ENTERO
+                // — es lo mismo que hacerlo a mano (Salir + volver a abrir), automático.
+                Log.Escribir($"Watchdog: {quieto:F0}s atorado, interrumpir no bastó → reinicio el agente.");
+                var exe = Environment.ProcessPath;
+                try
+                {
+                    if (!string.IsNullOrEmpty(exe))
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true });
+                }
+                catch { /* si el nuevo no arranca, el auto-inicio lo levantará igual */ }
+                Environment.Exit(0);
+            }
+            else if (quieto >= InterrumpirSeg)
+            {
+                // Primer intento: romper la captura en sitio para que el loop reconecte.
+                // NO marcamos progreso aquí: si Interrumpir funciona, el loop entra a
+                // reconectar y marca solo; si NO funciona, el contador sigue subiendo
+                // hasta ReiniciarSeg y ahí reiniciamos de verdad. (El bug del v10 era
+                // marcar progreso aquí → escondía que la reconexión no había servido, y
+                // se quedaba en "Reconectando…" para siempre.)
+                Log.Escribir($"Watchdog: {quieto:F0}s sin avanzar → rompo la captura para reconectar…");
                 Avisar("Reconectando el lector…");
                 try { _lector.Interrumpir(); } catch { /* handle ya inválido */ }
-                MarcarProgreso(); // no re-disparar de inmediato: el loop hace la reconexión
             }
         }
     }

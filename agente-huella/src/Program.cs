@@ -16,7 +16,15 @@ static class Program
         // segundo se sale sin ruido. Así nunca hay dos peleándose por el lector, que
         // se abre en modo EXCLUSIVO.
         _instancia = new Mutex(initiallyOwned: true, @"Local\SalaAgenteInstanciaUnica", out bool esNueva);
-        if (!esNueva) return;
+        if (!esNueva)
+        {
+            // Puede ser un agente VIEJO/atorado reiniciándose solo (watchdog): esperamos
+            // hasta 10s a que suelte el candado. Si de verdad hay otro SANO corriendo, no
+            // lo soltará y salimos. Si el viejo murió sin soltarlo → el candado queda
+            // "abandonado" y nosotros lo adquirimos (es nuestro).
+            try { if (!_instancia.WaitOne(TimeSpan.FromSeconds(10))) return; }
+            catch (AbandonedMutexException) { /* el viejo murió: el candado es nuestro */ }
+        }
 
         ApplicationConfiguration.Initialize();
         RegistrarAutoArranque();
