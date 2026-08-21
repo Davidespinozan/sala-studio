@@ -141,8 +141,19 @@ export function AppSidebar({
 
   useEffect(() => {
     actualizarFlechas();
+    // ResizeObserver sobre la propia nav: se recalcula al cambiar su alto (achicar
+    // la ventana, cargar el logo, etc.), no solo con el evento window.resize. Y un
+    // recálculo diferido por si el layout/imágenes asientan tarde en el primer render.
+    const el = navRef.current;
+    const ro = typeof ResizeObserver !== 'undefined' && el ? new ResizeObserver(actualizarFlechas) : null;
+    ro?.observe(el!);
     window.addEventListener('resize', actualizarFlechas);
-    return () => window.removeEventListener('resize', actualizarFlechas);
+    const t = setTimeout(actualizarFlechas, 300);
+    return () => {
+      window.removeEventListener('resize', actualizarFlechas);
+      ro?.disconnect();
+      clearTimeout(t);
+    };
   }, [sections, collapsed, actualizarFlechas]);
 
   const desplazar = (dir: 1 | -1) => {
