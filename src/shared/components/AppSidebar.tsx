@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, ChevronDown, ChevronUp } from 'lucide-react';
+import { LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '@shared/hooks/useAuth';
 import { TenantLogo } from '@shared/components/TenantLogo';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
@@ -124,43 +124,6 @@ export function AppSidebar({
     }
   }, [location.pathname, collapsible, sections, homePath, collapseKey]);
 
-  // Flechas de scroll CLICABLES para la nav. La compu vieja de numa no hace scroll
-  // con el mouse, así que en pantallas donde el menú no cabe no llegaban a los ítems
-  // de abajo. Las flechas aparecen SOLO cuando hay contenido oculto en esa dirección
-  // y desplazan la barra ~una página por clic. En pantallas donde todo cabe, no salen.
-  const navRef = useRef<HTMLElement>(null);
-  const [flechas, setFlechas] = useState({ arriba: false, abajo: false });
-
-  const actualizarFlechas = useCallback(() => {
-    const el = navRef.current;
-    if (!el) return;
-    const arriba = el.scrollTop > 4;
-    const abajo = el.scrollTop + el.clientHeight < el.scrollHeight - 4;
-    setFlechas((prev) => (prev.arriba === arriba && prev.abajo === abajo ? prev : { arriba, abajo }));
-  }, []);
-
-  useEffect(() => {
-    actualizarFlechas();
-    // ResizeObserver sobre la propia nav: se recalcula al cambiar su alto (achicar
-    // la ventana, cargar el logo, etc.), no solo con el evento window.resize. Y un
-    // recálculo diferido por si el layout/imágenes asientan tarde en el primer render.
-    const el = navRef.current;
-    const ro = typeof ResizeObserver !== 'undefined' && el ? new ResizeObserver(actualizarFlechas) : null;
-    ro?.observe(el!);
-    window.addEventListener('resize', actualizarFlechas);
-    const t = setTimeout(actualizarFlechas, 300);
-    return () => {
-      window.removeEventListener('resize', actualizarFlechas);
-      ro?.disconnect();
-      clearTimeout(t);
-    };
-  }, [sections, collapsed, actualizarFlechas]);
-
-  const desplazar = (dir: 1 | -1) => {
-    const el = navRef.current;
-    if (el) el.scrollBy({ top: dir * Math.max(120, el.clientHeight * 0.7), behavior: 'smooth' });
-  };
-
   const nombreFormat =
     usuario?.nombre
       ?.toLowerCase()
@@ -218,9 +181,7 @@ export function AppSidebar({
         </span>
       </div>
 
-      <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        <FlechaScroll dir="arriba" visible={flechas.arriba} onClick={() => desplazar(-1)} />
-        <nav className="adm-sidebar-nav" ref={navRef} onScroll={actualizarFlechas} style={{ flex: 1, minHeight: 0 }}>
+      <nav className="adm-sidebar-nav">
         {sections.map((section, i) => {
           const key = section.label ?? `__sec${i}`;
           const isCollapsed = collapsible && !!section.label && collapsed.has(section.label);
@@ -276,9 +237,7 @@ export function AppSidebar({
               ))}
           </div>
         )}
-        </nav>
-        <FlechaScroll dir="abajo" visible={flechas.abajo} onClick={() => desplazar(1)} />
-      </div>
+      </nav>
 
       <div className="adm-sidebar-footer">
         {statusSlot}
@@ -366,50 +325,6 @@ function SectionToggle({
       >
         <ChevronDown size={14} strokeWidth={2.25} />
       </span>
-    </button>
-  );
-}
-
-/** Flecha clicable para desplazar la nav sin scroll de mouse (compu vieja de numa).
- *  Se muestra solo cuando hay contenido oculto en esa dirección. */
-function FlechaScroll({
-  dir,
-  visible,
-  onClick
-}: {
-  dir: 'arriba' | 'abajo';
-  visible: boolean;
-  onClick: () => void;
-}) {
-  if (!visible) return null;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={dir === 'arriba' ? 'Desplazar menú hacia arriba' : 'Desplazar menú hacia abajo'}
-      title={dir === 'arriba' ? 'Ver opciones de arriba' : 'Ver más opciones'}
-      style={{
-        position: 'absolute',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        ...(dir === 'arriba' ? { top: '2px' } : { bottom: '2px' }),
-        zIndex: 5,
-        width: '44px',
-        height: '22px',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: '999px',
-        border: '0.5px solid rgba(255, 255, 255, 0.28)',
-        background: 'rgba(20, 20, 20, 0.88)',
-        color: 'rgba(255, 255, 255, 0.92)',
-        cursor: 'pointer',
-        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.4)'
-      }}
-    >
-      {dir === 'arriba'
-        ? <ChevronUp size={16} strokeWidth={2.5} />
-        : <ChevronDown size={16} strokeWidth={2.5} />}
     </button>
   );
 }

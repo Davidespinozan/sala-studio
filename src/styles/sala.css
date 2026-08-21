@@ -1904,15 +1904,28 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     flex-direction: column;
     gap: 4px;
     padding: 0 12px;
-    /* Sigue scrolleando con rueda y dedo, pero SIN la barra gris gorda pegada
-       al borde del sidebar, que se veía fea. El scroll es natural; solo se
-       oculta el indicador. */
     overflow-y: auto;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* Edge/IE viejo */
+    /* Barrita BLANCA fina a la derecha: visible y arrastrable con el mouse. La compu
+       vieja de numa no hace scroll con rueda, pero SÍ puede arrastrar el thumb o
+       clic en el riel. Fina y translúcida (no la gris gorda del navegador). */
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: rgba(255, 255, 255, 0.4) transparent;
   }
   .adm-sidebar-nav::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Edge nuevo */
+    width: 9px;
+  }
+  .adm-sidebar-nav::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .adm-sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 999px;
+    border: 2.5px solid transparent; /* aire alrededor → el thumb se ve fino */
+    background-clip: content-box;
+  }
+  .adm-sidebar-nav:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.6);
+    background-clip: content-box;
   }
 
   /* Cuando una sección está expandida, sumamos un poco de aire abajo
