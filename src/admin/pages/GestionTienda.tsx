@@ -114,6 +114,37 @@ export default function GestionTienda() {
     guardarConfig(conEntrega(config, next), 'Formas de entrega actualizadas');
   }
 
+  // Dar de baja / reactivar un producto (activo = false/true). Es lo recomendado:
+  // conserva sus ventas históricas en la Caja. Un producto inactivo no aparece en
+  // el POS ni se cuenta en stock/valor, pero su historial queda intacto.
+  async function toggleActivo(p: Producto) {
+    const nuevo = !p.activo;
+    const { error } = await (supabase as any)
+      .from('productos').update({ activo: nuevo }).eq('id', p.id);
+    if (error) { toast.error('No se pudo actualizar: ' + error.message); return; }
+    toast.success(nuevo ? 'Producto reactivado' : 'Producto dado de baja');
+    await cargar();
+  }
+
+  // Borrar DE VERDAD un producto — solo si NUNCA tuvo movimientos (ventas/stock).
+  // Si los tuvo, borrarlo arrastraría el ledger (FK cascade + append-only) y se
+  // perdería el historial de la Caja → en ese caso hay que "Dar de baja", no borrar.
+  async function eliminarProducto(p: Producto) {
+    const { count } = await (supabase as any)
+      .from('producto_movimientos')
+      .select('id', { count: 'exact', head: true })
+      .eq('producto_id', p.id);
+    if ((count ?? 0) > 0) {
+      toast.error('Ya tiene movimientos/ventas. Usa "Dar de baja" para conservar el historial.');
+      return;
+    }
+    if (!confirm(`¿Eliminar "${p.nombre}" para siempre? No tiene ventas, así que se puede borrar.`)) return;
+    const { error } = await (supabase as any).from('productos').delete().eq('id', p.id);
+    if (error) { toast.error('No se pudo eliminar: ' + error.message); return; }
+    toast.success('Producto eliminado');
+    await cargar();
+  }
+
   async function cancelarTienda() {
     if (!confirm('¿Dar de baja la tienda? Dejas de pagar el complemento y desaparece del menú. Tus productos y ventas quedan guardados por si la reactivas.')) return;
     setCancelando(true);
@@ -208,6 +239,10 @@ export default function GestionTienda() {
                       <button className="ek-cta ek-cta--secondary" onClick={() => setVerMovimientos(p)} style={btnMini}>Movimientos</button>
                       <button className="ek-cta ek-cta--secondary" onClick={() => setCargandoStock(p)} style={btnMini}>Stock</button>
                       <button className="ek-cta ek-cta--secondary" onClick={() => setEditando(p)} style={btnMini}>Editar</button>
+                      <button className="ek-cta ek-cta--secondary" onClick={() => toggleActivo(p)} style={btnMini}>
+                        {p.activo ? 'Dar de baja' : 'Reactivar'}
+                      </button>
+                      <button className="ek-cta ek-cta--secondary" onClick={() => eliminarProducto(p)} style={{ ...btnMini, color: 'var(--ek-danger)' }}>Eliminar</button>
                     </td>
                   </tr>
                 );
