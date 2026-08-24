@@ -7,6 +7,7 @@ import Toggle from '../components/Toggle';
 type ReglasDraft = {
   anticipacion_min_minutos: number;
   duracion_default_min: number;
+  ventana_check_in_min: number;
   permitir_continuas: boolean;
   cancelacion_min_horas: number;
   no_show_bloqueo_dias: number;
@@ -29,6 +30,7 @@ type ReglasDraft = {
 const DEFAULT: ReglasDraft = {
   anticipacion_min_minutos: 0, // sin umbral: se reserva hasta que arranca la clase
   duracion_default_min: 60,
+  ventana_check_in_min: 15, // debe coincidir con ventana_check_in_min() del backend
   permitir_continuas: false,
   cancelacion_min_horas: 4, // debe coincidir con el default del RPC cancelar_reserva_atomic
   no_show_bloqueo_dias: 0, // registrar la falta, no castigar. Castigar se elige.
@@ -57,6 +59,7 @@ function readDraft(config: Record<string, unknown> | null): ReglasDraft {
         : DEFAULT.anticipacion_min_minutos
     ),
     duracion_default_min: num(reserva.duracion_default_min, DEFAULT.duracion_default_min),
+    ventana_check_in_min: num(reserva.ventana_check_in_min, DEFAULT.ventana_check_in_min),
     permitir_continuas: Boolean(reserva.permitir_continuas ?? DEFAULT.permitir_continuas),
     cancelacion_min_horas: num(reserva.cancelacion_min_horas, DEFAULT.cancelacion_min_horas),
     no_show_bloqueo_dias: num(penalizaciones.no_show_bloqueo_dias, DEFAULT.no_show_bloqueo_dias),
@@ -142,6 +145,10 @@ export default function AjustesReglas() {
       toast.error('Duración debe ser mayor a 0.');
       return;
     }
+    if (!Number.isFinite(draft.ventana_check_in_min) || draft.ventana_check_in_min < 0) {
+      toast.error('La ventana de check-in debe ser un número positivo.');
+      return;
+    }
     if (!Number.isFinite(draft.cancelacion_min_horas) || draft.cancelacion_min_horas < 0) {
       toast.error('La ventana de cancelación debe ser un número positivo.');
       return;
@@ -169,6 +176,7 @@ export default function AjustesReglas() {
         ...reserva,
         anticipacion_min_minutos: draft.anticipacion_min_minutos,
         duracion_default_min: draft.duracion_default_min,
+        ventana_check_in_min: draft.ventana_check_in_min,
         permitir_continuas: draft.permitir_continuas,
         cancelacion_min_horas: draft.cancelacion_min_horas
       },
@@ -251,6 +259,21 @@ export default function AjustesReglas() {
             value={draft.duracion_default_min}
             onChange={(e) =>
               setDraft({ ...draft, duracion_default_min: parseInt(e.target.value) || 0 })
+            }
+            className="ek-input"
+          />
+        </FormField>
+
+        <FormField
+          label="Ventana de check-in (minutos antes)"
+          helper="Desde cuántos minutos antes de la clase se puede hacer check-in (huella o QR). Ejemplo: 30. Si un miembro llega antes de eso, le sale 'demasiado temprano'."
+        >
+          <input
+            type="number"
+            min={0}
+            value={draft.ventana_check_in_min}
+            onChange={(e) =>
+              setDraft({ ...draft, ventana_check_in_min: parseInt(e.target.value) || 0 })
             }
             className="ek-input"
           />
