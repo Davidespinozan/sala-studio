@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, CreditCard, ArrowLeftRight, Gift, Globe, Undo2, Receipt } from 'lucide-react';
+import { Banknote, CreditCard, ArrowLeftRight, Gift, Globe, Undo2, Receipt, Pencil } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
@@ -176,6 +176,7 @@ export default function Caja() {
   const [pagos, setPagos] = useState<PagoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [devolviendo, setDevolviendo] = useState<PagoRow | null>(null);
+  const [corrigiendoMetodo, setCorrigiendoMetodo] = useState<PagoRow | null>(null);
   const [reciboId, setReciboId] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
   const [showCorte, setShowCorte] = useState(false);
@@ -479,9 +480,14 @@ export default function Caja() {
             const yaDevuelto = devueltoPorPago.get(p.id) ?? 0;
             const puedeDevolver =
               !esReembolso && !esCortesia && p.monto_centavos - yaDevuelto > 0;
+            // Corregir método: solo pagos de dinero de mostrador (efectivo/tarjeta/
+            // transferencia). No aplica a reembolsos, cortesías ni cobros online (stripe).
+            const puedeCorregirMetodo =
+              !esReembolso && (p.metodo === 'efectivo' || p.metodo === 'tarjeta' || p.metodo === 'transferencia');
             // En móvil estas acciones se muestran en un kebab (mismo array).
             const acciones: DropdownItem[] = [];
             if (!esReembolso && !esCortesia) acciones.push({ label: 'Recibo', icon: <Receipt size={16} strokeWidth={2.25} />, onClick: () => setReciboId(p.id) });
+            if (puedeCorregirMetodo) acciones.push({ label: 'Corregir método', icon: <Pencil size={16} strokeWidth={2.25} />, onClick: () => setCorrigiendoMetodo(p) });
             if (puedeDevolver) acciones.push({ label: 'Devolver', icon: <Undo2 size={16} strokeWidth={2.25} />, onClick: () => setDevolviendo(p), danger: true });
             return (
               <div
@@ -547,6 +553,17 @@ export default function Caja() {
                       <Receipt size={14} /> Recibo
                     </button>
                   )}
+                  {puedeCorregirMetodo && (
+                    <button
+                      type="button"
+                      onClick={() => setCorrigiendoMetodo(p)}
+                      className="ek-cta ek-cta--secondary"
+                      title="Corregir el método sin mover el dinero"
+                      style={{ minHeight: '36px', padding: '0 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <Pencil size={14} /> Método
+                    </button>
+                  )}
                   {puedeDevolver && (
                     <button
                       type="button"
@@ -593,6 +610,19 @@ export default function Caja() {
           onClose={() => setDevolviendo(null)}
           onHecho={(msg) => {
             setDevolviendo(null);
+            toast.success(msg);
+            setReload((n) => n + 1);
+          }}
+          onError={(msg) => toast.error(msg)}
+        />
+      )}
+
+      {corrigiendoMetodo && (
+        <CorregirMetodoModal
+          pago={corrigiendoMetodo}
+          onClose={() => setCorrigiendoMetodo(null)}
+          onHecho={(msg) => {
+            setCorrigiendoMetodo(null);
             toast.success(msg);
             setReload((n) => n + 1);
           }}
@@ -740,6 +770,101 @@ export default function Caja() {
 // ============================================================================
 // Devolver dinero
 // ============================================================================
+
+/**
+ * Corregir el MÉTODO de un pago (efectivo/terminal/transferencia) sin mover el dinero.
+ * Para cuando recepción anotó mal cómo entró un cobro. Cambia solo la clasificación y
+ * el corte lo refleja; el monto y todo lo demás quedan intactos (RPC corregir_metodo_pago).
+ */
+function CorregirMetodoModal({
+  pago,
+  onClose,
+  onHecho,
+  onError
+}: {
+  pago: PagoRow;
+  onClose: () => void;
+  onHecho: (msg: string) => void;
+  onError: (msg: string) => void;
+}) {
+  const OPCIONES: { value: 'efectivo' | 'tarjeta' | 'transferencia'; label: string }[] = [
+    { value: 'efectivo', label: 'Efectivo' },
+    { value: 'tarjeta', label: 'Terminal (tarjeta)' },
+    { value: 'transferencia', label: 'Transferencia' }
+  ];
+  const [metodo, setMetodo] = useState<'efectivo' | 'tarjeta' | 'transferencia'>(
+    pago.metodo as 'efectivo' | 'tarjeta' | 'transferencia'
+  );
+  const [motivo, setMotivo] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const cambiado = metodo !== pago.metodo;
+
+  async function guardar() {
+    setEnviando(true);
+    const { error } = await supabase.rpc('corregir_metodo_pago' as never, {
+      p_pago_id: pago.id,
+      p_metodo: metodo,
+      p_motivo: motivo.trim() || null
+    } as never);
+    if (error) {
+      setEnviando(false);
+      onError(translateActionError(error.message));
+      return;
+    }
+    onHecho('Método corregido.');
+  }
+
+  return (
+    <div className="ek-modal-backdrop" onClick={onClose}>
+      <div className="ek-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+        <div className="ek-modal-handle" />
+        <h3 className="ek-h3" style={{ marginBottom: '4px' }}>Corregir método</h3>
+        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: '0 0 6px', lineHeight: 1.5 }}>
+          {pago.socio?.nombre ?? 'El socio'} · {CONCEPTO_LABEL[pago.concepto] ?? pago.concepto}
+          {' · '}{money(pago.monto_centavos, pago.moneda)}
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '0 0 14px', lineHeight: 1.45 }}>
+          Cambia solo <strong>cómo entró el dinero</strong> (el monto no se toca). Corrige el corte sin devolver ni recobrar.
+        </p>
+
+        <label className="ek-label" htmlFor="corregir-metodo-select">Método real</label>
+        <select
+          id="corregir-metodo-select"
+          value={metodo}
+          onChange={(e) => setMetodo(e.target.value as 'efectivo' | 'tarjeta' | 'transferencia')}
+          className="ek-input"
+          style={{ marginBottom: '12px' }}
+        >
+          {OPCIONES.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}{o.value === pago.metodo ? ' (actual)' : ''}
+            </option>
+          ))}
+        </select>
+
+        <label className="ek-label" htmlFor="corregir-metodo-motivo">Motivo (opcional)</label>
+        <input
+          id="corregir-metodo-motivo"
+          type="text"
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          placeholder="Ej. fue con terminal"
+          className="ek-input"
+          style={{ marginBottom: '16px' }}
+        />
+
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button type="button" onClick={onClose} className="ek-cta ek-cta--secondary" style={{ flex: 1 }} disabled={enviando}>
+            Cancelar
+          </button>
+          <button type="button" onClick={guardar} className="ek-cta" style={{ flex: 1 }} disabled={enviando || !cambiado}>
+            {enviando ? 'Guardando…' : 'Guardar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function DevolverModal({
   pago,
