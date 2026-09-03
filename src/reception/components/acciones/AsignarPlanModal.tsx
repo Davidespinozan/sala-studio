@@ -29,13 +29,16 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
   const [pendiente, setPendiente] = useState(false);
   // La inscripción se cobra UNA vez por socio: si ya la pagó, no se vuelve a sumar.
   const [yaPagoInscripcion, setYaPagoInscripcion] = useState(false);
+  // Y tampoco se cobra si el socio YA tuvo un plan antes (aunque haya entrado en un
+  // periodo con inscripción gratis, con inscripcion_pagada_at en NULL).
+  const [esSocioExistente, setEsSocioExistente] = useState(false);
   const { ejecutar } = useAccionRecepcion({ rpcName: 'recepcion_asignar_plan' });
 
   // Todos los tiers activos del tenant (no se excluye ninguno: es el primer plan).
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [{ data: tiersData }, { data: socioData, error: socioError }] = await Promise.all([
+      const [{ data: tiersData }, { data: socioData, error: socioError }, { count: memCount }] = await Promise.all([
         supabase
           .from('tiers')
           .select('id, nombre, precio_centavos, inscripcion_centavos, moneda')
@@ -45,10 +48,17 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
           .from('usuarios')
           .select('inscripcion_pagada_at')
           .eq('id', socioId)
-          .maybeSingle()
+          .maybeSingle(),
+        // ¿Ya tuvo alguna membresía (cualquier estado)? Si sí, es socio existente →
+        // no paga inscripción, aunque su plan viejo haya sido en periodo gratis.
+        supabase
+          .from('membresias')
+          .select('id', { count: 'exact', head: true })
+          .eq('usuario_id', socioId)
       ]);
       if (cancelled) return;
       setTiers((tiersData ?? []) as TierOption[]);
+      setEsSocioExistente((memCount ?? 0) > 0);
       // Sin este log, el fallo era MUDO: la columna estaba fuera del GRANT de
       // authenticated, la query moría por permisos, socioData quedaba null y
       // esto daba `false` — o sea, "no pagó la inscripción" para todos. La
@@ -62,7 +72,8 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
   }, [socioId]);
 
   const tier = tiers.find((t) => t.id === tierId);
-  const inscripcionACobrar = !tier || yaPagoInscripcion ? 0 : (tier.inscripcion_centavos ?? 0);
+  const inscripcionACobrar =
+    !tier || yaPagoInscripcion || esSocioExistente ? 0 : (tier.inscripcion_centavos ?? 0);
 
   return (
     <AccionModal
@@ -143,9 +154,9 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
         />
       )}
 
-      {tier && yaPagoInscripcion && (tier.inscripcion_centavos ?? 0) > 0 && (
+      {tier && (yaPagoInscripcion || esSocioExistente) && (tier.inscripcion_centavos ?? 0) > 0 && (
         <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginBottom: '12px' }}>
-          Este socio ya pagó inscripción antes, así que no se le vuelve a cobrar.
+          Este socio ya tuvo un plan antes, así que no se le cobra inscripción.
         </p>
       )}
 
