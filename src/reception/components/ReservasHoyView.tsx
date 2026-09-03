@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect, type ReactNode } from 'react';
-import { Check, CalendarClock, CalendarDays, Clock, Hourglass, TrendingUp, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, CalendarClock, CalendarDays, Clock, Hourglass, TrendingUp, Layers, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useTenant } from '@shared/hooks/useTenant';
 import { getTenantTimezone, hoyEnTimezone, sumarDias, diasEntre, formatHoraEnTz } from '@shared/lib/timezone';
 import { useReservasHoy, checkInManual, cobrarMultaReserva, type ReservaConJoin } from '../hooks/useReservasHoy';
+import { useMultasPendientes, type MultaPendienteHoy } from '../hooks/useMultasPendientes';
 import { formatearMoneda } from '@shared/lib/dinero';
 import { playCheckInSuccess, playCheckInError } from '../lib/checkInFeedback';
 import { EmptyState } from '@shared/components/EmptyState';
@@ -91,6 +92,7 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
   // zona (p. ej. España), "Hoy" sigue siendo el día del gym, no el del navegador.
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(() => leerFechaGuardada(tz));
   const { reservas, isLoading, refetch } = useReservasHoy(fechaSeleccionada);
+  const { multas: multasPendientes, totalCentavos: multasTotal, refetch: refetchMultas } = useMultasPendientes();
   const [selected, setSelected] = useState<ReservaConJoin | null>(null);
   const [accionReserva, setAccionReserva] = useState<AccionReserva | null>(null);
   const [restoTab, setRestoTab] = useState<'pendientes' | 'asistieron' | 'no_show' | 'canceladas'>('pendientes');
@@ -184,6 +186,13 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
     }
   }
 
+  // Cobrar una multa pendiente desde el panel de Hoy. Al terminar refresca el panel
+  // (y la agenda, por si la multa era de una reserva del día visto).
+  async function cobrarMultaHoy(reservaId: string, metodo: 'efectivo' | 'tarjeta' | 'transferencia') {
+    await cobrarMultaReserva(reservaId, metodo);
+    await Promise.all([refetchMultas(), refetch()]);
+  }
+
   if (isLoading) {
     return (
       <p style={{ color: 'var(--ek-ink-muted)', textAlign: 'center', marginTop: '2rem' }}>
@@ -243,6 +252,30 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
         <KpiTile label="Asistencia" value={`${kpis.asistencia}%`} hint={`${kpis.completadas} check-ins`} icon={<TrendingUp size={15} strokeWidth={2} />} />
         <KpiTile label="Clases" value={kpis.clases} hint="activas" icon={<Layers size={15} strokeWidth={2} />} />
       </div>
+
+      {/* Multas pendientes — visibles en Hoy (antes solo en Caja y la ficha del socio).
+          No dependen del día visto: son todas las que faltan por cobrar. */}
+      {esHoy && multasPendientes.length > 0 && (
+        <section style={{ marginBottom: '26px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+            <p className="ek-eyebrow" style={{ margin: 0, color: 'var(--ek-danger)' }}>MULTAS PENDIENTES</p>
+            <span
+              style={{
+                fontSize: '11px', fontWeight: 800, color: 'var(--ek-danger)',
+                background: 'var(--ek-danger-soft)',
+                borderRadius: '999px', padding: '2px 9px', lineHeight: 1.4
+              }}
+            >
+              {multasPendientes.length} · {formatearMoneda(multasTotal)}
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {multasPendientes.map((m) => (
+              <MultaCard key={m.id} multa={m} tz={tz} onCobrar={cobrarMultaHoy} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Llegando ahora — bloque principal */}
       <section style={{ marginBottom: '26px' }}>
@@ -555,6 +588,78 @@ function ReservaCard({ reserva, tz, mostrarSala, onSelect }: { reserva: ReservaC
         {status.label}
       </span>
     </button>
+  );
+}
+
+/** Fecha corta ('5 sep') de la clase que originó la multa, en la zona del gym. */
+function formatFechaCorta(iso: string, tz: string): string {
+  return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', timeZone: tz });
+}
+
+/** Fila de multa pendiente en Hoy: socio, clase que la originó, monto y cobro inline. */
+function MultaCard({ multa, tz, onCobrar }: {
+  multa: MultaPendienteHoy;
+  tz: string;
+  onCobrar: (reservaId: string, metodo: 'efectivo' | 'tarjeta' | 'transferencia') => Promise<void>;
+}) {
+  const [metodo, setMetodo] = useState<'efectivo' | 'tarjeta' | 'transferencia'>('efectivo');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const nombre = capitalizarNombre(multa.socio_nombre) || multa.socio_email || '—';
+  const cuando = `${formatFechaCorta(multa.slot_inicio, tz)} · ${formatHoraEnTz(new Date(multa.slot_inicio), tz)}`;
+
+  return (
+    <div
+      style={{
+        display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
+        padding: '12px 16px', borderRadius: '14px',
+        background: 'var(--sala-surface)',
+        border: '1px solid color-mix(in srgb, var(--ek-danger) 28%, var(--sala-border))'
+      }}
+    >
+      <span style={{ display: 'inline-flex', color: 'var(--ek-danger)', flexShrink: 0 }}>
+        <AlertTriangle size={18} strokeWidth={2} />
+      </span>
+      <div style={{ flex: 1, minWidth: '140px' }}>
+        <p style={{ fontSize: '15px', fontWeight: 700, letterSpacing: '-0.01em', margin: 0, marginBottom: '2px', color: 'var(--sala-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {nombre}
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: 0 }}>
+          {multa.recurso_nombre ? `${multa.recurso_nombre} · ` : ''}{cuando} · <strong style={{ color: 'var(--ek-danger)' }}>{formatearMoneda(multa.multa_centavos)}</strong>
+        </p>
+        {error && <p style={{ fontSize: '11.5px', color: 'var(--ek-danger)', margin: '4px 0 0' }}>{error}</p>}
+      </div>
+      <select
+        value={metodo}
+        onChange={(e) => setMetodo(e.target.value as 'efectivo' | 'tarjeta' | 'transferencia')}
+        className="ek-input"
+        style={{ fontSize: '13px', width: 'auto', flexShrink: 0 }}
+        disabled={busy}
+        aria-label="Método de pago de la multa"
+      >
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+        <option value="transferencia">Transferencia</option>
+      </select>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          setError(null);
+          try {
+            await onCobrar(multa.id, metodo);
+          } catch (e) {
+            setError(e instanceof Error ? e.message : 'No se pudo cobrar la multa');
+            setBusy(false);
+          }
+        }}
+        className="ek-cta"
+        style={{ fontSize: '13px', flexShrink: 0 }}
+      >
+        {busy ? 'Cobrando…' : `Cobrar ${formatearMoneda(multa.multa_centavos)}`}
+      </button>
+    </div>
   );
 }
 
