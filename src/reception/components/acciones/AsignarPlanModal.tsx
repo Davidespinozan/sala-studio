@@ -32,6 +32,8 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
   // Y tampoco se cobra si el socio YA tuvo un plan antes (aunque haya entrado en un
   // periodo con inscripción gratis, con inscripcion_pagada_at en NULL).
   const [esSocioExistente, setEsSocioExistente] = useState(false);
+  // Cortesía puntual: perdonarle la inscripción a un socio nuevo (amigo, familia, promo).
+  const [exentar, setExentar] = useState(false);
   const { ejecutar } = useAccionRecepcion({ rpcName: 'recepcion_asignar_plan' });
 
   // Todos los tiers activos del tenant (no se excluye ninguno: es el primer plan).
@@ -73,7 +75,7 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
 
   const tier = tiers.find((t) => t.id === tierId);
   const inscripcionACobrar =
-    !tier || yaPagoInscripcion || esSocioExistente ? 0 : (tier.inscripcion_centavos ?? 0);
+    !tier || yaPagoInscripcion || esSocioExistente || exentar ? 0 : (tier.inscripcion_centavos ?? 0);
 
   return (
     <AccionModal
@@ -84,6 +86,19 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
       confirmLabel="Asignar plan"
       canConfirm={motivo.trim().length > 0 && tierId.length > 0}
       onConfirm={async () => {
+        // Cast para RPCs que aún no están en los tipos generados.
+        const rpc = supabase.rpc.bind(supabase) as unknown as (
+          name: string,
+          args: Record<string, unknown>
+        ) => Promise<{ data: unknown; error: { message: string } | null }>;
+
+        // Cortesía: si se marcó "no cobrar inscripción", se exenta ANTES de asignar
+        // para que el motor no la registre (lee usuarios.inscripcion_pagada_at).
+        if (exentar) {
+          const { error } = await rpc('exentar_inscripcion_socio', { p_usuario_id: socioId });
+          if (error) throw new Error('No se pudo exentar la inscripción: ' + error.message);
+        }
+
         await ejecutar({
           p_usuario_id: socioId,
           p_tier_id: tierId,
@@ -95,11 +110,6 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
         if (pendiente && tier) {
           const monto = (tier.precio_centavos ?? 0) + inscripcionACobrar;
           if (monto > 0) {
-            // registrar_cargo_pendiente aún no está en los tipos generados → cast.
-            const rpc = supabase.rpc.bind(supabase) as unknown as (
-              name: string,
-              args: Record<string, unknown>
-            ) => Promise<{ data: unknown; error: { message: string } | null }>;
             const { error } = await rpc('registrar_cargo_pendiente', {
               p_usuario_id: socioId,
               p_monto_centavos: monto,
@@ -139,6 +149,20 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
           {pendiente && (
             <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px', lineHeight: 1.45 }}>
               El plan se activa ya. El cobro queda <strong>“Por cobrar”</strong> y se cobra en la Caja cuando llegue — no cuenta como ingreso ni como cortesía hasta entonces.
+            </p>
+          )}
+        </div>
+      )}
+
+      {tier && !yaPagoInscripcion && !esSocioExistente && (tier.inscripcion_centavos ?? 0) > 0 && (
+        <div className="ek-form-field" style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+            <input type="checkbox" checked={exentar} onChange={(e) => setExentar(e.target.checked)} />
+            No cobrar inscripción (cortesía)
+          </label>
+          {exentar && (
+            <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px', lineHeight: 1.45 }}>
+              Este socio queda exento de la inscripción para siempre (no se le cobrará ni ahora ni al recomprar).
             </p>
           )}
         </div>
