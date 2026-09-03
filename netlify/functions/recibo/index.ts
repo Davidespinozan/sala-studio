@@ -50,12 +50,14 @@ export const handler: Handler = async (event) => {
 
     const { data: pago } = await admin
       .from('pagos')
-      .select('id, created_at, concepto, monto_centavos, moneda, metodo, tenant_id, tier:tiers(nombre), socio:usuarios!pagos_usuario_id_fkey(nombre)')
+      .select('id, created_at, concepto, monto_centavos, moneda, metodo, tenant_id, tier:tiers(nombre), socio:usuarios!pagos_usuario_id_fkey(nombre), membresia:membresias(periodo_actual_fin)')
       .eq('id', id)
       .maybeSingle();
     if (!pago) return notFound('Recibo no encontrado');
 
     const p = pago as any;
+    // El vencimiento solo tiene sentido en un cobro de plan/paquete (la membresía).
+    const esPlanOPaquete = p.concepto === 'plan' || p.concepto === 'paquete';
 
     const { data: tenant } = await admin
       .from('tenants')
@@ -85,7 +87,8 @@ export const handler: Handler = async (event) => {
       tierNombre: (p.tier?.nombre as string | null) ?? null,
       metodo: p.metodo as string,
       montoCentavos: p.monto_centavos as number,
-      moneda: (p.moneda as string) || 'MXN'
+      moneda: (p.moneda as string) || 'MXN',
+      vigenciaFinISO: esPlanOPaquete ? ((p.membresia?.periodo_actual_fin as string | null) ?? null) : null
     };
 
     return ok({ recibo });

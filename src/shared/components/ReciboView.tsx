@@ -4,7 +4,8 @@ import {
   conceptoLabel,
   metodoLabel,
   montoFmt,
-  fechaReciboFmt
+  fechaReciboFmt,
+  venceReciboFmt
 } from '@shared/lib/recibo';
 
 /**
@@ -63,6 +64,9 @@ export function ReciboView({ data }: { data: ReciboData }) {
         <Fila k="Socio" v={data.socio} />
         <Fila k="Concepto" v={conceptoLabel(data.concepto, data.tierNombre)} />
         <Fila k="Método de pago" v={metodoLabel(data.metodo)} />
+        {!esReembolso && data.vigenciaFinISO && (
+          <Fila k="Tu plan vence" v={venceReciboFmt(data.vigenciaFinISO)} />
+        )}
       </div>
 
       {/* Total */}

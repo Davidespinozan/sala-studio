@@ -24,6 +24,8 @@ export interface ReciboData {
   metodo: string;
   montoCentavos: number;
   moneda: string;
+  /** Vencimiento del plan (periodo_actual_fin). Solo en cobros de plan/paquete; null si no aplica. */
+  vigenciaFinISO: string | null;
 }
 
 const CONCEPTO_LABEL: Record<string, string> = {
@@ -77,6 +79,13 @@ export function montoFmt(centavos: number, moneda = 'MXN'): string {
 export function fechaReciboFmt(iso: string): string {
   return new Date(iso).toLocaleString('es-MX', {
     day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+}
+
+/** Fecha de vencimiento del plan en el recibo (sin hora). */
+export function venceReciboFmt(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-MX', {
+    day: 'numeric', month: 'long', year: 'numeric'
   });
 }
 
