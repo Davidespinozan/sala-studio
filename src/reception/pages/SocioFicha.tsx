@@ -9,6 +9,7 @@ import { CambiarPlanModal } from '../components/acciones/CambiarPlanModal';
 import { RecargarCreditosModal } from '../components/acciones/RecargarCreditosModal';
 import { PausarReactivarMembresiaModal } from '../components/acciones/PausarReactivarMembresiaModal';
 import { AsignarPlanModal } from '../components/acciones/AsignarPlanModal';
+import { CobrarInscripcionModal } from '../components/acciones/CobrarInscripcionModal';
 import { CancelarMembresiaModal } from '../components/acciones/CancelarMembresiaModal';
 import { BloquearSocioModal } from '../components/acciones/BloquearSocioModal';
 import { DesbloquearSocioModal } from '../components/acciones/DesbloquearSocioModal';
@@ -40,6 +41,7 @@ type ModalAccion =
   | 'pausar'
   | 'reactivar'
   | 'asignar_plan'
+  | 'cobrar_inscripcion'
   | 'cancelar_membresia'
   | 'bloquear'
   | 'desbloquear'
@@ -419,6 +421,9 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           {estado === 'sin_plan' && (
             <AccionBtn onClick={() => setModalAbierto('asignar_plan')}>Asignar plan</AccionBtn>
           )}
+          {membresia && estado !== 'sin_plan' && (
+            <AccionBtn onClick={() => setModalAbierto('cobrar_inscripcion')}>Cobrar inscripción</AccionBtn>
+          )}
         </div>
       </div>
 
@@ -615,6 +620,15 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
       )}
       {modalAbierto === 'recargar' && (
         <RecargarCreditosModal
+          isOpen
+          socioId={socio.id}
+          socioNombre={socioNombre}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
+      {modalAbierto === 'cobrar_inscripcion' && (
+        <CobrarInscripcionModal
           isOpen
           socioId={socio.id}
           socioNombre={socioNombre}
