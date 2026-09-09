@@ -142,7 +142,7 @@ export default function Cobros() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 220 }}>
               <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--sala-text-primary)' }}>
-                Los socios pagan en la app
+                {autoservicio ? 'Los socios pagan en la app' : 'Los socios pagan en recepción'}
               </div>
               <div style={{ fontSize: '12.5px', color: 'var(--sala-text-secondary)', marginTop: '3px', lineHeight: 1.5 }}>
                 {autoservicio
