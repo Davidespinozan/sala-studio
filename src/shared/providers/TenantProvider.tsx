@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase } from '@shared/lib/supabase';
+import { supabase, setActiveTenantId } from '@shared/lib/supabase';
 import type { Database } from '@shared/types/database';
 import { LoadingScreen } from '@shared/components/LoadingScreen';
 import { getFont, getScaleValue, buildFontsHref } from '@shared/lib/fonts';
@@ -493,6 +493,9 @@ export function TenantProvider({ children }: TenantProviderProps) {
    */
   const aplicarTenant = useCallback((data: Tenant) => {
     setTenant(data);
+    // Multi-gym: el gym del subdominio viaja como header x-tenant-id en cada
+    // petición (hoy la base aún no lo usa; deja la tubería lista sin cambiar nada).
+    setActiveTenantId(data.id);
     // Solo las PÁGINAS de marketing del apex (landing de producto + onboarding)
     // deben conservar la marca SALA fija; ahí el tenant es solo un fallback de
     // contexto y aplicar su branding filtraría sus colores/fuente/título/favicon/
