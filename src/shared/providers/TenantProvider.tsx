@@ -524,7 +524,7 @@ export function TenantProvider({ children }: TenantProviderProps) {
     // añádela AQUÍ.
     const { data, error: queryError } = await supabase
       .from('tenants')
-      .select('id, slug, nombre, vertical, branding, config, dominio_principal, dominio_app, status, created_at, updated_at')
+      .select('id, slug, nombre, vertical, branding, config, dominio_principal, dominio_app, status, stripe_charges_enabled, created_at, updated_at')
       .eq('slug', slug)
       .eq('status', 'activo')
       .maybeSingle();
