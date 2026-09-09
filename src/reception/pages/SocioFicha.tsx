@@ -10,6 +10,7 @@ import { RecargarCreditosModal } from '../components/acciones/RecargarCreditosMo
 import { PausarReactivarMembresiaModal } from '../components/acciones/PausarReactivarMembresiaModal';
 import { AsignarPlanModal } from '../components/acciones/AsignarPlanModal';
 import { CobrarInscripcionModal } from '../components/acciones/CobrarInscripcionModal';
+import { SaludSocioForm, tenantPideSalud } from '@shared/components/SaludSocioForm';
 import { CancelarMembresiaModal } from '../components/acciones/CancelarMembresiaModal';
 import { BloquearSocioModal } from '../components/acciones/BloquearSocioModal';
 import { DesbloquearSocioModal } from '../components/acciones/DesbloquearSocioModal';
@@ -210,7 +211,8 @@ const HIST_STATUS: Record<FichaHistorialReserva['status'], { label: string; colo
 
 export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDone?: () => Promise<void> | void }) {
   const { socio, membresia, estado, reservas, historial, asistencia, invitadosBolsa } = data;
-  const tz = getTenantTimezone(useTenant());
+  const tenant = useTenant();
+  const tz = getTenantTimezone(tenant);
   const hoyISO = hoyEnTimezone(tz);
   const badge = BADGE[estado];
   const toast = useToast();
@@ -426,6 +428,14 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           )}
         </div>
       </div>
+
+      {/* SALUD Y CONTACTO DE EMERGENCIA — solo si el tenant lo pide */}
+      {tenantPideSalud(tenant.config) && (
+        <div className="ek-card ek-card--md" style={{ marginBottom: '12px' }}>
+          <p className="ek-eyebrow" style={{ margin: '0 0 10px' }}>SALUD Y CONTACTO DE EMERGENCIA</p>
+          <SaludSocioForm usuarioId={socio.id} />
+        </div>
+      )}
 
       {/* PRÓXIMAS RESERVAS */}
       <div className="ek-card ek-card--md" style={{ marginBottom: '12px' }}>

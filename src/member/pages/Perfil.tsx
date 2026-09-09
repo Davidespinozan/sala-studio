@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Avatar } from '@shared/components/Avatar';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
+import { SaludSocioForm, tenantPideSalud } from '@shared/components/SaludSocioForm';
 import { useToast } from '@shared/hooks/useToast';
 import { useLandingConfig } from '@shared/hooks/useLandingConfig';
 import { supabase } from '@shared/lib/supabase';
@@ -228,6 +229,16 @@ export default function Perfil() {
         {/* Su huella. Solo aparece si la dio: al que nunca puso el dedo no le
             sirve de nada leer sobre esto. */}
         {usuario?.id && <MiHuella usuarioId={usuario.id} tenantNombre={tenant.nombre} />}
+
+        {/* Salud y contacto de emergencia — solo si el tenant lo pide */}
+        {usuario?.id && tenantPideSalud(tenant.config) && (
+          <section style={{ marginBottom: '24px' }}>
+            <p className="ek-eyebrow" style={{ marginBottom: '12px' }}>SALUD Y CONTACTO DE EMERGENCIA</p>
+            <div className="ek-card ek-card--md">
+              <SaludSocioForm usuarioId={usuario.id} />
+            </div>
+          </section>
+        )}
 
         {/* Ajustes */}
         <section>
