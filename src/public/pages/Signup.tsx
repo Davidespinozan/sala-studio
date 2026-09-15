@@ -8,6 +8,7 @@ import { validarPassword } from '../lib/onboardingLogic';
 import { formatearPrecioTier, sufijoPeriodoTier } from '@shared/lib/precioTier';
 import { socioPuedePagarEnApp } from '@shared/lib/cobrosDelGym';
 import { autoservicioActivo } from '@shared/lib/cobrosConfig';
+import { SaludSocioForm, tenantPideSalud } from '@shared/components/SaludSocioForm';
 
 interface TierRow {
   id: string;
@@ -143,6 +144,9 @@ export default function Signup() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [acepta, setAcepta] = useState(false);
+  // Gyms con config.registro.pide_salud: tras crear la cuenta se muestra el paso de
+  // salud (antecedentes + contacto de emergencia) antes de entrar a la app.
+  const [saludUsuarioId, setSaludUsuarioId] = useState<string | null>(null);
 
 
   async function handleSubmit(e: FormEvent) {
@@ -200,6 +204,25 @@ export default function Signup() {
         throw new Error('Cuenta creada pero error al iniciar sesión. Inicia sesión manualmente.');
       }
 
+      // Si el gym pide datos de salud, mostramos ese paso antes de entrar a la app
+      // (reusa SaludSocioForm, que necesita el usuario_id ya creado).
+      if (tenantPideSalud(tenant.config)) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: uRow } = await supabase
+            .from('usuarios')
+            .select('id')
+            .eq('auth_id', user.id)
+            .eq('tenant_id', tenant.id)
+            .maybeSingle();
+          if (uRow?.id) {
+            setSaludUsuarioId(uRow.id);
+            setIsProcessing(false);
+            return; // no navega: renderiza el paso de salud
+          }
+        }
+      }
+
       // Demo / plan gratis → membresía ya activa. Gym real con plan pago → cae en
       // /app 'pendiente_pago' y ahí se abre directo el modal de pago de SALA.
       navigate('/app');
@@ -208,6 +231,29 @@ export default function Signup() {
       setError(err instanceof Error ? err.message : 'Error inesperado. Intenta de nuevo.');
       setIsProcessing(false);
     }
+  }
+
+  // Paso de salud (solo gyms con pide_salud): tras crear la cuenta, antes de la app.
+  if (saludUsuarioId) {
+    return (
+      <div style={{ maxWidth: '480px', margin: '40px auto', padding: '0 24px' }}>
+        <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '24px', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 6px' }}>
+          Cuéntanos de tu salud
+        </h1>
+        <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: '0 0 20px', lineHeight: 1.5 }}>
+          Para entrenar seguro, completa tus antecedentes y un contacto de emergencia. Podrás cambiarlo después desde tu perfil.
+        </p>
+        <SaludSocioForm usuarioId={saludUsuarioId} />
+        <button
+          type="button"
+          onClick={() => navigate('/app')}
+          className="ek-cta ek-cta--full"
+          style={{ marginTop: '16px' }}
+        >
+          Continuar
+        </button>
+      </div>
+    );
   }
 
   if (tierLoading) {
