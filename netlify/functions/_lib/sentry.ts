@@ -38,6 +38,15 @@ function init(): void {
  */
 export function conMonitorCron(slug: string, cronExpr: string, handler: Handler): Handler {
   return async (event: HandlerEvent, context: HandlerContext) => {
+    // Guard multi-sitio: si esta misma app se despliega en un SEGUNDO sitio de
+    // Netlify (p. ej. el que sirve el dominio propio de un tenant), los crons NO
+    // deben correr ahí, o se ejecutarían POR DUPLICADO contra la misma base
+    // (dobles expiraciones/push/no-shows: bug de dinero). El sitio PRINCIPAL no
+    // setea nada y corre igual que siempre; el sitio secundario pone
+    // CRONS_DESACTIVADOS=true y aquí se saltan. Default seguro: correr.
+    if (process.env.CRONS_DESACTIVADOS === 'true') {
+      return { statusCode: 200, body: JSON.stringify({ skipped: 'CRONS_DESACTIVADOS' }) } as HandlerResponse;
+    }
     if (!dsn) return (await handler(event, context)) as HandlerResponse;
     init();
     const monitorConfig = {

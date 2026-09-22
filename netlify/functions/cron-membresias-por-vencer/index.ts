@@ -22,6 +22,11 @@ import { requireEnv } from '../_lib/env';
 const DIAS_DE_AVISO = 3;
 
 export const handler: Handler = async () => {
+  // Guard multi-sitio (ver conMonitorCron): en un sitio secundario que sirve el
+  // dominio propio de un tenant, los crons no deben correr o se duplicarían.
+  if (process.env.CRONS_DESACTIVADOS === 'true') {
+    return { statusCode: 200, body: JSON.stringify({ skipped: 'CRONS_DESACTIVADOS' }) };
+  }
   try {
     const supabaseUrl = requireEnv('VITE_SUPABASE_URL');
     const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
