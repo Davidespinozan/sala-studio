@@ -474,6 +474,40 @@ function resolveTenantSlug(): string {
   return 'healthyspace';
 }
 
+/**
+ * true si el host pertenece a SALA: marketing, un subdominio de tenant
+ * ({slug}.salastudio.app), o un entorno de dev/preview (localhost / *.netlify.app).
+ * Si NO lo es, es un DOMINIO PROPIO de un gym (ej. thecorestudio.app) y el tenant
+ * se resuelve por la columna `dominio_app`, no por el slug del subdominio.
+ */
+function esHostDeSala(host: string): boolean {
+  return (
+    MARKETING_HOSTS.has(host) ||
+    host === 'localhost' ||
+    host.startsWith('127.') ||
+    host.endsWith('.netlify.app') ||
+    host === MARKETING_DOMAIN ||
+    host.endsWith('.' + MARKETING_DOMAIN)
+  );
+}
+
+/** Cómo buscar el tenant: por slug (subdominio SALA) o por dominio propio del gym. */
+type TenantLookup = { by: 'slug' | 'dominio'; value: string };
+
+/**
+ * Decide cómo resolver el tenant del host actual.
+ * - Dominio propio (no es host de SALA) → por `dominio_app` (normaliza quitando 'www.').
+ * - Resto (subdominio SALA / marketing / dev) → por slug, como siempre.
+ */
+export function resolveTenantLookup(): TenantLookup {
+  if (typeof window === 'undefined') return { by: 'slug', value: 'healthyspace' };
+  const host = window.location.hostname;
+  if (!esHostDeSala(host)) {
+    return { by: 'dominio', value: host.replace(/^www\./, '') };
+  }
+  return { by: 'slug', value: resolveTenantSlug() };
+}
+
 interface TenantProviderProps {
   children: ReactNode;
 }
@@ -519,20 +553,22 @@ export function TenantProvider({ children }: TenantProviderProps) {
   }, []);
 
   const fetchTenant = useCallback(async (): Promise<Tenant> => {
-    const slug = resolveTenantSlug();
+    const lookup = resolveTenantLookup();
     // Columnas explícitas (NO '*'): 'tenants' revoca a anon las columnas de Stripe
     // (stripe_account_id, stripe_subscription_product_id) para no exponerlas al
     // sitio público; con REVOKE de columna un SELECT * fallaría. El cliente no usa
     // esas columnas. Si agregas una columna nueva a `tenants` que el front necesite,
     // añádela AQUÍ.
-    const { data, error: queryError } = await supabase
+    const base = supabase
       .from('tenants')
       .select('id, slug, nombre, vertical, branding, config, dominio_principal, dominio_app, status, stripe_charges_enabled, created_at, updated_at')
-      .eq('slug', slug)
-      .eq('status', 'activo')
-      .maybeSingle();
+      .eq('status', 'activo');
+    // Dominio propio del gym → por dominio_app; subdominio SALA → por slug.
+    const { data, error: queryError } = await (
+      lookup.by === 'dominio' ? base.eq('dominio_app', lookup.value) : base.eq('slug', lookup.value)
+    ).maybeSingle();
     if (queryError) throw new Error(`No se pudo cargar el tenant: ${queryError.message}`);
-    if (!data) throw new Error(`Tenant '${slug}' no encontrado o inactivo`);
+    if (!data) throw new Error(`Tenant (${lookup.by}='${lookup.value}') no encontrado o inactivo`);
     return data as unknown as Tenant;
   }, []);
 

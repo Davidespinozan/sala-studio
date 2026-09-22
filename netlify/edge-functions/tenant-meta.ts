@@ -18,17 +18,29 @@
 
 // Hosts del producto SALA (no son tenants) → se comparten con la marca SALA.
 const MARKETING_HOSTS = new Set(['salastudio.app', 'www.salastudio.app']);
+const MARKETING_DOMAIN = 'salastudio.app';
 
-/** Mismo criterio que resolveTenantSlug(): el primer label del subdominio. */
-function slugDesdeHost(host: string): string | null {
+/**
+ * Cómo buscar el tenant del host (mismo criterio que resolveTenantLookup en el front):
+ * - Subdominio SALA ({slug}.salastudio.app) → por 'slug'.
+ * - Dominio propio del gym (ej. thecorestudio.app) → por 'dominio_app'.
+ * - Marketing / dev / preview → null (se comparte con la marca SALA).
+ */
+function lookupDesdeHost(host: string): { campo: 'slug' | 'dominio_app'; valor: string } | null {
   if (MARKETING_HOSTS.has(host)) return null;
   if (host === 'localhost' || host.startsWith('127.') || host.endsWith('.netlify.app')) {
     return null;
   }
+  // Dominio propio del gym → por dominio_app (normaliza quitando 'www.').
+  if (host !== MARKETING_DOMAIN && !host.endsWith('.' + MARKETING_DOMAIN)) {
+    const dominio = host.replace(/^www\./, '');
+    return /^[a-z0-9.-]+$/i.test(dominio) ? { campo: 'dominio_app', valor: dominio } : null;
+  }
+  // Subdominio de SALA → por slug (el primer label).
   const partes = host.split('.');
-  if (partes.length < 3) return null; // apex sin subdominio
+  if (partes.length < 3) return null; // apex de SALA sin subdominio
   const slug = partes[0];
-  return /^[a-z0-9-]+$/i.test(slug) ? slug : null;
+  return /^[a-z0-9-]+$/i.test(slug) ? { campo: 'slug', valor: slug } : null;
 }
 
 /** Escapa para meterlo dentro de un atributo HTML. */
@@ -46,7 +58,7 @@ interface TenantPreview {
   color: string | null;
 }
 
-async function leerTenant(slug: string): Promise<TenantPreview | null> {
+async function leerTenant(campo: 'slug' | 'dominio_app', valor: string): Promise<TenantPreview | null> {
   // deno-lint-ignore no-explicit-any
   const env = (globalThis as any).Netlify?.env;
   const url: string | undefined =
@@ -57,7 +69,7 @@ async function leerTenant(slug: string): Promise<TenantPreview | null> {
 
   const endpoint =
     `${url}/rest/v1/tenants?select=nombre,branding&status=eq.activo` +
-    `&slug=eq.${encodeURIComponent(slug)}&limit=1`;
+    `&${campo}=eq.${encodeURIComponent(valor)}&limit=1`;
 
   const res = await fetch(endpoint, {
     headers: { apikey: key, authorization: `Bearer ${key}` },
@@ -90,12 +102,12 @@ export default async (request: Request, context: { next: () => Promise<Response>
   const tipo = respuesta.headers.get('content-type') ?? '';
   if (!tipo.includes('text/html')) return respuesta;
 
-  const slug = slugDesdeHost(new URL(request.url).hostname);
-  if (!slug) return respuesta;
+  const lookup = lookupDesdeHost(new URL(request.url).hostname);
+  if (!lookup) return respuesta;
 
   let tenant: TenantPreview | null = null;
   try {
-    tenant = await leerTenant(slug);
+    tenant = await leerTenant(lookup.campo, lookup.valor);
   } catch {
     return respuesta; // Supabase caído o lento → preview de SALA, mejor que nada
   }
