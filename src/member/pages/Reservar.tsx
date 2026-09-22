@@ -56,7 +56,11 @@ export default function Reservar() {
       cupos_por_recurso: c.cupos_por_recurso ?? 1,
       permitir_continuas: c.permitir_continuas ?? false,
       anticipacion_min_horas: c.anticipacion_min_horas ?? 24,
-      anticipacion_max_dias: c.anticipacion_max_dias ?? 30,
+      // Ventana de reserva (días hacia adelante). Configurable desde el admin.
+      // Default 7 = el comportamiento histórico (antes se topaba en 7 fijo): un gym
+      // que nunca tocó esto no cambia. Se acota a [1, 90] para que una config rota
+      // no genere miles de fechas.
+      anticipacion_max_dias: Math.min(Math.max(Number(c.anticipacion_max_dias) || 7, 1), 90),
       ventana_check_in_min: c.ventana_check_in_min ?? 15
     };
   }, [tenant.config]);
@@ -64,9 +68,9 @@ export default function Reservar() {
   const tier = usuario?.membresia_tier ?? null;
   const tz = getTenantTimezone(tenant);
 
-  // 7 días desde hoy (en la timezone del gym)
+  // Fechas reservables según la ventana del gym (anticipacion_max_dias), en su tz.
   const fechas = useMemo(
-    () => generarFechasReservables(config, tz).slice(0, 7),
+    () => generarFechasReservables(config, tz),
     [config, tz]
   );
   const [fechaSel, setFechaSel] = useState<string>(fechas[0]?.fechaISO ?? '');
@@ -373,7 +377,7 @@ export default function Reservar() {
         ))}
       </div>
 
-      {/* Tabs de 7 días */}
+      {/* Tabs de días (según la ventana de reserva del gym) */}
       <div style={{ marginBottom: '24px' }}>
         <DayTabSelector
           fechas={fechas}

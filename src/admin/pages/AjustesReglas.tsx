@@ -6,6 +6,7 @@ import Toggle from '../components/Toggle';
 
 type ReglasDraft = {
   anticipacion_min_minutos: number;
+  anticipacion_max_dias: number;
   duracion_default_min: number;
   ventana_check_in_min: number;
   permitir_continuas: boolean;
@@ -29,6 +30,7 @@ type ReglasDraft = {
  */
 const DEFAULT: ReglasDraft = {
   anticipacion_min_minutos: 0, // sin umbral: se reserva hasta que arranca la clase
+  anticipacion_max_dias: 7, // histórico (antes topaba en 7 fijo); debe coincidir con Reservar.tsx
   duracion_default_min: 60,
   ventana_check_in_min: 15, // debe coincidir con ventana_check_in_min() del backend
   permitir_continuas: false,
@@ -58,6 +60,7 @@ function readDraft(config: Record<string, unknown> | null): ReglasDraft {
         ? num(reserva.anticipacion_min_horas, 0) * 60
         : DEFAULT.anticipacion_min_minutos
     ),
+    anticipacion_max_dias: num(reserva.anticipacion_max_dias, DEFAULT.anticipacion_max_dias),
     duracion_default_min: num(reserva.duracion_default_min, DEFAULT.duracion_default_min),
     ventana_check_in_min: num(reserva.ventana_check_in_min, DEFAULT.ventana_check_in_min),
     permitir_continuas: Boolean(reserva.permitir_continuas ?? DEFAULT.permitir_continuas),
@@ -141,6 +144,10 @@ export default function AjustesReglas() {
       toast.error('Anticipación mínima debe ser un número positivo.');
       return;
     }
+    if (!Number.isFinite(draft.anticipacion_max_dias) || draft.anticipacion_max_dias < 1 || draft.anticipacion_max_dias > 90) {
+      toast.error('La ventana de reserva debe estar entre 1 y 90 días.');
+      return;
+    }
     if (!Number.isFinite(draft.duracion_default_min) || draft.duracion_default_min <= 0) {
       toast.error('Duración debe ser mayor a 0.');
       return;
@@ -175,6 +182,7 @@ export default function AjustesReglas() {
       reserva: {
         ...reserva,
         anticipacion_min_minutos: draft.anticipacion_min_minutos,
+        anticipacion_max_dias: draft.anticipacion_max_dias,
         duracion_default_min: draft.duracion_default_min,
         ventana_check_in_min: draft.ventana_check_in_min,
         permitir_continuas: draft.permitir_continuas,
@@ -244,6 +252,22 @@ export default function AjustesReglas() {
             value={draft.anticipacion_min_minutos}
             onChange={(e) =>
               setDraft({ ...draft, anticipacion_min_minutos: parseInt(e.target.value) || 0 })
+            }
+            className="ek-input"
+          />
+        </FormField>
+
+        <FormField
+          label="Ventana de reserva (días hacia adelante)"
+          helper="Con cuántos días de anticipación pueden reservar tus miembros. Ejemplo: 30 (pueden reservar hasta un mes antes). El selector de días en la app se ajusta a este número."
+        >
+          <input
+            type="number"
+            min={1}
+            max={90}
+            value={draft.anticipacion_max_dias}
+            onChange={(e) =>
+              setDraft({ ...draft, anticipacion_max_dias: parseInt(e.target.value) || 0 })
             }
             className="ek-input"
           />

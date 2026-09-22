@@ -9,7 +9,9 @@ interface Props {
   onSelect: (fechaISO: string) => void;
 }
 
-/** 7 tabs horizontales con número grande + abreviatura del día (LUN, MAR, ...).
+/** Tabs horizontales con número grande + abreviatura del día (LUN, MAR, ...).
+ *  Se reparten el ancho cuando son pocos y hacen scroll horizontal cuando la
+ *  ventana de reserva es larga (p. ej. 30 días).
  *  Día seleccionado: fondo salvia + texto blanco.
  *  Día hoy (no seleccionado): borde salvia + texto salvia.
  *  Otros: surface plano + texto secundario. */
@@ -25,10 +27,13 @@ export function DayTabSelector({ fechas, selectedFechaISO, onSelect }: Props) {
       role="tablist"
       aria-label="Selector de día"
       style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${fechas.length}, 1fr)`,
+        display: 'flex',
         gap: '6px',
-        width: '100%'
+        width: '100%',
+        overflowX: 'auto',
+        paddingBottom: '4px',
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'thin'
       }}
     >
       {fechas.map((f) => {
@@ -69,6 +74,9 @@ export function DayTabSelector({ fechas, selectedFechaISO, onSelect }: Props) {
               gap: '2px',
               padding: '10px 4px',
               minHeight: '64px',
+              // Crecen para llenar el ancho cuando son pocos; se quedan en 52px y
+              // el contenedor scrollea cuando la ventana es larga.
+              flex: '1 0 52px',
               background: bg,
               color,
               border: `1px solid ${border}`,
