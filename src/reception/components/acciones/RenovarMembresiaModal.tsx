@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { AccionModal } from '@shared/components/AccionModal';
-import { MotivoField } from '@shared/components/MotivoField';
 import { useAccionRecepcion } from '../../hooks/useAccionRecepcion';
 import { MetodoPagoField, type MetodoPago } from './MetodoPagoField';
 
@@ -49,11 +48,13 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
       description={`Renuevas el mismo plan a ${socioNombre}. Refresca el período y los créditos según el tier.`}
       variant="info"
       confirmLabel="Renovar"
-      canConfirm={motivo.trim().length > 0 && metodoListo}
+      canConfirm={metodoListo}
       onConfirm={async () => {
         await ejecutar({
           p_usuario_id: socioId,
-          p_motivo: motivo,
+          // Motivo opcional: el método ya dice cómo se pagó. Si no ponen nota, el
+          // historial guarda un motivo genérico para no quedar vacío.
+          p_motivo: motivo.trim() || 'Renovación',
           p_metodo_pago: metodo === '' ? null : metodo
         });
         await onDone();
@@ -70,12 +71,20 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
         onListoChange={setMetodoListo}
       />
 
-      <MotivoField
-        value={motivo}
-        onChange={setMotivo}
-        opciones={['Pago en efectivo', 'Pago por transferencia', 'Cortesía del owner', 'Renovación automática mensual']}
-        label="Motivo de la renovación"
-      />
+      {/* Nota libre y OPCIONAL: el método ya dice cómo se pagó. Solo para dejar un
+          apunte si hace falta (ajuste, cortesía, etc.). No es un desplegable. */}
+      <div className="ek-form-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <label className="ek-label" htmlFor="renovar-nota">Nota (opcional)</label>
+        <input
+          id="renovar-nota"
+          className="ek-input"
+          type="text"
+          placeholder="Ej. ajuste, cortesía… (opcional)"
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          autoComplete="off"
+        />
+      </div>
     </AccionModal>
   );
 }

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { AccionModal } from '@shared/components/AccionModal';
-import { MotivoField } from '@shared/components/MotivoField';
 import { useAccionRecepcion } from '../../hooks/useAccionRecepcion';
 import { MetodoPagoField, type MetodoPago } from './MetodoPagoField';
 
@@ -95,7 +94,6 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
     tier && saldo && saldo.creditos > 0 && saldo.tipo !== tier.tipo ? saldo.creditos : 0;
 
   const puedeConfirmar =
-    motivo.trim().length > 0 &&
     nuevoTierId.length > 0 &&
     (clasesQueSePierden === 0 || aceptaPerdida) &&
     metodoListo;
@@ -112,7 +110,7 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
         await ejecutar({
           p_usuario_id: socioId,
           p_nuevo_tier_id: nuevoTierId,
-          p_motivo: motivo,
+          p_motivo: motivo.trim() || 'Cambio de plan',
           p_metodo_pago: metodo === '' ? null : metodo,
           p_confirmar_perdida: clasesQueSePierden > 0
         });
@@ -198,12 +196,19 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
         />
       )}
 
-      <MotivoField
-        value={motivo}
-        onChange={setMotivo}
-        opciones={['Upgrade del cliente', 'Downgrade', 'Cambio de modalidad', 'Cortesía del owner']}
-        label="Motivo del cambio"
-      />
+      {/* Nota libre y OPCIONAL (el método ya registra el cobro). */}
+      <div className="ek-form-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <label className="ek-label" htmlFor="cambiar-nota">Nota (opcional)</label>
+        <input
+          id="cambiar-nota"
+          className="ek-input"
+          type="text"
+          placeholder="Ej. upgrade, cambio de modalidad… (opcional)"
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          autoComplete="off"
+        />
+      </div>
     </AccionModal>
   );
 }

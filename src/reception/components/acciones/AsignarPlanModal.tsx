@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { AccionModal } from '@shared/components/AccionModal';
-import { MotivoField } from '@shared/components/MotivoField';
 import { useAccionRecepcion } from '../../hooks/useAccionRecepcion';
 import { MetodoPagoField, type MetodoPago } from './MetodoPagoField';
 
@@ -88,7 +87,6 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
       variant="info"
       confirmLabel="Asignar plan"
       canConfirm={
-        motivo.trim().length > 0 &&
         tierId.length > 0 &&
         // No activar sin ningún registro: o queda pendiente, o el campo de método
         // está listo (método real, o "sin cobro" confirmado como pago en línea).
@@ -111,7 +109,7 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
         await ejecutar({
           p_usuario_id: socioId,
           p_tier_id: tierId,
-          p_motivo: motivo,
+          p_motivo: motivo.trim() || 'Alta de plan',
           // Pendiente → se asigna el plan SIN cobro; el cobro queda "por cobrar".
           // Sin método → el plan se activa pero no se registra ningún cobro.
           p_metodo_pago: pendiente ? null : (metodo === '' ? null : metodo)
@@ -194,12 +192,19 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
         </p>
       )}
 
-      <MotivoField
-        value={motivo}
-        onChange={setMotivo}
-        opciones={['Alta nueva con pago en efectivo', 'Alta nueva con transferencia', 'Cortesía del owner', 'Período de prueba']}
-        label="Motivo del alta"
-      />
+      {/* Nota libre y OPCIONAL (el método ya registra el cobro). */}
+      <div className="ek-form-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <label className="ek-label" htmlFor="asignar-nota">Nota (opcional)</label>
+        <input
+          id="asignar-nota"
+          className="ek-input"
+          type="text"
+          placeholder="Ej. período de prueba, cortesía… (opcional)"
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          autoComplete="off"
+        />
+      </div>
     </AccionModal>
   );
 }
