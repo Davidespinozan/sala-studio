@@ -23,7 +23,8 @@ function mem(overrides: Partial<MembresiaActual> = {}): MembresiaActual {
     duracion_dias: 30,
     clases_incluidas: null,
     sucursal_id: null,
-    tier_acceso_todas_sucursales: true
+    tier_acceso_todas_sucursales: true,
+    es_pase: false
   };
   return { ...base, ...overrides };
 }

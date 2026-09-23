@@ -75,7 +75,9 @@ export default function Reservar() {
   const fechas = useMemo(() => {
     const todas = generarFechasReservables(config, tz);
     const fin = membresia?.periodo_actual_fin;
-    if (!fin) return todas;
+    // Los day pass (es_pase) reservan más allá de su vigencia (siguen a su clase),
+    // así que a ellos NO se les recorta el calendario. El límite del pase es su crédito.
+    if (!fin || membresia?.es_pase) return todas;
     let finISO: string;
     try {
       finISO = new Date(fin).toLocaleDateString('en-CA', { timeZone: tz });
@@ -83,7 +85,7 @@ export default function Reservar() {
       return todas;
     }
     return todas.filter((f) => f.fechaISO <= finISO);
-  }, [config, tz, membresia?.periodo_actual_fin]);
+  }, [config, tz, membresia?.periodo_actual_fin, membresia?.es_pase]);
   const [fechaSel, setFechaSel] = useState<string>(fechas[0]?.fechaISO ?? '');
   const [salaSel, setSalaSel] = useState<string>(SALA_TODAS);
 
