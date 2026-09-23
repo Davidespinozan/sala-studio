@@ -102,9 +102,10 @@ export function GestionarMembresiaModal({
       // La pantalla YA le mostró al admin "el socio pierde N clases" (ver preview).
       // Confirmamos esa pérdida contra la base, que sin esto rechaza el cambio.
       confirmar_perdida: (preview?.creditosPerdidos ?? 0) > 0,
-      // Registra el pago en la Caja si se cobró; cortesía/pendiente → null (no
-      // cobra ahora). El monto lo pone el RPC con el precio de lista del plan.
-      metodo_pago: formaPago === 'cortesia' || formaPago === 'pendiente' ? null : formaPago
+      // Registra el pago si se cobró. 'cortesia' NO cobra dinero pero deja un
+      // movimiento de cortesía (rastro en la Caja, igual que recepción). Solo
+      // 'pendiente' va null (se registra aparte como "por cobrar").
+      metodo_pago: formaPago === 'pendiente' ? null : formaPago
     });
     if (error || !data) {
       setSaving(false);

@@ -31,14 +31,16 @@ const MOTIVO_ALTA: Record<FormaActivacion, string> = {
   pendiente: 'Alta pendiente (pagar al llegar)',
 };
 
-// El método que va al RPC: efectivo/tarjeta/transferencia registran pago;
-// cortesía → null (no cobra). Es lo que decide si el dinero entra o no a la Caja.
+// El método que va al RPC: efectivo/tarjeta/transferencia registran pago.
+// 'cortesia' NO cobra dinero, pero deja un movimiento de cortesía (rastro en la
+// Caja / corte, igual que recepción); antes iba null y las cortesías del admin no
+// aparecían en el corte. 'pendiente' → null (se registra como "por cobrar").
 const METODO_PAGO: Record<FormaActivacion, string | null> = {
   efectivo: 'efectivo',
   tarjeta: 'tarjeta',
   transferencia: 'transferencia',
-  cortesia: null,
-  pendiente: null, // no cobra ahora: se registra como "por cobrar"
+  cortesia: 'cortesia',
+  pendiente: null,
 };
 
 interface Props {
@@ -140,13 +142,26 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
           if (tierSel && (tierSel.precio_centavos ?? 0) > 0) {
             const rpcCargo = supabase.rpc.bind(supabase) as unknown as (
               name: string, args: unknown
-            ) => Promise<{ error: unknown }>;
-            await rpcCargo('registrar_cargo_pendiente', {
+            ) => Promise<{ error: { message: string } | null }>;
+            const { error: cargoErr } = await rpcCargo('registrar_cargo_pendiente', {
               p_usuario_id: res.usuario_id,
               p_monto_centavos: tierSel.precio_centavos,
               p_concepto: 'plan',
               p_descripcion: tierSel.nombre
             });
+            if (cargoErr) {
+              // La ficha y el plan YA se crearon (membresía activa); solo falló
+              // dejar el "por cobrar". Sin avisar, quedaría activo sin pago ni deuda
+              // (el hueco de Gloria). Éxito parcial + aviso para cobrarlo a mano.
+              setSuccess({
+                email: res.email,
+                warning:
+                  `La ficha y el plan se crearon, pero NO se pudo dejar el cobro "por cobrar": ${cargoErr.message}. ` +
+                  `Regístralo manualmente en la Caja cuando el socio pague.`
+              });
+              setSubmitting(false);
+              return;
+            }
           }
         }
       }
