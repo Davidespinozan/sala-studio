@@ -19,10 +19,10 @@ export function RecargarCreditosModal({ socioId, socioNombre, isOpen, onClose, o
   return (
     <AccionModal
       isOpen={isOpen}
-      title="Recargar créditos"
-      description={`Sumas créditos al paquete de ${socioNombre}.`}
+      title="Ajustar créditos (sin cobro)"
+      description={`Regala o corrige créditos de ${socioNombre}.`}
       variant="info"
-      confirmLabel="Recargar"
+      confirmLabel="Ajustar"
       canConfirm={motivo.trim().length > 0 && cantidad >= 1}
       onConfirm={async () => {
         await ejecutar({ p_usuario_id: socioId, p_cantidad: cantidad, p_motivo: motivo });
@@ -30,6 +30,24 @@ export function RecargarCreditosModal({ socioId, socioNombre, isOpen, onClose, o
       }}
       onClose={onClose}
     >
+      {/* Aviso: esta acción NO cobra. Evita que se use por error creyendo que se
+          registra un pago (el dinero se registra en Asignar/Cambiar plan). */}
+      <div
+        style={{
+          background: 'var(--sala-warning-bg)',
+          border: '1px solid var(--sala-warning)',
+          borderRadius: '10px',
+          padding: '10px 12px',
+          marginBottom: '12px',
+          fontSize: '12px',
+          lineHeight: 1.5,
+          color: 'var(--sala-text-primary)'
+        }}
+      >
+        <strong>Esto NO cobra dinero</strong> ni entra a la Caja. Solo suma o corrige créditos.
+        Para <strong>vender</strong> clases o un plan, usa <strong>Asignar</strong> o <strong>Cambiar plan</strong>.
+      </div>
+
       <div className="ek-form-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
         <label className="ek-label" htmlFor="recargar-cantidad">Cantidad de créditos</label>
         <input
@@ -46,8 +64,8 @@ export function RecargarCreditosModal({ socioId, socioNombre, isOpen, onClose, o
       <MotivoField
         value={motivo}
         onChange={setMotivo}
-        opciones={['Pago en efectivo', 'Pago por transferencia', 'Compensación por error', 'Cortesía del owner']}
-        label="Motivo de la recarga"
+        opciones={['Compensación por error', 'Cortesía del owner', 'Ajuste manual']}
+        label="Motivo del ajuste"
       />
     </AccionModal>
   );

@@ -402,7 +402,7 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
             <>
               <AccionBtn onClick={() => setModalAbierto('renovar')}>Renovar</AccionBtn>
               <AccionBtn onClick={() => setModalAbierto('cambiar_plan')}>Cambiar plan</AccionBtn>
-              {esCreditos && <AccionBtn onClick={() => setModalAbierto('recargar')}>Recargar créditos</AccionBtn>}
+              {esCreditos && <AccionBtn onClick={() => setModalAbierto('recargar')}>Ajustar créditos</AccionBtn>}
               <AccionBtn onClick={() => setModalAbierto('pausar')}>Pausar</AccionBtn>
               <AccionBtn onClick={() => setModalAbierto('cancelar_membresia')}>Cancelar membresía</AccionBtn>
             </>
