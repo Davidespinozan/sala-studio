@@ -138,6 +138,12 @@ export function traducirErrorRPC(message: string): string {
   // a CTA de renovación/recarga.
   if (message.includes('MEMBRESIA_VENCIDA'))
     return 'Tu membresía venció. Contacta al gimnasio para renovar.';
+  if (message.includes('CLASE_FUERA_DE_VIGENCIA')) {
+    const f = message.match(/\((\d{2}\/\d{2}\/\d{4})\)/)?.[1];
+    return f
+      ? `Esa clase es posterior al vencimiento de tu plan (${f}). Renueva para reservarla.`
+      : 'Esa clase es posterior al vencimiento de tu plan. Renueva para reservarla.';
+  }
   if (message.includes('SIN_CREDITOS'))
     return 'Te quedaste sin clases. Contacta al gimnasio para recargar.';
   if (message.includes('MEMBRESIA_CONGELADA'))

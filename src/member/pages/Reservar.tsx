@@ -67,12 +67,23 @@ export default function Reservar() {
 
   const tier = usuario?.membresia_tier ?? null;
   const tz = getTenantTimezone(tenant);
+  const { membresia } = useMembresiaActual(usuario?.id);
 
-  // Fechas reservables según la ventana del gym (anticipacion_max_dias), en su tz.
-  const fechas = useMemo(
-    () => generarFechasReservables(config, tz),
-    [config, tz]
-  );
+  // Fechas reservables según la ventana del gym (anticipacion_max_dias), en su tz,
+  // RECORTADAS al vencimiento del plan: no ofrecer días que el socio no podrá usar.
+  // (El backend igual los bloquea con CLASE_FUERA_DE_VIGENCIA; esto es la UX.)
+  const fechas = useMemo(() => {
+    const todas = generarFechasReservables(config, tz);
+    const fin = membresia?.periodo_actual_fin;
+    if (!fin) return todas;
+    let finISO: string;
+    try {
+      finISO = new Date(fin).toLocaleDateString('en-CA', { timeZone: tz });
+    } catch {
+      return todas;
+    }
+    return todas.filter((f) => f.fechaISO <= finISO);
+  }, [config, tz, membresia?.periodo_actual_fin]);
   const [fechaSel, setFechaSel] = useState<string>(fechas[0]?.fechaISO ?? '');
   const [salaSel, setSalaSel] = useState<string>(SALA_TODAS);
 
@@ -178,7 +189,6 @@ export default function Reservar() {
 
   const maxInvitados = useMaxInvitados();
   // Plan por créditos → la reserva cuesta 1 + invitados (cada lugar = 1 crédito).
-  const { membresia } = useMembresiaActual(usuario?.id);
   const esPlanCreditos =
     membresia?.tier_tipo === 'creditos' || membresia?.tier_tipo === 'hibrido';
 
