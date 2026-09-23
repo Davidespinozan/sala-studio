@@ -36,6 +36,8 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
   const [saldo, setSaldo] = useState<SaldoActual | null>(null);
   const [aceptaPerdida, setAceptaPerdida] = useState(false);
   const [metodo, setMetodo] = useState<MetodoPago | ''>('efectivo');
+  // Bloquea "Sin registrar cobro" sin confirmar pago en línea (ver MetodoPagoField).
+  const [metodoListo, setMetodoListo] = useState(true);
   const { ejecutar } = useAccionRecepcion({ rpcName: 'recepcion_cambiar_plan' });
 
   // Tiers activos del tenant (RLS scopea), excluyendo el plan actual.
@@ -95,7 +97,8 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
   const puedeConfirmar =
     motivo.trim().length > 0 &&
     nuevoTierId.length > 0 &&
-    (clasesQueSePierden === 0 || aceptaPerdida);
+    (clasesQueSePierden === 0 || aceptaPerdida) &&
+    metodoListo;
 
   return (
     <AccionModal
@@ -191,6 +194,7 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
           precioCentavos={tier.precio_centavos ?? 0}
           inscripcionCentavos={0}
           moneda={tier.moneda}
+          onListoChange={setMetodoListo}
         />
       )}
 

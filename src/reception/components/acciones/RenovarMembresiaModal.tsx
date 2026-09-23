@@ -16,6 +16,8 @@ interface Props {
 export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, onDone }: Props) {
   const [motivo, setMotivo] = useState('');
   const [metodo, setMetodo] = useState<MetodoPago | ''>('efectivo');
+  // Bloquea "Sin registrar cobro" sin confirmar pago en línea (ver MetodoPagoField).
+  const [metodoListo, setMetodoListo] = useState(true);
   // Precio del plan que el socio ya tiene (renovar = mismo tier).
   const [precio, setPrecio] = useState<{ centavos: number; moneda: string } | null>(null);
   const { ejecutar } = useAccionRecepcion({ rpcName: 'recepcion_renovar_membresia' });
@@ -47,7 +49,7 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
       description={`Renuevas el mismo plan a ${socioNombre}. Refresca el período y los créditos según el tier.`}
       variant="info"
       confirmLabel="Renovar"
-      canConfirm={motivo.trim().length > 0}
+      canConfirm={motivo.trim().length > 0 && metodoListo}
       onConfirm={async () => {
         await ejecutar({
           p_usuario_id: socioId,
@@ -65,6 +67,7 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
         precioCentavos={precio?.centavos ?? 0}
         inscripcionCentavos={0}
         moneda={precio?.moneda}
+        onListoChange={setMetodoListo}
       />
 
       <MotivoField

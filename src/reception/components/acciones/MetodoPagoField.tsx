@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 function formatearPrecio(centavos: number, moneda: string): string {
   try {
     return new Intl.NumberFormat('es-MX', {
@@ -27,6 +29,13 @@ interface Props {
   /** Inscripción a cobrar AHORA (0 si el plan no cobra o el socio ya la pagó). */
   inscripcionCentavos: number;
   moneda?: string;
+  /**
+   * Reporta si la selección está LISTA para confirmar. "Sin registrar cobro" (value '')
+   * NO está listo hasta que el operador confirma que el socio ya pagó en línea — así se
+   * evita activar/renovar un plan gratis y en silencio (sin ingreso ni "por cobrar").
+   * El padre debe incluir este valor en su canConfirm.
+   */
+  onListoChange?: (listo: boolean) => void;
 }
 
 /**
@@ -41,9 +50,21 @@ export function MetodoPagoField({
   onChange,
   precioCentavos,
   inscripcionCentavos,
-  moneda = 'MXN'
+  moneda = 'MXN',
+  onListoChange
 }: Props) {
   const total = precioCentavos + inscripcionCentavos;
+
+  // "Sin registrar cobro" exige confirmar que el socio ya pagó en línea.
+  const [yaPagoOnline, setYaPagoOnline] = useState(false);
+  // Al elegir un método real, la confirmación deja de aplicar (y se limpia).
+  useEffect(() => {
+    if (value !== '') setYaPagoOnline(false);
+  }, [value]);
+  const listo = value !== '' || yaPagoOnline;
+  useEffect(() => {
+    onListoChange?.(listo);
+  }, [listo, onListoChange]);
 
   return (
     <div
@@ -103,10 +124,20 @@ export function MetodoPagoField({
       )}
 
       {value === '' && (
-        <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)' }}>
-          Sin método no se registra ningún cobro: el plan igual se activa. Usalo solo si el socio
-          ya pagó online.
-        </p>
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={yaPagoOnline}
+              onChange={(e) => setYaPagoOnline(e.target.checked)}
+            />
+            El socio ya pagó en línea (activar sin registrar cobro)
+          </label>
+          <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px', lineHeight: 1.45 }}>
+            Sin registrar cobro no queda ni ingreso ni “por cobrar”. Si aún no paga, elige un
+            método arriba (o usa “Cortesía” para regalarlo con registro).
+          </p>
+        </div>
       )}
     </div>
   );

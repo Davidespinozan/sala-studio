@@ -27,6 +27,9 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
   const [tiers, setTiers] = useState<TierOption[]>([]);
   const [metodo, setMetodo] = useState<MetodoPago | ''>('efectivo');
   const [pendiente, setPendiente] = useState(false);
+  // El campo de método reporta si la selección está lista (bloquea "Sin registrar
+  // cobro" sin confirmar pago en línea). Default true: mientras no se elija ''.
+  const [metodoListo, setMetodoListo] = useState(true);
   // La inscripción se cobra UNA vez por socio: si ya la pagó, no se vuelve a sumar.
   const [yaPagoInscripcion, setYaPagoInscripcion] = useState(false);
   // Y tampoco se cobra si el socio YA tuvo un plan antes (aunque haya entrado en un
@@ -84,7 +87,13 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
       description={`Asignas el primer plan a ${socioNombre}. Se va a activar inmediatamente.`}
       variant="info"
       confirmLabel="Asignar plan"
-      canConfirm={motivo.trim().length > 0 && tierId.length > 0}
+      canConfirm={
+        motivo.trim().length > 0 &&
+        tierId.length > 0 &&
+        // No activar sin ningún registro: o queda pendiente, o el campo de método
+        // está listo (método real, o "sin cobro" confirmado como pago en línea).
+        (pendiente || metodoListo)
+      }
       onConfirm={async () => {
         // Cast para RPCs que aún no están en los tipos generados.
         const rpc = supabase.rpc.bind(supabase) as unknown as (
@@ -175,6 +184,7 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
           precioCentavos={tier.precio_centavos ?? 0}
           inscripcionCentavos={inscripcionACobrar}
           moneda={tier.moneda}
+          onListoChange={setMetodoListo}
         />
       )}
 
