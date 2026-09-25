@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Printer, Share2, X, Link2 } from 'lucide-react';
+import { Printer, Share2, X, Link2, MessageCircle } from 'lucide-react';
 import { backendPost } from '@shared/lib/backend';
 import { ReciboView, ReciboPrint } from './ReciboView';
 import { type ReciboData, reciboUrl, imprimirRecibo, compartirReciboImagen } from '@shared/lib/recibo';
+import { whatsappParaSocio } from '@shared/lib/whatsapp';
 
 /**
  * Modal in-app que muestra el recibo de un pago y deja:
@@ -25,6 +26,7 @@ export function ReciboModal({
 }) {
   const [data, setData] = useState<ReciboData | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [telefono, setTelefono] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [compartiendo, setCompartiendo] = useState(false);
@@ -39,6 +41,7 @@ export function ReciboModal({
         const r = await backendPost<{ recibo: ReciboData }>('recibo', { id: pagoId, t: t.token });
         if (cancel) return;
         setToken(t.token);
+        setTelefono(t.telefono);
         setData(r.recibo);
       } catch (e) {
         if (!cancel) setError(e instanceof Error ? e.message : 'No pudimos generar el recibo.');
@@ -74,6 +77,16 @@ export function ReciboModal({
     await navigator.clipboard?.writeText(url).catch(() => {});
     setAviso('Link del recibo copiado.');
   }
+
+  // Abre WhatsApp con el chat del socio y el recibo ya escrito (el staff da Enviar).
+  function enviarPorWhatsApp() {
+    if (!url) return;
+    const link = whatsappParaSocio(telefono, `Hola, aquí está tu recibo de pago: ${url}`);
+    if (link) window.open(link, '_blank', 'noopener');
+    else setAviso('El socio no tiene teléfono en su perfil. Pídele que lo complete.');
+  }
+
+  const esStaff = _modo === 'staff';
 
   return (
     <div className="ek-modal-backdrop no-print" onClick={onClose}>
@@ -111,6 +124,11 @@ export function ReciboModal({
               <button type="button" onClick={() => void compartir()} disabled={compartiendo} className="ek-cta" style={{ flex: 1, minWidth: 140, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <Share2 size={16} /> {compartiendo ? 'Preparando…' : 'Compartir recibo'}
               </button>
+              {esStaff && (
+                <button type="button" onClick={enviarPorWhatsApp} className="ek-cta ek-cta--secondary" style={{ flex: 1, minWidth: 140, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <MessageCircle size={16} /> Enviar por WhatsApp
+                </button>
+              )}
             </div>
 
             <button type="button" onClick={() => void copiarLink()} className="no-print" style={{ marginTop: 10, width: '100%', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sala-text-tertiary)', fontSize: 12.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'inherit' }}>

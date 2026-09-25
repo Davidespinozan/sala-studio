@@ -29,6 +29,7 @@ import { useHuellasSocio } from '@shared/hooks/useHuellasSocio';
 import { useMultasSocio, type MultaPendiente } from '../hooks/useMultasSocio';
 import { cobrarMultaReserva, marcarAsistioReserva } from '../hooks/useReservasHoy';
 import { formatearMoneda } from '@shared/lib/dinero';
+import { whatsappParaSocio } from '@shared/lib/whatsapp';
 import { useToast } from '@shared/hooks/useToast';
 import { useTenant } from '@shared/hooks/useTenant';
 import { getTenantTimezone, hoyEnTimezone, fechaEnTz, formatHoraEnTz, diasEntre } from '@shared/lib/timezone';
@@ -306,6 +307,16 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           <AccionBtn onClick={() => setModalAbierto('bloquear')}>Bloquear socio</AccionBtn>
         )}
         <AccionBtn onClick={() => setModalAbierto('editar_contacto')}>Editar contacto</AccionBtn>
+        {socio.telefono && (
+          <AccionBtn
+            onClick={() => {
+              const link = whatsappParaSocio(socio.telefono, `Hola${socio.nombre ? ' ' + socio.nombre : ''} 👋`);
+              if (link) window.open(link, '_blank', 'noopener');
+            }}
+          >
+            WhatsApp
+          </AccionBtn>
+        )}
         <AccionBtn onClick={() => setModalAbierto('enviar_aviso')}>Enviar aviso</AccionBtn>
         {socio.auth_id ? (
           <AccionBtn onClick={() => setModalAbierto('reset_password')}>Resetear contraseña</AccionBtn>
