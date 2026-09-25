@@ -128,7 +128,7 @@ export default function Login() {
                 to="/activar"
                 style={{ fontSize: '13px', color: 'var(--ek-mustard)', textDecoration: 'none' }}
               >
-                ¿Primera vez? Activa tu cuenta
+                ¿El gym ya te registró? Actívala
               </Link>
               <Link
                 to="/recuperar"
@@ -147,6 +147,16 @@ export default function Login() {
             >
               {isSubmitting ? 'Iniciando sesión…' : 'Iniciar sesión'}
             </button>
+
+            {/* Registro de socio nuevo. Antes solo estaba "Activa tu cuenta"
+                (/activar, que es SOLO para quien recepción ya registró) y la gente
+                lo confundía con registrarse. El alta de un nuevo va a /signup. */}
+            <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', textAlign: 'center', margin: '16px 0 0' }}>
+              ¿Nuevo aquí?{' '}
+              <Link to="/signup" style={{ color: 'var(--ek-mustard)', fontWeight: 600, textDecoration: 'none' }}>
+                Crea tu cuenta
+              </Link>
+            </p>
           </form>
         </div>
 

@@ -102,7 +102,7 @@ export default function ActivarCuenta() {
                 <p className="ek-eyebrow" style={{ margin: 0 }}>ACCESO</p>
                 <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: 22, fontWeight: 700, margin: '4px 0 0' }}>Activa tu cuenta</h1>
                 <p style={{ fontSize: 13, color: 'var(--sala-text-secondary)', marginTop: 6, lineHeight: 1.5 }}>
-                  Pon el email con el que te registraron en {tenant.nombre || 'el gimnasio'} y activa tu cuenta. ¿Aún no eres socio? Pasa a recepción para darte de alta.
+                  ¿Ya te registró {tenant.nombre || 'el gimnasio'}? Pon el email con el que te dieron de alta para activar tu cuenta.
                 </p>
               </div>
 
@@ -119,7 +119,10 @@ export default function ActivarCuenta() {
                   {isSubmitting ? 'Activando…' : 'Activar mi cuenta'}
                 </button>
 
-                <div style={{ textAlign: 'center', marginTop: 6 }}>
+                <div style={{ textAlign: 'center', marginTop: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <Link to="/signup" style={{ fontSize: 13, color: 'var(--ek-mustard)', textDecoration: 'none' }}>
+                    ¿Aún no tienes cuenta? Crea una
+                  </Link>
                   <Link to="/login" style={{ fontSize: 13, color: 'var(--ek-mustard)', textDecoration: 'none' }}>
                     ¿Ya tienes acceso? Inicia sesión
                   </Link>
