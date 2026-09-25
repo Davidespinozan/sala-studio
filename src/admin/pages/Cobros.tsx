@@ -5,6 +5,7 @@ import { supabase } from '@shared/lib/supabase';
 import { useTenant, useTenantRefetch } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { autoservicioActivo, conAutoservicio } from '@shared/lib/cobrosConfig';
+import { altaSinPlanActiva, conAltaSinPlan } from '@shared/lib/registroConfig';
 import { ActivarCobrosCard } from '../components/ActivarCobrosCard';
 import type { ConnectEstado } from '../lib/connectService';
 
@@ -100,6 +101,10 @@ export default function Cobros() {
   const config = (tenant.config as Record<string, unknown> | null) ?? {};
   const autoservicio = autoservicioActivo(config);
   const [guardandoAuto, setGuardandoAuto] = useState(false);
+  // Alta sin plan: ¿el prospecto puede crear cuenta sin elegir plan y elegirlo/
+  // pagarlo después en la app? Vive en tenants.config.registro.permite_sin_plan.
+  const altaSinPlan = altaSinPlanActiva(config);
+  const [guardandoAlta, setGuardandoAlta] = useState(false);
 
   async function toggleAutoservicio() {
     setGuardandoAuto(true);
@@ -111,6 +116,18 @@ export default function Cobros() {
       await refetchTenant();
     }
     setGuardandoAuto(false);
+  }
+
+  async function toggleAltaSinPlan() {
+    setGuardandoAlta(true);
+    const next = conAltaSinPlan(config, !altaSinPlan);
+    const { error } = await (supabase as any).from('tenants').update({ config: next }).eq('id', tenant.id);
+    if (error) toast.error('No se pudo guardar: ' + error.message);
+    else {
+      toast.success(!altaSinPlan ? 'Ya pueden crear cuenta sin elegir plan' : 'El alta vuelve a requerir un plan');
+      await refetchTenant();
+    }
+    setGuardandoAlta(false);
   }
 
   return (
@@ -156,6 +173,30 @@ export default function Cobros() {
               className={autoservicio ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
             >
               {guardandoAuto ? '…' : autoservicio ? 'Activado' : 'Desactivado'}
+            </button>
+          </div>
+        </Bloque>
+
+        {/* Alta sin plan: el prospecto crea cuenta y elige/paga el plan después,
+            dentro del app (con cobro online) o en recepción (sin cobro online). */}
+        <Bloque titulo="CREAR CUENTA SIN PLAN">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--sala-text-primary)' }}>
+                {altaSinPlan ? 'Pueden crear cuenta sin elegir plan' : 'El alta requiere elegir un plan'}
+              </div>
+              <div style={{ fontSize: '12.5px', color: 'var(--sala-text-secondary)', marginTop: '3px', lineHeight: 1.5 }}>
+                {altaSinPlan
+                  ? 'El prospecto puede registrarse sin plan y elegirlo/pagarlo después en la app. Con cobro online paga solo; si cobras en recepción, ahí le asignan el plan.'
+                  : 'En el registro hay que elegir un plan. Actívalo para permitir crear cuenta primero y elegir el plan después.'}
+              </div>
+            </div>
+            <button
+              onClick={toggleAltaSinPlan}
+              disabled={guardandoAlta}
+              className={altaSinPlan ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
+            >
+              {guardandoAlta ? '…' : altaSinPlan ? 'Activado' : 'Desactivado'}
             </button>
           </div>
         </Bloque>

@@ -4,20 +4,31 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { useLandingConfig } from '@shared/hooks/useLandingConfig';
 import { socioPuedePagarEnApp } from '@shared/lib/cobrosDelGym';
 import { autoservicioActivo } from '@shared/lib/cobrosConfig';
+import { formatearPrecioTier, sufijoPeriodoTier } from '@shared/lib/precioTier';
 import { supabase } from '@shared/lib/supabase';
 import { CheckoutModal } from '@shared/components/CheckoutModal';
 
+interface TierRow {
+  id: string;
+  slug: string;
+  nombre: string;
+  precio_centavos: number;
+  moneda: string;
+  tipo: string | null;
+  periodo: string | null;
+  clases_incluidas: number | null;
+  duracion_dias: number | null;
+}
+
 /**
- * Socio con status 'pendiente_pago': cuenta creada, falta pagar.
+ * Socio con status 'pendiente_pago': cuenta creada, falta plan/pago.
  *
- * Si el gym COBRA ONLINE (terminó su onboarding de Connect), abre directo el
- * Embedded Checkout con su plan; si lo cierra, queda el botón para reabrirlo.
- *
- * Si el gym NO cobra online, esta pantalla NO puede pedir plata: antes igual
- * abría el checkout y el socio comía un "acércate a recepción" apenas entraba,
- * volvía a esta pantalla que le insistía "Pagá tu plan", apretaba el botón, y
- * otra vez lo mismo — un callejón sin salida. Ahora se le dice la verdad (su
- * cuenta está lista, el pago lo coordina con el gym) y se le da el WhatsApp.
+ * Dos casos:
+ *  (a) Con plan preseleccionado (`tierSlug`, alta con plan): si el gym cobra online
+ *      abre directo el checkout de ese plan; si no, "paga/coordina en recepción".
+ *  (b) SIN plan (`tierSlug` vacío, alta sin plan): muestra el SELECTOR de planes.
+ *      Online → elegir un plan abre el checkout. Recepción → lista informativa +
+ *      "elige y paga en recepción" (recepción se lo asigna).
  */
 export function MembresiaPendiente({
   nombre,
@@ -31,13 +42,17 @@ export function MembresiaPendiente({
   const tenant = useTenant();
   const { whatsappUrl } = useLandingConfig();
   const cobraOnline = socioPuedePagarEnApp(tenant);
-  // Sin cobro online: si el gym cobra en recepción (autoservicio off) el mensaje
-  // es directo; si es Connect en trámite, "coordina con el gym".
   const autoservicio = autoservicioActivo(tenant.config as Record<string, unknown> | null);
+  const sinPlan = !tierSlug;
+
   const [tierId, setTierId] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [activando, setActivando] = useState(false);
+  // Alta sin plan: planes para elegir.
+  const [planes, setPlanes] = useState<TierRow[]>([]);
+  const [cargandoPlanes, setCargandoPlanes] = useState(false);
 
+  // Caso (a): resolver el tier preseleccionado y, si cobra online, abrir el checkout.
   useEffect(() => {
     if (!tierSlug) return;
     let cancelado = false;
@@ -52,19 +67,43 @@ export function MembresiaPendiente({
       if (cancelado) return;
       if (data?.id) {
         setTierId(data.id);
-        // Solo abrimos el pago si el gym puede cobrar. Si no, el modal se abriría
-        // para morir en "acércate a recepción".
         if (cobraOnline) setShowCheckout(true);
       }
     })();
     return () => { cancelado = true; };
   }, [tierSlug, tenant.id, cobraOnline]);
 
+  // Caso (b): sin plan → traer los planes publicados (misma regla que el signup).
+  useEffect(() => {
+    if (!sinPlan) return;
+    let cancelado = false;
+    setCargandoPlanes(true);
+    (async () => {
+      const { data } = await supabase
+        .from('tiers')
+        .select('id, slug, nombre, precio_centavos, moneda, tipo, periodo, clases_incluidas, duracion_dias')
+        .eq('tenant_id', tenant.id)
+        .eq('activo', true)
+        .eq('en_venta', true)
+        .eq('visible_landing', true)
+        .order('precio_centavos', { ascending: true });
+      if (cancelado) return;
+      setPlanes((data ?? []) as TierRow[]);
+      setCargandoPlanes(false);
+    })();
+    return () => { cancelado = true; };
+  }, [sinPlan, tenant.id]);
+
   function handlePaid() {
     setShowCheckout(false);
     setActivando(true);
     // El webhook activa la membresía (1-2s) → recargamos para entrar ya activo.
     setTimeout(() => window.location.reload(), 1800);
+  }
+
+  function elegirPlan(id: string) {
+    setTierId(id);
+    setShowCheckout(true);
   }
 
   const wrap: React.CSSProperties = {
@@ -89,6 +128,78 @@ export function MembresiaPendiente({
     );
   }
 
+  // ── Caso (b): SIN plan → selector de planes ───────────────────────────────
+  if (sinPlan) {
+    return (
+      <>
+        <div style={{ ...wrap, justifyContent: 'flex-start', paddingTop: 48 }}>
+          <TenantLogo variant="completo" height={44} fallbackFontSize={28} showSuffix />
+          <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: '24px 0 8px' }}>ELIGE TU PLAN</p>
+          <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, margin: '0 0 10px', color: 'var(--ek-ink)' }}>
+            {nombre ? `Hola, ${nombre}` : 'Tu cuenta está lista'}
+          </h1>
+          <p style={{ maxWidth: 400, fontSize: 14, color: 'var(--sala-text-secondary)', lineHeight: 1.55, margin: '0 0 22px' }}>
+            {cobraOnline
+              ? 'Elige un plan para activar tu membresía y empezar a reservar.'
+              : autoservicio
+                ? `Elige el plan que quieres y coordina el pago con ${tenant.nombre} para activarlo.`
+                : `Elige el plan que quieres y págalo en recepción; ahí te lo activan para reservar.`}
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 380 }}>
+            {cargandoPlanes ? (
+              <div className="ek-skeleton" style={{ height: 72, borderRadius: 'var(--ek-r-md)' }} />
+            ) : planes.length === 0 ? (
+              <p style={{ fontSize: 13, color: 'var(--sala-text-secondary)' }}>
+                {tenant.nombre} todavía no publicó sus planes. Escríbeles para más info.
+              </p>
+            ) : (
+              planes.map((p) => (
+                <div
+                  key={p.id}
+                  className="ek-card"
+                  style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, textAlign: 'left' }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--sala-text-primary)' }}>{p.nombre}</div>
+                    <div style={{ fontSize: 13, color: 'var(--sala-text-secondary)' }}>
+                      {formatearPrecioTier(p.precio_centavos, p.moneda)}{sufijoPeriodoTier(p)}
+                    </div>
+                  </div>
+                  {cobraOnline && (
+                    <button onClick={() => elegirPlan(p.id)} className="ek-cta" style={{ flexShrink: 0 }}>
+                      Elegir
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+
+            {!cobraOnline && whatsappUrl() && (
+              <a
+                href={whatsappUrl() as string}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ek-cta"
+                style={{ textDecoration: 'none', marginTop: 4 }}
+              >
+                Escríbele a {tenant.nombre}
+              </a>
+            )}
+            <button onClick={onCerrarSesion} className="ek-cta ek-cta--secondary">
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+
+        {showCheckout && tierId && (
+          <CheckoutModal tierId={tierId} onClose={() => setShowCheckout(false)} onSuccess={handlePaid} />
+        )}
+      </>
+    );
+  }
+
+  // ── Caso (a): plan preseleccionado ────────────────────────────────────────
   return (
     <>
       <div style={wrap}>

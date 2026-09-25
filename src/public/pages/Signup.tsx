@@ -8,6 +8,7 @@ import { validarPassword } from '../lib/onboardingLogic';
 import { formatearPrecioTier, sufijoPeriodoTier } from '@shared/lib/precioTier';
 import { socioPuedePagarEnApp } from '@shared/lib/cobrosDelGym';
 import { autoservicioActivo } from '@shared/lib/cobrosConfig';
+import { altaSinPlanActiva } from '@shared/lib/registroConfig';
 import { SaludSocioForm, tenantPideSalud } from '@shared/components/SaludSocioForm';
 
 interface TierRow {
@@ -147,16 +148,14 @@ export default function Signup() {
   // Gyms con config.registro.pide_salud: tras crear la cuenta se muestra el paso de
   // salud (antecedentes + contacto de emergencia) antes de entrar a la app.
   const [saludUsuarioId, setSaludUsuarioId] = useState<string | null>(null);
+  // ¿El gym permite crear cuenta sin elegir plan? (elige/paga después en la app.)
+  const permiteSinPlan = altaSinPlanActiva(tenant.config as Record<string, unknown> | null);
 
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  // tierSlug null = alta SIN plan (el socio elige/paga después en la app).
+  async function procesarAlta(tierSlug: string | null) {
     setError(null);
 
-    if (!plan) {
-      setError('No pudimos cargar el plan. Recargá la página.');
-      return;
-    }
     if (!acepta) {
       setError('Debes aceptar los términos y el aviso de privacidad para continuar.');
       return;
@@ -186,7 +185,7 @@ export default function Signup() {
           nombre,
           email,
           password,
-          tier: plan.slug,
+          tier: tierSlug, // null = alta sin plan (elige/paga después)
           slug: tenant.slug, // el socio se da de alta en ESTE gimnasio (subdominio)
           sucursal_id: multisede ? sucursalId : null
         })
@@ -233,6 +232,12 @@ export default function Signup() {
     }
   }
 
+  // Submit del formulario: con plan usa su slug; sin plan (o gym sin planes) va null.
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    void procesarAlta(plan ? plan.slug : null);
+  }
+
   // Paso de salud (solo gyms con pide_salud): tras crear la cuenta, antes de la app.
   if (saludUsuarioId) {
     return (
@@ -264,7 +269,7 @@ export default function Signup() {
     );
   }
 
-  if (!plan) {
+  if (!plan && !permiteSinPlan) {
     // El gym todavía no publicó ningún plan. Antes acá se caía un <Navigate to="/">
     // también cuando el plan existía pero tenía otro slug: el socio rebotaba al
     // inicio sin explicación y no se podía registrar nunca.
@@ -277,6 +282,77 @@ export default function Signup() {
             : 'No pudimos cargar los planes. Recargá la página.'}
         </p>
         <Link to="/" className="ek-btn ek-btn--ghost">Volver al inicio</Link>
+      </div>
+    );
+  }
+
+  // Alta SIN plan (flag `permite_sin_plan`): crea la cuenta y el socio elige/paga su
+  // plan después, dentro del app. Se muestra cuando no hay plan preseleccionado.
+  if (!plan) {
+    return (
+      <div style={{ maxWidth: '480px', margin: '0 auto', padding: '40px 24px', minHeight: '100vh' }}>
+        <Link to="/" style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', textDecoration: 'none', marginBottom: '32px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+          <ArrowLeft size={14} strokeWidth={2.25} />
+          Volver a {tenant.nombre}
+        </Link>
+
+        <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '8px' }}>CREA TU CUENTA</p>
+        <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '26px', fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 8px' }}>
+          Regístrate en {tenant.nombre}
+        </h1>
+        <p style={{ fontSize: '13px', color: 'var(--ek-ink-muted)', margin: '0 0 24px', lineHeight: 1.5 }}>
+          Crea tu cuenta ahora y elige tu plan cuando quieras desde la app.
+        </p>
+
+        <form onSubmit={handleSubmit} className="ek-stack-md">
+          <div className="ek-form-field">
+            <label className="ek-label" htmlFor="signup-nombre">Nombre completo</label>
+            <input id="signup-nombre" type="text" className="ek-input" value={nombre} onChange={(e) => setNombre(e.target.value)} required disabled={isProcessing} autoComplete="name" />
+          </div>
+          <div className="ek-form-field">
+            <label className="ek-label" htmlFor="signup-email">Email</label>
+            <input id="signup-email" type="email" className="ek-input" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isProcessing} autoComplete="email" />
+          </div>
+          <div className="ek-form-field">
+            <label className="ek-label" htmlFor="signup-password">Contraseña</label>
+            <PasswordInput id="signup-password" value={password} onChange={setPassword} required minLength={8} disabled={isProcessing} autoComplete="new-password" />
+          </div>
+          <div className="ek-form-field">
+            <label className="ek-label" htmlFor="signup-password-confirm">Confirmar contraseña</label>
+            <PasswordInput id="signup-password-confirm" value={passwordConfirm} onChange={setPasswordConfirm} required disabled={isProcessing} autoComplete="new-password" />
+          </div>
+
+          {multisede && (
+            <div className="ek-form-field">
+              <label className="ek-label" htmlFor="signup-sucursal">Sede</label>
+              <select id="signup-sucursal" className="ek-input" value={sucursalId} onChange={(e) => setSucursalId(e.target.value)} required disabled={isProcessing}>
+                <option value="">Elige tu sede…</option>
+                {sucursales.map((s) => (<option key={s.id} value={s.id}>{s.nombre}</option>))}
+              </select>
+            </div>
+          )}
+
+          {error && (
+            <div style={{ background: 'var(--sala-error-bg)', border: '0.5px solid var(--ek-danger)', borderRadius: 'var(--ek-r-sm)', padding: '12px 16px', color: 'var(--ek-danger)', fontSize: '13px' }}>
+              {error}
+            </div>
+          )}
+
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '12px', cursor: 'pointer' }}>
+            <input type="checkbox" checked={acepta} onChange={(e) => setAcepta(e.target.checked)} disabled={isProcessing} style={{ marginTop: '3px', width: '16px', height: '16px', flexShrink: 0, cursor: 'pointer' }} />
+            <span style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', lineHeight: 1.5 }}>
+              Acepto los <Link to="/terminos" style={{ color: 'var(--ek-mustard)' }}>Términos y condiciones</Link> y el <Link to="/privacidad" style={{ color: 'var(--ek-mustard)' }}>Aviso de privacidad</Link>.
+            </span>
+          </label>
+
+          <button type="submit" className="ek-cta ek-cta--full ek-cta--solid" style={{ marginTop: '12px', padding: '16px', fontSize: '15px' }} disabled={isProcessing || !acepta}>
+            {isProcessing ? 'Creando tu cuenta…' : 'Crear mi cuenta'}
+          </button>
+
+          <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', textAlign: 'center', marginTop: '12px' }}>
+            ¿Ya tienes cuenta? <Link to="/login" style={{ color: 'var(--ek-mustard)' }}>Iniciar sesión</Link>
+          </p>
+        </form>
       </div>
     );
   }
@@ -507,6 +583,19 @@ export default function Signup() {
             : `Activar mi plan — ${precio}${sufijo}`
           }
         </button>
+
+        {/* Alta sin plan (flag del gym): crea la cuenta y elige el plan después. */}
+        {permiteSinPlan && (
+          <button
+            type="button"
+            onClick={() => procesarAlta(null)}
+            className="ek-cta ek-cta--full ek-cta--secondary"
+            style={{ marginTop: '8px', padding: '14px', fontSize: '14px' }}
+            disabled={isProcessing || !acepta}
+          >
+            Solo crear mi cuenta (elijo el plan después)
+          </button>
+        )}
 
         <p style={{
           fontSize: '11px',

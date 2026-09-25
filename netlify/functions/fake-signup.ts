@@ -43,7 +43,9 @@ export const handler: Handler = async (event) => {
   try {
     const { nombre, email, password, tier, slug, sucursal_id } = JSON.parse(event.body || '{}');
 
-    if (!nombre || !email || !password || !tier || !slug) {
+    // `tier` es OPCIONAL: si no viene, es alta sin plan (se valida más abajo contra
+    // el flag del gym). El resto sí es obligatorio.
+    if (!nombre || !email || !password || !slug) {
       return {
         statusCode: 400,
         body: JSON.stringify({ error: 'Faltan datos requeridos' })
@@ -54,7 +56,7 @@ export const handler: Handler = async (event) => {
     //    en el gimnasio cuyo subdominio está visitando — no en sala-demo.
     const { data: tenant, error: tenantError } = await supabaseAdmin
       .from('tenants')
-      .select('id, slug')
+      .select('id, slug, config')
       .eq('slug', slug)
       .eq('status', 'activo')
       .single();
@@ -72,27 +74,43 @@ export const handler: Handler = async (event) => {
     // por Stripe (lo dispara Signup.tsx) y el webhook activa la membresía.
     const esDemo = tenant.slug === 'healthyspace';
 
-    // 1b. Obtener tier real de BD para usar su precio (no hardcode)
-    const { data: tierData, error: tierError } = await supabaseAdmin
-      .from('tiers')
-      .select('id, precio_centavos')
-      .eq('tenant_id', tenant.id)
-      .eq('slug', tier)
-      .eq('activo', true)
-      .single();
-
-    if (tierError || !tierData) {
-      console.error('[fake-signup] tier error:', tierError);
+    // Alta SIN plan: permitida solo si el gym prende config.registro.permite_sin_plan.
+    // La cuenta queda 'pendiente_pago' sin membresía; el socio elige/paga su plan
+    // después dentro del app.
+    const sinPlan = !tier;
+    const permiteSinPlan =
+      ((tenant as { config?: { registro?: { permite_sin_plan?: unknown } } }).config
+        ?.registro?.permite_sin_plan) === true;
+    if (sinPlan && !permiteSinPlan) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: `Plan "${tier}" no encontrado o inactivo.` })
+        body: JSON.stringify({ error: 'Este gimnasio requiere elegir un plan al registrarte.' })
       };
     }
 
+    // 1b. Tier real de BD (precio) — solo cuando SÍ hay plan.
+    let tierData: { id: string; precio_centavos: number | null } | null = null;
+    if (!sinPlan) {
+      const { data, error: tierError } = await supabaseAdmin
+        .from('tiers')
+        .select('id, precio_centavos')
+        .eq('tenant_id', tenant.id)
+        .eq('slug', tier)
+        .eq('activo', true)
+        .single();
+      if (tierError || !data) {
+        console.error('[fake-signup] tier error:', tierError);
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: `Plan "${tier}" no encontrado o inactivo.` })
+        };
+      }
+      tierData = data;
+    }
+
     // Activar gratis (sin cobro) si es el DEMO o el plan no cuesta (precio 0).
-    // Si el plan es PAGO en un gym real → la cuenta queda 'pendiente_pago' y el
-    // socio paga por Stripe desde la pantalla de membresía pendiente.
-    const activarGratis = esDemo || (tierData.precio_centavos ?? 0) <= 0;
+    // Sin plan NUNCA activa: queda 'pendiente_pago' y elige/paga después.
+    const activarGratis = !sinPlan && (esDemo || (tierData!.precio_centavos ?? 0) <= 0);
 
     // 1c. Resolver la sede del socio. Si el gym es multisede, el signup manda la
     //     elegida; validamos que sea de este tenant. Si no manda ninguna (gym de
@@ -155,14 +173,16 @@ export const handler: Handler = async (event) => {
       .from('usuarios')
       .update({
         nombre,
-        membresia_tier: tier,
+        membresia_tier: sinPlan ? null : tier,
         status: activarGratis ? 'activo' : 'pendiente_pago',
         rol: 'miembro',
         tenant_id: tenant.id,
         sucursal_id: sucursalId,
-        notas_admin: activarGratis
-          ? `Alta self-service — ${fechaHoy}`
-          : `Alta self-service — pendiente de pago — ${fechaHoy}`
+        notas_admin: sinPlan
+          ? `Alta self-service — sin plan (elige después) — ${fechaHoy}`
+          : activarGratis
+            ? `Alta self-service — ${fechaHoy}`
+            : `Alta self-service — pendiente de pago — ${fechaHoy}`
       })
       .eq('auth_id', authUserId)
       .select('id')
@@ -184,7 +204,7 @@ export const handler: Handler = async (event) => {
     if (activarGratis) {
       const { error: memError } = await supabaseAdmin.rpc('activar_suscripcion_socio', {
         p_usuario_id: usuarioUpdated.id,
-        p_tier_id: tierData.id
+        p_tier_id: tierData!.id
       });
       if (memError) {
         console.error('[fake-signup] membresia error:', memError);
@@ -203,7 +223,7 @@ export const handler: Handler = async (event) => {
     //    distinguir de eventos reales cuando se integre Stripe.
     // Evento de pago SOLO para el demo (pago simulado). En gym real el pago real
     // lo registra Stripe; acá no hubo cobro.
-    if (esDemo) {
+    if (esDemo && tierData) {
       const fakeEventId = `fake_signup_${authUserId}_${Date.now()}`;
       await supabaseAdmin
         .from('payment_events')
