@@ -35,6 +35,7 @@ function urlDelAviso(tipo: string): string {
     case 'membresia_por_vencer':
     case 'membresia_vencida':
     case 'pago_rechazado':
+    case 'completar_perfil':
       return '/app/perfil';
     default:
       return '/app';

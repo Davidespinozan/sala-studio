@@ -5,6 +5,7 @@ import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { supabase } from '@shared/lib/supabase';
+import { perfilIncompleto } from '@shared/lib/datosSocio';
 import type { Database } from '@shared/types/database';
 import {
   claseFromRow,
@@ -263,6 +264,29 @@ export default function Dashboard() {
   const bloqueado = !!usuario?.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > ahora;
   const nombreFormat = capitalizarNombre(usuario?.nombre);
 
+  // Perfil incompleto (falta teléfono o fecha de nacimiento): banner + push único.
+  const [perfilFalta, setPerfilFalta] = useState(false);
+  useEffect(() => {
+    if (!usuario?.id) return;
+    let cancel = false;
+    (async () => {
+      const q = supabase.from('usuarios_datos_privados' as never) as unknown as {
+        select: (s: string) => { eq: (c: string, v: unknown) => { maybeSingle: () => Promise<{ data: unknown }> } };
+      };
+      const { data } = await q.select('fecha_nacimiento').eq('usuario_id', usuario.id).maybeSingle();
+      if (cancel) return;
+      const fecha = (data as { fecha_nacimiento?: string | null } | null)?.fecha_nacimiento ?? null;
+      const falta = perfilIncompleto({ telefono: usuario.telefono, fecha_nacimiento: fecha });
+      setPerfilFalta(falta);
+      if (falta) {
+        // Genera el push una sola vez (el RPC deduplica por socio).
+        const rpc = supabase.rpc.bind(supabase) as unknown as (n: string) => Promise<unknown>;
+        rpc('avisar_completar_perfil').catch(() => {});
+      }
+    })();
+    return () => { cancel = true; };
+  }, [usuario?.id, usuario?.telefono]);
+
   return (
     <div className="ek-container" style={{ paddingTop: '12px' }}>
       {/* Banner restricción */}
@@ -454,6 +478,35 @@ export default function Dashboard() {
             Aún no completaste tu perfil ni activaste tu membresía.
           </p>
         </section>
+      )}
+
+      {/* Completa tu perfil: falta teléfono o fecha de nacimiento. Lleva a Perfil. */}
+      {perfilFalta && usuario?.status !== 'pendiente_onboarding' && (
+        <Link
+          to="/app/perfil"
+          className="ek-lift"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            background: 'var(--sala-surface)',
+            border: '1px solid var(--sala-warning-glow)',
+            borderRadius: '14px',
+            padding: '16px 18px',
+            marginBottom: '24px',
+            textDecoration: 'none'
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--sala-warning)', margin: '0 0 4px' }}>
+              <Sparkles size={13} strokeWidth={2.5} /> Completa tu perfil
+            </p>
+            <p style={{ fontSize: '14px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.45 }}>
+              Faltan tus datos (teléfono y fecha de nacimiento) para recibir tus tickets y avisos.
+            </p>
+          </div>
+          <ArrowRight size={18} strokeWidth={2.25} style={{ color: 'var(--sala-text-secondary)', flexShrink: 0 }} />
+        </Link>
       )}
     </div>
   );

@@ -14,6 +14,7 @@ import type { Database } from '@shared/types/database';
 import { useMembresiaActual, membresiaEstado } from '@member/hooks/useMembresiaActual';
 import { PlanTipoToggle, type VistaPlan } from '@shared/components/PlanTipoToggle';
 import { ActivarAvisosPush } from '@shared/components/ActivarAvisosPush';
+import { CompletarPerfilForm } from '@member/components/CompletarPerfilForm';
 import { useHuellasSocio } from '@shared/hooks/useHuellasSocio';
 import { nombreDedo } from '@shared/lib/dedos';
 import { sufijoPeriodoTier } from '@shared/lib/precioTier';
@@ -171,6 +172,22 @@ export default function Perfil() {
             </div>
           )}
         </div>
+
+        {/* Datos personales editables por el socio (teléfono, nacimiento, etc.). El
+            teléfono habilita los avisos por WhatsApp/correo cuando se conecten. */}
+        {usuario?.id && (
+          <div className="ek-card" style={{ padding: '20px', marginTop: '16px' }}>
+            <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '4px' }}>MIS DATOS PERSONALES</p>
+            <p style={{ fontSize: '12.5px', color: 'var(--sala-text-secondary)', margin: '0 0 14px', lineHeight: 1.5 }}>
+              Mantenlos al día para recibir tus tickets y avisos.
+            </p>
+            <CompletarPerfilForm
+              usuarioId={usuario.id}
+              telefonoInicial={usuario.telefono}
+              onSaved={() => setTimeout(() => window.location.reload(), 700)}
+            />
+          </div>
+        )}
 
         {/* Plan: avisos + hero + método de pago + opciones + historial + cancelar + FAQ */}
         <AvisosPlan membresia={membresia} tenantNombre={tenant.nombre} />

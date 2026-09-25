@@ -33,6 +33,38 @@ export async function guardarDatosPrivados(
 }
 
 /**
+ * El SOCIO actualiza SU propio perfil (teléfono en `usuarios` + ficha privada) vía
+ * el RPC `socio_actualizar_perfil` (SECURITY DEFINER). Se usa este RPC —y no el
+ * upsert directo de `guardarDatosPrivados`— porque el socio no tiene permiso de
+ * escritura sobre `usuarios_datos_privados` (solo SELECT).
+ */
+export async function actualizarPerfilSocio(datos: {
+  telefono?: string | null;
+  fecha_nacimiento?: string | null;
+  sexo?: string | null;
+  domicilio?: string | null;
+}): Promise<{ error: string | null }> {
+  const { error } = await (supabase.rpc as any)('socio_actualizar_perfil', {
+    p_telefono: datos.telefono?.trim() || null,
+    p_fecha_nacimiento: datos.fecha_nacimiento || null,
+    p_sexo: datos.sexo || null,
+    p_domicilio: datos.domicilio?.trim() || null
+  });
+  return { error: error ? error.message : null };
+}
+
+/**
+ * ¿Le faltan al socio los datos obligatorios? Hoy: teléfono + fecha de nacimiento.
+ * (sexo y domicilio son opcionales.) Decide el banner/aviso "Completa tu perfil".
+ */
+export function perfilIncompleto(datos: {
+  telefono?: string | null;
+  fecha_nacimiento?: string | null;
+}): boolean {
+  return !datos.telefono || !datos.fecha_nacimiento;
+}
+
+/**
  * Sube la foto del socio al bucket `avatars` y actualiza `usuarios.avatar_url`.
  * OJO: la RLS del bucket y de `usuarios` exige `is_admin()` — recepción NO puede
  * (por eso la foto solo se ofrece en el alta de admin). Mismo path que la ficha:
