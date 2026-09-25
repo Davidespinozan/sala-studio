@@ -1,4 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { TenantLogo } from '@shared/components/TenantLogo';
@@ -63,6 +64,14 @@ export default function Login() {
       padding: '24px 20px'
     }}>
       <div style={{ maxWidth: '400px', width: '100%' }}>
+        {/* Volver a la landing del tenant (antes no había forma de regresar). */}
+        <Link
+          to="/"
+          style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px', marginBottom: '24px' }}
+        >
+          <ArrowLeft size={14} strokeWidth={2.25} /> Volver a {tenant.nombre}
+        </Link>
+
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px' }}>
           {tieneIsotipo ? (
             <TenantLogo variant="isotipo" height={112} />

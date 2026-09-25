@@ -1,4 +1,5 @@
 import { useState, FormEvent } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@shared/lib/supabase';
 import { backendPost } from '@shared/lib/backend';
@@ -58,6 +59,13 @@ export default function ActivarCuenta() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 20px' }}>
       <div style={{ maxWidth: '400px', width: '100%' }}>
+        <Link
+          to="/"
+          style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px', marginBottom: '24px' }}
+        >
+          <ArrowLeft size={14} strokeWidth={2.25} /> Volver a {tenant.nombre}
+        </Link>
+
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px' }}>
           {tieneIsotipo
             ? <TenantLogo variant="isotipo" height={112} />
