@@ -72,7 +72,9 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
   const inscritosActivos = inscritos.filter(
     (i) => i.status === 'confirmada' || i.status === 'completada'
   );
-  const cuposReservados = inscritosActivos.length;
+  // Cada reserva ocupa 1 (titular) + sus invitados. Antes se contaba solo .length,
+  // así el espacio del invitado (planes con invitados, ej. Ultra) no se reflejaba.
+  const cuposReservados = inscritosActivos.reduce((n, i) => n + 1 + (i.invitadosCount ?? 0), 0);
   const cuposLibres = Math.max(0, claseActual.cupoMax - cuposReservados);
   const estado = estadoCupos({ ...claseActual, cuposReservados } as Clase);
 
@@ -666,6 +668,11 @@ function InscritoRow({
           }}
         >
           {inscrito.nombre}
+          {inscrito.invitadosCount > 0 && (
+            <span style={{ marginLeft: '6px', fontSize: '11px', fontWeight: 600, color: 'var(--sala-accent)' }}>
+              +{inscrito.invitadosCount} invitado{inscrito.invitadosCount === 1 ? '' : 's'}
+            </span>
+          )}
         </p>
         <p
           style={{

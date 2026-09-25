@@ -12,6 +12,8 @@ export interface InscritoAdmin {
   status: 'confirmada' | 'cancelada' | 'completada' | 'no_show';
   folio: string;
   lugarId: string | null;
+  /** Invitados que trae este socio: cuentan en el cupo (1 titular + N invitados). */
+  invitadosCount: number;
 }
 
 export interface MiembroBuscable {
@@ -36,7 +38,7 @@ export function useInscritosDeClase(claseId: string | null) {
     const { data, error } = await supabase
       .from('reservas')
       .select(
-        'id, status, folio, lugar_id, usuario:usuarios!reservas_usuario_id_fkey(id, nombre, email, membresia_tier)'
+        'id, status, folio, lugar_id, invitados_count, usuario:usuarios!reservas_usuario_id_fkey(id, nombre, email, membresia_tier)'
       )
       .eq('clase_id', claseId)
       .order('id', { ascending: true });
@@ -52,6 +54,7 @@ export function useInscritosDeClase(claseId: string | null) {
       status: string;
       folio: string;
       lugar_id: string | null;
+      invitados_count: number | null;
       usuario: {
         id: string;
         nombre: string | null;
@@ -69,7 +72,8 @@ export function useInscritosDeClase(claseId: string | null) {
         planSlug: r.usuario?.membresia_tier ?? null,
         status: r.status as InscritoAdmin['status'],
         folio: r.folio,
-        lugarId: r.lugar_id ?? null
+        lugarId: r.lugar_id ?? null,
+        invitadosCount: r.invitados_count ?? 0
       }))
     );
     setIsLoading(false);
