@@ -1,20 +1,34 @@
 import { formatearMoneda } from '@shared/lib/dinero';
 
 interface Props {
-  /** Monto de la multa en centavos (lo que estampa el trigger del tope diario). */
+  /** Monto del cobro en centavos (lo que estampa el trigger). */
   centavos: number;
+  /** Por qué se pide: no-show (Modelo A) o reservar fuera de la franja del plan. */
+  motivo?: 'no_show' | 'fuera_franja';
   submitting: boolean;
   onConfirm: () => void;
   onClose: () => void;
 }
 
 /**
- * Modal del Modelo A: el socio faltó a su clase de hoy y quiere reservar otra.
- * Se le permite, pero asumiendo una multa que se cobra en recepción cuando llega.
+ * Modal de "reservar pagando un extra que cobra recepción". Dos motivos:
+ *   - no_show: el socio faltó a su clase de hoy y quiere reservar otra (Modelo A).
+ *   - fuera_franja: su plan solo reserva en cierta franja y quiere reservar fuera.
  * Si no confirma, no se cobra nada.
  */
-export function ConfirmarMultaModal({ centavos, submitting, onConfirm, onClose }: Props) {
+export function ConfirmarMultaModal({ centavos, motivo = 'no_show', submitting, onConfirm, onClose }: Props) {
   const monto = formatearMoneda(centavos);
+  const esFranja = motivo === 'fuera_franja';
+  const eyebrow = esFranja ? 'Reserva con recargo' : 'Reserva con multa';
+  const titulo = esFranja
+    ? `¿Reservar con un recargo de ${monto}?`
+    : `¿Reservar asumiendo una multa de ${monto}?`;
+  const cuerpo = esFranja
+    ? 'Este horario está fuera de la franja que cubre tu plan. Puedes reservarlo pagando un recargo.'
+    : 'Faltaste a tu clase de hoy sin cancelarla. Ya usaste tu reserva del día, pero puedes tomar otra pagando una multa.';
+  const detalle = esFranja
+    ? `El recargo de ${monto} se cobra en recepción cuando llegues. Si no reservas, no se cobra nada.`
+    : `La multa de ${monto} se cobra en recepción cuando llegues. Si no reservas, no se cobra nada.`;
   return (
     <div className="ek-modal-backdrop" onClick={onClose}>
       <div className="ek-modal" onClick={(e) => e.stopPropagation()}>
@@ -30,7 +44,7 @@ export function ConfirmarMultaModal({ centavos, submitting, onConfirm, onClose }
             marginBottom: '8px'
           }}
         >
-          Reserva con multa
+          {eyebrow}
         </p>
         <h3
           style={{
@@ -43,7 +57,7 @@ export function ConfirmarMultaModal({ centavos, submitting, onConfirm, onClose }
             color: 'var(--sala-text-primary)'
           }}
         >
-          ¿Reservar asumiendo una multa de {monto}?
+          {titulo}
         </h3>
         <p
           style={{
@@ -54,8 +68,7 @@ export function ConfirmarMultaModal({ centavos, submitting, onConfirm, onClose }
             lineHeight: 1.5
           }}
         >
-          Faltaste a tu clase de hoy sin cancelarla. Ya usaste tu reserva del día, pero
-          puedes tomar otra pagando una multa.
+          {cuerpo}
         </p>
 
         <div
@@ -68,8 +81,7 @@ export function ConfirmarMultaModal({ centavos, submitting, onConfirm, onClose }
           }}
         >
           <p style={{ fontSize: '14px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
-            La multa de <strong>{monto}</strong> se cobra en recepción cuando llegues.
-            Si no reservas, no se cobra nada.
+            {detalle}
           </p>
         </div>
 

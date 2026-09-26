@@ -68,10 +68,13 @@ export function useReservasDelUsuario() {
  */
 export class MultaRequeridaError extends Error {
   readonly centavos: number;
-  constructor(centavos: number) {
-    super('MULTA_REQUERIDA');
+  /** Por qué se pide el cobro: no-show (Modelo A) o reservar fuera de la franja del plan. */
+  readonly motivo: 'no_show' | 'fuera_franja';
+  constructor(centavos: number, motivo: 'no_show' | 'fuera_franja' = 'no_show') {
+    super(motivo === 'fuera_franja' ? 'RECARGO_FRANJA' : 'MULTA_REQUERIDA');
     this.name = 'MultaRequeridaError';
     this.centavos = centavos;
+    this.motivo = motivo;
   }
 }
 
@@ -137,7 +140,12 @@ export async function crearReserva(params: {
   if (error) {
     if (error.message.includes('MULTA_REQUERIDA')) {
       const centavos = parseInt(error.message.match(/MULTA_REQUERIDA:\s*(\d+)/)?.[1] ?? '0', 10);
-      throw new MultaRequeridaError(centavos);
+      throw new MultaRequeridaError(centavos, 'no_show');
+    }
+    // Plan con franja horaria: reservar fuera de su franja pide aceptar un recargo.
+    if (error.message.includes('RECARGO_FRANJA')) {
+      const centavos = parseInt(error.message.match(/RECARGO_FRANJA:\s*(\d+)/)?.[1] ?? '0', 10);
+      throw new MultaRequeridaError(centavos, 'fuera_franja');
     }
     throw new Error(traducirErrorRPC(error.message));
   }

@@ -104,6 +104,7 @@ export default function ClaseDetalle() {
   const [submitting, setSubmitting] = useState(false);
   const [errorReserva, setErrorReserva] = useState<string | null>(null);
   const [multaPendiente, setMultaPendiente] = useState<number | null>(null);
+  const [motivoMulta, setMotivoMulta] = useState<'no_show' | 'fuera_franja'>('no_show');
 
   // Refresh tick
   const [refreshTick, setRefreshTick] = useState(0);
@@ -288,6 +289,7 @@ export default function ClaseDetalle() {
     } catch (e) {
       // El tope diario pide confirmar la multa (Modelo A): abrir el modal en vez de error.
       if (e instanceof MultaRequeridaError) {
+        setMotivoMulta(e.motivo);
         setMultaPendiente(e.centavos);
         setSubmitting(false);
         return;
@@ -891,6 +893,7 @@ export default function ClaseDetalle() {
       {multaPendiente !== null && (
         <ConfirmarMultaModal
           centavos={multaPendiente}
+          motivo={motivoMulta}
           submitting={submitting}
           onConfirm={() => confirmarReserva(true)}
           onClose={() => !submitting && setMultaPendiente(null)}

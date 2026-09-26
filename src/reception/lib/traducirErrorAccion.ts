@@ -29,6 +29,8 @@ export const ERROR_CODE_MAP: Record<string, string> = {
   SIN_CREDITOS: 'El socio se quedó sin clases en su paquete',
   TIER_NO_PERMITIDO: 'El plan del socio no incluye esta sala',
   DIA_NO_PERMITIDO: 'El plan del socio no permite reservar ese día de la semana',
+  FRANJA_NO_PERMITIDA: 'El plan del socio solo permite reservar en su franja horaria',
+  RECARGO_FRANJA: 'Ese horario está fuera de la franja del plan del socio (tiene recargo)',
   LIMITE_DIARIO: 'El socio ya llegó al máximo de reservas por día de su plan',
   SUCURSAL_NO_INCLUIDA: 'El plan del socio no cubre esta sede',
   USUARIO_BLOQUEADO: 'El socio tiene una restricción activa',

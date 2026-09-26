@@ -660,6 +660,17 @@ function EditarTierModal({
     const m = (tier as { max_reservas_dia?: number | null } | null)?.max_reservas_dia;
     return m != null ? String(m) : '';
   });
+  // Franja horaria de acceso (HH:MM local del gym). Vacío = cualquier hora.
+  const tierHoraIni = (tier as { hora_acceso_inicio?: string | null } | null)?.hora_acceso_inicio;
+  const tierHoraFin = (tier as { hora_acceso_fin?: string | null } | null)?.hora_acceso_fin;
+  const [limitarFranja, setLimitarFranja] = useState<boolean>(() => !!tierHoraIni && !!tierHoraFin);
+  const [horaInicio, setHoraInicio] = useState<string>(() => (tierHoraIni ? tierHoraIni.slice(0, 5) : '16:00'));
+  const [horaFin, setHoraFin] = useState<string>(() => (tierHoraFin ? tierHoraFin.slice(0, 5) : '17:00'));
+  // Recargo por reservar fuera de la franja, en pesos ('' o 0 = bloqueo sin cobro).
+  const tierRecargo = (tier as { recargo_fuera_franja_centavos?: number | null } | null)?.recargo_fuera_franja_centavos;
+  const [recargoFranja, setRecargoFranja] = useState<string>(() =>
+    tierRecargo != null && tierRecargo > 0 ? String(tierRecargo / 100) : ''
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -727,6 +738,33 @@ function EditarTierModal({
       return;
     }
 
+    // Franja horaria (apagada = cualquier hora). Se manda 'HH:MM' (Postgres time).
+    let horaIniVal: string | null = null;
+    let horaFinVal: string | null = null;
+    let recargoVal = 0;
+    if (limitarFranja) {
+      if (!/^\d{2}:\d{2}$/.test(horaInicio) || !/^\d{2}:\d{2}$/.test(horaFin)) {
+        setError('La franja horaria no es válida.');
+        setSaving(false);
+        return;
+      }
+      if (horaInicio >= horaFin) {
+        setError('La hora de inicio de la franja debe ser antes de la hora de fin.');
+        setSaving(false);
+        return;
+      }
+      horaIniVal = horaInicio;
+      horaFinVal = horaFin;
+      // Recargo por reservar fuera ('' o 0 = bloqueo sin cobro). Se guarda en centavos.
+      const r = recargoFranja.trim() ? Number(recargoFranja) : 0;
+      if (!Number.isFinite(r) || r < 0) {
+        setError('El recargo fuera de franja no es válido.');
+        setSaving(false);
+        return;
+      }
+      recargoVal = Math.round(r * 100);
+    }
+
     if (esPaquete && (!Number.isFinite(clasesVal as number) || (clasesVal ?? 0) < 1)) {
       setError('El paquete debe incluir al menos 1 clase.');
       setSaving(false);
@@ -781,6 +819,9 @@ function EditarTierModal({
         es_pase: esPase,
         dias_acceso: diasAccesoVal,
         max_reservas_dia: maxResVal,
+        hora_acceso_inicio: horaIniVal,
+        hora_acceso_fin: horaFinVal,
+        recargo_fuera_franja_centavos: recargoVal,
         beneficios: beneficios as never,
         reglas: reglas as never,
         activo,
@@ -818,6 +859,9 @@ function EditarTierModal({
       es_pase: esPase,
       dias_acceso: diasAccesoVal,
       max_reservas_dia: maxResVal,
+      hora_acceso_inicio: horaIniVal,
+      hora_acceso_fin: horaFinVal,
+      recargo_fuera_franja_centavos: recargoVal,
       beneficios,
       reglas: reglasNuevas as never,
       activo,
@@ -1044,6 +1088,58 @@ function EditarTierModal({
                 );
               })}
             </div>
+          )}
+        </div>
+
+        {/* Franja horaria de acceso: si se limita, el socio solo puede reservar clases
+            que empiecen dentro de la franja. Fuera se cobra un recargo (o se bloquea si
+            el recargo es 0). Ideal para planes promo/valle (ej. solo 16:00–17:00). */}
+        <div className="ek-form-field" style={{ marginTop: '12px' }}>
+          <Toggle
+            checked={limitarFranja}
+            onChange={setLimitarFranja}
+            label="Limitar horario de acceso"
+            description="Si lo prendes, el socio solo puede reservar clases que empiecen dentro de la franja. Apagado = cualquier hora."
+          />
+          {limitarFranja && (
+            <>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
+                <label className="ek-label" style={{ flex: 1, minWidth: 120 }}>
+                  Desde
+                  <input
+                    type="time"
+                    value={horaInicio}
+                    onChange={(e) => setHoraInicio(e.target.value)}
+                    className="ek-input"
+                  />
+                </label>
+                <label className="ek-label" style={{ flex: 1, minWidth: 120 }}>
+                  Hasta
+                  <input
+                    type="time"
+                    value={horaFin}
+                    onChange={(e) => setHoraFin(e.target.value)}
+                    className="ek-input"
+                  />
+                </label>
+              </div>
+              <label className="ek-label" style={{ display: 'block', marginTop: '10px' }}>
+                Recargo por reservar fuera de la franja (opcional)
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={recargoFranja}
+                  onChange={(e) => setRecargoFranja(e.target.value)}
+                  className="ek-input"
+                  placeholder="Sin recargo — bloquear fuera de la franja"
+                />
+                <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)' }}>
+                  En {moneda}. Si el socio reserva fuera de la franja, se le permite pagando
+                  este recargo (se cobra en recepción). Vacío o 0 = no puede reservar fuera.
+                </span>
+              </label>
+            </>
           )}
         </div>
 

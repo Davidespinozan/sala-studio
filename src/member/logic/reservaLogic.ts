@@ -162,6 +162,12 @@ export function traducirErrorRPC(message: string): string {
     const dia = message.split('los ')[1]?.trim();
     return dia ? `Tu plan no incluye acceso los ${dia}.` : 'Tu plan no incluye acceso ese día.';
   }
+  if (message.includes('FRANJA_NO_PERMITIDA')) {
+    const m = message.match(/de (\d{2}:\d{2}) a (\d{2}:\d{2})/);
+    return m ? `Tu plan solo permite reservar de ${m[1]} a ${m[2]}.` : 'Tu plan solo permite reservar en cierta franja horaria.';
+  }
+  // RECARGO_FRANJA normalmente se intercepta como MultaRequeridaError antes de traducir.
+  if (message.includes('RECARGO_FRANJA')) return 'Este horario está fuera de la franja de tu plan.';
   if (message.includes('TIER_NO_PERMITIDO')) return 'Tu plan no tiene acceso a esta sala.';
   if (message.includes('SUCURSAL_NO_INCLUIDA')) return 'Tu plan solo cubre tu sede.';
   if (message.includes('TIER_NO_PERMITE')) return 'Tu plan no incluye acceso a esta sala.';
