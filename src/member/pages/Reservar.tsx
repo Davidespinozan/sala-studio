@@ -238,6 +238,9 @@ export default function Reservar() {
     setSubmitting(true);
     setErrorReserva(null);
     try {
+      // Sala con Mapa de Salón: cada invitado trae asiento (lugar_id). En ese caso
+      // el RPC inserta las identidades de forma atómica; el front NO las re-inserta.
+      const esMapaConInvitados = invitados > 0 && invitadosDetalle.some((g) => g.lugar_id);
       const res = await crearReserva({
         claseId: claseAReservar.claseId,
         horarioId: claseAReservar.horarioId,
@@ -245,11 +248,12 @@ export default function Reservar() {
         invitados,
         notas: undefined,
         lugarId,
+        invitadosDetalle,
         aceptaMulta
       });
-      // Guardar la identidad de los invitados (best-effort: la reserva ya existe).
+      // Salas SIN mapa: guardar la identidad de los invitados (best-effort: la reserva ya existe).
       const reservaId = (res as { reserva_id?: string } | null)?.reserva_id;
-      if (reservaId && invitados > 0) {
+      if (reservaId && invitados > 0 && !esMapaConInvitados) {
         try {
           await guardarInvitados({ reservaId, tenantId: tenant.id, invitados: invitadosDetalle });
         } catch {

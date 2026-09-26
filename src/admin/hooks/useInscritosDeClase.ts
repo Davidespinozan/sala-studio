@@ -23,15 +23,25 @@ export interface MiembroBuscable {
   membresia_tier: string | null;
 }
 
+/** Salas con Mapa de Salón: un invitado que ocupa asiento real (su lugar_id). */
+export interface InvitadoDeClase {
+  reservaId: string;
+  nombre: string;
+  lugarId: string | null;
+}
+
 /** Fetch reservas (todas las status) de una clase concreta, join a usuarios.
  *  S4.2: ahora filtra por clase_id (antes era recurso_id + slot_inicio). */
 export function useInscritosDeClase(claseId: string | null) {
   const [inscritos, setInscritos] = useState<InscritoAdmin[]>([]);
+  // Invitados con asiento (salas con Mapa de Salón): cada uno ocupa un lugar real.
+  const [invitados, setInvitados] = useState<InvitadoDeClase[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const refetch = useCallback(async () => {
     if (!claseId) {
       setInscritos([]);
+      setInvitados([]);
       return;
     }
     setIsLoading(true);
@@ -76,6 +86,28 @@ export function useInscritosDeClase(claseId: string | null) {
         invitadosCount: r.invitados_count ?? 0
       }))
     );
+
+    // Invitados con asiento de esta clase (solo salas con mapa los llenan). La tabla
+    // aún no está en los tipos generados → cast acotado.
+    const invRes = (await (supabase
+      .from('reserva_invitados' as never)
+      .select('reserva_id, nombre, lugar_id')
+      .eq('clase_id' as never, claseId as never))) as unknown as {
+      data: Array<{ reserva_id: string; nombre: string; lugar_id: string | null }> | null;
+      error: { message: string } | null;
+    };
+    if (invRes.error) {
+      console.error('[useInscritosDeClase] invitados', invRes.error);
+      setInvitados([]);
+    } else {
+      setInvitados(
+        (invRes.data ?? []).map((g) => ({
+          reservaId: g.reserva_id,
+          nombre: g.nombre,
+          lugarId: g.lugar_id ?? null
+        }))
+      );
+    }
     setIsLoading(false);
   }, [claseId]);
 
@@ -83,7 +115,7 @@ export function useInscritosDeClase(claseId: string | null) {
     void refetch();
   }, [refetch]);
 
-  return { inscritos, isLoading, refetch };
+  return { inscritos, invitados, isLoading, refetch };
 }
 
 // ============================================================================

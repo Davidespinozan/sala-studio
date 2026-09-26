@@ -4,6 +4,10 @@ import { type SalaLayout, ICONO_EMOJI } from '@shared/lib/salaLayout';
 export interface OcupanteLugar {
   nombre: string;
   asistio: boolean; // status 'completada' = hizo check-in
+  /** Salas con mapa: el asiento es de un invitado (se pinta en color de acento). */
+  esInvitado?: boolean;
+  /** Nombre del socio titular que trajo al invitado (para el tooltip). */
+  titular?: string;
 }
 
 /**
@@ -44,21 +48,35 @@ export function MapaOcupacion({
             if (!lugar) return <div key={`${x}-${y}`} aria-hidden="true" />;
             const ocup = ocupacion.get(lugar.id);
             const nombreCorto = ocup ? primerNombre(ocup.nombre) : '';
+            const esInv = !!ocup?.esInvitado;
+            // Invitado = acento; titular = primario (relleno si ya hizo check-in).
+            const colorBorde = esInv ? 'var(--sala-accent)' : 'var(--sala-primary)';
+            const bgOcup = esInv
+              ? 'var(--sala-accent-light)'
+              : ocup?.asistio
+                ? 'var(--sala-primary)'
+                : 'var(--sala-primary-light)';
+            const colorOcup = esInv
+              ? 'var(--sala-accent)'
+              : ocup?.asistio
+                ? 'var(--sala-primary-text)'
+                : 'var(--sala-primary)';
+            const titulo = ocup
+              ? esInv
+                ? `${ocup.nombre} (invitado${ocup.titular ? ` de ${ocup.titular}` : ''})`
+                : ocup.nombre
+              : `Lugar ${lugar.label} libre`;
             return (
               <div
                 key={`${x}-${y}`}
-                title={ocup ? ocup.nombre : `Lugar ${lugar.label} libre`}
+                title={titulo}
                 style={{
                   aspectRatio: '1', display: 'flex', flexDirection: 'column', alignItems: 'center',
                   justifyContent: 'center', borderRadius: '9px', overflow: 'hidden', padding: '2px',
                   fontSize: '9.5px', fontWeight: 700, lineHeight: 1.1, textAlign: 'center',
-                  border: ocup ? '1px solid var(--sala-primary)' : '1px dashed var(--sala-border)',
-                  background: ocup
-                    ? (ocup.asistio ? 'var(--sala-primary)' : 'var(--sala-primary-light)')
-                    : 'transparent',
-                  color: ocup
-                    ? (ocup.asistio ? 'var(--sala-primary-text)' : 'var(--sala-primary)')
-                    : 'var(--sala-text-tertiary)'
+                  border: ocup ? `1px solid ${colorBorde}` : '1px dashed var(--sala-border)',
+                  background: ocup ? bgOcup : 'transparent',
+                  color: ocup ? colorOcup : 'var(--sala-text-tertiary)'
                 }}
               >
                 {ocup ? (

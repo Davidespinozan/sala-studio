@@ -34,6 +34,13 @@ export const ERROR_CODE_MAP: Record<string, string> = {
   USUARIO_BLOQUEADO: 'El socio tiene una restricción activa',
   INVITADOS_NO_INCLUIDOS: 'El plan del socio no incluye invitados',
   INVITADOS_INVALIDOS: 'Número de invitados inválido',
+  // Mapa de Salón (asientos)
+  LUGAR_REQUERIDO: 'Falta elegir un lugar para esta clase',
+  LUGAR_OCUPADO: 'Ese lugar ya está tomado, elige otro',
+  LUGAR_INVALIDO: 'Ese lugar no existe en la sala',
+  LUGAR_SIN_INVITADOS: 'En esta sala cada invitado necesita su propio lugar',
+  LUGAR_DUPLICADO: 'No repitas el mismo lugar',
+  INVITADO_SIN_NOMBRE: 'Cada invitado necesita un nombre',
   CLASE_NO_PROGRAMADA: 'Esa clase ya no está programada',
   CLASE_NO_EXISTE: 'No encontramos esa clase',
   RECURSO_INACTIVO: 'Esa sala no está disponible',

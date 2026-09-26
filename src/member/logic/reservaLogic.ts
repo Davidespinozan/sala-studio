@@ -167,6 +167,14 @@ export function traducirErrorRPC(message: string): string {
   if (message.includes('TIER_NO_PERMITE')) return 'Tu plan no incluye acceso a esta sala.';
   if (message.includes('INVITADOS_EXCEDEN')) return 'Tu plan no permite tantos invitados.';
   if (message.includes('INVITADOS_INVALIDOS')) return 'Número de invitados inválido.';
+  if (message.includes('INVITADOS_NO_INCLUIDOS')) return 'Tu plan no incluye pases de invitado.';
+  // Mapa de Salón (asientos): se traducen a español neutro (el RPC trae voseo).
+  if (message.includes('LUGAR_SIN_INVITADOS')) return 'Elige un lugar para cada invitado.';
+  if (message.includes('LUGAR_DUPLICADO')) return 'No repitas el mismo lugar.';
+  if (message.includes('LUGAR_OCUPADO')) return 'Uno de los lugares ya está tomado. Elige otro.';
+  if (message.includes('LUGAR_REQUERIDO')) return 'Elige un lugar para esta clase.';
+  if (message.includes('LUGAR_INVALIDO')) return 'Ese lugar no existe en la sala.';
+  if (message.includes('INVITADO_SIN_NOMBRE')) return 'Cada invitado necesita un nombre.';
   if (message.includes('ANTICIPACION_INSUFICIENTE')) return 'Necesitas reservar con más anticipación.';
   if (message.includes('ANTICIPACION_EXCESIVA')) return 'No puedes reservar tan lejos en el futuro.';
   if (message.includes('CONTINUAS_NO_PERMITIDAS')) return 'No puedes reservar horas consecutivas.';

@@ -4,6 +4,7 @@ import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
 import type { Database } from '@shared/types/database';
 import { traducirErrorRPC } from '@member/logic/reservaLogic';
+import type { InvitadoDetalle } from '@shared/lib/invitados';
 
 type Reserva = Database['public']['Tables']['reservas']['Row'];
 type Recurso = Database['public']['Tables']['recursos']['Row'];
@@ -82,6 +83,13 @@ export async function crearReserva(params: {
   notas?: string;
   /** Lugar elegido en el Mapa de Salón (si la sala tiene layout). */
   lugarId?: string | null;
+  /**
+   * Salas con Mapa de Salón + invitados: identidad y asiento de cada invitado.
+   * `[{nombre, telefono, email, lugar_id}]`. El RPC valida asientos e inserta las
+   * identidades de forma atómica (en mapa el front NO llama guardarInvitados).
+   * En salas SIN mapa se omite (queda el flujo con `invitados` por cabezas).
+   */
+  invitadosDetalle?: InvitadoDetalle[];
   /** El socio aceptó la multa (Modelo A): reintenta por el wrapper _con_multa. */
   aceptaMulta?: boolean;
 }) {
@@ -95,19 +103,33 @@ export async function crearReserva(params: {
     ? params.aceptaMulta ? 'reservar_clase_atomic_con_multa' : 'reservar_clase_atomic'
     : params.aceptaMulta ? 'reservar_clase_virtual_con_multa' : 'reservar_clase_virtual';
 
+  // Solo se manda detalle de invitados cuando hay asiento por invitado (ruta mapa).
+  // El RPC deriva invitados_count de la longitud del arreglo.
+  const invitadosDetalle =
+    params.invitadosDetalle && params.invitadosDetalle.some((g) => g.lugar_id)
+      ? params.invitadosDetalle.map((g) => ({
+          nombre: g.nombre.trim(),
+          telefono: g.telefono.trim() || null,
+          email: g.email.trim() || null,
+          lugar_id: g.lugar_id ?? null
+        }))
+      : null;
+
   const args = params.claseId
     ? {
         p_clase_id: params.claseId,
         p_invitados: params.invitados ?? 0,
         p_notas: params.notas,
-        p_lugar_id: params.lugarId ?? null
+        p_lugar_id: params.lugarId ?? null,
+        p_invitados_detalle: invitadosDetalle
       }
     : {
         p_horario_id: params.horarioId,
         p_fecha: params.fecha,
         p_invitados: params.invitados ?? 0,
         p_notas: params.notas,
-        p_lugar_id: params.lugarId ?? null
+        p_lugar_id: params.lugarId ?? null,
+        p_invitados_detalle: invitadosDetalle
       };
 
   const { data, error } = await rpc(fn, args);

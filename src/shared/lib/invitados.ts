@@ -5,10 +5,12 @@ export interface InvitadoDetalle {
   nombre: string;
   telefono: string;
   email: string;
+  /** Salas con Mapa de Salón: el asiento del invitado. null si la sala no usa mapa. */
+  lugar_id?: string | null;
 }
 
 export function invitadoVacio(): InvitadoDetalle {
-  return { nombre: '', telefono: '', email: '' };
+  return { nombre: '', telefono: '', email: '', lugar_id: null };
 }
 
 /** Ajusta la lista para que tenga exactamente `n` invitados (conserva lo escrito). */

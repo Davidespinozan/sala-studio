@@ -39,7 +39,7 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
   // claseActual: copia local que se actualiza si el admin edita la clase.
   const [claseActual, setClaseActual] = useState<Clase>(clase);
   // Una clase virtual (sin claseId) aún no tiene inscritos ni lista de espera.
-  const { inscritos, isLoading, refetch } = useInscritosDeClase(claseActual.claseId);
+  const { inscritos, invitados, isLoading, refetch } = useInscritosDeClase(claseActual.claseId);
   const { layout } = useLugaresSala(claseActual.recursoId, claseActual.claseId);
   const [vista, setVista] = useState<'lista' | 'mapa'>('lista');
   const { enEspera, refetch: refetchEspera } = useListaEsperaDeClase(claseActual.claseId);
@@ -78,12 +78,25 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
   const cuposLibres = Math.max(0, claseActual.cupoMax - cuposReservados);
   const estado = estadoCupos({ ...claseActual, cuposReservados } as Clase);
 
-  // Mapa de Salón: ocupación (lugar → quién está, ✓ si hizo check-in).
+  // Mapa de Salón: ocupación (lugar → quién está, ✓ si hizo check-in). Incluye el
+  // asiento del titular Y un asiento por cada invitado (planes con invitados).
   const ocupacion = new Map<string, OcupanteLugar>(
     inscritosActivos
       .filter((i) => i.lugarId)
       .map((i) => [i.lugarId as string, { nombre: i.nombre, asistio: i.status === 'completada' }])
   );
+  const reservaActivaIds = new Set(inscritosActivos.map((i) => i.reservaId));
+  const nombrePorReserva = new Map(inscritosActivos.map((i) => [i.reservaId, i.nombre]));
+  invitados
+    .filter((g) => g.lugarId && reservaActivaIds.has(g.reservaId))
+    .forEach((g) => {
+      ocupacion.set(g.lugarId as string, {
+        nombre: g.nombre,
+        asistio: false,
+        esInvitado: true,
+        titular: nombrePorReserva.get(g.reservaId)
+      });
+    });
   const llena = estado === 'llena';
   const pocos = estado === 'pocos';
 

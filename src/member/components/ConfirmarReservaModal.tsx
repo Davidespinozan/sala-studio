@@ -2,7 +2,7 @@ import type { Clase } from '@member/logic/claseAdapter';
 import { useLugaresSala } from '@member/hooks/useLugaresSala';
 import { SeleccionarLugar } from './SeleccionarLugar';
 import { InvitadosForm } from '@shared/components/InvitadosForm';
-import type { InvitadoDetalle } from '@shared/lib/invitados';
+import { type InvitadoDetalle, invitadoVacio } from '@shared/lib/invitados';
 
 interface Props {
   clase: Clase;
@@ -52,9 +52,41 @@ export function ConfirmarReservaModal({
   const muestraSaldo = costoCreditos != null && creditosRestantes != null;
   const saldoInsuficiente = muestraSaldo && costoCreditos! > creditosRestantes!;
 
-  // Mapa de Salón: si la sala tiene layout, el socio elige su lugar (sin invitados).
+  // Mapa de Salón: si la sala tiene layout, el socio elige SU lugar + un lugar por
+  // cada invitado (todos ocupan asiento real).
   const { layout, tomados } = useLugaresSala(clase.recursoId, clase.claseId);
-  const faltaLugar = !!layout && !lugarId;
+
+  // Asientos elegidos EN ORDEN: [titular, invitado1, invitado2…]. '' = slot vacío.
+  const seleccion = layout
+    ? [lugarId ?? '', ...Array.from({ length: invitados }, (_, i) => invitadosDetalle[i]?.lugar_id ?? '')]
+    : [];
+
+  function toggleLugar(id: string) {
+    const idx = seleccion.indexOf(id);
+    if (idx === 0) { onLugarChange(''); return; }            // quitar mi lugar
+    if (idx > 0) {                                             // quitar lugar de un invitado
+      onInvitadosDetalleChange(
+        invitadosDetalle.map((g, k) => (k === idx - 1 ? { ...g, lugar_id: null } : g))
+      );
+      return;
+    }
+    // Lugar libre: llenar el primer slot vacío (mi lugar primero, luego invitados).
+    if (!lugarId) { onLugarChange(id); return; }
+    const empty = Array.from({ length: invitados }, (_, i) => i).find((i) => !invitadosDetalle[i]?.lugar_id);
+    if (empty !== undefined) {
+      onInvitadosDetalleChange(
+        Array.from({ length: invitados }, (_, k) =>
+          k === empty ? { ...(invitadosDetalle[k] ?? invitadoVacio()), lugar_id: id } : (invitadosDetalle[k] ?? invitadoVacio())
+        )
+      );
+    }
+  }
+
+  const faltaTitular = !!layout && !lugarId;
+  const faltaAsientoInvitado = !!layout && Array.from({ length: invitados }).some((_, i) => !invitadosDetalle[i]?.lugar_id);
+  // En mapa el nombre del invitado es obligatorio (el RPC lo exige).
+  const faltaNombreInvitado = !!layout && Array.from({ length: invitados }).some((_, i) => !invitadosDetalle[i]?.nombre?.trim());
+  const faltaLugar = faltaTitular || faltaAsientoInvitado || faltaNombreInvitado;
 
   return (
     <div className="ek-modal-backdrop" onClick={onClose}>
@@ -99,18 +131,7 @@ export function ConfirmarReservaModal({
           {clase.instructorNombre ? `con ${clase.instructorNombre}` : 'Instructor por confirmar'}
         </p>
 
-        {layout && (
-          <div style={{ marginBottom: '18px' }}>
-            <label
-              style={{ display: 'block', fontSize: '13px', color: 'var(--sala-text-secondary)', marginBottom: '8px', fontWeight: 500 }}
-            >
-              Elige tu lugar
-            </label>
-            <SeleccionarLugar layout={layout} tomados={tomados} seleccionado={lugarId} onSelect={onLugarChange} />
-          </div>
-        )}
-
-        {!layout && maxInvitados > 0 && (
+        {maxInvitados > 0 && (
           <div style={{ marginBottom: '18px' }}>
             <label
               style={{
@@ -173,7 +194,18 @@ export function ConfirmarReservaModal({
           </div>
         )}
 
-        {!layout && invitados > 0 && (
+        {layout && (
+          <div style={{ marginBottom: '18px' }}>
+            <label
+              style={{ display: 'block', fontSize: '13px', color: 'var(--sala-text-secondary)', marginBottom: '8px', fontWeight: 500 }}
+            >
+              {invitados > 0 ? 'Elige tu lugar y el de tus invitados' : 'Elige tu lugar'}
+            </label>
+            <SeleccionarLugar layout={layout} tomados={tomados} seleccion={seleccion} onToggle={toggleLugar} />
+          </div>
+        )}
+
+        {invitados > 0 && (
           <InvitadosForm
             count={invitados}
             value={invitadosDetalle}

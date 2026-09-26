@@ -619,15 +619,17 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
         </div>
       )}
 
-      {/* Mapa de salón: si la sala lo usa, hay que elegir lugar sí o sí. */}
+      {/* Mapa de salón: si la sala lo usa, hay que elegir lugar sí o sí. En mostrador
+          solo se asigna el lugar del titular (los invitados con asiento por-invitado
+          viven en el flujo del socio). */}
       {layout && (
         <div style={{ marginTop: '14px' }}>
-          <p className="ek-label" style={{ marginBottom: '8px' }}>Elegí el lugar</p>
+          <p className="ek-label" style={{ marginBottom: '8px' }}>Elige el lugar</p>
           <SeleccionarLugar
             layout={layout}
             tomados={tomados}
-            seleccionado={lugarId}
-            onSelect={setLugarId}
+            seleccion={lugarId ? [lugarId] : []}
+            onToggle={(id) => setLugarId((prev) => (prev === id ? null : id))}
           />
         </div>
       )}
