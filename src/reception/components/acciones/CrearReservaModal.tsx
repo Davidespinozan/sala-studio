@@ -55,6 +55,8 @@ function dinero(centavos: number, moneda: string | null): string {
 // Señal interna (no es un error real): la usamos para que AccionModal NO cierre el
 // modal cuando queremos abrir el panel de day pass en su lugar.
 const SENAL_PANEL_PASE = '__mostrar_panel_pase__';
+// Igual, pero para el panel de recargo (reservar fuera de franja / multa de no-show).
+const SENAL_PANEL_RECARGO = '__mostrar_panel_recargo__';
 
 interface Props {
   socioId: string;
@@ -119,6 +121,11 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
   const [paseTierId, setPaseTierId] = useState<string | null>(null);
   const [metodoPago, setMetodoPago] = useState<'efectivo' | 'tarjeta' | 'transferencia'>('efectivo');
   const [cobrando, setCobrando] = useState(false);
+  // Recargo: cuando el plan tiene franja horaria y la clase cae fuera (o multa de
+  // no-show, Modelo A), recepción confirma el cobro y se estampa en la reserva.
+  const [recargoPanel, setRecargoPanel] = useState(false);
+  const [recargoCentavos, setRecargoCentavos] = useState(0);
+  const [recargoMotivo, setRecargoMotivo] = useState<'fuera_franja' | 'no_show'>('fuera_franja');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -214,20 +221,24 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
     setLugarId(null);
     setInvitados(0);
     setPasePanel(false); // al cambiar de clase, se cierra el panel de day pass
+    setRecargoPanel(false); // y el de recargo
     const inicio = elegida ? instanteDeClase(elegida.fecha, elegida.hora_inicio, tz).getTime() : null;
     setCheckInYa(!!elegida && elegida.fecha === dias[0].iso && inicio !== null && inicio <= Date.now());
   }, [elegida, dias, tz]);
   // La lista de datos de invitados sigue al conteo del stepper.
   useEffect(() => { setInvitadosDetalle((prev) => ajustarInvitados(prev, invitados)); }, [invitados]);
 
-  async function confirmar() {
+  async function confirmar(aceptaRecargo = false) {
     if (!elegida) return;
     setEnviando(true);
     try {
       const rpc = supabase.rpc.bind(supabase) as unknown as (
         name: string, args: Record<string, unknown>
       ) => Promise<{ data: unknown; error: { message: string } | null }>;
-      const { data, error } = await rpc('recepcion_crear_reserva', {
+      // Con recargo aceptado, pasa por el wrapper que pone sala.acepta_multa='on'
+      // (los triggers de franja/no-show estampan el cobro en vez de bloquear).
+      const fn = aceptaRecargo ? 'recepcion_crear_reserva_con_multa' : 'recepcion_crear_reserva';
+      const { data, error } = await rpc(fn, {
         p_usuario_id: socioId,
         p_clase_id: elegida.clase_id,
         p_horario_id: elegida.clase_id ? null : elegida.horario_recurrente_id,
@@ -252,6 +263,18 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
           // relanza VACÍA para que el modal quede abierto sin pintar texto de error.
           throw new Error(SENAL_PANEL_PASE);
         }
+        // Reservar fuera de la franja del plan (recargo) o multa de no-show:
+        // abrimos el panel para que recepción confirme el cobro y reintentamos.
+        if (!aceptaRecargo &&
+            (error.message.includes('RECARGO_FRANJA') || error.message.includes('MULTA_REQUERIDA'))) {
+          const esFranja = error.message.includes('RECARGO_FRANJA');
+          const m = error.message.match(/(?:RECARGO_FRANJA|MULTA_REQUERIDA):\s*(\d+)/);
+          setRecargoCentavos(parseInt(m?.[1] ?? '0', 10));
+          setRecargoMotivo(esFranja ? 'fuera_franja' : 'no_show');
+          setRecargoPanel(true);
+          setEnviando(false);
+          throw new Error(SENAL_PANEL_RECARGO);
+        }
         toast.error(translateActionError(error.message));
         setEnviando(false);
         return;
@@ -275,6 +298,10 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
       }
       // Check-in inmediato (walk-in): la reserva ya existe; si el check-in
       // falla se avisa, pero no se pierde nada.
+      // Si aceptó un recargo, avisamos que se cobra en recepción.
+      const recargoMsg = aceptaRecargo && recargoCentavos > 0
+        ? ` Recargo de ${dinero(recargoCentavos, 'MXN')} — se cobra en recepción.`
+        : '';
       if (reservaId && checkInYa && puedeCheckIn) {
         const { error: errCheckin } = await supabase.rpc('check_in_manual_atomic', {
           p_reserva_id: reservaId,
@@ -283,17 +310,17 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
         if (errCheckin) {
           toast.error('Reserva creada, pero el check-in no pasó: ' + translateActionError(errCheckin.message));
         } else {
-          toast.success(`Listo: ${socioNombre} reservado y con check-in.`);
+          toast.success(`Listo: ${socioNombre} reservado y con check-in.` + recargoMsg);
         }
       } else {
-        toast.success(`Reserva creada para ${socioNombre}.`);
+        toast.success(`Reserva creada para ${socioNombre}.` + recargoMsg);
       }
       await onDone();
       onClose();
     } catch (e) {
-      // Señal para abrir el panel de day pass: se relanza VACÍA para que AccionModal
-      // mantenga el modal abierto (y no pinte error). Cualquier otro error sí se avisa.
-      if (e instanceof Error && e.message === SENAL_PANEL_PASE) throw new Error('');
+      // Señales para abrir un panel (day pass / recargo): se relanzan VACÍAS para que
+      // AccionModal mantenga el modal abierto (y no pinte error). Otro error sí se avisa.
+      if (e instanceof Error && (e.message === SENAL_PANEL_PASE || e.message === SENAL_PANEL_RECARGO)) throw new Error('');
       toast.error('No pudimos crear la reserva. Intenta de nuevo.');
     } finally {
       setEnviando(false);
@@ -371,22 +398,71 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
       description={`Inscribes a ${socioNombre} en una clase. Se descuenta su crédito si el plan es por clases.`}
       variant="info"
       confirmLabel={
-        pasePanel
-          ? cobrando
-            ? 'Cobrando…'
-            : paseSel
-              ? `Cobrar ${dinero(paseSel.precio_centavos, paseSel.moneda)} y reservar`
-              : 'Cobrar y reservar'
-          : enviando ? 'Reservando…' : 'Reservar'
+        recargoPanel
+          ? enviando
+            ? 'Reservando…'
+            : `Reservar con recargo de ${dinero(recargoCentavos, 'MXN')}`
+          : pasePanel
+            ? cobrando
+              ? 'Cobrando…'
+              : paseSel
+                ? `Cobrar ${dinero(paseSel.precio_centavos, paseSel.moneda)} y reservar`
+                : 'Cobrar y reservar'
+            : enviando ? 'Reservando…' : 'Reservar'
       }
       canConfirm={
-        pasePanel
-          ? !!paseTierId && !cobrando
-          : !!elegida && !faltaLugar && !enviando && invitadosValidos
+        recargoPanel
+          ? !enviando
+          : pasePanel
+            ? !!paseTierId && !cobrando
+            : !!elegida && !faltaLugar && !enviando && invitadosValidos
       }
-      onConfirm={pasePanel ? confirmarPaseDia : confirmar}
+      onConfirm={recargoPanel ? () => confirmar(true) : pasePanel ? confirmarPaseDia : () => confirmar(false)}
       onClose={onClose}
     >
+      {/* Recargo: el plan tiene franja horaria y la clase cae fuera (o multa de
+          no-show). Recepción confirma el cobro; se estampa como multa pendiente y
+          se cobra con la UI de multas que ya existe. */}
+      {recargoPanel && elegida && (
+        <div
+          style={{
+            marginBottom: '14px',
+            padding: '14px',
+            borderRadius: '10px',
+            border: '1px solid var(--sala-accent)',
+            background: 'var(--sala-accent-light)'
+          }}
+        >
+          <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 700 }}>
+            {recargoMotivo === 'fuera_franja'
+              ? `Este horario está fuera de la franja del plan de ${socioNombre}`
+              : `${socioNombre} ya usó su reserva de hoy (faltó a una clase)`}
+          </p>
+          <p style={{ margin: '0 0 12px', fontSize: '12px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
+            Puedes reservar <strong>{elegida.nombre}</strong> ({elegida.hora_inicio.slice(0, 5)}) con un
+            recargo de <strong>{dinero(recargoCentavos, 'MXN')}</strong>. Se registra como pendiente y
+            se cobra en recepción (Caja).
+          </p>
+          <button
+            type="button"
+            onClick={() => setRecargoPanel(false)}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              fontSize: '12px',
+              fontWeight: 600,
+              color: 'var(--sala-text-secondary)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              textDecoration: 'underline'
+            }}
+          >
+            ← Elegir otra clase
+          </button>
+        </div>
+      )}
+
       {/* Day pass: el plan no cubre ese día → cobrar un pase suelto sin tocar el plan */}
       {pasePanel && elegida && (
         <div
