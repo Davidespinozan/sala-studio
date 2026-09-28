@@ -3,6 +3,7 @@ import { ShoppingBag } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useToast } from '@shared/hooks/useToast';
 import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
+import { useOperationKey, esConflictoIdempotencia, MSG_CONFLICTO_IDEMPOTENCIA } from '@shared/lib/operationKey';
 
 /* ══════════════════════════════════════════════════════════════════════════
    POS — el motor de venta.
@@ -106,6 +107,11 @@ export default function PosVenta() {
   const vuelto = metodo === 'efectivo' && recibidoCent > total ? recibidoCent - total : 0;
   const faltaEfectivo = metodo === 'efectivo' && recibido !== '' && recibidoCent < total;
 
+  // Idempotencia: la key sigue a la venta (carrito + método + socio). Un reintento
+  // tras respuesta perdida usa la MISMA key → no duplica la venta ni el stock. Al
+  // cobrar, el carrito se vacía → cambian las entradas → nace una key nueva.
+  const operationKey = useOperationKey([JSON.stringify(carrito), metodo, socio?.id ?? null]);
+
   async function cobrar() {
     if (items.length === 0) return;
     if (faltaEfectivo) return toast.error('Lo que te dieron no alcanza el total');
@@ -114,10 +120,11 @@ export default function PosVenta() {
       p_sucursal_id: sucursalId,
       p_metodo: metodo,
       p_items: items.map((x) => ({ producto_id: x.prod.id, cantidad: x.cant })),
-      p_usuario_id: socio?.id ?? null
+      p_usuario_id: socio?.id ?? null,
+      p_operation_key: operationKey
     } as never);
     setCobrando(false);
-    if (error) return toast.error('No se pudo cobrar: ' + error.message);
+    if (error) return toast.error(esConflictoIdempotencia(error.message) ? MSG_CONFLICTO_IDEMPOTENCIA : 'No se pudo cobrar: ' + error.message);
     // Al cobrar en efectivo con vuelto, lo primero que la recepcionista necesita
     // es cuánto cambio dar — se lo dejamos bien grande en el aviso.
     toast.success(vuelto > 0 ? `Cobrado ${fmt(total, moneda)} · Cambio ${fmt(vuelto, moneda)}` : `Cobrado ${fmt(total, moneda)}${socio ? ` · ${socio.nombre}` : ''}`);

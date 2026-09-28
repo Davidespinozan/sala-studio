@@ -668,6 +668,9 @@ export async function gestionarMembresiaSocio(params: {
    * true, y solo después de habérselo mostrado a quien aprieta el botón.
    */
   confirmar_perdida?: boolean;
+  /** Idempotencia (Wave 1): UUID de la intención. Reintento con la misma key
+   *  converge al resultado original en vez de duplicar la operación. */
+  operation_key?: string | null;
 }): Promise<{ data: GestionarMembresiaResult | null; error: string | null }> {
   const { data, error } = await supabase.rpc('gestionar_membresia_socio', {
     p_usuario_id: params.usuario_id,
@@ -675,7 +678,8 @@ export async function gestionarMembresiaSocio(params: {
     p_motivo: params.motivo,
     p_metodo_pago: params.metodo_pago ?? null,
     p_monto_centavos: params.monto_centavos ?? null,
-    p_confirmar_perdida: params.confirmar_perdida ?? false
+    p_confirmar_perdida: params.confirmar_perdida ?? false,
+    p_operation_key: params.operation_key ?? null
   } as never);
   if (error) return { data: null, error: error.message };
   return { data: data as unknown as GestionarMembresiaResult, error: null };

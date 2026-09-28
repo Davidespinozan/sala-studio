@@ -3,6 +3,7 @@ import { supabase } from '@shared/lib/supabase';
 import { AccionModal } from '@shared/components/AccionModal';
 import { useAccionRecepcion } from '../../hooks/useAccionRecepcion';
 import { MetodoPagoField, type MetodoPago } from './MetodoPagoField';
+import { useOperationKey } from '@shared/lib/operationKey';
 
 interface TierOption {
   id: string;
@@ -37,6 +38,9 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
   // Cortesía puntual: perdonarle la inscripción a un socio nuevo (amigo, familia, promo).
   const [exentar, setExentar] = useState(false);
   const { ejecutar } = useAccionRecepcion({ rpcName: 'recepcion_asignar_plan' });
+  // Idempotencia: una key por intención. Se regenera si cambia una entrada material
+  // (plan, método, pendiente, exención, nota) para no chocar como conflicto.
+  const operationKey = useOperationKey([socioId, tierId, motivo, metodo, pendiente, exentar]);
 
   // Todos los tiers activos del tenant (no se excluye ninguno: es el primer plan).
   useEffect(() => {
@@ -93,41 +97,25 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
         (pendiente || metodoListo)
       }
       onConfirm={async () => {
-        // Cast para RPCs que aún no están en los tipos generados.
-        const rpc = supabase.rpc.bind(supabase) as unknown as (
-          name: string,
-          args: Record<string, unknown>
-        ) => Promise<{ data: unknown; error: { message: string } | null }>;
-
-        // Cortesía: si se marcó "no cobrar inscripción", se exenta ANTES de asignar
-        // para que el motor no la registre (lee usuarios.inscripcion_pagada_at).
-        if (exentar) {
-          const { error } = await rpc('exentar_inscripcion_socio', { p_usuario_id: socioId });
-          if (error) throw new Error('No se pudo exentar la inscripción: ' + error.message);
-        }
-
+        // Una sola llamada ATÓMICA: exentar (si aplica) + asignar/cobrar + dejar
+        // "por cobrar" ocurren en UNA transacción de Postgres (recepcion_asignar_plan).
+        // Si algo falla, no queda estado a medias. Idempotente por operation_key:
+        // un reintento tras respuesta perdida converge, no duplica.
+        const cargoMonto = tier ? (tier.precio_centavos ?? 0) + inscripcionACobrar : 0;
+        const dejarPendiente = pendiente && cargoMonto > 0;
         await ejecutar({
           p_usuario_id: socioId,
           p_tier_id: tierId,
           p_motivo: motivo.trim() || 'Alta de plan',
           // Pendiente → se asigna el plan SIN cobro; el cobro queda "por cobrar".
           // Sin método → el plan se activa pero no se registra ningún cobro.
-          p_metodo_pago: pendiente ? null : (metodo === '' ? null : metodo)
+          p_metodo_pago: pendiente ? null : (metodo === '' ? null : metodo),
+          p_operation_key: operationKey,
+          p_exentar_inscripcion: exentar,
+          p_dejar_pendiente: dejarPendiente,
+          p_cargo_monto_centavos: dejarPendiente ? cargoMonto : null,
+          p_cargo_descripcion: tier?.nombre ?? null
         });
-        if (pendiente && tier) {
-          const monto = (tier.precio_centavos ?? 0) + inscripcionACobrar;
-          if (monto > 0) {
-            const { error } = await rpc('registrar_cargo_pendiente', {
-              p_usuario_id: socioId,
-              p_monto_centavos: monto,
-              p_concepto: 'plan',
-              p_descripcion: tier.nombre
-            });
-            if (error) {
-              throw new Error('El plan se asignó, pero no se pudo dejar el pendiente: ' + error.message);
-            }
-          }
-        }
         await onDone();
       }}
       onClose={onClose}

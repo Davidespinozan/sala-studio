@@ -5,6 +5,7 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
 import { translateActionError } from '@reception/lib/traducirErrorAccion';
+import { useOperationKey } from '@shared/lib/operationKey';
 import { useSucursal } from '../providers/SucursalProvider';
 import { exportarCsv } from '@shared/lib/exportarCsv';
 import { ReciboModal } from '@shared/components/ReciboModal';
@@ -898,6 +899,10 @@ function DevolverModal({
 
   const PRESETS = ['Cobro duplicado', 'Era cortesía (no pagó)', 'No pagó inscripción', 'Monto equivocado'];
 
+  // Idempotencia: la key sigue a la devolución (pago + tipo + monto + motivo). Un
+  // reintento tras respuesta perdida converge, no genera un segundo reembolso.
+  const operationKey = useOperationKey([pago.id, tipo, montoCentavos, motivo, esProducto]);
+
   async function devolver() {
     setEnviando(true);
 
@@ -906,7 +911,8 @@ function DevolverModal({
     if (esProducto) {
       const { error } = await supabase.rpc('cancelar_venta_producto' as never, {
         p_pago_id: pago.id,
-        p_motivo: motivo.trim()
+        p_motivo: motivo.trim(),
+        p_operation_key: operationKey
       } as never);
       if (error) {
         setEnviando(false);
@@ -923,7 +929,8 @@ function DevolverModal({
       const { error } = await supabase.rpc('reembolsar_como_cortesia' as never, {
         p_pago_id: pago.id,
         p_monto_centavos: montoCentavos,
-        p_motivo: motivo.trim()
+        p_motivo: motivo.trim(),
+        p_operation_key: operationKey
       } as never);
       if (error) {
         setEnviando(false);
@@ -941,7 +948,8 @@ function DevolverModal({
     const { data, error } = await supabase.rpc('registrar_reembolso' as never, {
       p_pago_id: pago.id,
       p_monto_centavos: montoCentavos,
-      p_motivo: motivoFinal
+      p_motivo: motivoFinal,
+      p_operation_key: operationKey
     } as never);
 
     if (error) {

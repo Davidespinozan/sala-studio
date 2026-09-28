@@ -6,6 +6,7 @@ import {
 import { useSucursal } from '../providers/SucursalProvider';
 import { useTenant } from '@shared/hooks/useTenant';
 import { guardarDatosPrivados, subirAvatarSocio } from '@shared/lib/datosSocio';
+import { useOperationKey } from '@shared/lib/operationKey';
 import { backendPost } from '@shared/lib/backend';
 import { supabase } from '@shared/lib/supabase';
 import { QrChico } from '@shared/components/QrChico';
@@ -74,6 +75,9 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
   const [tierId, setTierId] = useState<string>('');
   const [formaActivacion, setFormaActivacion] = useState<FormaActivacion>('efectivo');
   const [submitting, setSubmitting] = useState(false);
+  // Idempotencia (Wave 1): membresía y cargo son dos operaciones → dos keys distintas.
+  const opKeyMembresia = useOperationKey([tierId, formaActivacion]);
+  const opKeyCargo = useOperationKey([tierId, formaActivacion, 'cargo']);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ email: string; warning?: string } | null>(null);
 
@@ -110,7 +114,8 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
           motivo: MOTIVO_ALTA[formaActivacion],
           // Registra el pago en la Caja si se cobró; cortesía → null (no cobra).
           // El monto lo pone el RPC con el precio de lista del plan.
-          metodo_pago: METODO_PAGO[formaActivacion]
+          metodo_pago: METODO_PAGO[formaActivacion],
+          operation_key: opKeyMembresia
         });
         if (memErr) {
           // El usuario YA está creado (auth + fila). Solo falló la membresía.
@@ -147,7 +152,8 @@ export function NuevaPersonaModal({ onClose, onCreated }: Props) {
               p_usuario_id: res.usuario_id,
               p_monto_centavos: tierSel.precio_centavos,
               p_concepto: 'plan',
-              p_descripcion: tierSel.nombre
+              p_descripcion: tierSel.nombre,
+              p_operation_key: opKeyCargo
             });
             if (cargoErr) {
               // La ficha y el plan YA se crearon (membresía activa); solo falló

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useToast } from '@shared/hooks/useToast';
 import { formatearMoneda } from '@shared/lib/dinero';
+import { useOperationKey } from '@shared/lib/operationKey';
 
 interface Cargo {
   id: string;
@@ -89,10 +90,12 @@ function CargoRow({
 }) {
   const [metodo, setMetodo] = useState<'efectivo' | 'tarjeta' | 'transferencia'>('efectivo');
   const [busy, setBusy] = useState(false);
+  // Idempotencia: reintento tras respuesta perdida devuelve el mismo pago, no cobra dos veces.
+  const operationKey = useOperationKey([cargo.id, metodo]);
 
   async function cobrar() {
     setBusy(true);
-    const { error } = await rpc('cobrar_cargo_pendiente', { p_cargo_id: cargo.id, p_metodo: metodo });
+    const { error } = await rpc('cobrar_cargo_pendiente', { p_cargo_id: cargo.id, p_metodo: metodo, p_operation_key: operationKey });
     if (error) {
       setBusy(false);
       toast.error(error.message.replace(/^[A-Z_]+:\s*/, '') || 'No se pudo cobrar');

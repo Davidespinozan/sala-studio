@@ -64,6 +64,10 @@ export const ERROR_CODE_MAP: Record<string, string> = {
 
   // Motivo (validación)
   MOTIVO_REQUERIDO: 'El motivo es obligatorio para esta acción',
+
+  // Idempotencia (Wave 1): misma operation_key con datos distintos.
+  IDEMPOTENCY_CONFLICT:
+    'Esta operación ya se registró con datos distintos. Refresca y verifica antes de reintentar',
 };
 
 const FALLBACK = 'No pudimos completar la acción. Reintenta en unos segundos';

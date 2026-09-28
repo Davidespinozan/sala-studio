@@ -13,6 +13,7 @@ import {
   describirPreview,
   type TipoTier
 } from '@admin/lib/membresiaPreview';
+import { useOperationKey } from '@shared/lib/operationKey';
 
 interface Props {
   usuarioId: string;
@@ -93,6 +94,11 @@ export function GestionarMembresiaModal({
     });
   }, [preview, tierElegido]);
 
+  // Idempotencia (Wave 1). El motor y el cargo son DOS operaciones → dos keys
+  // distintas (el registro es por operation_key, sin importar el tipo).
+  const opKeyMembresia = useOperationKey([usuarioId, selTierId, formaPago]);
+  const opKeyCargo = useOperationKey([usuarioId, selTierId, formaPago, 'cargo']);
+
   async function handleConfirm() {
     if (!selTierId) return;
     setSaving(true);
@@ -105,7 +111,8 @@ export function GestionarMembresiaModal({
       // Registra el pago si se cobró. 'cortesia' NO cobra dinero pero deja un
       // movimiento de cortesía (rastro en la Caja, igual que recepción). Solo
       // 'pendiente' va null (se registra aparte como "por cobrar").
-      metodo_pago: formaPago === 'pendiente' ? null : formaPago
+      metodo_pago: formaPago === 'pendiente' ? null : formaPago,
+      operation_key: opKeyMembresia
     });
     if (error || !data) {
       setSaving(false);
@@ -123,7 +130,8 @@ export function GestionarMembresiaModal({
         p_usuario_id: usuarioId,
         p_monto_centavos: tierElegido.precio_centavos,
         p_concepto: 'plan',
-        p_descripcion: tierElegido.nombre
+        p_descripcion: tierElegido.nombre,
+        p_operation_key: opKeyCargo
       });
       if (cargoErr) {
         setSaving(false);
