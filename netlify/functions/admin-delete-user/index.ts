@@ -139,6 +139,31 @@ export const handler: Handler = async (event) => {
       });
     }
 
+    // Pre-check historia económica de crédito (W4-A): membresia_movimientos es
+    // evidencia inmutable y sus FK son RESTRICT — un socio con ledger de créditos
+    // (ej. cortesía sin reservas ni pagos) ya no se borra en duro. Sin este
+    // chequeo el borrado fallaría con el críptico "Database error deleting user".
+    const { count: ledgerCount } = await supabaseAdmin
+      .from('membresia_movimientos')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', targetUser.tenant_id)
+      .in(
+        'membresia_id',
+        (
+          await supabaseAdmin
+            .from('membresias')
+            .select('id')
+            .eq('usuario_id', targetUser.id)
+        ).data?.map((m) => m.id) ?? ['00000000-0000-0000-0000-000000000000']
+      );
+
+    if ((ledgerCount ?? 0) > 0) {
+      return CONFLICT({
+        error: `Tiene ${ledgerCount} ${ledgerCount === 1 ? 'movimiento' : 'movimientos'} de créditos en su historial económico. Para preservarlo, usá "Revocar acceso" en lugar de eliminar.`,
+        reservas_count: 0
+      });
+    }
+
     // Hard delete via auth admin (cascadea a la fila de usuarios vía
     // ON DELETE CASCADE en usuarios.auth_id → auth.users)
     if (targetUser.auth_id) {
