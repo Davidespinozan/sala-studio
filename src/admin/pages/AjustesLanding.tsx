@@ -146,6 +146,7 @@ type LandingDraft = {
   footer: FooterDraft;
   faq: FaqDraftItem[];
   mostrar_instructores: boolean;
+  programa_completo: boolean;
 };
 
 /** Heading nunca guardado → default; guardado (aunque con campos vacíos) → se
@@ -187,7 +188,8 @@ const EMPTY: LandingDraft = {
   cta_final: { eyebrow: '', titulo: '', subtitulo: '', cta_texto: '' },
   footer: { tagline: '', copyright: '', direccion: '', email: '' },
   faq: [],
-  mostrar_instructores: false
+  mostrar_instructores: false,
+  programa_completo: false
 };
 
 function readLanding(config: Record<string, unknown> | null): LandingDraft {
@@ -259,7 +261,8 @@ function readLanding(config: Record<string, unknown> | null): LandingDraft {
     post_hero,
     secciones: readSecciones(landing),
     faq: readFaq(landing.faq),
-    mostrar_instructores: landing.mostrar_instructores === true
+    mostrar_instructores: landing.mostrar_instructores === true,
+    programa_completo: landing.programa_completo === true
   };
 }
 
@@ -513,7 +516,8 @@ export default function AjustesLanding() {
       faq: draft.faq
         .map((f) => ({ pregunta: f.pregunta.trim(), respuesta: f.respuesta.trim() }))
         .filter((f) => f.pregunta || f.respuesta),
-      mostrar_instructores: draft.mostrar_instructores
+      mostrar_instructores: draft.mostrar_instructores,
+      programa_completo: draft.programa_completo
     };
     const { error } = await saveTopLevel({ landing: payload });
     if (error) {
@@ -982,6 +986,12 @@ export default function AjustesLanding() {
           onChange={(v) => setDraft({ ...draft, mostrar_instructores: v })}
           label="Sección de instructores"
           description="Muestra a tu equipo de instructores en tu página pública. Se muestran todos los instructores activos."
+        />
+        <Toggle
+          checked={draft.programa_completo}
+          onChange={(v) => setDraft({ ...draft, programa_completo: v })}
+          label="Programa completo de la semana"
+          description="Si tienes varias salas, muestra en tu página todas las clases de la semana juntas. Sin esto, cada sala enseña solo las suyas al abrir su ficha."
         />
       </Section>
 

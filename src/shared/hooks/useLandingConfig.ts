@@ -333,6 +333,10 @@ export function useLandingConfig() {
   // S6-5: toggle de la sección de instructores en la landing. Default false.
   const mostrarInstructores = landing.mostrar_instructores === true;
 
+  // Gym de VARIAS salas: el programa vive en la ficha de cada sala. Con este
+  // toggle se muestra además completo en la página (como un gym de una sala).
+  const programaCompleto = landing.programa_completo === true;
+
   // Helper: URL completa de WhatsApp con mensaje encoded.
   // Devuelve null si no hay número configurado → render condicional en el consumidor.
   const whatsappUrl = (mensaje?: string): string | null => {
@@ -350,6 +354,7 @@ export function useLandingConfig() {
     faq,
     contacto,
     mostrarInstructores,
+    programaCompleto,
     whatsappUrl
   };
 }

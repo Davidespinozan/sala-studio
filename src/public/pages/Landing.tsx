@@ -841,7 +841,7 @@ export default function Landing() {
   const { instructores } = useInstructoresPublicos();
   const { horarios: programa } = useProgramaSemanal();
   const { sucursales } = useSucursalesPublicas();
-  const { hero, secciones, post_hero, cta_final, faq, whatsappUrl, mostrarInstructores } = useLandingConfig();
+  const { hero, secciones, post_hero, cta_final, faq, whatsappUrl, mostrarInstructores, programaCompleto } = useLandingConfig();
   const ctaWhatsappUrl = whatsappUrl();
   // ¿El gym vende en autoservicio? Si lo apagó (numa: cobra en recepción), la
   // landing es informativa: los planes se muestran, pero el CTA no vende — crea
@@ -1077,13 +1077,21 @@ export default function Landing() {
 
         {/* Gym de UNA sola sala: el programa ES su producto, esconderlo detrás de
             un clic es perder la venta. Con 2+ salas se queda dentro de la ficha
-            de cada una (que es donde corresponde: el programa es de la sala). */}
-        {estudiosInfo.length === 1 && programa.length > 0 && (
+            de cada una (que es donde corresponde: el programa es de la sala),
+            salvo que el gym encienda "programa completo": entonces van todas
+            las salas juntas, como en un gym de una sola sala. */}
+        {(estudiosInfo.length === 1 || programaCompleto) && programa.length > 0 && (
           <div style={{ marginTop: 'clamp(28px, 4vw, 44px)' }}>
             <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '16px', textAlign: 'center' }}>
               PROGRAMA DE LA SEMANA
             </p>
-            <ProgramaSemanal horarios={programa.filter((h) => h.recurso_id === estudiosInfo[0].id)} />
+            <ProgramaSemanal
+              horarios={
+                estudiosInfo.length === 1
+                  ? programa.filter((h) => h.recurso_id === estudiosInfo[0].id)
+                  : programa.filter((h) => estudiosInfo.some((e) => e.id === h.recurso_id))
+              }
+            />
           </div>
         )}
       </section>
