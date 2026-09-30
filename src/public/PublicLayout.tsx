@@ -22,6 +22,7 @@ export default function PublicLayout() {
   const location = useLocation();
   const enLogin = location.pathname === '/login';
   const enLanding = location.pathname === '/';
+  const enSignup = location.pathname === '/signup';
   useRoleRedirect(['/', '/login', '/signup']);
 
   return (
@@ -66,12 +67,18 @@ export default function PublicLayout() {
               </button>
             </>
           ) : !enLogin ? (
-            <Link
-              to="/login"
-              className="ek-cta ek-cta--secondary"
-                          >
-              Iniciar sesión
-            </Link>
+            <>
+              <Link to="/login" className="ek-cta ek-cta--secondary">
+                Iniciar sesión
+              </Link>
+              {/* Alta de socio nuevo también desde la landing (antes solo
+                  aparecía dentro del login, abajo del formulario). */}
+              {!enSignup && (
+                <Link to="/signup" className="ek-cta">
+                  Crear cuenta
+                </Link>
+              )}
+            </>
           ) : null}
         </nav>
       </header>

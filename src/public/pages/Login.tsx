@@ -64,14 +64,6 @@ export default function Login() {
       padding: '24px 20px'
     }}>
       <div style={{ maxWidth: '400px', width: '100%' }}>
-        {/* Volver a la landing del tenant (antes no había forma de regresar). */}
-        <Link
-          to="/"
-          style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px', marginBottom: '24px' }}
-        >
-          <ArrowLeft size={14} strokeWidth={2.25} /> Volver a {tenant.nombre}
-        </Link>
-
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px' }}>
           {tieneIsotipo ? (
             <TenantLogo variant="isotipo" height={112} />
@@ -167,6 +159,17 @@ export default function Login() {
               </Link>
             </p>
           </form>
+        </div>
+
+        {/* Volver a la landing del tenant. Va debajo de la tarjeta: arriba del
+            logo estorbaba y era lo primero que se veía. */}
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0 4px' }}>
+          <Link
+            to="/"
+            style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+          >
+            <ArrowLeft size={14} strokeWidth={2.25} /> Volver a {tenant.nombre}
+          </Link>
         </div>
 
         <PoweredBySala />
