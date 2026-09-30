@@ -12,12 +12,14 @@ import {
 } from '@shared/providers/TenantProvider';
 import { FONT_OPTIONS, FONT_SCALES } from '@shared/lib/fonts';
 import ImageUploader from '../components/ImageUploader';
+import { logoBrilloFilter, type LogoBrillo } from '@shared/components/TenantLogo';
 
 const SALA_DEFAULT_PRIMARY = '#3D6B52';
 const SALA_DEFAULT_ACCENT  = '#3D6B52';
 
 type BrandingDraft = {
   logo_url_dark: string | null;
+  logo_brillo: LogoBrillo;
   isotipo_url: string | null;
   og_image_url: string | null;
   favicon_url: string | null;
@@ -30,6 +32,7 @@ type BrandingDraft = {
 
 const EMPTY: BrandingDraft = {
   logo_url_dark: null,
+  logo_brillo: 'ninguno',
   isotipo_url: null,
   og_image_url: null,
   favicon_url: null,
@@ -49,6 +52,7 @@ function readBranding(branding: unknown): BrandingDraft {
       : typeof b.logo_url === 'string'
         ? b.logo_url
         : null,
+    logo_brillo: b.logo_brillo === 'suave' || b.logo_brillo === 'intenso' ? b.logo_brillo : 'ninguno',
     isotipo_url: typeof b.isotipo_url === 'string' ? b.isotipo_url : null,
     og_image_url: typeof b.og_image_url === 'string' ? b.og_image_url : null,
     favicon_url: typeof b.favicon_url === 'string' ? b.favicon_url : null,
@@ -305,6 +309,47 @@ export default function AjustesMarca() {
           <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
             Mientras no subas tu logo, se muestra el logo de SALA como placeholder.
           </p>
+        )}
+        {draft.logo_url_dark && (
+          <div style={{ marginTop: '18px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, margin: '0 0 4px' }}>Brillo del logo</p>
+            <p style={{ fontSize: '12px', color: 'var(--ek-ink-muted)', margin: '0 0 10px' }}>
+              Un halo de luz detrás del contorno, como un letrero retroiluminado. Ayuda a que un logo oscuro resalte sobre el fondo de tu marca. Usa tu color de acento.
+            </p>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              {([
+                ['ninguno', 'Sin brillo'],
+                ['suave', 'Suave'],
+                ['intenso', 'Intenso']
+              ] as const).map(([v, label]) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setDraft({ ...draft, logo_brillo: v })}
+                  className={draft.logo_brillo === v ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
+                  style={{ fontSize: '12px', padding: '8px 14px', minHeight: 0 }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {/* Vista previa sobre el fondo real de los headers. */}
+            <div
+              style={{
+                background: 'var(--grad-immersive)',
+                borderRadius: 'var(--ek-r-md)',
+                padding: '28px',
+                display: 'flex',
+                justifyContent: 'center'
+              }}
+            >
+              <img
+                src={draft.logo_url_dark}
+                alt=""
+                style={{ height: '64px', width: 'auto', filter: logoBrilloFilter(draft.logo_brillo) }}
+              />
+            </div>
+          </div>
         )}
       </Section>
 

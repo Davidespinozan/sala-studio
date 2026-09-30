@@ -32,6 +32,25 @@ import { useTenant } from '@shared/hooks/useTenant';
  *   Landing público header    → variant='completo'
  */
 
+/**
+ * Halo de luz detrás del logo (efecto "letrero retroiluminado"). Se elige en
+ * Admin → Marca (branding.logo_brillo). drop-shadow sigue la silueta del PNG/SVG
+ * transparente, así que brilla el contorno de las letras, no una caja. El color
+ * es el ACENTO del tenant aclarado (solo primario + acento, nunca otro color).
+ */
+export type LogoBrillo = 'ninguno' | 'suave' | 'intenso';
+
+export function logoBrilloFilter(brillo: unknown): string | undefined {
+  const luz = 'color-mix(in srgb, var(--sala-accent), white 55%)';
+  if (brillo === 'suave') {
+    return `drop-shadow(0 0 3px ${luz}) drop-shadow(0 0 12px color-mix(in srgb, ${luz}, transparent 40%))`;
+  }
+  if (brillo === 'intenso') {
+    return `drop-shadow(0 0 2px ${luz}) drop-shadow(0 0 8px ${luz}) drop-shadow(0 0 22px color-mix(in srgb, ${luz}, transparent 30%))`;
+  }
+  return undefined;
+}
+
 interface TenantLogoProps {
   /** Pieza a mostrar. Default 'completo' (horizontal). */
   variant?: 'isotipo' | 'completo';
@@ -79,7 +98,8 @@ export function TenantLogo({
           height: `${height}px`,
           width: 'auto',
           display: 'block',
-          borderRadius: variant === 'isotipo' ? '22%' : `${Math.max(6, Math.round(height * 0.16))}px`
+          borderRadius: variant === 'isotipo' ? '22%' : `${Math.max(6, Math.round(height * 0.16))}px`,
+          filter: variant === 'completo' ? logoBrilloFilter(branding.logo_brillo) : undefined
         }}
       />
     );
