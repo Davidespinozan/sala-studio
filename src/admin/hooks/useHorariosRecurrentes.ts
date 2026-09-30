@@ -117,6 +117,53 @@ export async function toggleActivoHorario(
 }
 
 /**
+ * Cuántas reservas CONFIRMADAS de clases futuras de este horario quedarían
+ * ocultas si la regla deja de cubrir su hueco.
+ *
+ * expandir_clases empata cada clase materializada con un horario ACTIVO por
+ * sala + hora + día de la semana. Si el admin desactiva el horario o le cambia
+ * sala/hora/días, las clases que ya existen (las que tienen reservas) dejan de
+ * encontrarse: desaparecen de la Agenda y de la app, con sus reservas encima.
+ * Esto NO cambia la base: solo lee, para frenar el cambio en el formulario.
+ */
+export async function reservasQueQuedarianOcultas(
+  horarioId: string,
+  nueva: { activo: boolean; recurso_id: string; hora_inicio: string; dias_semana: number[] }
+): Promise<{ total: number; error: string | null }> {
+  // Un día de margen hacia atrás: la fecha "de hoy" del gym puede ir detrás de UTC.
+  const desde = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  const { data: clases, error } = await supabase
+    .from('clases')
+    .select('id, fecha, hora_inicio, recurso_id, status')
+    .eq('horario_recurrente_id', horarioId)
+    .gte('fecha', desde)
+    .neq('status', 'cancelada');
+  if (error) return { total: 0, error: error.message };
+
+  const hhmm = (h: string) => h.slice(0, 5);
+  const huerfanas = (clases ?? []).filter((c) => {
+    const dow = new Date(`${c.fecha}T12:00:00Z`).getUTCDay();
+    const cubierta =
+      nueva.activo &&
+      c.recurso_id === nueva.recurso_id &&
+      hhmm(c.hora_inicio) === hhmm(nueva.hora_inicio) &&
+      nueva.dias_semana.includes(dow);
+    return !cubierta;
+  });
+  if (huerfanas.length === 0) return { total: 0, error: null };
+
+  const { count, error: errRes } = await supabase
+    .from('reservas')
+    .select('id', { count: 'exact', head: true })
+    .in('clase_id', huerfanas.map((c) => c.id))
+    .eq('status', 'confirmada');
+  if (errRes) return { total: 0, error: errRes.message };
+  // Sin conteo no se sabe si hay reservas: se bloquea (fail-closed), no se asume 0.
+  if (count === null || count === undefined) return { total: 0, error: 'sin conteo de reservas' };
+  return { total: count, error: null };
+}
+
+/**
  * Elimina la regla de horario recurrente. Las clases que ya generó NO se
  * tocan: la FK clases.horario_recurrente_id es ON DELETE SET NULL, así que
  * esas clases (y sus reservas) quedan intactas, solo sin vínculo al horario.

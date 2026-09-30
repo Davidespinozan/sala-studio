@@ -10,7 +10,8 @@ import {
   restoreRecord,
   generateUniqueSlug,
   canHardDeleteRecurso,
-  hardDeleteRecord
+  hardDeleteRecord,
+  reservasFuturasDeSala
 } from '../lib/crudHelpers';
 import Toggle from '../components/Toggle';
 import ImageUploader from '../components/ImageUploader';
@@ -90,6 +91,24 @@ export default function Recursos() {
   const [modal, setModal] = useState<ModalState>(null);
   const [mapaRecurso, setMapaRecurso] = useState<Recurso | null>(null);
   const [archivando, setArchivando] = useState<Recurso | null>(null);
+  // Chequeo previo al archivado: si la sala tiene reservas futuras, archivarla
+  // escondería esas clases (y sus reservas) de la Agenda y la app → se bloquea.
+  const [archivarCheck, setArchivarCheck] = useState<
+    { status: 'loading' | 'ready' | 'blocked' | 'error'; total: number } | null
+  >(null);
+
+  async function startArchivar(r: Recurso) {
+    setArchivando(r);
+    setArchivarCheck({ status: 'loading', total: 0 });
+    const { total, error } = await reservasFuturasDeSala(r.id);
+    if (error) setArchivarCheck({ status: 'error', total: 0 });
+    else setArchivarCheck({ status: total > 0 ? 'blocked' : 'ready', total });
+  }
+
+  function cerrarArchivar() {
+    setArchivando(null);
+    setArchivarCheck(null);
+  }
   const [borrarPerm, setBorrarPerm] = useState<HardDeleteState>(null);
   const [mostrarArchivados, setMostrarArchivados] = useState(false);
   const [duplicandoId, setDuplicandoId] = useState<string | null>(null);
@@ -136,13 +155,13 @@ export default function Recursos() {
   }
 
   async function handleArchivar() {
-    if (!archivando) return;
+    if (!archivando || archivarCheck?.status !== 'ready') return;
     const { error } = await archiveRecord('recursos', archivando.id);
     if (error) {
       toast.error('No pudimos eliminarla. Prueba de nuevo.');
       return;
     }
-    setArchivando(null);
+    cerrarArchivar();
     toast.success('Sala eliminada. La encuentras en "Ver eliminadas".');
     await refetch();
   }
@@ -258,7 +277,7 @@ export default function Recursos() {
                   recurso={r}
                   onEdit={() => setModal({ mode: 'edit', recurso: r })}
                   onDuplicate={() => handleDuplicar(r)}
-                  onArchive={() => setArchivando(r)}
+                  onArchive={() => void startArchivar(r)}
                   onMapa={() => setMapaRecurso(r)}
                   duplicating={duplicandoId === r.id}
                 />
@@ -350,11 +369,22 @@ export default function Recursos() {
       <ConfirmDialog
         isOpen={archivando !== null}
         title={archivando ? `¿Eliminar “${archivando.nombre}”?` : ''}
-        description="Esta sala se moverá a Eliminadas: deja de aparecer en la landing y no se podrá reservar, pero las reservas históricas se conservan. La puedes recuperar después."
+        description={
+          archivarCheck?.status === 'loading'
+            ? 'Revisando reservas de esta sala…'
+            : archivarCheck?.status === 'error'
+              ? 'No pudimos revisar las reservas de esta sala. Intenta de nuevo.'
+              : archivarCheck?.status === 'blocked'
+                ? `Tiene ${archivarCheck.total} ${archivarCheck.total === 1 ? 'reserva' : 'reservas'} en próximas clases. ` +
+                  'Si la eliminas, esas clases dejarían de verse en la Agenda y en la app. Cancélalas primero desde la ' +
+                  'Agenda (así se devuelven las clases y se avisa a los socios).'
+                : 'Esta sala se moverá a Eliminadas: deja de aparecer en la landing y no se podrá reservar, pero las reservas históricas se conservan. La puedes recuperar después.'
+        }
         confirmLabel="Eliminar"
-        variant="warning"
+        variant={archivarCheck?.status === 'blocked' ? 'danger' : 'warning'}
+        hideConfirm={archivarCheck?.status !== 'ready'}
         onConfirm={handleArchivar}
-        onCancel={() => setArchivando(null)}
+        onCancel={cerrarArchivar}
       />
 
       <ConfirmDialog
@@ -603,7 +633,7 @@ function EditarRecursoModal({
   const [slug, setSlug] = useState(recurso?.slug ?? '');
   const [slugTocado, setSlugTocado] = useState(!esCreacion);
   const [descripcion, setDescripcion] = useState(recurso?.descripcion ?? '');
-  const [activo, setActivo] = useState(recurso?.activo ?? true);
+  const [activo] = useState(recurso?.activo ?? true);
   const [destacado, setDestacado] = useState(recurso?.destacado ?? false);
   const [tiersPermitidos, setTiersPermitidos] = useState<string[]>(
     recurso?.tiers_permitidos ?? []
@@ -832,15 +862,9 @@ function EditarRecursoModal({
           </p>
         </div>
 
-        <div className="ek-form-field" style={{ marginTop: '12px' }}>
-          <Toggle
-            checked={activo}
-            onChange={setActivo}
-            label="Sala activa"
-            description="Si está inactiva, no aparece en la lista de reservables del miembro."
-          />
-        </div>
-
+        {/* Sin interruptor "Sala activa": escribía la misma columna que
+            "Eliminar" pero sin su chequeo de reservas futuras. Archivar y
+            recuperar se hacen desde el menú de la sala y "Ver eliminadas". */}
         <div className="ek-form-field" style={{ marginTop: '12px' }}>
           <Toggle
             checked={destacado}

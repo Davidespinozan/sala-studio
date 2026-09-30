@@ -14,6 +14,7 @@ import {
 import { ConfirmarMultaModal } from '@member/components/ConfirmarMultaModal';
 import { formatearMoneda } from '@shared/lib/dinero';
 import {
+  accesoSala,
   generarFechasReservables,
   mensajeToastCancelacion,
   traducirErrorRPC,
@@ -32,15 +33,9 @@ import { ConfirmarReservaModal } from '@member/components/ConfirmarReservaModal'
 import { useMembresiaActual } from '@member/hooks/useMembresiaActual';
 import { ConfirmarCancelacionModal } from '@member/components/ConfirmarCancelacionModal';
 import { ConfirmarListaEsperaModal } from '@member/components/ConfirmarListaEsperaModal';
-import { anotarseEnListaEspera } from '@member/hooks/useListaEspera';
+import { anotarseEnListaEspera, miPosicionEnLista } from '@member/hooks/useListaEspera';
 
 const SALA_TODAS = '__todas__';
-
-function tierTieneAcceso(tiers: string[] | null | undefined, tier: string | null | undefined): boolean {
-  if (!tier) return false;
-  if (!tiers || tiers.length === 0) return true; // recurso sin restricción
-  return tiers.includes(tier);
-}
 
 export default function Reservar() {
   const tenant = useTenant();
@@ -110,6 +105,23 @@ export default function Reservar() {
   // Cancelación (confirmación + flag)
   const [claseACancelar, setClaseACancelar] = useState<Clase | null>(null);
   const [claseAEspera, setClaseAEspera] = useState<Clase | null>(null);
+  // Cuántos esperan ya en esa clase (para "quedarías en la posición #N").
+  // Antes se pasaba 0 fijo → siempre prometía #1. null = aún no se sabe.
+  const [totalEnEspera, setTotalEnEspera] = useState<number | null>(null);
+  useEffect(() => {
+    setTotalEnEspera(null);
+    if (!claseAEspera) return;
+    // Sin clase materializada no hay nadie esperando (la lista vive en la fila).
+    if (!claseAEspera.claseId) {
+      setTotalEnEspera(0);
+      return;
+    }
+    let vivo = true;
+    miPosicionEnLista(claseAEspera.claseId)
+      .then((r) => { if (vivo) setTotalEnEspera(r.total ?? 0); })
+      .catch(() => { /* sin número: el modal no promete posición */ });
+    return () => { vivo = false; };
+  }, [claseAEspera]);
   const [submittingEspera, setSubmittingEspera] = useState(false);
   const [cancelando, setCancelando] = useState(false);
 
@@ -415,13 +427,14 @@ export default function Reservar() {
         ) : (
           clases.map((clase) => {
             const yaReservada = !!clase.claseId && misReservasIds.has(clase.claseId);
-            const puede = tierTieneAcceso(clase.tiersPermitidos, tier);
+            const acceso = accesoSala(clase.tiersPermitidos, tier);
             return (
               <ClaseRow
                 key={clase.id}
                 clase={clase}
                 yaReservada={yaReservada}
-                puedeReservar={puede}
+                puedeReservar={acceso === 'ok'}
+                sinPlan={acceso === 'sin_plan'}
                 reservando={submitting && claseAReservar?.id === clase.id}
                 onReservar={() => handleReservar(clase)}
                 onCancelar={() => handleCancelar(clase)}
@@ -475,7 +488,7 @@ export default function Reservar() {
       {claseAEspera && (
         <ConfirmarListaEsperaModal
           clase={claseAEspera}
-          totalEnEspera={0}
+          totalEnEspera={totalEnEspera}
           submitting={submittingEspera}
           onConfirm={confirmarEspera}
           onClose={() => !submittingEspera && setClaseAEspera(null)}

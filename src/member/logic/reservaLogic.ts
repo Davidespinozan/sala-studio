@@ -71,14 +71,43 @@ export function generarFechasReservables(
 }
 
 /**
+ * Espejo EXACTO del gate SQL `_sala_permite_tier` (migración
+ * 20260715130000_acceso_por_plan_sin_trampas): lista vacía = sala abierta a
+ * cualquier plan; con lista, el plan del socio tiene que estar en ella. La
+ * autoridad es el RPC; esto solo evita que la app pinte un bloqueo que la base
+ * no aplica (o al revés).
+ */
+export function salaPermiteTier(
+  permitidos: string[] | null | undefined,
+  tier: string | null | undefined
+): boolean {
+  if (!permitidos || permitidos.length === 0) return true;
+  return !!tier && permitidos.includes(tier);
+}
+
+/**
+ * Qué puede hacer el socio con una sala: reservar, o por qué no.
+ * Sin plan no se reserva en NINGUNA sala (ni en las abiertas: el RPC pide
+ * membresía), pero el motivo es "no tienes plan", no "tu plan no la incluye".
+ */
+export type AccesoSala = 'ok' | 'sin_plan' | 'plan_no_incluye';
+
+export function accesoSala(
+  permitidos: string[] | null | undefined,
+  tier: string | null | undefined
+): AccesoSala {
+  if (!tier) return 'sin_plan';
+  return salaPermiteTier(permitidos, tier) ? 'ok' : 'plan_no_incluye';
+}
+
+/**
  * Filtra recursos accesibles según el tier del usuario.
  */
 export function filtrarRecursosPorTier(
   recursos: Recurso[],
   membresia_tier: string | null
 ): Recurso[] {
-  if (!membresia_tier) return recursos.filter((r) => r.tiers_permitidos.length === 0);
-  return recursos.filter((r) => r.tiers_permitidos.includes(membresia_tier));
+  return recursos.filter((r) => salaPermiteTier(r.tiers_permitidos, membresia_tier));
 }
 
 /**

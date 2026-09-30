@@ -596,6 +596,34 @@ function EstadoBadge({ estado }: { estado: ReturnType<typeof membresiaEstado> })
   );
 }
 
+/**
+ * ¿Esta membresía se cobra SOLA al terminar el periodo? Solo si tiene una
+ * suscripción de Stripe y el socio no pidió cancelarla. Un plan pagado en
+ * recepción/efectivo NO se renueva: vence. Antes se decía "se renueva" a todos
+ * y el socio se enteraba cuando quedaba bloqueado.
+ *
+ * Consulta aparte y best-effort (no toca la carga principal de la membresía):
+ * si falla, se asume que NO se renueva — el texto seguro es "vence".
+ */
+function useSeRenuevaSola(membresiaId: string | undefined, canceladaAt: string | null | undefined) {
+  const [seRenueva, setSeRenueva] = useState(false);
+  useEffect(() => {
+    setSeRenueva(false);
+    if (!membresiaId || canceladaAt) return;
+    let vivo = true;
+    supabase
+      .from('membresias')
+      .select('stripe_subscription_id')
+      .eq('id', membresiaId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (vivo && !error) setSeRenueva(!!data?.stripe_subscription_id);
+      });
+    return () => { vivo = false; };
+  }, [membresiaId, canceladaAt]);
+  return seRenueva;
+}
+
 function PlanHero({
   membresia,
   loading,
@@ -611,6 +639,7 @@ function PlanHero({
   const tierActual = membresia ? tiers.find((t) => t.id === membresia.tier_id) ?? null : null;
   const esCreditos = membresia?.tier_tipo === 'creditos' || membresia?.tier_tipo === 'hibrido';
   const [comprando, setComprando] = useState(false);
+  const seRenuevaSola = useSeRenuevaSola(membresia?.id, membresia?.cancelada_at);
 
   // Sede + alcance del plan (solo gyms con 2+ sedes).
   const { sucursales, multisede } = useMemberSucursal();
@@ -682,7 +711,11 @@ function PlanHero({
                 </>
               ) : membresia.periodo_actual_fin ? (
                 <>
-                  {estado === 'vencida' ? 'Tu plan venció el ' : 'Tu plan se renueva el '}
+                  {estado === 'vencida'
+                    ? 'Tu plan venció el '
+                    : seRenuevaSola
+                      ? 'Tu plan se renueva el '
+                      : 'Tu plan vence el '}
                   <strong style={{ color: 'rgba(255, 255, 255, 0.97)', fontWeight: 800 }}>
                     {formatearFechaCorta(membresia.periodo_actual_fin)}
                   </strong>

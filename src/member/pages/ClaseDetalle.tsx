@@ -24,7 +24,7 @@ import { formatearMoneda } from '@shared/lib/dinero';
 import { guardarInvitados, ajustarInvitados, type InvitadoDetalle } from '@shared/lib/invitados';
 import { useMaxInvitados } from '@member/hooks/useMaxInvitados';
 import { useFavoritos } from '@member/hooks/useFavoritos';
-import { mensajeToastCancelacion, traducirErrorRPC } from '@member/logic/reservaLogic';
+import { accesoSala, mensajeToastCancelacion, traducirErrorRPC } from '@member/logic/reservaLogic';
 import {
   anotarseEnListaEspera,
   salirDeListaEspera,
@@ -54,12 +54,6 @@ function iconFor(disciplina: string): LucideIcon {
   if (d.includes('boxeo') || d.includes('box')) return Swords;
   if (d.includes('correr') || d.includes('running')) return Footprints;
   return Dumbbell;
-}
-
-function tierTieneAcceso(tiers: string[] | null | undefined, tier: string | null | undefined): boolean {
-  if (!tier) return false;
-  if (!tiers || tiers.length === 0) return true;
-  return tiers.includes(tier);
 }
 
 export default function ClaseDetalle() {
@@ -180,7 +174,9 @@ export default function ClaseDetalle() {
   }, [claseRef, usuario, tenant.id, tz, refreshTick]);
 
   const tier = usuario?.membresia_tier ?? null;
-  const puedeAccederTier = clase ? tierTieneAcceso(clase.tiersPermitidos, tier) : false;
+  const acceso = clase ? accesoSala(clase.tiersPermitidos, tier) : 'sin_plan';
+  const puedeAccederTier = acceso === 'ok';
+  const sinPlan = acceso === 'sin_plan';
   const yaReservada = !!miReservaId;
   const esFutura = clase ? clase.slotInicio.getTime() > Date.now() : false;
   const maxInvitados = useMaxInvitados();
@@ -226,7 +222,7 @@ export default function ClaseDetalle() {
       return;
     }
     if (!puedeAccederTier) {
-      toast.warning('Tu plan no incluye esta sala.');
+      toast.warning(sinPlan ? 'Necesitas un plan para reservar.' : 'Tu plan no incluye esta sala.');
       return;
     }
     if (!esFutura) {
@@ -835,10 +831,12 @@ export default function ClaseDetalle() {
                 marginBottom: '6px'
               }}
             >
-              Plan no incluido
+              {sinPlan ? 'Sin plan' : 'Plan no incluido'}
             </p>
             <p style={{ fontSize: '14px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
-              Tu plan actual no incluye acceso a esta sala.{' '}
+              {sinPlan
+                ? 'Necesitas un plan para reservar esta clase.'
+                : 'Tu plan actual no incluye acceso a esta sala.'}{' '}
               <Link
                 to="/app/perfil"
                 style={{ color: 'var(--sala-primary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
@@ -858,6 +856,7 @@ export default function ClaseDetalle() {
           yaReservada={yaReservada}
           enEspera={enEspera}
           puedeAccederTier={puedeAccederTier}
+          sinPlan={sinPlan}
           esFutura={esFutura}
           llena={llena}
           pocos={pocos}
@@ -1121,6 +1120,7 @@ function StickyAction({
   yaReservada,
   enEspera,
   puedeAccederTier,
+  sinPlan,
   esFutura,
   llena,
   pocos,
@@ -1135,6 +1135,7 @@ function StickyAction({
   yaReservada: boolean;
   enEspera: boolean;
   puedeAccederTier: boolean;
+  sinPlan: boolean;
   esFutura: boolean;
   llena: boolean;
   pocos: boolean;
@@ -1172,6 +1173,27 @@ function StickyAction({
         }}
       >
         Volver
+      </button>
+    );
+  }
+
+  // Reservada pero ya empezó/pasó (incluye 'completada' = asistió): cancelar ya
+  // no es posible (el RPC responde RESERVA_PASADA). Antes este caso caía en
+  // "Cancelar reserva" porque se evaluaba antes que !esFutura.
+  if (yaReservada && !esFutura) {
+    return (
+      <button
+        type="button"
+        disabled
+        style={{
+          ...baseFullCTA,
+          background: 'var(--sala-bg)',
+          color: 'var(--sala-text-tertiary)',
+          borderColor: 'var(--sala-border)',
+          cursor: 'not-allowed'
+        }}
+      >
+        Reservada · ya no se puede cancelar
       </button>
     );
   }
@@ -1263,7 +1285,7 @@ function StickyAction({
           textDecoration: 'none'
         }}
       >
-        Mejorar plan
+        {sinPlan ? 'Elegir un plan' : 'Ver mi plan'}
       </Link>
     );
   }

@@ -2,8 +2,9 @@ import type { Clase } from '@member/logic/claseAdapter';
 
 interface Props {
   clase: Clase;
-  /** Cuántos miembros ya están esperando: el usuario quedaría #(total + 1). */
-  totalEnEspera: number;
+  /** Cuántos miembros ya están esperando: el usuario quedaría #(total + 1).
+   *  null = todavía no se sabe (cargando / falló): no se promete posición. */
+  totalEnEspera: number | null;
   submitting: boolean;
   onConfirm: () => void;
   onClose: () => void;
@@ -19,7 +20,7 @@ export function ConfirmarListaEsperaModal({
 }: Props) {
   const hora = clase.horaLabel;
   const fecha = clase.fechaLabel;
-  const posicionFutura = totalEnEspera + 1;
+  const posicionFutura = totalEnEspera === null ? null : totalEnEspera + 1;
 
   return (
     <div className="ek-modal-backdrop" onClick={onClose}>
@@ -74,8 +75,12 @@ export function ConfirmarListaEsperaModal({
           }}
         >
           <p style={{ fontSize: '14px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
-            Quedarías en la <strong>posición #{posicionFutura}</strong>. Si alguien
-            cancela, se libera tu lugar automáticamente y te confirmamos la reserva.
+            {posicionFutura !== null ? (
+              <>Quedarías en la <strong>posición #{posicionFutura}</strong>. </>
+            ) : (
+              'Te anotamos en la lista de espera. '
+            )}
+            Si alguien cancela, se libera tu lugar automáticamente y te confirmamos la reserva.
           </p>
         </div>
 

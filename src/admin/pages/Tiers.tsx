@@ -7,6 +7,7 @@ import {
   generateUniqueSlug,
   countActiveMembersInTier,
   canHardDeleteTier,
+  salasQueQuedariAnAbiertas,
   hardDeleteRecord
 } from '../lib/crudHelpers';
 import { useTenant } from '@shared/hooks/useTenant';
@@ -51,7 +52,7 @@ type HardDeleteTierState =
   | null
   | { tier: Tier; status: 'loading' }
   | { tier: Tier; status: 'blocked'; reason: string }
-  | { tier: Tier; status: 'ready' };
+  | { tier: Tier; status: 'ready'; salasAbiertas: string[] };
 
 export default function Tiers() {
   const tenant = useTenant();
@@ -142,7 +143,14 @@ export default function Tiers() {
     if (!check.canDelete) {
       setBorrarPerm({ tier: t, status: 'blocked', reason: check.reason ?? 'No se puede eliminar.' });
     } else {
-      setBorrarPerm({ tier: t, status: 'ready' });
+      // Borrar el plan lo quita de las salas restringidas; si alguna queda sin
+      // planes, pasa a estar abierta a todos. Se anuncia antes de confirmar.
+      const { salas, error } = await salasQueQuedariAnAbiertas(tenant.id, t.slug);
+      if (error) {
+        setBorrarPerm({ tier: t, status: 'blocked', reason: 'No pudimos revisar las salas de este plan. Intenta de nuevo.' });
+      } else {
+        setBorrarPerm({ tier: t, status: 'ready', salasAbiertas: salas });
+      }
     }
   }
 
@@ -335,6 +343,12 @@ export default function Tiers() {
             ? 'Verificando miembros vinculados…'
             : borrarPerm?.status === 'blocked'
             ? borrarPerm.reason
+            : borrarPerm && borrarPerm.status === 'ready' && borrarPerm.salasAbiertas.length > 0
+            ? `Esta acción NO se puede deshacer. Atención: ${
+                borrarPerm.salasAbiertas.length === 1
+                  ? `la sala «${borrarPerm.salasAbiertas[0]}» solo admite este plan; al borrarlo quedará abierta a todos los planes.`
+                  : `las salas ${borrarPerm.salasAbiertas.map((n) => `«${n}»`).join(', ')} solo admiten este plan; al borrarlo quedarán abiertas a todos los planes.`
+              } Si no quieres eso, restríngelas a otro plan antes.`
             : 'Esta acción NO se puede deshacer. El plan será borrado permanentemente de la base de datos.'
         }
         confirmLabel="Eliminar permanentemente"
@@ -600,7 +614,7 @@ function EditarTierModal({
   // duración); para paquetes queda el valor inicial. Solo se lee.
   const [periodo] = useState(tier?.periodo ?? 'mensual');
   const [descripcion, setDescripcion] = useState(tier?.descripcion ?? '');
-  const [activo, setActivo] = useState(tier?.activo ?? true);
+  const [activo] = useState(tier?.activo ?? true);
   const [accesoTodasSucursales, setAccesoTodasSucursales] = useState(
     tier?.acceso_todas_sucursales ?? true
   );
@@ -1167,15 +1181,10 @@ function EditarTierModal({
           </div>
         )}
 
-        <div className="ek-form-field" style={{ marginTop: '12px' }}>
-          <Toggle
-            checked={activo}
-            onChange={setActivo}
-            label="Plan activo"
-            description="Si está inactivo, no se puede asignar a nuevos miembros."
-          />
-        </div>
-
+        {/* Sin interruptor "Plan activo": escribía la misma columna que
+            "Eliminar" (archivar) pero sin su chequeo de miembros activos.
+            Archivar y recuperar se hacen desde el menú del plan y "Ver
+            eliminados". */}
         {multisede && (
           <div className="ek-form-field" style={{ marginTop: '12px' }}>
             <Toggle

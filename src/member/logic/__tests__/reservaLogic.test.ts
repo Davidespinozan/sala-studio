@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   generarFechasReservables,
   filtrarRecursosPorTier,
+  salaPermiteTier,
+  accesoSala,
   diaNombre,
   formatDateISO,
   traducirErrorRPC,
@@ -73,6 +75,38 @@ describe('filtrarRecursosPorTier', () => {
     const e1 = makeRecurso({ slug: 'estudio-1', tiers_permitidos: ['basica', 'pro'] });
     const filtrados = filtrarRecursosPorTier([black, e1], 'pro');
     expect(filtrados).toHaveLength(2);
+  });
+});
+
+describe('salaPermiteTier (espejo de _sala_permite_tier en SQL)', () => {
+  it('lista vacía o null = sala abierta, con o sin plan', () => {
+    expect(salaPermiteTier([], 'basica')).toBe(true);
+    expect(salaPermiteTier(null, 'basica')).toBe(true);
+    expect(salaPermiteTier(undefined, null)).toBe(true);
+    expect(salaPermiteTier([], null)).toBe(true);
+  });
+  it('con lista: solo los planes listados', () => {
+    expect(salaPermiteTier(['pro'], 'pro')).toBe(true);
+    expect(salaPermiteTier(['pro'], 'basica')).toBe(false);
+    expect(salaPermiteTier(['pro'], null)).toBe(false);
+  });
+});
+
+describe('accesoSala', () => {
+  it('sala abierta + socio con plan → ok (antes EstudioDetalle decía "Plan no incluido")', () => {
+    expect(accesoSala([], 'mensual')).toBe('ok');
+  });
+  it('sin plan → sin_plan, aunque la sala sea abierta', () => {
+    expect(accesoSala([], null)).toBe('sin_plan');
+    expect(accesoSala(['pro'], undefined)).toBe('sin_plan');
+  });
+  it('plan fuera de la lista → plan_no_incluye', () => {
+    expect(accesoSala(['pro'], 'basica')).toBe('plan_no_incluye');
+  });
+  it('filtrarRecursosPorTier incluye salas abiertas para socios con plan', () => {
+    const abierta = makeRecurso({ slug: 'abierta', tiers_permitidos: [] });
+    const pro = makeRecurso({ slug: 'pro-only', tiers_permitidos: ['pro'] });
+    expect(filtrarRecursosPorTier([abierta, pro], 'basica').map((r) => r.slug)).toEqual(['abierta']);
   });
 });
 

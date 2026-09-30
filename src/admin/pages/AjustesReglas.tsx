@@ -402,7 +402,7 @@ export default function AjustesReglas() {
       <Section title="ZONA HORARIA">
         <FormField
           label="Zona horaria del gimnasio"
-          helper="Todas las clases y reservas se manejan en esta zona horaria. Cambiarla no afecta las clases ya creadas — solo las que se generen después."
+          helper="Es la zona por defecto del gimnasio y la que toma cada sucursal nueva. El horario de las clases usa la zona de cada sucursal (en Sucursales), así que cambiar esta no mueve tus clases."
         >
           <select
             value={draft.timezone}
@@ -415,6 +415,15 @@ export default function AjustesReglas() {
               </option>
             ))}
           </select>
+          {/* Antes decía "no afecta las clases ya creadas — solo las que se
+              generen después": falso con el modelo virtual, y además la zona
+              que manda en las clases es la de la sucursal. El riesgo real de
+              cambiar solo esta es que queden desalineadas. */}
+          {originalJson && draft.timezone !== (JSON.parse(originalJson) as { timezone?: string }).timezone && (
+            <p style={{ fontSize: '12.5px', color: 'var(--sala-warning)', margin: '8px 0 0', lineHeight: 1.5 }}>
+              Cambia también la zona de cada sucursal (Sucursales → editar) para que coincidan.
+            </p>
+          )}
         </FormField>
       </Section>
 

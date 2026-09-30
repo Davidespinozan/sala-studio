@@ -25,6 +25,39 @@ export async function archiveRecord(
 }
 
 /**
+ * Reservas CONFIRMADAS futuras de una sala. Archivar una sala esconde TODAS sus
+ * clases (expandir_clases exige recurso activo), también las que tienen
+ * reservas: dejan de verse en Agenda y app. Solo lectura, para frenar el
+ * archivado antes de que pase.
+ */
+export async function reservasFuturasDeSala(
+  recursoId: string
+): Promise<{ total: number; error: string | null }> {
+  const desde = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  const { data: clases, error } = await supabase
+    .from('clases')
+    .select('id')
+    .eq('recurso_id', recursoId)
+    .gte('fecha', desde);
+  if (error) return { total: 0, error: error.message };
+
+  const ids = (clases ?? []).map((c) => c.id);
+  const filtro = ids.length > 0
+    ? `recurso_id.eq.${recursoId},clase_id.in.(${ids.join(',')})`
+    : `recurso_id.eq.${recursoId}`;
+  const { count, error: errRes } = await supabase
+    .from('reservas')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'confirmada')
+    .gte('slot_inicio', new Date().toISOString())
+    .or(filtro);
+  if (errRes) return { total: 0, error: errRes.message };
+  // Sin conteo no se sabe si hay reservas: se bloquea (fail-closed), no se asume 0.
+  if (count === null || count === undefined) return { total: 0, error: 'sin conteo de reservas' };
+  return { total: count, error: null };
+}
+
+/**
  * Restaurar: setea activo=true.
  */
 export async function restoreRecord(
@@ -164,6 +197,34 @@ export async function canHardDeleteTier(
   }
 
   return { canDelete: true };
+}
+
+/**
+ * Salas que quedarían ABIERTAS A TODOS si se borra permanentemente este plan.
+ *
+ * Regla vigente (trigger tier_archivado_libera_recursos, migración
+ * 20260806100000_tiers_en_venta): al BORRAR un plan (DELETE real, no archivar)
+ * su slug se quita de `recursos.tiers_permitidos`; una sala cuya lista queda
+ * vacía pasa a estar abierta a cualquier plan (_sala_permite_tier). Archivar ya
+ * no toca las listas. Solo lectura: no cambia la regla, solo la anuncia.
+ */
+export async function salasQueQuedariAnAbiertas(
+  tenantId: string,
+  slug: string
+): Promise<{ salas: string[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from('recursos')
+    .select('nombre, tiers_permitidos')
+    .eq('tenant_id', tenantId)
+    .contains('tiers_permitidos', [slug]);
+  if (error) return { salas: [], error: error.message };
+  const salas = (data ?? [])
+    .filter((r) => {
+      const lista = r.tiers_permitidos ?? [];
+      return lista.includes(slug) && lista.every((t) => t === slug);
+    })
+    .map((r) => r.nombre.trim());
+  return { salas, error: null };
 }
 
 /**

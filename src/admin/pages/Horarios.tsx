@@ -10,6 +10,7 @@ import {
   actualizarHorarioRecurrente,
   aplicarIdentidadAClase,
   eliminarHorarioRecurrente,
+  reservasQueQuedarianOcultas,
   type HorarioRecurrente,
   type HorarioRecurrenteFormData
 } from '../hooks/useHorariosRecurrentes';
@@ -246,7 +247,7 @@ export default function Horarios() {
             setModal(null);
             toast.success(
               esCreacion
-                ? 'Horario creado. Toca "Generar clases ahora" o espera a la generación nocturna.'
+                ? 'Horario creado. Sus clases ya aparecen en la Agenda y en la app.'
                 : 'Horario actualizado.'
             );
           }}
@@ -256,7 +257,7 @@ export default function Horarios() {
       <ConfirmDialog
         isOpen={eliminando !== null}
         title={eliminando ? `¿Eliminar "${eliminando.nombre}"?` : ''}
-        description="Este horario dejará de generar clases nuevas. Las clases ya programadas y sus reservas se mantienen sin cambios."
+        description="Sus próximas clases dejan de aparecer en la Agenda y en la app desde ahora. Las que ya tienen reservas se conservan como clases sueltas, con sus reservas."
         confirmLabel="Eliminar"
         variant="warning"
         onConfirm={handleEliminar}
@@ -530,6 +531,34 @@ function HorarioModal({
     };
 
     setSaving(true);
+
+    // Regla #1: no perder reservas. Desactivar el horario o cambiarle sala/hora/
+    // días esconde sus clases que ya tienen reservas (dejan de verse en Agenda y
+    // app). Si pasaría, no se guarda: primero hay que resolver esas clases.
+    if (!esCreacion) {
+      const { total, error: errCheck } = await reservasQueQuedarianOcultas(horario!.id, {
+        activo,
+        recurso_id: recursoId,
+        hora_inicio: horaInicio,
+        dias_semana: dias
+      });
+      if (errCheck) {
+        setSaving(false);
+        setError('No pudimos revisar las reservas de este horario. Intenta de nuevo.');
+        return;
+      }
+      if (total > 0) {
+        setSaving(false);
+        setError(
+          `No se guardó: hay ${total} ${total === 1 ? 'reserva' : 'reservas'} en próximas clases de este horario ` +
+            `que dejarían de verse en la Agenda y en la app. Para cambiar sala, hora o días (o desactivarlo), ` +
+            `crea un horario nuevo y desactiva este cuando pasen esas clases, o cancélalas desde la Agenda ` +
+            `(así se devuelven las clases y se avisa a los socios).`
+        );
+        return;
+      }
+    }
+
     const { error: err } = esCreacion
       ? await crearHorarioRecurrente(tenant.id, sucursalId!, data)
       : await actualizarHorarioRecurrente(horario!.id, data);
@@ -776,7 +805,7 @@ function HorarioModal({
             checked={activo}
             onChange={setActivo}
             label="Horario activo"
-            description="Al desactivarlo se detiene la generación de nuevas clases. Las clases ya generadas siguen en la Agenda — cancelalas desde ahí si quieres."
+            description="Apagado: sus clases dejan de aparecer en la Agenda y en la app. Si alguna próxima clase ya tiene reservas, no te dejará guardar hasta resolverla."
           />
         </div>
 

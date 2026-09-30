@@ -8,6 +8,9 @@ interface Props {
   clase: Clase;
   yaReservada: boolean;
   puedeReservar: boolean;
+  /** Si no puede reservar porque NO TIENE PLAN (no porque su plan no incluya la
+   *  sala): cambia el motivo que se muestra. */
+  sinPlan?: boolean;
   reservando?: boolean;
   onReservar: () => void;
   onCancelar?: () => void;
@@ -23,6 +26,7 @@ export function ClaseRow({
   clase,
   yaReservada,
   puedeReservar,
+  sinPlan,
   reservando,
   onReservar,
   onCancelar
@@ -186,6 +190,7 @@ export function ClaseRow({
           cancelada={esCancelada}
           yaReservada={yaReservada}
           puedeReservar={puedeReservar}
+          sinPlan={!!sinPlan}
           llena={llena}
           pocos={pocos}
           reservando={!!reservando}
@@ -201,6 +206,7 @@ function ActionButton({
   cancelada,
   yaReservada,
   puedeReservar,
+  sinPlan,
   llena,
   pocos,
   reservando,
@@ -210,6 +216,7 @@ function ActionButton({
   cancelada: boolean;
   yaReservada: boolean;
   puedeReservar: boolean;
+  sinPlan: boolean;
   llena: boolean;
   pocos: boolean;
   reservando: boolean;
@@ -253,21 +260,44 @@ function ActionButton({
   }
 
   if (yaReservada) {
+    // "Reservado" es un ESTADO, no un botón: antes el chip entero cancelaba al
+    // tocarlo y nada lo decía. Ahora el estado es una etiqueta y la acción de
+    // cancelar es un botón aparte que dice lo que hace.
     return (
-      <button
-        type="button"
-        onClick={onCancelar}
-        disabled={!onCancelar || reservando}
-        style={{
-          ...baseStyle,
-          background: 'transparent',
-          color: 'var(--sala-primary)',
-          borderColor: 'var(--sala-primary)'
-        }}
-      >
-        Reservado
-        <Check size={15} strokeWidth={2.5} />
-      </button>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+        <span
+          style={{
+            ...baseStyle,
+            cursor: 'default',
+            background: 'transparent',
+            color: 'var(--sala-primary)',
+            borderColor: 'var(--sala-primary)'
+          }}
+        >
+          Reservado
+          <Check size={15} strokeWidth={2.5} />
+        </span>
+        {onCancelar && (
+          <button
+            type="button"
+            onClick={onCancelar}
+            disabled={reservando}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '2px 4px',
+              fontSize: '12px',
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              color: 'var(--sala-text-secondary)',
+              textDecoration: 'underline',
+              cursor: reservando ? 'not-allowed' : 'pointer'
+            }}
+          >
+            Cancelar reserva
+          </button>
+        )}
+      </div>
     );
   }
 
@@ -296,7 +326,7 @@ function ActionButton({
       <button
         type="button"
         disabled
-        title="Tu plan no incluye esta sala"
+        title={sinPlan ? 'Necesitas un plan para reservar' : 'Tu plan no incluye esta sala'}
         style={{
           ...baseStyle,
           background: 'var(--sala-bg)',
@@ -305,7 +335,7 @@ function ActionButton({
           cursor: 'not-allowed'
         }}
       >
-        Sin acceso
+        {sinPlan ? 'Necesitas un plan' : 'Sin acceso'}
       </button>
     );
   }

@@ -302,7 +302,9 @@ export default function Equipo() {
             ? 'Verificando permisos…'
             : revoke?.status === 'blocked'
             ? revoke.reason ?? 'No se puede revocar.'
-            : 'No podrá entrar al sistema. Sus datos quedan en BD para auditoría. Puedes restaurar el acceso después.'
+            : // Antes prometía "Puedes restaurar el acceso después": no existe
+              // esa pantalla (la lista oculta a los revocados).
+              'No podrá entrar al panel. Su historial se conserva. Esta acción no se puede deshacer desde aquí.'
         }
         confirmLabel="Revocar acceso"
         variant={revoke?.status === 'blocked' ? 'danger' : 'warning'}

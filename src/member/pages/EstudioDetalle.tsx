@@ -5,6 +5,7 @@ import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useFavoritos } from '@member/hooks/useFavoritos';
+import { accesoSala } from '@member/logic/reservaLogic';
 import type { Database } from '@shared/types/database';
 
 type RecursoDetalle = Database['public']['Tables']['recursos']['Row'];
@@ -62,9 +63,11 @@ export default function EstudioDetalle() {
 
   // Nada hardcodeado: "restringida" = limita a algún plan (cualquier slug).
   const esRestringido = (recurso.tiers_permitidos?.length ?? 0) > 0;
-  const usuarioPuedeUsar = usuario?.membresia_tier
-    ? recurso.tiers_permitidos.includes(usuario.membresia_tier)
-    : false;
+  // Misma regla que el RPC (_sala_permite_tier): lista vacía = sala ABIERTA.
+  // Antes era `includes(tier)`, que con lista vacía da false → a una sala
+  // abierta le salía "Plan no incluido" y no había botón Reservar.
+  const acceso = accesoSala(recurso.tiers_permitidos, usuario?.membresia_tier);
+  const usuarioPuedeUsar = acceso === 'ok';
   const tipoContenido = recurso.tipo_contenido ?? [];
   const equipo = recurso.equipo_incluido ?? [];
 
@@ -232,13 +235,15 @@ export default function EstudioDetalle() {
             textAlign: 'center'
           }}>
             <p className="ek-eyebrow" style={{ marginBottom: '8px', color: 'var(--sala-accent)' }}>
-              PLAN NO INCLUIDO
+              {acceso === 'sin_plan' ? 'SIN PLAN' : 'PLAN NO INCLUIDO'}
             </p>
             <p className="ek-body" style={{ marginBottom: '14px' }}>
-              Tu plan actual no incluye acceso a esta sala.
+              {acceso === 'sin_plan'
+                ? 'Necesitas un plan para reservar en esta sala.'
+                : 'Tu plan actual no incluye acceso a esta sala.'}
             </p>
             <Link to="/app/perfil" className="ek-cta">
-              Ver mi membresía
+              {acceso === 'sin_plan' ? 'Elegir un plan' : 'Ver mi plan'}
             </Link>
           </div>
         )}
