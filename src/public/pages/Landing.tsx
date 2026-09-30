@@ -1500,7 +1500,7 @@ export default function Landing() {
       <EstudioModal
         estudio={estudioAbierto}
         horarios={programa}
-        mostrarPrograma={estudiosInfo.length > 1}
+        mostrarPrograma={estudiosInfo.length > 1 && !programaCompleto}
         onClose={() => setEstudioAbierto(null)}
       />
 
