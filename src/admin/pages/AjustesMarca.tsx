@@ -436,7 +436,7 @@ export default function AjustesMarca() {
         />
       </Section>
 
-      <div style={{ display: 'flex', gap: '10px', position: 'sticky', bottom: '12px' }}>
+      <div className="adm-save-bar" style={{ display: 'flex', gap: '10px', position: 'sticky', bottom: '12px' }}>
         <button
           type="button"
           onClick={handleSave}

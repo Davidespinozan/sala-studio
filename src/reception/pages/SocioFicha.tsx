@@ -196,7 +196,7 @@ function AccionBtn({ children, onClick }: { children: React.ReactNode; onClick: 
       type="button"
       onClick={onClick}
       className="ek-cta ek-cta--secondary"
-      style={{ fontSize: '12px', padding: '6px 12px' }}
+      style={{ fontSize: '12px', padding: '6px 12px', whiteSpace: 'nowrap', flexShrink: 0 }}
     >
       {children}
     </button>
@@ -518,28 +518,20 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
                 key={r.id}
                 style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0', borderTop: i === 0 ? 'none' : '1px solid var(--sala-border-subtle, var(--sala-border))' }}
               >
-                <div style={{ fontFamily: 'var(--ek-font-display)', fontWeight: 700, fontSize: '13px', minWidth: '70px' }}>
-                  {f.dia} {f.hora}
-                </div>
+                {/* Fecha arriba y clase abajo; estado y acción a la derecha, apilados.
+                    En una sola línea el nombre quedaba en "Cyc…" en un teléfono. */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: '13px' }}>{r.recursoNombre ?? 'Clase'}</div>
+                  <div style={{ fontFamily: 'var(--ek-font-display)', fontWeight: 700, fontSize: '13px' }}>
+                    {f.dia} {f.hora}
+                  </div>
+                  <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--sala-text-secondary)', marginTop: '1px' }}>{r.recursoNombre ?? 'Clase'}</div>
                   {r.invitados.length > 0 && (
                     <div style={{ fontSize: '11px', color: 'var(--sala-text-secondary)', marginTop: '2px' }}>
                       + {r.invitados.length} invitado{r.invitados.length === 1 ? '' : 's'}: {r.invitados.join(', ')}
                     </div>
                   )}
                 </div>
-                {corregible && (
-                  <button
-                    type="button"
-                    onClick={() => void marcarAsistio(r.id)}
-                    disabled={corrigiendo === r.id}
-                    className="ek-cta ek-cta--secondary"
-                    style={{ fontSize: '11px', padding: '4px 10px' }}
-                  >
-                    {corrigiendo === r.id ? '…' : 'Sí asistió'}
-                  </button>
-                )}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
                 <span
                   style={{
                     fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
@@ -548,6 +540,18 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
                 >
                   {cfg.label}
                 </span>
+                {corregible && (
+                  <button
+                    type="button"
+                    onClick={() => void marcarAsistio(r.id)}
+                    disabled={corrigiendo === r.id}
+                    className="ek-cta ek-cta--secondary"
+                    style={{ fontSize: '12px', padding: '4px 12px', minHeight: '32px', whiteSpace: 'nowrap' }}
+                  >
+                    {corrigiendo === r.id ? '…' : 'Sí asistió'}
+                  </button>
+                )}
+                </div>
               </div>
             );
           })

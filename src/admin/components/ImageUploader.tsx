@@ -71,10 +71,70 @@ async function getCroppedBlob(src: string, area: Area, mime: string): Promise<Bl
   if (!ctx) throw new Error('No se pudo procesar la imagen.');
   ctx.drawImage(image, area.x, area.y, area.width, area.height, 0, 0, outW, outH);
 
-  const outMime = mime === 'image/png' ? 'image/png' : 'image/jpeg';
-  return new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No se pudo generar la imagen.'))), outMime, 0.9);
-  });
+  return canvasABlob(canvas, mime);
+}
+
+function toBlobAsync(canvas: HTMLCanvasElement, mime: string, calidad: number): Promise<Blob | null> {
+  return new Promise((resolve) => canvas.toBlob(resolve, mime, calidad));
+}
+
+/**
+ * WebP primero: pesa una fracción de un PNG (una foto de sala en PNG eran
+ * varios MB y en el celular se veía cargar a pedazos) y conserva la
+ * transparencia de los logos. Si el navegador no sabe generar WebP (toBlob
+ * devuelve otro tipo), cae a PNG para fuentes PNG (transparencia) o JPG.
+ */
+async function canvasABlob(canvas: HTMLCanvasElement, mimeOrigen: string): Promise<Blob> {
+  const webp = await toBlobAsync(canvas, 'image/webp', 0.85);
+  if (webp && webp.type === 'image/webp') return webp;
+  const fallback = mimeOrigen === 'image/png' ? 'image/png' : 'image/jpeg';
+  const b = await toBlobAsync(canvas, fallback, 0.88);
+  if (!b) throw new Error('No se pudo generar la imagen.');
+  return b;
+}
+
+/** Sin recorte: re-codifica (y achica a CROP_MAX_DIM) las imágenes raster. */
+async function optimizarArchivo(file: File): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  try {
+    const image = await loadImage(url);
+    const lado = Math.max(image.naturalWidth, image.naturalHeight);
+    const scale = lado > CROP_MAX_DIM ? CROP_MAX_DIM / lado : 1;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return file;
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const blob = await canvasABlob(canvas, file.type);
+    // Si por lo que sea salió más pesada, se sube la original.
+    return blob.size < file.size ? blob : file;
+  } catch {
+    return file;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/** WebP → PNG (si tiene transparencia posible) o JPG, para buckets viejos. */
+async function reencodarLegacy(webp: Blob): Promise<Blob> {
+  const url = URL.createObjectURL(webp);
+  try {
+    const image = await loadImage(url);
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return webp;
+    ctx.drawImage(image, 0, 0);
+    return (await toBlobAsync(canvas, 'image/png', 1)) ?? webp;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function extDe(tipo: string): string {
+  return tipo === 'image/webp' ? 'webp' : tipo === 'image/png' ? 'png' : tipo === 'image/svg+xml' ? 'svg' : 'jpg';
 }
 
 export default function ImageUploader({
@@ -120,10 +180,18 @@ export default function ImageUploader({
   async function uploadBlob(data: Blob, ext: string) {
     setIsUploading(true);
     try {
-      const fileName = `${pathPrefix}-${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
+      let fileName = `${pathPrefix}-${Date.now()}.${ext}`;
+      let { error: uploadError } = await supabase.storage
         .from(bucket)
         .upload(fileName, data, { cacheControl: '3600', upsert: false, contentType: data.type });
+      // Un bucket que no acepte WebP: se reintenta en JPG/PNG en vez de fallar.
+      if (uploadError && data.type === 'image/webp') {
+        const legacy = await reencodarLegacy(data);
+        fileName = `${pathPrefix}-${Date.now()}.${extDe(legacy.type)}`;
+        ({ error: uploadError } = await supabase.storage
+          .from(bucket)
+          .upload(fileName, legacy, { cacheControl: '3600', upsert: false, contentType: legacy.type }));
+      }
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
@@ -165,8 +233,10 @@ export default function ImageUploader({
       setAreaPixels(null);
       setCropMime(file.type);
       setCropSrc(URL.createObjectURL(file));
-    } else {
+    } else if (file.type === 'image/svg+xml') {
       void uploadBlob(file, ext);
+    } else {
+      void optimizarArchivo(file).then((blob) => uploadBlob(blob, blob === file ? ext : extDe(blob.type)));
     }
   };
 
@@ -180,7 +250,7 @@ export default function ImageUploader({
     if (!cropSrc || !areaPixels) return;
     try {
       const blob = await getCroppedBlob(cropSrc, areaPixels, cropMime);
-      const ext = blob.type === 'image/png' ? 'png' : 'jpg';
+      const ext = extDe(blob.type);
       closeCropper();
       await uploadBlob(blob, ext);
     } catch (err) {

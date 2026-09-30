@@ -213,7 +213,7 @@ export default function Tienda() {
             return (
               <div key={p.id} className="ek-card" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {p.foto_url
-                  ? <img src={p.foto_url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 10 }} />
+                  ? <img loading="lazy" decoding="async" src={p.foto_url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 10 }} />
                   : <div style={{ width: '100%', aspectRatio: '1', borderRadius: 10, background: 'var(--ek-bg-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ShoppingBag size={24} style={{ color: 'var(--ek-ink-faint)' }} /></div>}
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.2 }}>{p.nombre}</div>

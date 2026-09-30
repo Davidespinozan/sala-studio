@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, Check, CheckCheck } from 'lucide-react';
 import { useNotificaciones } from '@shared/hooks/useNotificaciones';
 
@@ -30,7 +31,10 @@ export default function NotificacionesBell({ tone = 'light' }: { tone?: 'light' 
   useLayoutEffect(() => {
     if (!open || !btnRef.current) return;
     const r = btnRef.current.getBoundingClientRect();
-    setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
+    // En teléfono el panel ocupa casi todo el ancho: centrado con 8px por lado
+    // (alineado a la campana quedaba pegado a la orilla izquierda).
+    const angosta = window.innerWidth < 420;
+    setPos({ top: r.bottom + 8, right: angosta ? 8 : Math.max(8, window.innerWidth - r.right) });
   }, [open]);
 
   useEffect(() => {
@@ -96,7 +100,10 @@ export default function NotificacionesBell({ tone = 'light' }: { tone?: 'light' 
         )}
       </button>
 
-      {open && (
+      {/* Portal al body: el contenedor de la campana tiene transform/backdrop, que
+          vuelve "fixed" relativo a la campana y dejaba el panel pegado a la
+          orilla izquierda en el teléfono. */}
+      {open && createPortal(
         <div
           ref={panelRef}
           role="dialog"
@@ -221,7 +228,8 @@ export default function NotificacionesBell({ tone = 'light' }: { tone?: 'light' 
               ))}
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

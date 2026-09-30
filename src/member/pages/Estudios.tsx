@@ -130,7 +130,7 @@ export default function Estudios() {
                 background: r.foto_url ? 'transparent' : 'rgba(255, 255, 255, 0.04)'
               }}>
                 {r.foto_url ? (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={r.foto_url}
                     alt={r.nombre}
                     style={{

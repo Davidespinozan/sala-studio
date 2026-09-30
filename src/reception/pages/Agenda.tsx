@@ -77,7 +77,7 @@ export default function Agenda() {
 
   return (
     <div className="ek-page">
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '16px 20px' }}>
+      <div className="rec-page-inner" style={{ maxWidth: '720px', margin: '0 auto' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '6px' }}>RECEPCIÓN</p>
         <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '28px', fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 4px', color: 'var(--sala-text-primary)' }}>
           Agenda

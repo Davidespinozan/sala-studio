@@ -528,12 +528,15 @@ function tierResumen(t: {
   clases_incluidas: number | null;
 }): string {
   const precio = `$${(t.precio_centavos / 100).toLocaleString('es-MX')} ${t.moneda}`;
+  // Sin días fijos, la vigencia la da el periodo del plan (mensual, quincenal…):
+  // antes salía "? días".
+  const vigencia = t.duracion_dias != null ? `${t.duracion_dias} días` : t.periodo;
   if (t.tipo === 'tiempo') {
-    return `${precio} · ${t.duracion_dias ?? '?'} días`;
+    return `${precio} · ${vigencia}`;
   }
   if (t.tipo === 'creditos') {
-    return `${precio} · ${t.clases_incluidas ?? '?'} clases`;
+    return t.clases_incluidas != null ? `${precio} · ${t.clases_incluidas} clases` : precio;
   }
   // hibrido
-  return `${precio} · ${t.clases_incluidas ?? '?'} clases en ${t.duracion_dias ?? '?'} días`;
+  return t.clases_incluidas != null ? `${precio} · ${t.clases_incluidas} clases · ${vigencia}` : `${precio} · ${vigencia}`;
 }

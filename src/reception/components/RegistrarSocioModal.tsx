@@ -91,7 +91,7 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
         onClick={(e) => e.stopPropagation()}
         style={{
           background: 'var(--ek-bg-soft)', border: '0.5px solid var(--ek-line)',
-          borderRadius: 'var(--ek-r-card)', maxWidth: '480px', width: '100%', padding: '28px',
+          borderRadius: 'var(--ek-r-card)', maxWidth: '480px', width: '100%', padding: 'clamp(18px, 5vw, 28px)',
           maxHeight: '90vh', overflowY: 'auto',
           animation: 'ek-scale-in 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
@@ -163,11 +163,18 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
               </p>
             )}
 
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button type="button" onClick={() => !submitting && onClose()} disabled={submitting} className="ek-cta ek-cta--secondary" style={{ flex: 1 }}>
+            {/* Pegado al fondo del modal: con el formulario largo en un teléfono,
+                "Crear socio" quedaba fuera de la vista. */}
+            <div style={{
+              display: 'flex', gap: '8px', position: 'sticky', bottom: 'calc(-1 * clamp(18px, 5vw, 28px))',
+              margin: '0 calc(-1 * clamp(18px, 5vw, 28px)) calc(-1 * clamp(18px, 5vw, 28px))',
+              padding: '12px clamp(18px, 5vw, 28px) clamp(18px, 5vw, 28px)',
+              background: 'var(--ek-bg-soft)', borderTop: '0.5px solid var(--ek-line)'
+            }}>
+              <button type="button" onClick={() => !submitting && onClose()} disabled={submitting} className="ek-cta ek-cta--secondary" style={{ flex: 1, whiteSpace: 'nowrap' }}>
                 Cancelar
               </button>
-              <button type="button" onClick={crear} disabled={!canConfirm} className="ek-cta" style={{ flex: 1, opacity: !canConfirm && !submitting ? 0.4 : 1 }}>
+              <button type="button" onClick={crear} disabled={!canConfirm} className="ek-cta" style={{ flex: 1, whiteSpace: 'nowrap', opacity: !canConfirm && !submitting ? 0.4 : 1 }}>
                 {submitting ? 'Creando…' : 'Crear socio'}
               </button>
             </div>

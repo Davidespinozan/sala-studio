@@ -89,7 +89,7 @@ export default function Socios() {
 
   return (
     <div className="ek-page">
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '16px 20px' }}>
+      <div className="rec-page-inner" style={{ maxWidth: '720px', margin: '0 auto' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '6px' }}>RECEPCIÓN</p>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', margin: '0 0 14px' }}>
           <h1 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '28px', fontWeight: 700, letterSpacing: '-0.03em', margin: 0, color: 'var(--sala-text-primary)' }}>
@@ -107,7 +107,7 @@ export default function Socios() {
             type="text"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar socio por nombre o teléfono…"
+            placeholder="Nombre o teléfono…"
             autoFocus
             style={{
               width: '100%', boxSizing: 'border-box',

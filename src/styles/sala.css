@@ -1028,6 +1028,13 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     box-shadow: 0 0 0 3px var(--sala-primary-soft);
   }
 
+  /* Fecha/hora lado a lado en un modal de 360px: sin min-width 0, el ancho
+     intrínseco del control nativo empujaba el campo fuera del modal. */
+  .ek-label, .ek-form-field { min-width: 0; }
+  input[type="date"].ek-input,
+  input[type="time"].ek-input,
+  input[type="datetime-local"].ek-input { min-width: 0; padding-inline: 10px; }
+
   textarea.ek-input {
     min-height: 80px;
     resize: vertical;
@@ -1355,6 +1362,10 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
      sumar 24px más dejaba las tarjetas angostas y desalineadas con la sede. */
   @media (max-width: 640px) {
     .rec-main { padding: 4px 0 24px; }
+  }
+  .rec-page-inner { padding: 16px 20px; }
+  @media (max-width: 640px) {
+    .rec-page-inner { padding: 4px 0 16px; }
   }
 
   .rec-day-selector {
@@ -2147,7 +2158,9 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     min-height: 100vh;
     padding: 16px 16px 72px;
     max-width: 100%;
-    overflow-x: hidden;
+    /* clip, no hidden: hidden lo vuelve contenedor de scroll y anulaba todo
+       position: sticky adentro (las barras "Guardar cambios" nunca se pegaban). */
+    overflow-x: clip;
   }
 
   @media (min-width: 768px) {
@@ -2289,6 +2302,12 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     .adm-filters > .ek-input { flex: 1 1 100%; max-width: none !important; }
   }
   .adm-page-header .ek-cta { white-space: nowrap; }
+  /* Barra "Guardar cambios / Descartar" pegada abajo: en teléfono los dos
+     botones se reparten el ancho. */
+  .adm-save-bar { z-index: 5; }
+  @media (max-width: 640px) {
+    .adm-save-bar > .ek-cta { flex: 1 1 0; min-width: 0; padding-inline: 12px !important; }
+  }
   /* Los textarea del admin crecen con su texto (el subtítulo del hero se
      cortaba a media línea). Donde no hay soporte, se queda con sus rows. */
   .adm-page textarea { field-sizing: content; min-height: 3.2lh; }
@@ -2530,10 +2549,11 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   }
 
   .adm-modal {
+    --adm-modal-pad: 24px;
     background: var(--sala-surface);
     border: 0.5px solid var(--ek-line);
     border-radius: var(--ek-r-card);
-    padding: 24px;
+    padding: var(--adm-modal-pad);
     max-width: 600px;
     width: 100%;
     max-height: 90vh;
@@ -2544,6 +2564,21 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     box-shadow: var(--ek-shadow-modal);
     color: var(--ek-ink);
   }
+  @media (max-width: 640px) {
+    .adm-modal { --adm-modal-pad: 18px; }
+  }
+  /* La fila final "Cancelar / Guardar" se queda pegada al fondo del modal: en un
+     formulario largo en teléfono había que bajar hasta el final para cerrar. */
+  .adm-modal > div:last-child:has(> button.ek-cta) {
+    position: sticky;
+    bottom: calc(-1 * var(--adm-modal-pad));
+    margin: 0 calc(-1 * var(--adm-modal-pad)) calc(-1 * var(--adm-modal-pad));
+    padding: 12px var(--adm-modal-pad) var(--adm-modal-pad);
+    background: var(--sala-surface);
+    border-top: 0.5px solid var(--ek-line);
+    z-index: 2;
+  }
+  .adm-modal > div:last-child:has(> button.ek-cta) > .ek-cta { white-space: nowrap; }
 
   @media (min-width: 768px) {
     .ek-bottom-nav-inner {

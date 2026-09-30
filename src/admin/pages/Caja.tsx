@@ -1273,8 +1273,8 @@ function CorteModal({
           >
             Vespertino
           </button>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 11, color: 'var(--sala-text-tertiary)' }}>
-            corte
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 12.5, color: 'var(--sala-text-secondary)' }}>
+            Cambio de turno
             <input
               type="time"
               className="ek-input"
@@ -1285,7 +1285,7 @@ function CorteModal({
                   void saveTopLevel({ caja: { ...(cfgTenant?.caja as object ?? {}), turno_corte_hora: horaTurno } });
                 }
               }}
-              style={{ width: 90, padding: '4px 6px' }}
+              style={{ width: 136, minHeight: 36, padding: '4px 8px' }}
             />
           </label>
         </div>

@@ -132,7 +132,7 @@ export default function Agenda() {
           <p className="adm-hero-eyebrow">Agenda semanal</p>
           <h1 className="adm-hero-title">Tus clases de la semana</h1>
           <p className="adm-hero-subtitle">
-            Todas las salas, en una sola vista. Click en una clase para gestionar inscritos.
+            Todas las salas, en una sola vista. Toca una clase para gestionar inscritos.
           </p>
         </div>
         <button

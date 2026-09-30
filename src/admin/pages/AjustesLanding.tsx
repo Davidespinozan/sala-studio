@@ -1157,7 +1157,7 @@ export default function AjustesLanding() {
         </div>
       </Section>
 
-      <div style={{ display: 'flex', gap: '10px', position: 'sticky', bottom: '12px' }}>
+      <div className="adm-save-bar" style={{ display: 'flex', gap: '10px', position: 'sticky', bottom: '12px' }}>
         <button
           type="button"
           onClick={handleSave}
