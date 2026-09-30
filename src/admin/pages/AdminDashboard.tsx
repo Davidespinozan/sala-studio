@@ -92,7 +92,7 @@ export default function AdminDashboard() {
         <h1 className="adm-hero-title">Hoy en {tenant.nombre || 'tu gym'}</h1>
         <p className="adm-hero-subtitle" style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
           {saludo.texto}{nombre ? `, ${nombre}` : ''}
-          <saludo.Icon size={17} strokeWidth={2.25} style={{ color: 'var(--ek-mustard)' }} />
+          <saludo.Icon size={17} strokeWidth={2.25} />
         </p>
       </div>
 

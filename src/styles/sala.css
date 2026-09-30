@@ -2490,14 +2490,16 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .adm-hero {
     position: relative;
-    background: linear-gradient(135deg, var(--sala-surface) 0%, var(--sala-primary-light) 100%);
-    border: 1px solid var(--sala-border);
+    /* Mismo fondo de marca que el sidebar: el encabezado ya no es un bloque
+       blanco más, ancla la página con el color del gym. */
+    background: var(--grad-immersive);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 18px;
     padding: 18px 24px;
     padding-left: 28px;
     margin-bottom: 20px;
     overflow: hidden;
-    box-shadow: 0 2px 12px rgba(26, 31, 28, 0.04);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   }
 
   .adm-hero::before {
@@ -2507,7 +2509,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     bottom: 0;
     left: 0;
     width: 4px;
-    background: var(--sala-primary);
+    background: var(--sala-accent);
     border-radius: 20px 0 0 20px;
   }
 
@@ -2516,7 +2518,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--sala-primary);
+    color: rgba(255, 255, 255, 0.65);
     margin: 0;
     margin-bottom: 5px;
   }
@@ -2529,12 +2531,12 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     line-height: 1.08;
     margin: 0;
     margin-bottom: 4px;
-    color: var(--sala-text-primary);
+    color: #FFFFFF;
   }
 
   .adm-hero-subtitle {
     font-size: 14px;
-    color: var(--sala-text-secondary);
+    color: rgba(255, 255, 255, 0.75);
     margin: 0;
   }
 
