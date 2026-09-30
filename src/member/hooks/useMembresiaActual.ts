@@ -36,6 +36,9 @@ export interface MembresiaActual {
   cancelada_at: string | null;
   /** Cuándo deja de tener acceso si no reactiva. */
   cancelada_efectiva_at: string | null;
+  /** Vigencia CANÓNICA (W5-A es_membresia_vigente), calculada en el servidor
+   *  (v_socio_membresia). NO se rederiva en el front. */
+  vigente: boolean;
 }
 
 /**
@@ -52,17 +55,16 @@ export type EstadoMembresia =
   | 'sana';
 
 /**
- * Calcula el estado de una membresía. Pura — usa now() solo si recibe la
- * fecha de comparación como parámetro (default: Date.now()). Testeable.
+ * Calcula el estado de display de una membresía. Pura. La VIGENCIA es canónica
+ * (W5): viene de `m.vigente` (servidor, es_membresia_vigente); NO se rederiva
+ * acá con fechas. El estado solo mapea vigente + status + tipo + créditos al
+ * mensaje que ve el socio.
  */
-export function membresiaEstado(
-  m: MembresiaActual | null,
-  now: Date = new Date()
-): EstadoMembresia {
+export function membresiaEstado(m: MembresiaActual | null): EstadoMembresia {
   if (!m) return 'sin_membresia';
   if (m.status === 'congelada') return 'congelada';
   if (m.status === 'past_due') return 'past_due'; // pago de renovación falló (dunning)
-  if (m.periodo_actual_fin && new Date(m.periodo_actual_fin) <= now) return 'vencida';
+  if (!m.vigente) return 'vencida'; // vigencia canónica del servidor (W5)
   if (
     (m.tier_tipo === 'creditos' || m.tier_tipo === 'hibrido') &&
     (m.creditos_restantes ?? 0) <= 0
@@ -77,8 +79,8 @@ export function membresiaEstado(
  * — incluye 'congelada' para distinguir entre pausada vs sin membresía).
  * Devuelve null si no hay fila (caso: socio sin membresía nunca creada).
  *
- * Misma fuente de verdad que el gate (Fase 2A.2): SELECT por usuario_id en
- * status IN ('trialing','activa','past_due','congelada'), pick más reciente.
+ * Autoridad canónica (W5): lee v_socio_membresia (selector membresia_actual_id
+ * + predicado es_membresia_vigente). Una sola fuente; no rederiva vigencia.
  *
  * @param usuarioId — si se pasa, lee la membresía de ese usuario (modo admin
  *   viendo a otro socio). Si se omite, lee la del usuario actual (modo socio).
@@ -103,15 +105,15 @@ export function useMembresiaActual(usuarioId?: string) {
     setIsLoading(true);
     setError(null);
 
+    // Autoridad canónica (W5): la membresía ACTUAL y su VIGENCIA salen de
+    // v_socio_membresia (membresia_actual_id + es_membresia_vigente). No se
+    // rederiva vigencia acá ni se usa el cache usuarios.* como autoridad.
     const { data, error: qerr } = await supabase
-      .from('membresias')
+      .from('v_socio_membresia')
       .select(
-        'id, status, periodo_actual_inicio, periodo_actual_fin, creditos_restantes, tier_id, sucursal_id, cancelada_at, cancelada_efectiva_at, tier:tiers(slug, nombre, tipo, duracion_dias, clases_incluidas, acceso_todas_sucursales, es_pase)'
+        'membresia_id, membresia_status, periodo_actual_inicio, periodo_actual_fin, creditos_restantes, tier_id, tier_slug, tier_nombre, tier_tipo, duracion_dias, clases_incluidas, es_pase, tier_acceso_todas_sucursales, sucursal_id, cancelada_at, cancelada_efectiva_at, vigente'
       )
       .eq('usuario_id', targetId)
-      .in('status', ['trialing', 'activa', 'past_due', 'congelada'])
-      .order('created_at', { ascending: false })
-      .limit(1)
       .maybeSingle();
 
     if (qerr) {
@@ -121,39 +123,30 @@ export function useMembresiaActual(usuarioId?: string) {
       return;
     }
 
-    if (!data || !data.tier) {
+    if (!data || !data.membresia_id) {
       setMembresia(null);
       setIsLoading(false);
       return;
     }
 
-    const tier = data.tier as unknown as {
-      slug: string;
-      nombre: string;
-      tipo: string;
-      duracion_dias: number | null;
-      clases_incluidas: number | null;
-      acceso_todas_sucursales: boolean | null;
-      es_pase: boolean | null;
-    };
-
     setMembresia({
-      id: data.id,
-      status: data.status as StatusMembresia,
+      id: data.membresia_id,
+      status: data.membresia_status as StatusMembresia,
       cancelada_at: data.cancelada_at ?? null,
       cancelada_efectiva_at: data.cancelada_efectiva_at ?? null,
       periodo_actual_inicio: data.periodo_actual_inicio,
       periodo_actual_fin: data.periodo_actual_fin,
       creditos_restantes: data.creditos_restantes,
-      tier_id: data.tier_id,
-      tier_slug: tier.slug,
-      tier_nombre: tier.nombre,
-      tier_tipo: tier.tipo as TipoTier,
-      duracion_dias: tier.duracion_dias,
-      clases_incluidas: tier.clases_incluidas,
-      sucursal_id: (data as { sucursal_id: string | null }).sucursal_id,
-      tier_acceso_todas_sucursales: tier.acceso_todas_sucursales ?? true,
-      es_pase: tier.es_pase ?? false
+      tier_id: data.tier_id as string,
+      tier_slug: data.tier_slug as string,
+      tier_nombre: data.tier_nombre as string,
+      tier_tipo: data.tier_tipo as TipoTier,
+      duracion_dias: data.duracion_dias,
+      clases_incluidas: data.clases_incluidas,
+      sucursal_id: data.sucursal_id,
+      tier_acceso_todas_sucursales: data.tier_acceso_todas_sucursales ?? true,
+      es_pase: data.es_pase ?? false,
+      vigente: data.vigente ?? false
     });
     setIsLoading(false);
   }, [targetId]);

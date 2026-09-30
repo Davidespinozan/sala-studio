@@ -62,13 +62,17 @@ export interface SocioFichaData {
   invitadosBolsa: { incluidos: number; usados: number; disponibles: number };
 }
 
-// Shapes laxos para los joins (evita pelear con los tipos generados de supabase).
-interface MembresiaQueryRow {
-  status: string;
+// Fila de la vista canónica v_socio_membresia (W5).
+interface VistaMembresiaRow {
+  membresia_id: string | null;
+  membresia_status: string | null;
   periodo_actual_fin: string | null;
   creditos_restantes: number | null;
   metodo_pago: string | null;
-  tier: { id: string; nombre: string | null; tipo: string | null } | { id: string; nombre: string | null; tipo: string | null }[] | null;
+  tier_id: string | null;
+  tier_nombre: string | null;
+  tier_tipo: string | null;
+  vigente: boolean | null;
 }
 interface ReservaQueryRow {
   id: string;
@@ -83,15 +87,13 @@ interface HistorialQueryRow {
   recurso: { nombre: string | null } | { nombre: string | null }[] | null;
 }
 
-function mapEstado(status: string | null | undefined, periodoFin: string | null | undefined): EstadoMembresia {
+// W5: la vigencia es canónica (v_socio_membresia.vigente); no se rederiva por
+// fecha acá. past_due/congelada/activa-vencida => no vigente => 'vencida'/'pausada'.
+function mapEstado(status: string | null | undefined, vigente: boolean | null | undefined): EstadoMembresia {
   if (!status) return 'sin_plan';
   if (status === 'congelada') return 'pausada';
   if (status === 'activa' || status === 'trialing' || status === 'past_due') {
-    // Defensa por fecha: si el periodo ya terminó, está vencida AUNQUE la base
-    // aún diga 'activa' (el cron de expiración puede ir atrasado o caerse —
-    // pasó: E de 53 vencidas 'activas' porque los crons nunca corrieron).
-    if (periodoFin && new Date(periodoFin).getTime() < Date.now()) return 'vencida';
-    return 'activa';
+    return vigente ? 'activa' : 'vencida';
   }
   if (status === 'expirada' || status === 'cancelada') return 'vencida';
   return 'sin_plan'; // 'pendiente' u otros → todavía sin plan usable
@@ -135,15 +137,14 @@ export function useSocioFicha(id: string | undefined) {
         return;
       }
 
-      // Membresía más reciente (cualquier status) para conocer el estado real.
+      // Membresía ACTUAL canónica (W5): v_socio_membresia = selector único +
+      // vigencia del servidor. No "la más reciente de cualquier status" ad-hoc.
       const { data: memData } = await supabase
-        .from('membresias')
-        .select('status, periodo_actual_fin, creditos_restantes, metodo_pago, tier:tiers(id, nombre, tipo)')
+        .from('v_socio_membresia')
+        .select('membresia_id, membresia_status, periodo_actual_fin, creditos_restantes, metodo_pago, tier_id, tier_nombre, tier_tipo, vigente')
         .eq('usuario_id', id)
-        .order('created_at', { ascending: false })
-        .limit(1)
         .maybeSingle();
-      const mem = memData as MembresiaQueryRow | null;
+      const mem = memData as VistaMembresiaRow | null;
 
       // Próximas reservas confirmadas.
       const nowISO = new Date().toISOString();
@@ -200,16 +201,15 @@ export function useSocioFicha(id: string | undefined) {
         disponibles: ib.disponibles ?? 0,
       };
 
-      const tier = unwrap(mem?.tier);
-      const membresia: FichaMembresia | null = mem
+      const membresia: FichaMembresia | null = mem && mem.membresia_id
         ? {
-            status: mem.status,
-            estado: mapEstado(mem.status, mem.periodo_actual_fin),
+            status: mem.membresia_status ?? '',
+            estado: mapEstado(mem.membresia_status, mem.vigente),
             periodoFin: mem.periodo_actual_fin,
             creditos: mem.creditos_restantes,
-            tierId: tier?.id ?? null,
-            tierNombre: tier?.nombre ?? null,
-            tierTipo: tier?.tipo ?? null,
+            tierId: mem.tier_id,
+            tierNombre: mem.tier_nombre,
+            tierTipo: mem.tier_tipo,
             metodoPago: mem.metodo_pago ?? null,
           }
         : null;

@@ -27,11 +27,10 @@ export interface UsoMiembros {
 /**
  * Suscripción del tenant al SaaS + uso de miembros vs. el límite del tier.
  *
- * Al límite cuentan solo los miembros con algo VIGENTE (membresia_activa_id):
- * un day pass que expiró y nunca volvió queda registrado pero NO ocupa lugar
- * del plan (numa: cientos de day passes de una visita inflaban el conteo).
- * El cron de expiración limpia ese cache solo. `limite` es null si no hay
- * suscripción o si el tier es business (ilimitado).
+ * Al límite cuentan solo los miembros con membresía VIGENTE según la autoridad
+ * canónica de W5 (v_socio_membresia.vigente = activa AND fin vigente): un day
+ * pass expirado, un stale-active o un past_due NO ocupan lugar del plan.
+ * `limite` es null si no hay suscripción o si el tier es business (ilimitado).
  */
 export function useSuscripcion() {
   const tenant = useTenant();
@@ -48,13 +47,14 @@ export function useSuscripcion() {
         .select('*')
         .eq('tenant_id', tenant.id)
         .maybeSingle(),
+      // W5 / D-W5-2: "socio activo" = membresía VIGENTE según la autoridad
+      // canónica (v_socio_membresia.vigente), NO el proxy usuarios.status +
+      // membresia_activa_id. El cap comercial cuenta la misma realidad.
       supabase
-        .from('usuarios')
-        .select('id', { count: 'exact', head: true })
+        .from('v_socio_membresia')
+        .select('usuario_id', { count: 'exact', head: true })
         .eq('tenant_id', tenant.id)
-        .eq('rol', 'miembro')
-        .eq('status', 'activo')
-        .not('membresia_activa_id', 'is', null),
+        .eq('vigente', true),
       supabase
         .from('usuarios')
         .select('id', { count: 'exact', head: true })

@@ -1488,7 +1488,32 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_socio_membresia: {
+        Row: {
+          usuario_id: string | null
+          tenant_id: string | null
+          membresia_id: string | null
+          membresia_status: string | null
+          tier_id: string | null
+          tier_slug: string | null
+          tier_nombre: string | null
+          tier_tipo: string | null
+          duracion_dias: number | null
+          clases_incluidas: number | null
+          es_pase: boolean | null
+          tier_acceso_todas_sucursales: boolean | null
+          periodo_actual_inicio: string | null
+          periodo_actual_fin: string | null
+          creditos_restantes: number | null
+          congelada_at: string | null
+          cancelada_at: string | null
+          cancelada_efectiva_at: string | null
+          sucursal_id: string | null
+          metodo_pago: string | null
+          vigente: boolean | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _promover_entrada: { Args: { p_le_id: string }; Returns: string }

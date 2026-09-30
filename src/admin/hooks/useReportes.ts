@@ -145,7 +145,8 @@ function agregarMetricas(
   clases: ClaseRow[],
   reservas: ReservaRow[],
   usuarios: UsuarioRow[],
-  rango: RangoCompleto
+  rango: RangoCompleto,
+  vigentesCount: number
 ): MetricasPeriodo {
   const claseById = new Map(clases.map((c) => [c.id, c]));
 
@@ -195,7 +196,9 @@ function agregarMetricas(
   // ── Bloque 2: miembros ──
   // activos/bajas/total son SNAPSHOTS (estado actual de la BD), no dependen
   // del rango. altasNuevas sí es del período.
-  const activos = usuarios.filter((u) => u.status === 'activo').length;
+  // W5/D-W5-2: "socios activos" = membresías VIGENTES canónicas (v_socio_membresia),
+  // NO usuarios.status='activo' (cuenta) ni el cache. Es snapshot → igual en ambos períodos.
+  const activos = vigentesCount;
   const bajas = usuarios.filter(
     (u) => u.status === 'cancelado' || u.status === 'suspendido'
   ).length;
@@ -323,6 +326,16 @@ export function useReportes(periodo: PeriodoReporte) {
       const usuariosRes = await usuariosQ;
       const usuarios = (usuariosRes.data ?? []) as UsuarioRow[];
 
+      // W5/D-W5-2: "socios activos" = membresías VIGENTES canónicas.
+      let vigQ = supabase
+        .from('v_socio_membresia')
+        .select('usuario_id', { count: 'exact', head: true })
+        .eq('tenant_id', tenant.id)
+        .eq('vigente', true);
+      if (sucursalFiltro) vigQ = vigQ.eq('sucursal_id', sucursalFiltro);
+      const vigRes = await vigQ;
+      const vigentesCount = vigRes.count ?? 0;
+
       const [datosAct, datosAnt] = await Promise.all([
         fetchDatosRango(rangoActual),
         fetchDatosRango(rangoAnterior)
@@ -335,13 +348,13 @@ export function useReportes(periodo: PeriodoReporte) {
         dias: diasActual,
         desdeInstante: datosAct.desdeInstante,
         hastaInstante: datosAct.hastaInstante
-      });
+      }, vigentesCount);
       const metricasAnterior = agregarMetricas(datosAnt.clases, datosAnt.reservas, usuarios, {
         ...rangoAnterior,
         dias: diasAnterior,
         desdeInstante: datosAnt.desdeInstante,
         hastaInstante: datosAnt.hastaInstante
-      });
+      }, vigentesCount);
 
       setData({
         ...metricasActual,

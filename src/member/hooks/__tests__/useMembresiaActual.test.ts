@@ -5,8 +5,8 @@ import {
   type TipoTier
 } from '../useMembresiaActual';
 
-const NOW = new Date('2026-05-24T12:00:00Z');
-
+// W5: la VIGENCIA es canónica (m.vigente, del servidor). membresiaEstado ya no
+// deriva vencida por fecha; mapea vigente + status + tipo + créditos al display.
 function mem(overrides: Partial<MembresiaActual> = {}): MembresiaActual {
   const base: MembresiaActual = {
     id: 'm-1',
@@ -24,115 +24,79 @@ function mem(overrides: Partial<MembresiaActual> = {}): MembresiaActual {
     clases_incluidas: null,
     sucursal_id: null,
     tier_acceso_todas_sucursales: true,
-    es_pase: false
+    es_pase: false,
+    vigente: true
   };
   return { ...base, ...overrides };
 }
 
 describe('membresiaEstado', () => {
   it('null → sin_membresia', () => {
-    expect(membresiaEstado(null, NOW)).toBe('sin_membresia');
+    expect(membresiaEstado(null)).toBe('sin_membresia');
   });
 
   it("status='congelada' → congelada (gana sobre vencida/créditos)", () => {
     expect(
       membresiaEstado(
-        mem({
-          status: 'congelada',
-          periodo_actual_fin: '2026-04-01T00:00:00Z', // también vencida
-          tier_tipo: 'creditos',
-          creditos_restantes: 0
-        }),
-        NOW
+        mem({ status: 'congelada', vigente: false, tier_tipo: 'creditos', creditos_restantes: 0 })
       )
     ).toBe('congelada');
   });
 
-  it('periodo_actual_fin <= now → vencida (gana sobre sin_creditos en híbrido)', () => {
+  it("status='past_due' → past_due (dunning)", () => {
+    expect(membresiaEstado(mem({ status: 'past_due', vigente: false }))).toBe('past_due');
+  });
+
+  it('no vigente (activa vencida) → vencida (gana sobre sin_creditos en híbrido)', () => {
     expect(
-      membresiaEstado(
-        mem({
-          periodo_actual_fin: '2026-05-23T00:00:00Z',
-          tier_tipo: 'hibrido',
-          creditos_restantes: 0
-        }),
-        NOW
-      )
+      membresiaEstado(mem({ vigente: false, tier_tipo: 'hibrido', creditos_restantes: 0 }))
     ).toBe('vencida');
   });
 
-  it('tipo=tiempo, fin futuro → sana', () => {
-    expect(membresiaEstado(mem({ tier_tipo: 'tiempo' }), NOW)).toBe('sana');
+  it('tipo=tiempo, vigente → sana', () => {
+    expect(membresiaEstado(mem({ tier_tipo: 'tiempo', vigente: true }))).toBe('sana');
   });
 
-  it('tipo=tiempo, fin pasado → vencida', () => {
-    expect(
-      membresiaEstado(
-        mem({ tier_tipo: 'tiempo', periodo_actual_fin: '2026-04-01T00:00:00Z' }),
-        NOW
-      )
-    ).toBe('vencida');
+  it('tipo=tiempo, no vigente → vencida', () => {
+    expect(membresiaEstado(mem({ tier_tipo: 'tiempo', vigente: false }))).toBe('vencida');
   });
 
-  it('tipo=creditos, saldo>0 → sana (aunque fin sea null)', () => {
+  it('tipo=creditos, vigente, saldo>0 (fin null) → sana', () => {
     expect(
-      membresiaEstado(
-        mem({ tier_tipo: 'creditos', creditos_restantes: 5, periodo_actual_fin: null }),
-        NOW
-      )
+      membresiaEstado(mem({ tier_tipo: 'creditos', creditos_restantes: 5, periodo_actual_fin: null, vigente: true }))
     ).toBe('sana');
   });
 
-  it('tipo=creditos, saldo=0 → sin_creditos', () => {
+  it('tipo=creditos, vigente, saldo=0 → sin_creditos', () => {
     expect(
-      membresiaEstado(
-        mem({ tier_tipo: 'creditos', creditos_restantes: 0, periodo_actual_fin: null }),
-        NOW
-      )
+      membresiaEstado(mem({ tier_tipo: 'creditos', creditos_restantes: 0, periodo_actual_fin: null, vigente: true }))
     ).toBe('sin_creditos');
   });
 
-  it('tipo=creditos, saldo null → sin_creditos (tratado como 0)', () => {
+  it('tipo=creditos, vigente, saldo null → sin_creditos (tratado como 0)', () => {
     expect(
-      membresiaEstado(
-        mem({ tier_tipo: 'creditos', creditos_restantes: null, periodo_actual_fin: null }),
-        NOW
-      )
+      membresiaEstado(mem({ tier_tipo: 'creditos', creditos_restantes: null, periodo_actual_fin: null, vigente: true }))
     ).toBe('sin_creditos');
   });
 
   it('tipo=hibrido vigente con créditos → sana', () => {
-    expect(
-      membresiaEstado(
-        mem({ tier_tipo: 'hibrido', creditos_restantes: 5 }),
-        NOW
-      )
-    ).toBe('sana');
+    expect(membresiaEstado(mem({ tier_tipo: 'hibrido', creditos_restantes: 5, vigente: true }))).toBe('sana');
   });
 
   it('tipo=hibrido vigente sin créditos → sin_creditos', () => {
-    expect(
-      membresiaEstado(
-        mem({ tier_tipo: 'hibrido', creditos_restantes: 0 }),
-        NOW
-      )
-    ).toBe('sin_creditos');
-  });
-
-  it('borde: fin === now → vencida (consistente con el gate: fin <= now)', () => {
-    const fin = '2026-05-24T12:00:00Z';
-    expect(membresiaEstado(mem({ periodo_actual_fin: fin }), NOW)).toBe('vencida');
+    expect(membresiaEstado(mem({ tier_tipo: 'hibrido', creditos_restantes: 0, vigente: true }))).toBe('sin_creditos');
   });
 
   it.each<[TipoTier]>([['tiempo'], ['creditos'], ['hibrido']])(
-    'sin periodo_actual_fin (tipo=%s) no marca vencida',
+    'vigente (tipo=%s) con créditos ok → sana',
     (tipo) => {
       const m = mem({
         tier_tipo: tipo,
         periodo_actual_fin: null,
-        creditos_restantes: tipo === 'tiempo' ? null : 5
+        creditos_restantes: tipo === 'tiempo' ? null : 5,
+        vigente: true
       });
-      expect(membresiaEstado(m, NOW)).toBe('sana');
+      expect(membresiaEstado(m)).toBe('sana');
     }
   );
 });
