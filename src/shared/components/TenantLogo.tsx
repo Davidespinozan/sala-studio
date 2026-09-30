@@ -41,12 +41,16 @@ import { useTenant } from '@shared/hooks/useTenant';
 export type LogoBrillo = 'ninguno' | 'suave' | 'intenso';
 
 export function logoBrilloFilter(brillo: unknown): string | undefined {
-  const luz = 'color-mix(in srgb, var(--sala-accent), white 55%)';
+  // Poco blanco: la luz queda cálida (dorada) en vez de beige-gris sobre el primario.
+  // Borde casi sólido pegado a la letra + halo corto que se apaga rápido; un halo
+  // ancho y parejo se leía como mancha, no como luz.
+  const luz = 'color-mix(in srgb, var(--sala-accent), white 30%)';
+  const halo = (pct: number) => `color-mix(in srgb, ${luz}, transparent ${pct}%)`;
   if (brillo === 'suave') {
-    return `drop-shadow(0 0 3px ${luz}) drop-shadow(0 0 12px color-mix(in srgb, ${luz}, transparent 40%))`;
+    return `drop-shadow(0 0 1px ${luz}) drop-shadow(0 0 5px ${halo(45)}) drop-shadow(0 0 10px ${halo(75)})`;
   }
   if (brillo === 'intenso') {
-    return `drop-shadow(0 0 2px ${luz}) drop-shadow(0 0 8px ${luz}) drop-shadow(0 0 22px color-mix(in srgb, ${luz}, transparent 30%))`;
+    return `drop-shadow(0 0 1px ${luz}) drop-shadow(0 0 2px ${luz}) drop-shadow(0 0 6px ${halo(30)}) drop-shadow(0 0 14px ${halo(65)})`;
   }
   return undefined;
 }
