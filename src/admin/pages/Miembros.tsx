@@ -22,6 +22,41 @@ interface UltimaMembresia {
   fin: string | null;
 }
 
+/**
+ * Estado de la membresía de un socio, mirando TODAS sus membresías (no solo la
+ * última): si tiene algo vigente, está vigente — y es "pagada" si al menos una
+ * de sus vigentes es de un plan con precio > $0. Así un socio con mensualidad
+ * que además tomó una clase de prueba gratis no aparece como "gratis".
+ */
+type EstadoMembresia = 'vigente' | 'pausada' | 'vencida' | 'sin_plan';
+interface ResumenMembresia {
+  estado: EstadoMembresia;
+  /** Solo si estado='vigente': ¿alguna vigente es de un plan con precio? */
+  pagada: boolean;
+  ultima: UltimaMembresia;
+}
+
+type FiltroMembresia = '' | 'vigente' | 'vigente_pagada' | 'vigente_gratis' | 'pausada' | 'vencida' | 'sin_plan';
+
+const ACTIVAS = ['activa', 'trialing', 'past_due'];
+
+function estadoDeUltima(u: UltimaMembresia, ahora: number): EstadoMembresia {
+  const activa = ACTIVAS.includes(u.status);
+  const finPasado = !!u.fin && new Date(u.fin).getTime() < ahora;
+  if (u.status === 'congelada') return 'pausada';
+  if (activa && !finPasado) return 'vigente';
+  if ((activa && finPasado) || u.status === 'expirada' || u.status === 'cancelada') return 'vencida';
+  return 'sin_plan'; // 'pendiente' u otros: todavía no tiene nada usable
+}
+
+function pasaFiltro(r: ResumenMembresia | undefined, f: FiltroMembresia): boolean {
+  if (!f) return true;
+  const estado = r?.estado ?? 'sin_plan';
+  if (f === 'vigente_pagada') return estado === 'vigente' && !!r?.pagada;
+  if (f === 'vigente_gratis') return estado === 'vigente' && !r?.pagada;
+  return estado === f;
+}
+
 export default function Miembros() {
   const tenant = useTenant();
   const navigate = useNavigate();
@@ -39,32 +74,54 @@ export default function Miembros() {
   // "Sin correo": socios importados sin email real → recepción debe capturarlo.
   const [soloSinCorreo, setSoloSinCorreo] = useState(false);
   const sinCorreoCount = miembros.filter((m) => esCorreoMarcador(m.email)).length;
-  const visibles = soloSinCorreo ? miembros.filter((m) => esCorreoMarcador(m.email)) : miembros;
+  // Filtro por MEMBRESÍA (vigencia), aparte del status de la cuenta.
+  const [filtroMembresia, setFiltroMembresia] = useState<FiltroMembresia>('');
   // "Vigentes" = con plan o paquete activo (cache membresia_activa_id). El resto
   // son registrados que hoy no tienen nada: day passes de una visita, bajas, etc.
   const vigentesCount = miembros.filter((m) => m.status === 'activo' && m.membresia_activa_id).length;
 
   // Última membresía por socio, para que la columna "Membresía" distinga
   // "Vencida" (tuvo algo y se le terminó) de "Sin plan" (nunca ha tenido).
-  const [ultimas, setUltimas] = useState<Map<string, UltimaMembresia>>(new Map());
+  const [resumenes, setResumenes] = useState<Map<string, ResumenMembresia>>(new Map());
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       const { data, error } = await supabase
         .from('membresias')
-        .select('usuario_id, status, periodo_actual_fin')
+        .select('usuario_id, status, periodo_actual_fin, tiers(precio_centavos)')
         .eq('tenant_id', tenant.id)
         .order('created_at', { ascending: false });
       if (cancelled) return;
       if (error) { console.error('[Miembros] membresias', error); return; }
-      const map = new Map<string, UltimaMembresia>();
+      const ahora = Date.now();
+      const map = new Map<string, ResumenMembresia>();
       for (const r of data ?? []) {
-        if (!map.has(r.usuario_id)) map.set(r.usuario_id, { status: r.status, fin: r.periodo_actual_fin });
+        const u: UltimaMembresia = { status: r.status, fin: r.periodo_actual_fin };
+        const tier = r.tiers as { precio_centavos: number } | null;
+        const vigente = estadoDeUltima(u, ahora) === 'vigente';
+        const conPrecio = (tier?.precio_centavos ?? 0) > 0;
+        const prev = map.get(r.usuario_id);
+        if (!prev) {
+          // La primera que llega es la más reciente (orden desc).
+          map.set(r.usuario_id, { estado: estadoDeUltima(u, ahora), pagada: vigente && conPrecio, ultima: u });
+        } else if (vigente) {
+          // Una más vieja pero todavía vigente (p. ej. la mensualidad debajo de una prueba).
+          prev.estado = 'vigente';
+          prev.pagada = prev.pagada || conPrecio;
+        }
       }
-      setUltimas(map);
+      setResumenes(map);
     })();
     return () => { cancelled = true; };
   }, [tenant.id, miembros]);
+
+  const visibles = miembros.filter(
+    (m) => (!soloSinCorreo || esCorreoMarcador(m.email)) && pasaFiltro(resumenes.get(m.id), filtroMembresia)
+  );
+  const vigentesPagadasCount = miembros.filter((m) => {
+    const r = resumenes.get(m.id);
+    return r?.estado === 'vigente' && r.pagada;
+  }).length;
 
   return (
     <div className="adm-page">
@@ -79,6 +136,7 @@ export default function Miembros() {
             <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span>
                 {miembros.length} {miembros.length === 1 ? 'cliente' : 'clientes'} · {vigentesCount} con plan o paquete vigente
+                {resumenes.size > 0 && ` (${vigentesPagadasCount} pagados)`}
               </span>
               {sinCorreoCount > 0 && (
                 <button
@@ -143,12 +201,32 @@ export default function Miembros() {
           <option value="suspendido">Suspendido</option>
           <option value="cancelado">Cancelado</option>
         </select>
+        <select
+          value={filtroMembresia}
+          onChange={(e) => setFiltroMembresia(e.target.value as FiltroMembresia)}
+          className="ek-input"
+          style={{ maxWidth: '220px' }}
+          aria-label="Filtrar por membresía"
+        >
+          <option value="">Todas las membresías</option>
+          <option value="vigente">Vigente (todas)</option>
+          <option value="vigente_pagada">Vigente · pagada</option>
+          <option value="vigente_gratis">Vigente · gratis</option>
+          <option value="pausada">Pausada</option>
+          <option value="vencida">Vencida</option>
+          <option value="sin_plan">Sin plan</option>
+        </select>
       </div>
 
       {isLoading ? (
         <p className="adm-body">Cargando…</p>
-      ) : miembros.length === 0 ? (
-        <EmptyMiembros search={search} status={status} onClear={() => { setSearch(''); setStatus(''); }} onNuevo={() => setShowNuevo(true)} />
+      ) : visibles.length === 0 ? (
+        <EmptyMiembros
+          search={search}
+          status={status || filtroMembresia || (soloSinCorreo ? 'sin_correo' : '')}
+          onClear={() => { setSearch(''); setStatus(''); setFiltroMembresia(''); setSoloSinCorreo(false); }}
+          onNuevo={() => setShowNuevo(true)}
+        />
       ) : (
         <div className="adm-table-wrapper">
           <table className="adm-table">
@@ -197,7 +275,7 @@ export default function Miembros() {
                     </td>
                     <td>{m.membresia_tier ?? '—'}</td>
                     <td>
-                      <MembresiaBadge ultima={ultimas.get(m.id)} />
+                      <MembresiaBadge resumen={resumenes.get(m.id)} />
                     </td>
                     <td>
                       <StatusBadge status={m.status} />
@@ -348,29 +426,25 @@ function EmptyMiembros({
 }
 
 /**
- * Estado de la MEMBRESÍA (no de la cuenta): Vigente / Pausada / Vencida (con
- * fecha) / Sin plan. Deriva "vencida" por FECHA aunque la base diga 'activa'
- * (misma defensa que las fichas: el cron puede ir atrasado).
+ * Estado de la MEMBRESÍA (no de la cuenta): Vigente / Vigente · gratis /
+ * Pausada / Vencida (con fecha) / Sin plan. Deriva "vencida" por FECHA aunque
+ * la base diga 'activa' (misma defensa que las fichas: el cron puede ir atrasado).
  */
-function MembresiaBadge({ ultima }: { ultima?: UltimaMembresia }) {
+function MembresiaBadge({ resumen }: { resumen?: ResumenMembresia }) {
   let label = 'Sin plan';
   let color = 'var(--ek-ink-muted)';
-  if (ultima) {
-    const activa = ['activa', 'trialing', 'past_due'].includes(ultima.status);
-    const finPasado = !!ultima.fin && new Date(ultima.fin).getTime() < Date.now();
-    if (ultima.status === 'congelada') {
-      label = 'Pausada';
-      color = 'var(--ek-warning)';
-    } else if (activa && !finPasado) {
-      label = 'Vigente';
-      color = 'var(--ek-success)';
-    } else if ((activa && finPasado) || ultima.status === 'expirada' || ultima.status === 'cancelada') {
-      label = ultima.fin
-        ? `Vencida · ${new Date(ultima.fin).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}`
-        : 'Vencida';
-      color = 'var(--ek-danger)';
-    }
-    // 'pendiente' u otros → se queda en "Sin plan" (todavía no tiene nada usable).
+  if (resumen?.estado === 'pausada') {
+    label = 'Pausada';
+    color = 'var(--ek-warning)';
+  } else if (resumen?.estado === 'vigente') {
+    label = resumen.pagada ? 'Vigente' : 'Vigente · gratis';
+    color = 'var(--ek-success)';
+  } else if (resumen?.estado === 'vencida') {
+    const fin = resumen.ultima.fin;
+    label = fin
+      ? `Vencida · ${new Date(fin).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}`
+      : 'Vencida';
+    color = 'var(--ek-danger)';
   }
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
