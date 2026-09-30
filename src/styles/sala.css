@@ -168,6 +168,17 @@
 
   /* Shadows (sutiles sobre fondo claro) */
   --ek-shadow-card:    0 2px 8px rgba(26, 31, 28, 0.06);
+  --sala-shadow-card:
+    0 1px 2px rgba(26, 31, 28, 0.05),
+    0 10px 24px -12px var(--sala-primary-glow);
+  --sala-shadow-card-hover:
+    0 2px 4px rgba(26, 31, 28, 0.06),
+    0 20px 38px -16px var(--sala-primary-glow-strong);
+  /* Acabado de superficies inmersivas (sidebar, drawer, hero): filo de luz
+     arriba + grano finísimo. Solo blanco/negro translúcido → sirve con
+     cualquier marca. */
+  --sala-immersive-edge: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  --sala-immersive-grain: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.015) 0, rgba(255, 255, 255, 0.015) 1px, transparent 1px, transparent 3px);
   --ek-shadow-hero:    0 8px 24px rgba(26, 31, 28, 0.08), 0 2px 6px rgba(26, 31, 28, 0.04);
   --ek-shadow-cta:     0 2px 8px var(--sala-primary-shadow);
   --ek-shadow-modal:   0 24px 60px rgba(26, 31, 28, 0.18);
@@ -798,9 +809,10 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     /* Fase B Round 2: profundidad teñida. Capa neutra base (grounding) +
        capa amplia teñida del primary del tenant. La carta "flota" sobre el
        fondo y hereda la atmósfera de marca del gym. */
-    box-shadow:
-      var(--ek-shadow-card),
-      0 8px 24px var(--sala-primary-shadow);
+    /* Dos capas estilo renovacell: sombra de contacto nítida + halo amplio con
+       spread NEGATIVO (queda debajo de la carta, no la ensucia alrededor).
+       El halo se tiñe de la marca → funciona con cualquier color de tenant. */
+    box-shadow: var(--sala-shadow-card);
     color: var(--ek-ink);
   }
 
@@ -836,8 +848,8 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .ek-card-interactive { cursor: pointer; }
   .ek-card-interactive:hover {
-    border-color: var(--ek-line-strong);
-    transform: translateY(-1px);
+    border-color: var(--sala-primary-dim);
+    transform: translateY(-2px);
   }
 
   .ek-stat-card {
@@ -847,9 +859,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     padding: 16px;
     /* Round 2: mismo patrón que .ek-card pero más sutil (sombra teñida
        más chica) — los stat-cards suelen ir en grids densos. */
-    box-shadow:
-      var(--ek-shadow-card),
-      0 4px 12px var(--sala-primary-shadow);
+    box-shadow: var(--sala-shadow-card);
   }
 
   .ek-stat-card--accent { border-color: var(--sala-accent-dim); }
@@ -1873,8 +1883,11 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
       border-right: 0.5px solid rgba(255, 255, 255, 0.08);
       /* Sidebar con el color de marca (no oscurecido a casi-negro): mantiene
          el hue del tenant pero queda lo bastante oscuro para texto blanco. */
-      background: var(--grad-immersive);
-      box-shadow: 2px 0 24px rgba(0, 0, 0, 0.20);
+      background:
+        radial-gradient(260px 220px at 0% 0%, rgba(255, 255, 255, 0.10), transparent 70%),
+        var(--sala-immersive-grain),
+        var(--grad-immersive);
+      box-shadow: var(--sala-immersive-edge), 2px 0 24px rgba(0, 0, 0, 0.20);
       position: sticky;
       top: 0;
       height: 100vh;
@@ -2030,7 +2043,11 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     width: 280px;
     max-width: 80%;
     /* Drawer hereda el mismo color de marca del sidebar desktop */
-    background: var(--grad-immersive);
+    background:
+      radial-gradient(260px 220px at 0% 0%, rgba(255, 255, 255, 0.10), transparent 70%),
+      var(--sala-immersive-grain),
+      var(--grad-immersive);
+    box-shadow: var(--sala-immersive-edge), 18px 0 50px rgba(0, 0, 0, 0.35);
     border-right: 0.5px solid rgba(255, 255, 255, 0.10);
     animation: ek-slide-in-left 0.25s var(--ease-premium);
     /* Scroll natural con el dedo, sin la barra gris (mobile y tablet). */
@@ -2473,12 +2490,10 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
      (--sala-primary-shadow 16% → --sala-primary-dim 24%) con más spread.
      La carta "flota más alto" sin gritar. */
   .ek-card {
-    transition: box-shadow 0.2s ease;
+    transition: box-shadow 0.22s var(--ease-premium), transform 0.22s var(--ease-premium);
   }
   .ek-card:hover {
-    box-shadow:
-      var(--ek-shadow-hero),
-      0 12px 32px var(--sala-primary-dim);
+    box-shadow: var(--sala-shadow-card-hover);
   }
 
   /* ============================================================================
@@ -2492,15 +2507,33 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     position: relative;
     /* Mismo fondo de marca que el sidebar: el encabezado ya no es un bloque
        blanco más, ancla la página con el color del gym. */
-    background: var(--grad-immersive);
+    background:
+      radial-gradient(120% 140% at 100% 0%, rgba(255, 255, 255, 0.12), transparent 55%),
+      var(--sala-immersive-grain),
+      var(--grad-immersive);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 18px;
     padding: 18px 24px;
     padding-left: 28px;
     margin-bottom: 20px;
     overflow: hidden;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--sala-immersive-edge), 0 18px 40px -20px var(--sala-primary-glow-strong);
   }
+
+  /* Orbe de luz difuminado arriba a la derecha (blanco → neutro a la marca). */
+  .adm-hero::after {
+    content: '';
+    position: absolute;
+    top: -90px;
+    right: -60px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 70%);
+    filter: blur(30px);
+    pointer-events: none;
+  }
+  .adm-hero > * { position: relative; z-index: 1; }
 
   .adm-hero::before {
     content: '';
@@ -2518,7 +2551,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.65);
+    color: var(--sala-on-immersive-muted);
     margin: 0;
     margin-bottom: 5px;
   }
@@ -2536,7 +2569,7 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   .adm-hero-subtitle {
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.75);
+    color: var(--sala-on-immersive-muted);
     margin: 0;
   }
 
