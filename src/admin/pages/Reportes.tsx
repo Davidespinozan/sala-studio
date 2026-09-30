@@ -180,7 +180,7 @@ export default function Reportes() {
         }}
       >
         <p className="ek-eyebrow" style={{ color: 'var(--sala-primary)' }}>AVANZADO · PRO</p>
-        <h2 className="ek-h2" style={{ marginBottom: '4px' }}>Retención y churn</h2>
+        <h2 className="ek-h2" style={{ marginBottom: '4px' }}>Métricas avanzadas</h2>
         <p className="adm-body" style={{ color: 'var(--sala-text-secondary)', marginBottom: '20px' }}>
           Quién se queda, quién se va, y quién está por irse.
         </p>
@@ -258,7 +258,7 @@ function BloqueEconomia({ eco }: { eco: ReportesEconomiaData }) {
           label="MRR · proyectado"
           valor={fmtDinero(eco.mrrCentavos, m)}
           nota="socios activos × precio de lista"
-          ayuda="PROYECCIÓN, no lo cobrado: lo que tus membresías activas facturarían al mes a precio de lista. No descuenta cortesías, descuentos ni mora. Para el dinero que realmente entró, mirá el bloque 'Cobrado' de arriba."
+          ayuda="PROYECCIÓN, no lo cobrado: lo que tus membresías activas facturarían al mes a precio de lista. No descuenta cortesías, descuentos ni mora. Para el dinero que realmente entró, mira el bloque 'Cobrado' de arriba."
         />
         <KpiCard
           label="ARR · anualizado"
@@ -454,7 +454,7 @@ function TablaRendimiento({ filas, colNombre }: { filas: RendimientoFila[]; colN
   const { coral } = useChartColors();
   if (filas.length === 0) return <EmptyChart mensaje="Sin actividad en los últimos 90 días." />;
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div className="tabla-scroll">
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '440px' }}>
         <thead>
           <tr>
@@ -802,7 +802,7 @@ function TablaCohortes({ cohortes }: { cohortes: CohorteRetencion[] }) {
   };
 
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div className="tabla-scroll">
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '420px' }}>
         <thead>
           <tr>
@@ -858,6 +858,9 @@ function colorRetencion(pct: number, colors: { salvia: string; coral: string }):
 
 function BloqueMiembrosRiesgo({ miembros }: { miembros: MiembroRiesgo[] }) {
   const { coral } = useChartColors();
+  // 46 filas iguales eran una pared en el teléfono: primero los 10 más graves.
+  const [verTodos, setVerTodos] = useState(false);
+  const visibles = verTodos ? miembros : miembros.slice(0, 10);
   return (
     <Bloque titulo={`Miembros en riesgo (${miembros.length})`}>
       <div
@@ -876,13 +879,13 @@ function BloqueMiembrosRiesgo({ miembros }: { miembros: MiembroRiesgo[] }) {
             margin: '0 0 14px'
           }}
         >
-          Activos sin reservar ni asistir hace 21+ días — contactalos antes de perderlos.
+          Activos sin reservar ni asistir hace 21+ días — contáctalos antes de perderlos.
         </p>
         {miembros.length === 0 ? (
           <EmptyChart mensaje="Nadie en riesgo. Todos los miembros activos reservaron hace poco." />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {miembros.map((m) => (
+            {visibles.map((m) => (
               <div
                 key={m.id}
                 style={{
@@ -933,11 +936,21 @@ function BloqueMiembrosRiesgo({ miembros }: { miembros: MiembroRiesgo[] }) {
                   }}
                 >
                   {m.diasSinActividad == null
-                    ? 'Sin actividad reciente'
+                    ? 'Sin actividad'
                     : `${m.diasSinActividad} días`}
                 </span>
               </div>
             ))}
+            {miembros.length > 10 && (
+              <button
+                type="button"
+                className="ek-cta ek-cta--secondary"
+                style={{ alignSelf: 'center', marginTop: '4px' }}
+                onClick={() => setVerTodos((v) => !v)}
+              >
+                {verTodos ? 'Ver menos' : `Ver todos (${miembros.length})`}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -1014,9 +1027,11 @@ function KpiCard({
       style={{
         position: 'relative',
         background: 'var(--sala-surface)',
-        border: `1px solid ${alerta ? 'var(--sala-error-glow)' : 'var(--sala-border)'}`,
+        // Alerta con el ACENTO (regla: solo primario + acento), no rojo.
+        border: `1px solid ${alerta ? coral : 'var(--sala-border)'}`,
         borderRadius: '14px',
-        padding: '16px 18px'
+        padding: '14px 14px',
+        minWidth: 0
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 8px' }}>
@@ -1037,10 +1052,12 @@ function KpiCard({
       <p
         style={{
           fontFamily: 'var(--ek-font-display)',
-          fontSize: '28px',
+          // Se achica en tarjetas angostas: "$138,000" tocaba el borde a 360px.
+          fontSize: 'clamp(20px, 6.5vw, 28px)',
           fontWeight: 700,
           letterSpacing: '-0.03em',
           fontVariantNumeric: 'tabular-nums',
+          overflowWrap: 'anywhere',
           color: alerta ? coral : 'var(--sala-text-primary)',
           margin: 0
         }}

@@ -1347,6 +1347,11 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     margin: 0 auto;
     width: 100%;
   }
+  /* En teléfono .rec-main vive dentro de .adm-main, que ya da 16px de canal:
+     sumar 24px más dejaba las tarjetas angostas y desalineadas con la sede. */
+  @media (max-width: 640px) {
+    .rec-main { padding: 4px 0 24px; }
+  }
 
   .rec-day-selector {
     display: flex;
@@ -2197,6 +2202,25 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 
   /* Caja: en móvil las acciones de la fila (Recibo/Devolver) colapsan en un
      menú kebab; en pantallas anchas se muestran como botones. */
+  /* Tabla con scroll lateral: sombra en el borde que tiene más contenido, para
+     que en teléfono se note que hay columnas escondidas. */
+  .tabla-scroll {
+    overflow-x: auto;
+    background:
+      linear-gradient(to right, var(--sala-surface) 30%, transparent) left / 32px 100% no-repeat local,
+      linear-gradient(to left, var(--sala-surface) 30%, transparent) right / 32px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.14), transparent) left / 10px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.14), transparent) right / 10px 100% no-repeat scroll;
+  }
+  .caja-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 20px; }
+  .caja-toolbar-rangos { display: flex; gap: 8px; flex-wrap: wrap; }
+  .caja-toolbar-acciones { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+  @media (max-width: 640px) {
+    .caja-toolbar-rangos { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 0 16px 2px; scrollbar-width: none; }
+    .caja-toolbar-rangos > button { flex-shrink: 0; }
+    .caja-toolbar-acciones { margin-left: 0; width: 100%; }
+    .caja-toolbar-acciones > .ek-cta { flex: 1 1 auto; }
+  }
   .caja-row-actions { display: none; }
   .caja-row-kebab { display: inline-flex; }
   @media (min-width: 640px) {
@@ -2253,6 +2277,73 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
     flex-wrap: wrap;
     align-items: center;
   }
+
+  /* Móvil: los filtros ocupan todo el ancho (los max-width inline son para
+     escritorio) y los botones del encabezado no parten su texto en dos líneas. */
+  @media (max-width: 640px) {
+    .adm-filters { gap: 8px; }
+    .adm-filters > .ek-input { flex: 1 1 100%; max-width: none !important; }
+  }
+  .adm-page-header .ek-cta { white-space: nowrap; }
+  /* Los textarea del admin crecen con su texto (el subtítulo del hero se
+     cortaba a media línea). Donde no hay soporte, se queda con sus rows. */
+  .adm-page textarea { field-sizing: content; min-height: 3.2lh; }
+
+  /* Inicio del socio: 4 datos en fila no caben en 360px (se cortaba "Activa"
+     y las etiquetas se salían): 2×2 en teléfono, 4 en fila desde 520px. */
+  .socio-stat-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  @media (min-width: 520px) {
+    .socio-stat-chips { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  /* Encabezados con acción: en teléfono el título va arriba y los botones
+     abajo (inline muchos piden flex-direction: row, que aplastaba el título). */
+  @media (max-width: 640px) {
+    .adm-page-header { flex-direction: column !important; align-items: flex-start !important; }
+  }
+
+  /* Miembros: tabla en escritorio, tarjetas en teléfono (la tabla de 640px
+     escondía plan/membresía/status detrás de un scroll lateral). */
+  .solo-escritorio-inline { display: none; }
+  @media (min-width: 641px) {
+    .solo-escritorio-inline { display: inline; }
+    .solo-movil-inline { display: none; }
+  }
+  .solo-escritorio { display: none; }
+  .solo-movil { display: flex; flex-direction: column; gap: 8px; }
+  @media (min-width: 641px) {
+    .solo-escritorio { display: block; }
+    .solo-movil { display: none; }
+  }
+  .miembro-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--sala-surface);
+    border: 0.5px solid var(--ek-line);
+    border-radius: var(--ek-r-md);
+    padding: 12px 8px 12px 14px;
+  }
+  .miembro-card-main {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  .miembro-card-nombre { font-weight: 600; font-size: 15px; color: var(--ek-ink); }
+  .miembro-card-email {
+    font-size: 12.5px;
+    color: var(--ek-ink-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .miembro-card-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: 12.5px; color: var(--ek-ink-muted); }
 
   /* Stats */
   .adm-stat-grid {
@@ -2398,6 +2489,28 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   .adm-cal-event-usuario { color: var(--ek-ink); font-size: 12px; font-weight: 500; margin-top: 2px; }
 
   .adm-cal-legend { margin-top: 12px; color: var(--ek-ink-faint); font-size: 11px; }
+
+  /* Móvil: 7 columnas de ~45px no se leen. Cada día pasa a ser una fila (día a
+     la izquierda, reservas a la derecha) y la navegación queda solo con flechas. */
+  @media (max-width: 640px) {
+    .adm-cal-grid { grid-template-columns: 1fr; gap: 6px; }
+    .adm-cal-day {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+    .adm-cal-day-header { padding-bottom: 0; margin-bottom: 0; border-bottom: none; }
+    .adm-cal-empty { text-align: left; padding: 4px 0; }
+    .adm-cal-event { font-size: 12px; padding: 8px 10px; }
+    .adm-cal-event-usuario { font-size: 13px; }
+    .adm-week-nav { gap: 8px; }
+    .adm-week-nav-txt { display: none; }
+    .agenda-ver-inscritos-txt { display: none; }
+    .adm-week-nav .adm-link-btn { min-width: 44px; min-height: 44px; justify-content: center; }
+    .adm-week-label { text-align: center; flex: 1; }
+  }
 
   /* Admin modal */
   .adm-modal-backdrop {

@@ -12,6 +12,7 @@ export default function Toggle({ checked, onChange, label, description }: Toggle
         display: 'flex',
         alignItems: 'flex-start',
         gap: '12px',
+        minHeight: '44px',
         cursor: 'pointer',
         userSelect: 'none'
       }}
@@ -25,6 +26,10 @@ export default function Toggle({ checked, onChange, label, description }: Toggle
           flexShrink: 0,
           width: '44px',
           height: '26px',
+          // reset.css da min-height 44px a todo botón: lo volvía un cuadro con
+          // la bolita arriba. El área táctil es todo el label.
+          minHeight: '26px',
+          marginTop: '1px',
           borderRadius: '13px',
           background: checked ? 'var(--ek-mustard)' : 'var(--ek-bg-elevated)',
           border: `0.5px solid ${checked ? 'var(--ek-mustard)' : 'var(--ek-line)'}`,

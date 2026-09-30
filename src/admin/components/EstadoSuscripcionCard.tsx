@@ -211,7 +211,7 @@ export function EstadoSuscripcionCard({
         toast.error('No pudimos abrir la facturación. Prueba de nuevo.');
       }
     } catch {
-      toast.error('No pudimos abrir la facturación. Probá de nuevo.');
+      toast.error('No pudimos abrir la facturación. Prueba de nuevo.');
     } finally {
       setAbriendoPortal(false);
     }
@@ -338,6 +338,8 @@ export function EstadoSuscripcionCard({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'baseline',
+              flexWrap: 'wrap',
+              gap: '2px 12px',
               marginBottom: '6px'
             }}
           >

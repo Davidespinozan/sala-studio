@@ -120,7 +120,7 @@ export default function Horarios() {
         }}
       >
         <p style={{ fontSize: '13px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
-          Define acá la grilla semanal de cada sala. Las clases aparecen solas en la
+          Define aquí la grilla semanal de cada sala. Las clases aparecen solas en la
           Agenda y en la app del socio — sin generar nada. Cualquier cambio que hagas
           se refleja al instante.
         </p>
@@ -580,7 +580,7 @@ function HorarioModal({
       );
       if (errProp) {
         setSaving(false);
-        setError('Se guardó esta franja, pero no pudimos aplicarlo a las demás. Probá de nuevo.');
+        setError('Se guardó esta franja, pero no pudimos aplicarlo a las demás. Prueba de nuevo.');
         return;
       }
       toast.success(`Aplicado a las ${afectados} franjas de "${data.nombre}".`);
@@ -796,7 +796,7 @@ function HorarioModal({
             }
           />
           <span style={{ fontSize: '11px', color: 'var(--ek-ink-faint)' }}>
-            Dejalo vacío para usar el cupo por defecto de la sala.
+            Déjalo vacío para usar el cupo por defecto de la sala.
           </span>
         </label>
 

@@ -76,7 +76,7 @@ export default function Bitacora() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           className="ek-input"
-          placeholder="Buscar por socio, acción o quién la hizo…"
+          placeholder="Buscar socio, acción o quién…"
           style={{ flex: '1 1 240px', minHeight: '44px' }}
         />
         <select
@@ -121,7 +121,7 @@ export default function Bitacora() {
           title={entries.length === 0 ? 'Sin movimientos todavía' : 'Sin coincidencias'}
           subtitle={
             entries.length === 0
-              ? 'Las acciones de recepción (renovar, cancelar, bloquear, check-in…) van a aparecer acá.'
+              ? 'Las acciones de recepción (renovar, cancelar, bloquear, check-in…) aparecerán aquí.'
               : 'Prueba con otra búsqueda o cambia el filtro de acción.'
           }
         />

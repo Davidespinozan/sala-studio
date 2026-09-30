@@ -124,7 +124,7 @@ export default function Tienda() {
           toast.info('El gym todavía no tiene los cobros activos.');
           break;
         default:
-          toast.error('No pudimos completar la compra. Intentá de nuevo.');
+          toast.error('No pudimos completar la compra. Intenta de nuevo.');
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'No pudimos completar la compra.');

@@ -41,8 +41,9 @@ function readHeroSlides(hero: Record<string, unknown>): { desktop: string; mobil
 
 /** Botón chico (✕/←/→) sobre las miniaturas del carrusel del hero. */
 const miniBtn: CSSProperties = {
-  width: '22px',
-  height: '22px',
+  width: '36px',
+  height: '36px',
+  minHeight: '36px',
   padding: 0,
   display: 'inline-flex',
   alignItems: 'center',
@@ -721,7 +722,7 @@ export default function AjustesLanding() {
 
         <FormField
           label="Encuadre"
-          helper="Qué parte de la foto se conserva cuando hay que recortarla. Si la cara o el logo quedan cortados, movelo."
+          helper="Qué parte de la foto se conserva cuando hay que recortarla. Si la cara o el logo quedan cortados, muévelo."
         >
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {HERO_ENCUADRE_OPTS.map((opt) => {
@@ -753,7 +754,7 @@ export default function AjustesLanding() {
 
         <FormField
           label={`Oscurecido de la foto — ${draft.hero.oscurecido}%`}
-          helper="La foto se oscurece para que el texto se lea encima. Bajalo si tu imagen es clara y querés que se vea nítida; subilo si el título se pierde."
+          helper="La foto se oscurece para que el texto se lea encima. Bájalo si tu imagen es clara y quieres que se vea nítida; súbelo si el título se pierde."
         >
           <input
             type="range"
@@ -773,7 +774,7 @@ export default function AjustesLanding() {
             checked={draft.hero.zoom}
             onChange={(v) => setDraft({ ...draft, hero: { ...draft.hero, zoom: v } })}
             label="Zoom lento en la imagen"
-            description="Acerca la foto muy despacio, en loop. Da movimiento, pero RECORTA los bordes: si tu imagen ya está justa de encuadre, dejalo apagado."
+            description="Acerca la foto muy despacio, en loop. Da movimiento, pero RECORTA los bordes: si tu imagen ya está justa de encuadre, déjalo apagado."
           />
         </div>
 
@@ -862,7 +863,7 @@ export default function AjustesLanding() {
 
       <Section
         title="SECCIÓN DESPUÉS DEL HERO"
-        description="Elige el formato de la sección que va abajo del hero (o ocultala). El contenido es el mismo para los tres formatos."
+        description="Elige el formato de la sección que va abajo del hero (u ocúltala). El contenido es el mismo para los tres formatos."
       >
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
           {POST_HERO_VAR_OPTS.map((opt) => {
@@ -958,7 +959,7 @@ export default function AjustesLanding() {
 
       <Section
         title="TÍTULOS DE LAS SECCIONES"
-        description="Los encabezados de cada bloque de tu landing. El contenido (salas, planes, instructores) se edita en sus propias páginas; acá personalizas solo los títulos."
+        description="Los encabezados de cada bloque de tu landing. El contenido (salas, planes, instructores) se edita en sus propias páginas: aquí personalizas solo los títulos."
       >
         <SubBloque label="Salas">
           <SeccionHeadingFields value={draft.secciones.salas} onChange={(v) => setSeccion('salas', v)} />
@@ -1091,7 +1092,7 @@ export default function AjustesLanding() {
             pisaba lo que había escrito la otra. */}
       </Section>
 
-      <Section title="PREGUNTAS FRECUENTES" description="Las preguntas que ven tus visitantes. Editalas a tu realidad. Sin preguntas = la sección no se muestra.">
+      <Section title="PREGUNTAS FRECUENTES" description="Las preguntas que ven tus visitantes. Edítalas a tu realidad. Sin preguntas = la sección no se muestra.">
         <SubBloque label="Encabezado de la sección">
           <SeccionHeadingFields value={draft.secciones.faq} onChange={(v) => setSeccion('faq', v)} />
         </SubBloque>

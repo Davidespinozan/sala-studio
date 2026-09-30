@@ -413,6 +413,7 @@ export default function Reservar() {
           fechas={fechas}
           selectedFechaISO={fechaSel}
           onSelect={setFechaSel}
+          sangrado={20}
         />
       </div>
 
@@ -611,7 +612,7 @@ function ErrorDia() {
         No pudimos cargar las clases
       </p>
       <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0 }}>
-        Revisá tu conexión y probá cambiando de día, o volvé a entrar en un momento.
+        Revisa tu conexión y prueba cambiando de día, o vuelve a entrar en un momento.
       </p>
     </div>
   );

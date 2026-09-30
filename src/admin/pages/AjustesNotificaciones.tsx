@@ -30,7 +30,7 @@ export default function AjustesNotificaciones() {
         Notificaciones
       </h1>
       <p style={{ fontSize: '14px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '24px', lineHeight: 1.55 }}>
-        Los avisos del gym llegan siempre a la campana. Activalos también en el teléfono para
+        Los avisos del gym llegan siempre a la campana. Actívalos también en el teléfono para
         enterarte sin tener el panel abierto.
       </p>
 

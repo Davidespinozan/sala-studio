@@ -263,7 +263,7 @@ export default function AjustesContacto() {
               lineHeight: 1.55
             }}
           >
-            Tenés <strong>{sucursalesActivas} sedes</strong>, así que el domicilio y el mapa de
+            Tienes <strong>{sucursalesActivas} sedes</strong>, así que el domicilio y el mapa de
             cada una se cargan en{' '}
             <Link to="/admin/sucursales" style={{ color: 'var(--sala-primary)', fontWeight: 600 }}>
               Sucursales
@@ -274,7 +274,7 @@ export default function AjustesContacto() {
           <>
             <FormField
               label="Domicilio"
-              helper="La dirección de tu estudio, como querés que la lea un cliente."
+              helper="La dirección de tu estudio, como quieres que la lea un cliente."
             >
               <input
                 value={contacto.direccion}
@@ -286,7 +286,7 @@ export default function AjustesContacto() {
 
             <FormField
               label="Ubicación en el mapa"
-              helper="Escribí el domicilio arriba y tocá 'Ubicar dirección', o arrastrá el pin. Con la ubicación fijada, la página muestra el mapa con el botón para llegar en Google Maps."
+              helper="Escribe el domicilio arriba y toca 'Ubicar dirección', o arrastra el pin. Con la ubicación fijada, la página muestra el mapa con el botón para llegar en Google Maps."
             >
               <MapaPicker
                 lat={contacto.lat}
@@ -301,7 +301,7 @@ export default function AjustesContacto() {
         <FormField
           label="Correo de contacto"
           helper="Al que te escriben tus clientes. En la página se muestra como un link para enviarte un mail."
-          error={!emailValido ? 'Correo inválido. Revisá que tenga @ y dominio.' : undefined}
+          error={!emailValido ? 'Correo inválido. Revisa que tenga @ y dominio.' : undefined}
         >
           <input
             type="email"

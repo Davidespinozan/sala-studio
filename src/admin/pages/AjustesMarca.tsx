@@ -303,7 +303,7 @@ export default function AjustesMarca() {
           label=""
           allowSvg
           previewFit="contain"
-          helperText="Preferí SVG: se ve nítido en cualquier pantalla. PNG/WEBP también (mínimo 1024px de ancho para no pixelarse en móviles retina). Máx 2MB."
+          helperText="Prefiere SVG: se ve nítido en cualquier pantalla. PNG/WEBP también (mínimo 1024px de ancho para no pixelarse en móviles retina). Máx 2MB."
         />
         {!draft.logo_url_dark && (
           <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
@@ -365,7 +365,7 @@ export default function AjustesMarca() {
           label=""
           allowSvg
           previewFit="contain"
-          helperText="Símbolo cuadrado (sin texto). Preferí SVG; si es PNG, fondo transparente y 512×512 mínimo. Aparece en el login y espacios chicos."
+          helperText="Símbolo cuadrado (sin texto). Prefiere SVG; si es PNG, fondo transparente y 512×512 mínimo. Aparece en el login y espacios chicos."
         />
         {!draft.isotipo_url && (
           <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
@@ -671,7 +671,7 @@ function ColorPickerRow({
           }}
         >
           <AlertTriangle size={14} strokeWidth={2.25} style={{ flexShrink: 0, marginTop: '2px' }} />
-          El texto sobre este color puede no leerse bien en tamaños pequeños (contraste {ratio.toFixed(1)}:1 vs el mínimo recomendado 4.5:1). Considerá un tono más oscuro.
+          El texto sobre este color puede no leerse bien en tamaños pequeños (contraste {ratio.toFixed(1)}:1 vs el mínimo recomendado 4.5:1). Considera un tono más oscuro.
         </p>
       )}
       {tooLight && (

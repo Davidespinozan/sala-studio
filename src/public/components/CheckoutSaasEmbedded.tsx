@@ -50,10 +50,10 @@ export function CheckoutSaasEmbedded({
         if (res.client_secret) {
           setClientSecret(res.client_secret);
         } else {
-          onError(res.reason === 'stripe_pendiente' ? 'Estamos conectando Stripe. Probá en un rato.' : 'No pudimos abrir el pago.');
+          onError(res.reason === 'stripe_pendiente' ? 'Estamos conectando Stripe. Prueba en un rato.' : 'No pudimos abrir el pago.');
         }
       } catch {
-        if (!cancelado) onError('No pudimos abrir el pago. Probá de nuevo.');
+        if (!cancelado) onError('No pudimos abrir el pago. Prueba de nuevo.');
       } finally {
         if (!cancelado) setCargando(false);
       }

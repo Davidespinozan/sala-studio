@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, List } from 'lucide-react';
 import { useReservasRango, useRecursosAdmin } from '../hooks/useAdminData';
 import { useSucursal } from '../providers/SucursalProvider';
 import { useTenant } from '@shared/hooks/useTenant';
@@ -125,7 +125,7 @@ function VistaToggle({ value, onChange }: { value: Vista; onChange: (v: Vista) =
         aria-pressed={value === 'calendario'}
         style={{ ...baseBtn, ...(value === 'calendario' ? activeBtn : {}) }}
       >
-        📅 Calendario
+        <CalendarDays size={15} strokeWidth={2} /> Calendario
       </button>
       <button
         type="button"
@@ -133,7 +133,7 @@ function VistaToggle({ value, onChange }: { value: Vista; onChange: (v: Vista) =
         aria-pressed={value === 'lista'}
         style={{ ...baseBtn, ...(value === 'lista' ? activeBtn : {}) }}
       >
-        ☰ Lista
+        <List size={15} strokeWidth={2} /> Lista
       </button>
     </div>
   );
@@ -187,21 +187,23 @@ function VistaCalendario({
       <div className="adm-week-nav">
         <button
           onClick={() => setWeekStart((w) => sumarDias(w, -7))}
+          aria-label="Semana anterior"
           className="adm-link-btn"
           style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
         >
           <ChevronLeft size={16} strokeWidth={2.25} />
-          Semana anterior
+          <span className="adm-week-nav-txt">Semana anterior</span>
         </button>
         <span className="adm-week-label">
           {etiquetaRango(weekStart, sumarDias(weekStart, 6))}
         </span>
         <button
           onClick={() => setWeekStart((w) => sumarDias(w, 7))}
+          aria-label="Semana siguiente"
           className="adm-link-btn"
           style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
         >
-          Semana siguiente
+          <span className="adm-week-nav-txt">Semana siguiente</span>
           <ChevronRight size={16} strokeWidth={2.25} />
         </button>
       </div>
@@ -225,7 +227,7 @@ function VistaCalendario({
                   <p className="adm-cal-day-num">{dd}</p>
                 </div>
                 <div className="adm-cal-events">
-                  {reservasDelDia.length === 0 && <p className="adm-cal-empty">—</p>}
+                  {reservasDelDia.length === 0 && <p className="adm-cal-empty"><span className="solo-movil-inline">Sin reservas</span><span className="solo-escritorio-inline">—</span></p>}
                   {reservasDelDia.map((r) => (
                     <button
                       key={r.id}

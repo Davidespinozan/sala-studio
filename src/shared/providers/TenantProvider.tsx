@@ -636,7 +636,7 @@ export function TenantProvider({ children }: TenantProviderProps) {
             No pudimos cargar esta página
           </h1>
           <p style={{ color: 'var(--ek-ink-muted)', maxWidth: '32rem', margin: '0 auto', lineHeight: 1.55 }}>
-            Puede ser un problema temporal de conexión. Probá de nuevo en un momento.
+            Puede ser un problema temporal de conexión. Prueba de nuevo en un momento.
           </p>
           <button
             type="button"

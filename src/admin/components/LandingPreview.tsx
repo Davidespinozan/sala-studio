@@ -42,7 +42,10 @@ export default function LandingPreview({
   mostrarInstructores: boolean;
   maxHeight?: string;
 }) {
-  const [device, setDevice] = useState<Device>('desktop');
+  // En teléfono arranca en Móvil: la de escritorio a esa escala no se lee.
+  const [device, setDevice] = useState<Device>(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches ? 'mobile' : 'desktop'
+  );
   const DESIGN_W = device === 'mobile' ? DESIGN_MOBILE : DESIGN_DESKTOP;
   const containerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);

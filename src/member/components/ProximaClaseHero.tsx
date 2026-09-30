@@ -91,7 +91,7 @@ export function ProximaClaseHero({ clase, reservaId }: Props) {
             color: '#fff'
           }}
         >
-          {hayReserva ? clase.nombre : 'Todavía no reservaste'}
+          {hayReserva ? clase.nombre : 'Aún no tienes reservas'}
         </h2>
 
         {hayReserva ? (
@@ -123,7 +123,7 @@ export function ProximaClaseHero({ clase, reservaId }: Props) {
               lineHeight: 1.5
             }}
           >
-            Reservá tu próxima clase y va a aparecer acá, con tu código QR para entrar.
+            Reserva tu próxima clase y aparecerá aquí, con tu código QR para entrar.
           </p>
         )}
 

@@ -79,18 +79,18 @@ export default function Estudios() {
           return (
             <EstadoVacio
               titulo="No pudimos cargar las salas"
-              detalle="Revisá tu conexión y volvé a entrar. Si sigue, avisale al gimnasio."
+              detalle="Revisa tu conexión y vuelve a entrar. Si sigue, avísale al gimnasio."
             />
           );
         }
         if (visibles.length === 0) {
           return (
             <EstadoVacio
-              titulo={soloFavoritas ? 'Todavía no tenés favoritas' : 'Todavía no hay salas'}
+              titulo={soloFavoritas ? 'Todavía no tienes favoritas' : 'Todavía no hay salas'}
               detalle={
                 soloFavoritas
-                  ? 'Tocá el corazón en una sala para guardarla acá.'
-                  : 'El gimnasio todavía no publicó sus salas. Volvé pronto.'
+                  ? 'Toca el corazón en una sala para guardarla aquí.'
+                  : 'El gimnasio todavía no publicó sus salas. Vuelve pronto.'
               }
             />
           );

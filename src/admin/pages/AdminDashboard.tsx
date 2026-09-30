@@ -326,7 +326,7 @@ function SeccionTuMes({ data }: { data: DashboardData }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
           gap: '12px',
           marginBottom: '20px'
         }}
@@ -395,7 +395,7 @@ function MetricaCard({
   return (
     <div
       className="ek-card"
-      style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}
+      style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
         <p className="ek-eyebrow" style={{ fontSize: '10px', margin: 0 }}>{label}</p>
@@ -404,7 +404,7 @@ function MetricaCard({
       <p
         style={{
           fontFamily: 'var(--ek-font-display)',
-          fontSize: '36px',
+          fontSize: 'clamp(24px, 7.5vw, 36px)',
           fontWeight: 700,
           letterSpacing: '-0.03em',
           lineHeight: 1,
@@ -498,7 +498,7 @@ function SeccionDinero() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
           gap: '12px',
           marginBottom: '14px'
         }}
@@ -570,7 +570,7 @@ function DineroCard({
   return (
     <div
       className="ek-card"
-      style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}
+      style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
         <p className="ek-eyebrow" style={{ fontSize: '10px', margin: 0 }}>{label}</p>
@@ -579,7 +579,7 @@ function DineroCard({
       <p
         style={{
           fontFamily: 'var(--ek-font-display)',
-          fontSize: '36px',
+          fontSize: 'clamp(24px, 7.5vw, 36px)',
           fontWeight: 700,
           letterSpacing: '-0.03em',
           lineHeight: 1,

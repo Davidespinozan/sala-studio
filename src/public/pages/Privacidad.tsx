@@ -17,7 +17,7 @@ export default function Privacidad() {
           <li>Datos de cuenta: nombre, correo electrónico y, si lo proporcionás, teléfono.</li>
           <li>Datos de uso: reservas, asistencias, cancelaciones y estado de tu membresía.</li>
           <li>
-            Datos de pago: cuando pagás tu membresía, el cobro lo procesa <strong>Stripe</strong>.
+            Datos de pago: cuando pagas tu membresía, el cobro lo procesa <strong>Stripe</strong>.
             SALA no almacena los datos completos de tu tarjeta; solo guardamos un identificador de
             cliente y los últimos 4 dígitos para mostrarte tu método de pago.
           </li>
@@ -44,8 +44,8 @@ export default function Privacidad() {
 
       <LegalSection titulo="Tus derechos">
         <p style={{ margin: 0 }}>
-          Podés solicitar acceder, corregir o eliminar tus datos, y dar de baja tu cuenta.
-          Escribinos al establecimiento donde estás inscrito o a través de los datos de contacto de
+          Puedes solicitar acceder, corregir o eliminar tus datos, y dar de baja tu cuenta.
+          Escribe al establecimiento donde estás inscrito o a través de los datos de contacto de
           la plataforma. Atenderemos tu solicitud conforme a la legislación aplicable.
         </p>
       </LegalSection>

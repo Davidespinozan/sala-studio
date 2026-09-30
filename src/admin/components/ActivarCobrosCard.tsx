@@ -66,7 +66,7 @@ export function ActivarCobrosCard({
         toast.success('Cobros en camino — estamos conectando Stripe. Te avisamos.');
       }
     } catch {
-      toast.error('No pudimos iniciar la activación. Probá de nuevo.');
+      toast.error('No pudimos iniciar la activación. Prueba de nuevo.');
     } finally {
       setProcesando(false);
     }
@@ -105,14 +105,14 @@ export function ActivarCobrosCard({
         <div>
           <p className="ek-eyebrow" style={{ margin: 0 }}>COBROS A TUS SOCIOS</p>
           <h3 style={{ fontFamily: 'var(--ek-font-display)', fontSize: '18px', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--sala-text-primary)', margin: '2px 0 0' }}>
-            {activos ? 'Cobros activos' : enVerificacion ? 'Verificación en proceso' : 'Cobrá a tus socios'}
+            {activos ? 'Cobros activos' : enVerificacion ? 'Verificación en proceso' : 'Cobra a tus socios'}
           </h3>
         </div>
       </div>
 
       {esDemo ? (
         <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0, lineHeight: 1.5 }}>
-          En tu gym real, acá conectás tu cuenta y los pagos de tus socios van directo a tu banco — SALA nunca toca el dinero. (Demo: no se activa nada.)
+          En tu gym real, aquí conectas tu cuenta y los pagos de tus socios van directo a tu banco — SALA nunca toca el dinero. (Demo: no se activa nada.)
         </p>
       ) : cargando ? (
         <p style={{ fontSize: '13px', color: 'var(--sala-text-tertiary)', margin: 0 }}>Cargando…</p>

@@ -839,7 +839,7 @@ function EditarRecursoModal({
             </div>
           ) : esCreacion ? (
             <p style={{ fontSize: '12px', color: 'var(--ek-ink-faint)', lineHeight: 1.5, margin: 0 }}>
-              Guardá la sala y después vas a poder dibujarle un mapa, si lo necesita.
+              Guarda la sala y después podrás dibujarle un mapa, si lo necesita.
             </p>
           ) : (
             <button
@@ -858,7 +858,7 @@ function EditarRecursoModal({
             cupo pasa a ser la cantidad de lugares del mapa (deja de mandar el cupo de la
             clase) y no se pueden llevar invitados, porque cada persona ocupa su propio lugar.
             Si tu sala funciona por cupo —15 lugares un día, 20 otro— no le pongas mapa.
-            {!esCreacion && ' El editor del mapa se abre aparte: guardá primero lo que hayas cambiado acá.'}
+            {!esCreacion && ' El editor del mapa se abre aparte: guarda primero lo que hayas cambiado aquí.'}
           </p>
         </div>
 

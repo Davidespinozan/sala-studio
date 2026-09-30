@@ -17,7 +17,7 @@ function traducirErrorQR(raw: string): string {
   const m = raw.toLowerCase();
   if (m.includes('cancelada')) return 'Esta reserva está cancelada.';
   if (m.includes('no encontrada') || m.includes('no autorizada')) return 'No encontramos esta reserva.';
-  return 'No pudimos generar tu código. Probá de nuevo en un momento.';
+  return 'No pudimos generar tu código. Prueba de nuevo en un momento.';
 }
 
 export default function MiQR() {

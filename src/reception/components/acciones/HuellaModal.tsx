@@ -113,7 +113,7 @@ export function HuellaModal({ socioId, socioNombre, isOpen, onClose, onDone }: P
 
     setEsperando(false);
     throw new Error(
-      'El socio no apoyó el dedo a tiempo y la toma se venció. Revisá que el lector esté encendido y volvé a intentar.'
+      'El socio no apoyó el dedo a tiempo y la toma se venció. Revisa que el lector esté encendido y vuelve a intentar.'
     );
   }
 
@@ -226,7 +226,7 @@ export function HuellaModal({ socioId, socioNombre, isOpen, onClose, onDone }: P
         </div>
       ) : lleno ? (
         <Aviso>
-          {socioNombre} ya tiene dos dedos registrados, que es el máximo. Si querés cambiar uno,
+          {socioNombre} ya tiene dos dedos registrados, que es el máximo. Si quieres cambiar uno,
           quitalo primero.
         </Aviso>
       ) : (
@@ -272,7 +272,7 @@ export function HuellaModal({ socioId, socioNombre, isOpen, onClose, onDone }: P
             <span style={{ fontSize: '12.5px', lineHeight: 1.5 }}>
               <strong>{socioNombre} acepta</strong> que el gimnasio guarde su huella para
               entrar a sus clases. Se la puede dar de baja cuando quiera, desde su app o
-              pidiéndolo acá.
+              pidiéndolo aquí.
             </span>
           </label>
         </>

@@ -93,7 +93,7 @@ function ActivarTienda() {
       {estado === 'esperando' && (
         <p className="ek-body-muted" style={{ fontSize: 13, marginTop: 12 }}>
           El cobro entró. Tu tienda se prende en unos segundos; si no aparece sola,
-          recargá la página.
+          recarga la página.
         </p>
       )}
     </div>

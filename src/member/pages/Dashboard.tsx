@@ -281,7 +281,9 @@ export default function Dashboard() {
       if (falta) {
         // Genera el push una sola vez (el RPC deduplica por socio).
         const rpc = supabase.rpc.bind(supabase) as unknown as (n: string) => Promise<unknown>;
-        rpc('avisar_completar_perfil').catch(() => {});
+        // El builder de Supabase es un thenable SIN .catch, y no corre hasta que
+        // alguien le hace then: `.catch` tronaba y el RPC nunca se ejecutaba.
+        rpc('avisar_completar_perfil').then(() => {}, () => {});
       }
     })();
     return () => { cancel = true; };
@@ -749,14 +751,13 @@ function ResumenRapido({
   ];
 
   return (
-    <div style={{ display: 'flex', gap: '10px' }}>
+    <div className="socio-stat-chips">
       {chips.map((c) => {
         const Icon = c.icon;
         return (
           <div
             key={c.label}
             style={{
-              flex: 1,
               minWidth: 0,
               display: 'flex',
               flexDirection: 'column',
@@ -941,11 +942,17 @@ export function membresiaCardTexto(
 ): { value: string; problema: boolean } {
   if (estado === 'sin_membresia') return { value: 'Sin membresía activa', problema: true };
   if (estado === 'congelada') return { value: 'Membresía pausada', problema: true };
-  if (estado === 'past_due') return { value: 'Pago pendiente · revisá tu tarjeta', problema: true };
+  if (estado === 'past_due') return { value: 'Pago pendiente · revisa tu tarjeta', problema: true };
   // m no es null para los estados que siguen
   const fin = m?.periodo_actual_fin ? new Date(m.periodo_actual_fin) : null;
+  // Con año si no es el año en curso: "vence 29 sep" a secas se leía como
+  // que vencía hoy cuando en realidad era 29 sep 2027.
   const fechaCorta = fin
-    ? fin.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+    ? fin.toLocaleDateString('es-MX', {
+        day: 'numeric',
+        month: 'short',
+        ...(fin.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' as const } : {})
+      })
     : null;
 
   if (estado === 'vencida') {

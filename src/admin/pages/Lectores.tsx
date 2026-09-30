@@ -107,7 +107,7 @@ export default function Lectores() {
       >
         <p style={{ fontSize: '13px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.6 }}>
           Con un lector conectado, tus socios entran apoyando el dedo — sin sacar el celular.
-          Las huellas se guardan acá, cifradas: si el aparato se rompe, compras otro y nadie
+          Las huellas se guardan aquí, cifradas: si el aparato se rompe, compras otro y nadie
           tiene que volver a registrarse. Cada socio decide si la da, y puede borrarla cuando
           quiera desde su app.
         </p>

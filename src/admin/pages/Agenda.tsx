@@ -171,11 +171,12 @@ export default function Agenda() {
           <button
             type="button"
             onClick={() => navSemana(-1)}
+            aria-label="Semana anterior"
             className="ek-icon-btn"
             style={{ width: 'auto', padding: '8px 14px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
           >
             <ChevronLeft size={16} strokeWidth={2.25} />
-            Anterior
+            <span className="adm-week-nav-txt">Anterior</span>
           </button>
           <p
             style={{
@@ -194,21 +195,24 @@ export default function Agenda() {
           <button
             type="button"
             onClick={() => navSemana(1)}
+            aria-label="Semana siguiente"
             className="ek-icon-btn"
             style={{ width: 'auto', padding: '8px 14px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
           >
-            Siguiente
+            <span className="adm-week-nav-txt">Siguiente</span>
             <ChevronRight size={16} strokeWidth={2.25} />
           </button>
         </div>
 
-        {/* Filtro de sala */}
+        {/* Filtro de sala: llega hasta la orilla (no se corta en el margen). */}
         <div
           style={{
             display: 'flex',
             gap: '8px',
             overflowX: 'auto',
             paddingBottom: '4px',
+            marginInline: '-16px',
+            paddingInline: '16px',
             scrollbarWidth: 'none'
           }}
         >

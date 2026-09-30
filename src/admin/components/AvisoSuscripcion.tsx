@@ -13,7 +13,7 @@ function mensaje(motivo: MotivoSaas, dias: number): { texto: string; cta: string
   switch (motivo) {
     case 'trial_por_vencer':
       return {
-        texto: `Tu prueba gratis está por terminar. Agregá tu tarjeta para no perder el acceso a tu panel.`,
+        texto: `Tu prueba gratis está por terminar. Agrega tu tarjeta para no perder el acceso a tu panel.`,
         cta: 'Activar mi plan',
         grave: false
       };
@@ -23,7 +23,7 @@ function mensaje(motivo: MotivoSaas, dias: number): { texto: string; cta: string
     // los únicos días gratis del producto son los de la prueba.
     case 'trial_vencido':
       return {
-        texto: `Tu prueba terminó. El acceso a tu panel se corta en ${d}: activá tu plan para no perderlo.`,
+        texto: `Tu prueba terminó. El acceso a tu panel se corta en ${d}: activa tu plan para no perderlo.`,
         cta: 'Activar mi plan',
         grave: true
       };

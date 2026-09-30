@@ -1219,7 +1219,7 @@ function EditarTierModal({
           <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px' }}>
             Se cobra <strong>una sola vez</strong>, al dar de alta al socio: ni al renovar ni al
             cambiar de plan se vuelve a cobrar. Si el socio ya pagó inscripción antes, tampoco.
-            Dejalo en 0 si tu plan no cobra inscripción.
+            Déjalo en 0 si tu plan no cobra inscripción.
           </p>
         </div>
 

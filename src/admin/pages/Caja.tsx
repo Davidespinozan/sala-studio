@@ -344,7 +344,10 @@ export default function Caja() {
         </p>
       )}
 
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+      {/* Periodo y acciones en grupos separados: en teléfono cada uno es su
+          propia fila (antes se mezclaban en tres líneas desparejas). */}
+      <div className="caja-toolbar">
+        <div className="caja-toolbar-rangos">
         {RANGOS.map((r) => {
           const active = rango === r.value;
           return (
@@ -368,6 +371,8 @@ export default function Caja() {
             </button>
           );
         })}
+        </div>
+        <div className="caja-toolbar-acciones">
         <button
           type="button"
           onClick={() => exportarCsv(`caja-${rango}`, pagos, [
@@ -381,7 +386,6 @@ export default function Caja() {
             { key: 'notas', label: 'Notas' }
           ])}
           className="ek-cta ek-cta--secondary"
-          style={{ marginLeft: 'auto' }}
           disabled={pagos.length === 0}
         >
           Exportar CSV
@@ -392,6 +396,7 @@ export default function Caja() {
         <button type="button" onClick={() => setShowCorte(true)} className="ek-cta">
           Hacer corte
         </button>
+        </div>
       </div>
 
       <PorCobrarCard tenantId={tenant.id} onCambio={() => setReload((r) => r + 1)} />
@@ -465,7 +470,7 @@ export default function Caja() {
         <div className="ek-card" style={{ padding: '32px', textAlign: 'center' }}>
           <p style={{ margin: 0, fontWeight: 700 }}>Todavía no hay cobros en este periodo</p>
           <p style={{ margin: '6px 0 0', fontSize: '13px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
-            Los cobros aparecen acá cuando recepción asigna, renueva o cambia un plan eligiendo un
+            Los cobros aparecen aquí cuando recepción asigna, renueva o cambia un plan eligiendo un
             método de pago, y también cuando un socio paga online.
           </p>
         </div>

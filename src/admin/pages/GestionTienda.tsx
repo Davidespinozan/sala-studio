@@ -6,6 +6,8 @@ import { useToast } from '@shared/hooks/useToast';
 import { getTenantTimezone, fechaEnTz, formatHoraEnTz } from '@shared/lib/timezone';
 import { useSucursal } from '../providers/SucursalProvider';
 import ImageUploader from '../components/ImageUploader';
+import { PackagePlus, History, Pencil, Power, Trash2 } from 'lucide-react';
+import CardMenuDropdown from '../components/CardMenuDropdown';
 import VentasTienda from '@shared/tienda/VentasTienda';
 import ReportesTienda from '@shared/tienda/ReportesTienda';
 import { ventaSocioActiva, conVentaSocio, entregaOpciones, conEntrega, type OpcionesEntrega } from '@shared/lib/tiendaConfig';
@@ -191,6 +193,7 @@ export default function GestionTienda() {
             key={v}
             onClick={() => setVista(v)}
             className={vista === v ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
+            style={{ flex: '1 1 0', minWidth: 0, paddingInline: 10 }}
           >
             {v === 'productos' ? 'Productos' : v === 'ventas' ? 'Ventas' : 'Reportes'}
           </button>
@@ -204,11 +207,43 @@ export default function GestionTienda() {
       {vista === 'productos' && (productos.length === 0 ? (
         <div className="ek-card" style={{ padding: 32, textAlign: 'center' }}>
           <p className="ek-body-muted" style={{ margin: 0 }}>
-            Todavía no cargaste ningún producto. Empezá con lo que más vendés —agua, proteína—.
+            Todavía no cargaste ningún producto. Empieza con lo que más vendes —agua, proteína—.
           </p>
         </div>
       ) : (
-        <div className="ek-card" style={{ padding: 0, overflowX: 'auto' }}>
+        <>
+        <div className="solo-movil">
+          {productos.map((p) => {
+            const s = stock[p.id] ?? 0;
+            return (
+              <div key={p.id} className="miembro-card" style={{ opacity: p.activo ? 1 : 0.5 }}>
+                {p.foto_url
+                  ? <img src={p.foto_url} alt="" width={44} height={44} style={{ borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                  : <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--sala-bg)', border: '1px solid var(--sala-border)', flexShrink: 0 }} />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p className="miembro-card-nombre">{p.nombre}{!p.activo && ' (inactivo)'}</p>
+                  <div className="miembro-card-meta" style={{ marginTop: 3 }}>
+                    <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--ek-ink)', fontWeight: 600 }}>{fmt(p.precio_centavos, p.moneda)}</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: s <= 0 ? 'var(--ek-danger)' : s <= 3 ? 'var(--ek-mustard)' : 'var(--ek-ink-muted)' }}>
+                      {s} en stock
+                    </span>
+                    {p.categoria && <span>{p.categoria}</span>}
+                  </div>
+                </div>
+                <CardMenuDropdown
+                  items={[
+                    { label: 'Cargar stock', icon: <PackagePlus size={15} />, onClick: () => setCargandoStock(p) },
+                    { label: 'Movimientos', icon: <History size={15} />, onClick: () => setVerMovimientos(p) },
+                    { label: 'Editar', icon: <Pencil size={15} />, onClick: () => setEditando(p) },
+                    { label: p.activo ? 'Dar de baja' : 'Reactivar', icon: <Power size={15} />, onClick: () => toggleActivo(p), divider: true },
+                    { label: 'Eliminar', icon: <Trash2 size={15} />, onClick: () => eliminarProducto(p), danger: true }
+                  ]}
+                />
+              </div>
+            );
+          })}
+        </div>
+        <div className="ek-card solo-escritorio" style={{ padding: 0, overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr>
@@ -250,6 +285,7 @@ export default function GestionTienda() {
             </tbody>
           </table>
         </div>
+        </>
       ))}
 
       {/* Ajuste: venta desde la app del socio. */}

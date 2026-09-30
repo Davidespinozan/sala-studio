@@ -219,7 +219,7 @@ export default function Onboarding() {
             onClick={() =>
               avanzar(
                 emailTomado
-                  ? { ok: false, error: 'Ya tenés una cuenta con ese email. Iniciá sesión.' }
+                  ? { ok: false, error: 'Ya tienes una cuenta con ese email. Inicia sesión.' }
                   : validarPasoCuenta(state.cuenta)
               )
             }>
@@ -232,7 +232,7 @@ export default function Onboarding() {
             onClick={() =>
               avanzar(
                 slugDisp === 'tomado'
-                  ? { ok: false, error: 'Ese subdominio ya está en uso. Elegí otro.' }
+                  ? { ok: false, error: 'Ese subdominio ya está en uso. Elige otro.' }
                   : validarPasoGym(state.gym)
               )
             }>
@@ -320,7 +320,7 @@ function PasoCuenta({
         password: passRetomar
       });
       if (loginErr) {
-        setErrorRetomar('Contraseña incorrecta. Probá de nuevo o recuperá tu acceso.');
+        setErrorRetomar('Contraseña incorrecta. Prueba de nuevo o recupera tu acceso.');
         return;
       }
 
@@ -411,7 +411,7 @@ function PasoCuenta({
           }}
         >
           <p style={{ margin: '0 0 10px', fontSize: '13.5px', lineHeight: 1.5, color: 'var(--sala-text-primary)' }}>
-            <strong>Ya tenés una cuenta con ese email.</strong> Tu gym ya está creado — poné tu
+            <strong>Ya tienes una cuenta con ese email.</strong> Tu gym ya está creado — pon tu
             contraseña y te llevamos ahí para que termines de configurar el pago. No hace falta
             empezar de nuevo.
           </p>

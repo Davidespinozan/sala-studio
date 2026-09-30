@@ -146,8 +146,8 @@ export default function Cobros() {
         Cobros
       </h1>
       <p style={{ fontSize: '14px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: '24px', lineHeight: 1.55 }}>
-        Cómo le cobrás a tus socios. El dinero va directo a tu cuenta bancaria — SALA nunca lo toca.
-        Para ver los cobros que ya entraron, andá a <strong>Caja</strong>.
+        Cómo le cobras a tus socios. El dinero va directo a tu cuenta bancaria — SALA nunca lo toca.
+        Para ver los cobros que ya entraron, ve a <strong>Caja</strong>.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>

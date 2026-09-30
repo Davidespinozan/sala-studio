@@ -7,6 +7,9 @@ interface Props {
   fechas: Fecha[];
   selectedFechaISO: string;
   onSelect: (fechaISO: string) => void;
+  /** Canal lateral de la página (px): la tira se extiende hasta la orilla de la
+   *  pantalla en vez de cortarse en seco en el margen (igual que los chips). */
+  sangrado?: number;
 }
 
 /** Tabs horizontales con número grande + abreviatura del día (LUN, MAR, ...).
@@ -15,7 +18,7 @@ interface Props {
  *  Día seleccionado: fondo salvia + texto blanco.
  *  Día hoy (no seleccionado): borde salvia + texto salvia.
  *  Otros: surface plano + texto secundario. */
-export function DayTabSelector({ fechas, selectedFechaISO, onSelect }: Props) {
+export function DayTabSelector({ fechas, selectedFechaISO, onSelect, sangrado = 0 }: Props) {
   const hoyISO = (() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -29,11 +32,13 @@ export function DayTabSelector({ fechas, selectedFechaISO, onSelect }: Props) {
       style={{
         display: 'flex',
         gap: '6px',
-        width: '100%',
+        width: sangrado ? 'auto' : '100%',
         overflowX: 'auto',
         paddingBottom: '4px',
+        marginInline: sangrado ? `-${sangrado}px` : undefined,
+        paddingInline: sangrado ? `${sangrado}px` : undefined,
         WebkitOverflowScrolling: 'touch',
-        scrollbarWidth: 'thin'
+        scrollbarWidth: 'none'
       }}
     >
       {fechas.map((f) => {

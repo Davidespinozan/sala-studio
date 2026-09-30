@@ -34,6 +34,7 @@ export function AgendaListaDia({
           fechas={fechas}
           selectedFechaISO={fechaSel}
           onSelect={onFechaSelChange}
+          sangrado={16}
         />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -166,9 +167,13 @@ function ClaseRowAdminMobile({ clase, onClick }: { clase: Clase; onClick: () => 
             fontWeight: 600,
             color: 'var(--sala-text-primary)',
             margin: 0,
+            // Hasta 2 líneas: en teléfono el nombre es lo más importante y
+            // cortarlo a "Reforme…" no servía.
             overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            lineHeight: 1.25,
             textDecoration: esCancelada ? 'line-through' : 'none',
             opacity: esCancelada ? 0.6 : 1
           }}
@@ -223,7 +228,7 @@ function ClaseRowAdminMobile({ clase, onClick }: { clase: Clase; onClick: () => 
             gap: '4px'
           }}
         >
-          Ver inscritos
+          <span className="agenda-ver-inscritos-txt">Ver inscritos</span>
           <ArrowRight size={12} strokeWidth={2.5} />
         </span>
       </div>

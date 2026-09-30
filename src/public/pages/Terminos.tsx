@@ -15,7 +15,7 @@ export default function Terminos() {
       <LegalSection titulo="Tu cuenta">
         <p style={{ margin: 0 }}>
           Sos responsable de los datos que proporcionás y de mantener tu contraseña segura. La
-          actividad realizada desde tu cuenta es tu responsabilidad. Avisá al establecimiento si
+          actividad realizada desde tu cuenta es tu responsabilidad. Avisa al establecimiento si
           detectás un uso no autorizado.
         </p>
       </LegalSection>
@@ -23,7 +23,7 @@ export default function Terminos() {
       <LegalSection titulo="Reservas y cancelaciones">
         <p style={{ margin: 0 }}>
           Las reservas, cupos y políticas de cancelación las define cada establecimiento (por
-          ejemplo, con cuánta anticipación podés cancelar sin perder tu crédito). Cancelar fuera de
+          ejemplo, con cuánta anticipación puedes cancelar sin perder tu crédito). Cancelar fuera de
           la ventana definida puede implicar la pérdida del crédito o cargo, según las reglas del
           establecimiento.
         </p>
@@ -40,7 +40,7 @@ export default function Terminos() {
 
       <LegalSection titulo="Uso aceptable">
         <p style={{ margin: 0 }}>
-          No podés usar el servicio para fines ilícitos, suplantar a otras personas, ni intentar
+          No puedes usar el servicio para fines ilícitos, suplantar a otras personas, ni intentar
           vulnerar la seguridad de la plataforma. Podemos suspender cuentas que incumplan estos
           términos.
         </p>

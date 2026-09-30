@@ -211,7 +211,7 @@ export default function PosVenta() {
                 className="ek-input"
                 value={buscaSocio}
                 onChange={(e) => setBuscaSocio(e.target.value)}
-                placeholder="¿Socio? (opcional) — buscá por nombre"
+                placeholder="¿Socio? (opcional) — busca por nombre"
                 style={{ fontSize: 13 }}
               />
               {resultadosSocio.length > 0 && (

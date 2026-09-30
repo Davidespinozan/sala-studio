@@ -278,8 +278,8 @@ export default function Signup() {
         <h1 className="ek-h3" style={{ marginBottom: '8px' }}>Todavía no hay planes disponibles</h1>
         <p style={{ color: 'var(--ek-ink-muted)', fontSize: '14px', marginBottom: '24px' }}>
           {sinPlanes
-            ? `${tenant.nombre} todavía no publicó sus planes. Escribinos y te avisamos apenas estén.`
-            : 'No pudimos cargar los planes. Recargá la página.'}
+            ? `${tenant.nombre} todavía no publicó sus planes. Escríbenos y te avisamos apenas estén.`
+            : 'No pudimos cargar los planes. Recarga la página.'}
         </p>
         <Link to="/" className="ek-btn ek-btn--ghost">Volver al inicio</Link>
       </div>

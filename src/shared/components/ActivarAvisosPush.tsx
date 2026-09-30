@@ -51,7 +51,7 @@ export function ActivarAvisosPush({
       const msg = err instanceof Error ? err.message : '';
       if (msg === 'DENEGADO') {
         setEstado('denegado');
-        toast.error('Bloqueaste los avisos. Habilitalos en los ajustes del navegador.');
+        toast.error('Bloqueaste los avisos. Habilítalos en los ajustes del navegador.');
       } else {
         toast.error(msg || 'No pudimos cambiar los avisos.');
       }
@@ -118,7 +118,7 @@ export function ActivarAvisosPush({
               }}
             >
               <Smartphone size={15} strokeWidth={2.25} />
-              En iPhone, primero agregá la app a tu pantalla de inicio.
+              En iPhone, primero agrega la app a tu pantalla de inicio.
             </p>
           )}
 
@@ -139,7 +139,7 @@ export function ActivarAvisosPush({
               }}
             >
               <ShieldOff size={15} strokeWidth={2.25} style={{ flexShrink: 0, marginTop: '1px' }} />
-              Bloqueaste los avisos en este navegador. Habilitalos desde sus ajustes de sitio.
+              Bloqueaste los avisos en este navegador. Habilítalos desde sus ajustes de sitio.
             </p>
           )}
 

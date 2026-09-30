@@ -96,7 +96,7 @@ export default function Agenda() {
           <EmptyState
             icon={CalendarDays}
             title="Sin reservas esta semana"
-            subtitle="Cuando los socios reserven, van a aparecer acá por clase."
+            subtitle="Cuando los socios reserven, aparecerán aquí por clase."
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

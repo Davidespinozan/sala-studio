@@ -134,7 +134,7 @@ function bannerContenido(estado: Exclude<EstadoMembresia, 'sana'>): {
       return {
         variant: 'warning',
         eyebrow: 'Pago pendiente',
-        mensaje: 'No pudimos cobrar la renovación de tu plan. Revisá tu tarjeta en tu perfil.',
+        mensaje: 'No pudimos cobrar la renovación de tu plan. Revisa tu tarjeta en tu perfil.',
         waMensaje: 'Hola, tengo un pago pendiente de mi membresía.'
       };
   }

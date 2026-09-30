@@ -148,7 +148,7 @@ export default function Socios() {
           <EmptyState
             icon={Search}
             title={q.trim() ? 'Sin resultados' : 'Sin socios todavía'}
-            subtitle={q.trim() ? 'Prueba con otro nombre o teléfono.' : 'Los socios aparecen acá al darlos de alta.'}
+            subtitle={q.trim() ? 'Prueba con otro nombre o teléfono.' : 'Los socios aparecen aquí al darlos de alta.'}
           />
         ) : (
           <>

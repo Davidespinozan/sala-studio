@@ -33,7 +33,7 @@ export default function CentroPendientes() {
     {
       count: data.bloqueados,
       titulo: 'Socios bloqueados',
-      desc: 'Acceso bloqueado por no-shows. Revisá si corresponde.',
+      desc: 'Acceso bloqueado por no-shows. Revisa si corresponde.',
       to: '/admin/miembros',
       color: 'var(--ek-mustard)',
       bg: 'var(--ek-mustard-soft)'

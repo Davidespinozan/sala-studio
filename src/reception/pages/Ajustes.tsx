@@ -27,7 +27,7 @@ export default function Ajustes() {
         Ajustes
       </h1>
       <p style={{ fontSize: '14px', color: 'var(--sala-text-secondary)', margin: 0, marginBottom: '20px', lineHeight: 1.5 }}>
-        Los avisos del mostrador llegan a la campana. Activalos en el teléfono para enterarte sin
+        Los avisos del mostrador llegan a la campana. Actívalos en el teléfono para enterarte sin
         estar mirando la pantalla.
       </p>
 

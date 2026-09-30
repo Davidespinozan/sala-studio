@@ -123,6 +123,29 @@ export default function Miembros() {
     return r?.estado === 'vigente' && r.pagada;
   }).length;
 
+  const menuDe = (m: MiembroLista) => {
+    const estaBloqueado = !!m.bloqueado_hasta && new Date(m.bloqueado_hasta) > new Date();
+    return [
+      {
+        label: 'Ver perfil',
+        icon: <User size={15} />,
+        onClick: () => navigate(`/admin/miembros/${m.id}`)
+      },
+      {
+        label: 'Cambiar plan',
+        icon: <CreditCard size={15} />,
+        onClick: () => setCambiarPlanFor(m),
+        divider: true
+      },
+      {
+        label: estaBloqueado ? 'Desbloquear acceso' : 'Bloquear acceso',
+        icon: estaBloqueado ? <Unlock size={15} /> : <Lock size={15} />,
+        onClick: () => setBloquearFor(m),
+        danger: !estaBloqueado
+      }
+    ];
+  };
+
   return (
     <div className="adm-page">
       <div
@@ -228,7 +251,30 @@ export default function Miembros() {
           onNuevo={() => setShowNuevo(true)}
         />
       ) : (
-        <div className="adm-table-wrapper">
+        <>
+        <div className="solo-movil">
+          {visibles.map((m) => (
+            <div key={m.id} className="miembro-card">
+              <button
+                type="button"
+                className="miembro-card-main"
+                onClick={() => navigate(`/admin/miembros/${m.id}`)}
+              >
+                <p className="miembro-card-nombre">{m.nombre ?? '—'}</p>
+                <p className="miembro-card-email">
+                  {esCorreoMarcador(m.email) ? 'Sin correo' : m.email}
+                </p>
+                <div className="miembro-card-meta">
+                  <MembresiaBadge resumen={resumenes.get(m.id)} />
+                  {m.membresia_tier && <span>{m.membresia_tier}</span>}
+                  {m.status !== 'activo' && <StatusBadge status={m.status} />}
+                </div>
+              </button>
+              <CardMenuDropdown items={menuDe(m)} />
+            </div>
+          ))}
+        </div>
+        <div className="adm-table-wrapper solo-escritorio">
           <table className="adm-table">
             <thead>
               <tr>
@@ -261,8 +307,6 @@ export default function Miembros() {
             </thead>
             <tbody>
               {visibles.map((m) => {
-                const estaBloqueado =
-                  !!m.bloqueado_hasta && new Date(m.bloqueado_hasta) > new Date();
                 return (
                   <tr key={m.id}>
                     <td>{m.nombre ?? '—'}</td>
@@ -284,27 +328,7 @@ export default function Miembros() {
                       {new Date(m.created_at).toLocaleDateString('es-MX')}
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <CardMenuDropdown
-                        items={[
-                          {
-                            label: 'Ver perfil',
-                            icon: <User size={15} />,
-                            onClick: () => navigate(`/admin/miembros/${m.id}`)
-                          },
-                          {
-                            label: 'Cambiar plan',
-                            icon: <CreditCard size={15} />,
-                            onClick: () => setCambiarPlanFor(m),
-                            divider: true
-                          },
-                          {
-                            label: estaBloqueado ? 'Desbloquear acceso' : 'Bloquear acceso',
-                            icon: estaBloqueado ? <Unlock size={15} /> : <Lock size={15} />,
-                            onClick: () => setBloquearFor(m),
-                            danger: !estaBloqueado
-                          }
-                        ]}
-                      />
+                      <CardMenuDropdown items={menuDe(m)} />
                     </td>
                   </tr>
                 );
@@ -312,6 +336,7 @@ export default function Miembros() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {showNuevo && (

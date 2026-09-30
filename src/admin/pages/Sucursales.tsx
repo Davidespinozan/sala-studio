@@ -233,7 +233,7 @@ function SucursalRow({ sucursal: s, onEdit }: { sucursal: Sucursal; onEdit: () =
         </h3>
         <p style={{ fontSize: '12px', color: 'var(--sala-text-secondary)', margin: 0 }}>
           {s.direccion ? `${s.direccion} · ` : ''}
-          {tzLabel(s.timezone)}
+          <span style={{ whiteSpace: 'nowrap' }}>{tzLabel(s.timezone)}</span>
         </p>
       </div>
       <span

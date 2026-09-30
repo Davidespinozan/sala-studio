@@ -67,7 +67,7 @@ export function EditarContactoModal({
     <AccionModal
       isOpen={isOpen}
       title="Editar contacto"
-      description={`Actualizá el contacto y la fecha de nacimiento de ${socioNombre}. El email de acceso (login) no cambia acá.`}
+      description={`Actualiza el contacto y la fecha de nacimiento de ${socioNombre}. El email de acceso (login) no cambia aquí.`}
       variant="info"
       confirmLabel="Guardar"
       cancelLabel="Volver"
