@@ -7,6 +7,7 @@ import { useSuscripcion } from '../hooks/useSuscripcion';
 import { iniciarCheckoutSaas } from '../lib/suscripcionService';
 import { CheckoutModalMock } from '../components/CheckoutModalMock';
 import { EstadoSuscripcionCard } from '../components/EstadoSuscripcionCard';
+import { esCortesiaSaas } from '../lib/accesoSaas';
 import {
   PLANES_SAAS,
   TIERS_ORDEN,
@@ -26,6 +27,8 @@ export default function Suscripcion() {
   // La moneda la fija el MERCADO del gym (su timezone), no es elegible.
   const moneda = monedaDelTenant(tenant);
   const esDemo = esTenantDemo(tenant.slug);
+  // Servicio regalado: no hay planes que elegir ni nada que pagar.
+  const cortesia = esCortesiaSaas(tenant.config);
   const [checkout, setCheckout] = useState<TierSaas | null>(null);
   const [procesando, setProcesando] = useState<TierSaas | null>(null);
 
@@ -130,6 +133,7 @@ export default function Suscripcion() {
           {/* Estado de la suscripción actual + uso de miembros */}
           <EstadoSuscripcionCard suscripcion={suscripcion} uso={uso} onCambio={refetch} />
 
+          {!cortesia && (<>
           <h2
             style={{
               fontFamily: 'var(--ek-font-display)',
@@ -164,6 +168,7 @@ export default function Suscripcion() {
               />
             ))}
           </div>
+          </>)}
 
         </>
       )}

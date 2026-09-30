@@ -129,3 +129,14 @@ export function estadoAccesoSaas(
       return OK;
   }
 }
+/**
+ * CORTESÍA: SALA le regala el servicio a este gym (socio, trato especial).
+ * Se activa con `tenants.config.saas.cortesia = true` + su fila de
+ * `suscripciones_saas` en 'activa' sin sub de Stripe. La UI lo muestra activo,
+ * sin costo y sin vencimiento, y esconde todo lo que lleva a cobrar (planes,
+ * tarjeta, portal, cancelar). El webhook de Stripe tampoco le toca la fila.
+ */
+export function esCortesiaSaas(config: unknown): boolean {
+  const saas = (config as { saas?: { cortesia?: unknown } } | null)?.saas;
+  return saas?.cortesia === true;
+}

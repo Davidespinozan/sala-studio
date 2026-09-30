@@ -21,6 +21,7 @@ import {
 } from '@shared/lib/planesSaas';
 import type { SuscripcionSaas, UsoMiembros } from '../hooks/useSuscripcion';
 import ConfirmDialog from './ConfirmDialog';
+import { esCortesiaSaas } from '../lib/accesoSaas';
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
@@ -57,6 +58,8 @@ export function EstadoSuscripcionCard({
   const toast = useToast();
   const tenant = useTenant();
   const esDemo = esTenantDemo(tenant.slug);
+  // Servicio regalado por SALA: activo, sin costo, sin vencimiento, sin nada que cobrar.
+  const cortesia = esCortesiaSaas(tenant.config);
   const [confirmando, setConfirmando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
   const [reactivando, setReactivando] = useState(false);
@@ -75,7 +78,7 @@ export function EstadoSuscripcionCard({
   const subId = suscripcion?.stripe_subscription_id ?? null;
 
   useEffect(() => {
-    if (esDemo) { setTarjeta(null); setCargandoTarjeta(false); return; }
+    if (esDemo || cortesia) { setTarjeta(null); setCargandoTarjeta(false); return; }
     let cancelado = false;
     setCargandoTarjeta(true);
     void (async () => {
@@ -94,7 +97,7 @@ export function EstadoSuscripcionCard({
       }
     })();
     return () => { cancelado = true; };
-  }, [esDemo, subId]);
+  }, [esDemo, cortesia, subId]);
 
   // Solo afirmamos "no hay tarjeta" cuando Stripe ya respondió que no hay.
   // Mientras carga no se muestra nada: mejor un hueco que una acusación falsa.
@@ -262,7 +265,9 @@ export function EstadoSuscripcionCard({
           >
             {plan.nombre}{' '}
             <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--sala-text-secondary)' }}>
-              {formatPrecio(suscripcion.precio_centavos, suscripcion.moneda as 'mxn' | 'usd' | 'eur')}/mes
+              {cortesia
+                ? 'Sin costo'
+                : `${formatPrecio(suscripcion.precio_centavos, suscripcion.moneda as 'mxn' | 'usd' | 'eur')}/mes`}
             </span>
           </p>
         </div>
@@ -290,7 +295,8 @@ export function EstadoSuscripcionCard({
             valor={diasTrial === 0 ? 'Termina hoy' : `${diasTrial} día${diasTrial === 1 ? '' : 's'} restantes`}
           />
         )}
-        {suscripcion.periodo_actual_termina && (
+        {cortesia && <Dato label="Vigencia" valor="Sin vencimiento" />}
+        {!cortesia && suscripcion.periodo_actual_termina && (
           <Dato
             label={suscripcion.estado === 'trial' ? 'Primer cobro' : 'Próximo cobro'}
             valor={formatFecha(suscripcion.periodo_actual_termina)}
@@ -299,7 +305,7 @@ export function EstadoSuscripcionCard({
       </div>
 
       {/* Pago vencido (dunning) */}
-      {suscripcion.payment_past_due && (
+      {!cortesia && suscripcion.payment_past_due && (
         <AvisoLimite
           fuerte
           texto="Tu último pago no se procesó. Actualiza tu método de pago para no perder el acceso a tu plan."
@@ -307,7 +313,7 @@ export function EstadoSuscripcionCard({
       )}
 
       {/* Cancelación programada al fin del periodo */}
-      {cancelacionPendiente && (
+      {!cortesia && cancelacionPendiente && (
         <div
           style={{
             padding: '12px 14px',
@@ -402,7 +408,7 @@ export function EstadoSuscripcionCard({
           checkout veía lo mismo que uno que sí pagó ("Prueba gratis" y los días
           restantes), y se enteraba de que no tenía tarjeta el día que el paywall
           lo cortaba. Ahora se dice explícito, y si falta se avisa antes. */}
-      {!esDemo && (
+      {!esDemo && !cortesia && (
         <div style={{ borderTop: '1px solid var(--sala-border)', paddingTop: '14px', marginBottom: '14px' }}>
           {sinTarjeta ? (
             <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
@@ -514,6 +520,7 @@ export function EstadoSuscripcionCard({
       )}
 
       {/* Acciones: facturación (portal) + reactivar/cancelar */}
+      {!cortesia && (
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap', borderTop: '1px solid var(--sala-border)', paddingTop: '14px' }}>
         {!esDemo ? (
           <button
@@ -559,6 +566,7 @@ export function EstadoSuscripcionCard({
           </button>
         )}
       </div>
+      )}
 
       <ConfirmDialog
         isOpen={confirmando}

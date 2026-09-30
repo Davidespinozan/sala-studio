@@ -95,6 +95,12 @@ export const handler: Handler = async (event) => {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
+    // CORTESÍA: el servicio es regalado → nunca abrir un checkout que le cobre.
+    const { data: tcfg } = await adminDb.from('tenants').select('config').eq('id', admin.tenant_id).maybeSingle();
+    if ((tcfg?.config as any)?.saas?.cortesia === true) {
+      return ok({ activated: false, reason: 'cortesia' });
+    }
+
     const priceId = await resolvePriceId(stripe, lookupKey);
     const customerId = await getOrCreateTenantCustomer(
       stripe,

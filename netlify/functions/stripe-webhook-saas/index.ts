@@ -109,6 +109,11 @@ export const handler: Handler = async (event) => {
         const tenantId: string | undefined = sub.metadata?.tenant_id;
         if (!tenantId) break;
 
+        // CORTESÍA: SALA le regala el servicio a este gym. Su fila queda 'activa'
+        // sin Stripe y ningún evento (ni la cancelación de su sub vieja) la toca.
+        const { data: tcfg } = await admin.from('tenants').select('config').eq('id', tenantId).maybeSingle();
+        if ((tcfg?.config as any)?.saas?.cortesia === true) break;
+
         const deleted = stripeEvent.type === 'customer.subscription.deleted';
         const { id: priceId, interval, amount } = priceOf(sub);
         const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer?.id;
