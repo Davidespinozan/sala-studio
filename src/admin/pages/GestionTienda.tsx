@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { backendPost } from '@shared/lib/backend';
+import { beginIntent, resolveIntent } from '@shared/lib/intentToken';
 import { useTenant, useTenantRefetch } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { getTenantTimezone, fechaEnTz, formatHoraEnTz } from '@shared/lib/timezone';
@@ -150,8 +151,14 @@ export default function GestionTienda() {
   async function cancelarTienda() {
     if (!confirm('¿Dar de baja la tienda? Dejas de pagar el complemento y desaparece del menú. Tus productos y ventas quedan guardados por si la reactivas.')) return;
     setCancelando(true);
+    // W6-B2: la baja del complemento lleva prorrateo; el token evita doble
+    // efecto ante doble-tap/reenvío del mismo "dar de baja".
+    const ns = 'addon-tienda-cancelar';
+    const idemToken = beginIntent(ns);
+    let respondido = false;
     try {
-      await backendPost('complemento-saas', { modulo: 'tienda', accion: 'cancelar' });
+      await backendPost('complemento-saas', { modulo: 'tienda', accion: 'cancelar', idempotency_token: idemToken });
+      respondido = true;
       toast.success('Tienda dada de baja. Puede tardar unos segundos en desaparecer.');
       // El webhook apaga el módulo; se refresca el tenant para que la pantalla
       // vuelva sola a la de activación.
@@ -162,6 +169,7 @@ export default function GestionTienda() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'No se pudo dar de baja');
     } finally {
+      if (respondido) resolveIntent(ns);
       setCancelando(false);
     }
   }

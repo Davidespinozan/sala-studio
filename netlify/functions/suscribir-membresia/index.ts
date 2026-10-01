@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import { ok, badRequest, unauthorized, serverError } from '../_lib/http';
 import { requireEnv, optionalEnv } from '../_lib/env';
 import { getStripe } from '../_lib/stripe';
+import { stripeIdemKey, validIntentToken } from '../_lib/stripeIdempotency';
 import { getOrCreateSocioCustomer } from '../_lib/connectBilling';
 
 /**
@@ -34,6 +35,8 @@ interface Body {
   tier_id?: string;
   /** true → Embedded Checkout (modal en SALA): devuelve client_secret en vez de url. */
   embedded?: boolean;
+  /** W6-B2: token de la acción "cambiar de plan" (swap con prorrateo). */
+  idempotency_token?: string;
 }
 
 export const handler: Handler = async (event) => {
@@ -210,8 +213,23 @@ export const handler: Handler = async (event) => {
               recurring,
               product_data: { name: tier.nombre }
             },
-            { stripeAccount: acct }
+            {
+              stripeAccount: acct,
+              // W6-B: el Price de un tier (misma moneda/monto/intervalo) es
+              // reusable; con la clave estable, reintentar el swap no crea Prices
+              // duplicados en la cuenta del gym.
+              idempotencyKey: stripeIdemKey('tier-price', [
+                socio.tenant_id, tier.id, tier.precio_centavos, currency,
+                recurring.interval, recurring.interval_count
+              ])
+            }
           );
+          // W6-B2: el swap lleva prorrateo. Con el token de la acción, un
+          // doble-tap/reenvío del mismo cambio reusa la clave → Stripe no aplica
+          // un segundo prorrateo. Sin token el swap es casi auto-idempotente (el
+          // Price se reusa por su clave de contenido → reaplicar el mismo precio
+          // no genera delta), pero el token cierra la ventana de concurrencia.
+          const swapToken = validIntentToken(body.idempotency_token);
           const updated = await stripe.subscriptions.update(
             subId,
             {
@@ -219,7 +237,12 @@ export const handler: Handler = async (event) => {
               proration_behavior: 'create_prorations',
               metadata: meta
             },
-            { stripeAccount: acct }
+            {
+              stripeAccount: acct,
+              ...(swapToken
+                ? { idempotencyKey: stripeIdemKey('plan-swap-socio', [socio.tenant_id, subId, tier.id, swapToken]) }
+                : {})
+            }
           );
           const cpe =
             (updated as any).current_period_end ??

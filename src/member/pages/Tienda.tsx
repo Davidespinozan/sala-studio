@@ -6,6 +6,7 @@ import { backendPost } from '@shared/lib/backend';
 import { useToast } from '@shared/hooks/useToast';
 import { useTenant } from '@shared/hooks/useTenant';
 import { entregaOpciones } from '@shared/lib/tiendaConfig';
+import { beginIntent, resolveIntent } from '@shared/lib/intentToken';
 
 /* ══════════════════════════════════════════════════════════════════════════
    TIENDA DEL SOCIO — comprá desde tu móvil.
@@ -23,6 +24,10 @@ interface Producto {
   moneda: string;
   foto_url: string | null;
 }
+
+// W6-B2: namespace de la intención de cobro de la tienda (no incluye el carrito
+// a propósito: dos carritos idénticos comprados a propósito = dos intenciones).
+const COMPRA_NS = 'tienda-compra';
 
 const fmt = (c: number, m = 'MXN') =>
   (c / 100).toLocaleString('es-MX', { style: 'currency', currency: m, maximumFractionDigits: 0 });
@@ -57,9 +62,17 @@ export default function Tienda() {
     void recargarProductos();
   }, []);
 
-  const agregar = (id: string) => setCarrito((c) => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
+  // W6-B2: cambiar el carrito cierra la intención de cobro vigente → la próxima
+  // compra acuña un token nuevo. Así un token "retenido" (fallo de red) solo se
+  // reusa para reintentos del MISMO carrito, nunca para uno distinto (evita el
+  // choque de parámetros con la misma clave de idempotencia en Stripe).
+  const agregar = (id: string) => {
+    resolveIntent(COMPRA_NS);
+    setCarrito((c) => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
+  };
   const quitar = (id: string) =>
     setCarrito((c) => {
+      resolveIntent(COMPRA_NS);
       const n = (c[id] ?? 0) - 1;
       const next = { ...c };
       if (n <= 0) delete next[id]; else next[id] = n;
@@ -79,12 +92,20 @@ export default function Tienda() {
       return;
     }
     setComprando(true);
+    // W6-B2: token estable del INTENTO de compra. Doble-tap / re-render / refresh
+    // reusan el mismo token → una sola clave de idempotencia → un solo cargo.
+    const idemToken = beginIntent(COMPRA_NS);
+    let respondido = false;
     try {
       const r = await backendPost<{ paid: boolean; reason?: string; mensaje?: string }>('comprar-producto', {
         items: items.map((x) => ({ producto_id: x.prod.id, cantidad: x.cant })),
         entrega_tipo: entregaTipo,
-        entrega_ubicacion: entregaTipo === 'llevar' ? ubicacion.trim() : undefined
+        entrega_ubicacion: entregaTipo === 'llevar' ? ubicacion.trim() : undefined,
+        idempotency_token: idemToken
       });
+      // Respuesta recibida (pagó o rechazo definitivo): la intención se resolvió.
+      // Si NO llegamos acá (fallo de red), el token queda y el reintento lo reusa.
+      respondido = true;
 
       if (r.paid) {
         toast.success(
@@ -129,6 +150,7 @@ export default function Tienda() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'No pudimos completar la compra.');
     } finally {
+      if (respondido) resolveIntent(COMPRA_NS);
       setComprando(false);
     }
   }

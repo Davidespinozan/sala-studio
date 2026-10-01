@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { backendPost } from '@shared/lib/backend';
+import { beginIntent, resolveIntent } from '@shared/lib/intentToken';
 import { useToast } from '@shared/hooks/useToast';
 import { useModulo } from '@shared/hooks/useModulo';
 import { useTenantRefetch } from '@shared/hooks/useTenant';
@@ -29,8 +30,14 @@ function ActivarTienda() {
 
   async function activar() {
     setEstado('activando');
+    // W6-B2: la acción "activar tienda" lleva prorrateo; el token evita doble
+    // cobro ante doble-tap/reenvío.
+    const ns = 'addon-tienda-activar';
+    const idemToken = beginIntent(ns);
+    let respondido = false;
     try {
-      await backendPost('complemento-saas', { modulo: 'tienda', accion: 'activar' });
+      await backendPost('complemento-saas', { modulo: 'tienda', accion: 'activar', idempotency_token: idemToken });
+      respondido = true;
       // El cobro entró; el módulo lo prende el WEBHOOK, unos segundos después.
       // Se refresca el tenant un par de veces hasta que aparezca.
       setEstado('esperando');
@@ -42,6 +49,10 @@ function ActivarTienda() {
     } catch (e) {
       setEstado('idle');
       toast.error(e instanceof Error ? e.message : 'No se pudo activar la tienda');
+    } finally {
+      // Respuesta recibida → intención resuelta; fallo de red → se retiene el
+      // token para que el reintento reuse la misma clave.
+      if (respondido) resolveIntent(ns);
     }
   }
 

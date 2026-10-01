@@ -18,6 +18,7 @@ import {
   CICLOS_SAAS,
   type CicloSaas
 } from '../_lib/saasBilling';
+import { stripeIdemKey, validIntentToken } from '../_lib/stripeIdempotency';
 
 /**
  * POST /suscribir-saas — Flujo 1: el GYM (tenant) se suscribe al SaaS SALA.
@@ -43,6 +44,8 @@ interface Body {
   return_path?: string;
   /** true → Embedded Checkout (modal en SALA, alta del gym): devuelve client_secret. */
   embedded?: boolean;
+  /** W6-B2: token de la acción "cambiar de plan" (swap con prorrateo). */
+  idempotency_token?: string;
 }
 
 export const handler: Handler = async (event) => {
@@ -129,11 +132,20 @@ export const handler: Handler = async (event) => {
       const sub = await stripe.subscriptions.retrieve(subIdActual);
       const itemId = sub.items?.data?.[0]?.id;
       if (sub.status !== 'canceled' && itemId) {
-        const updated = await stripe.subscriptions.update(subIdActual, {
-          items: [{ id: itemId, price: priceId }],
-          proration_behavior: 'create_prorations',
-          metadata: { app: 'sala', tenant_id: admin.tenant_id, tier: body.tier!, moneda: body.moneda!, ciclo }
-        });
+        // W6-B2: swap SaaS con prorrateo. El token de la acción evita doble
+        // prorrateo ante doble-tap/reenvío del mismo cambio de plan.
+        const swapToken = validIntentToken(body.idempotency_token);
+        const updated = await stripe.subscriptions.update(
+          subIdActual,
+          {
+            items: [{ id: itemId, price: priceId }],
+            proration_behavior: 'create_prorations',
+            metadata: { app: 'sala', tenant_id: admin.tenant_id, tier: body.tier!, moneda: body.moneda!, ciclo }
+          },
+          swapToken
+            ? { idempotencyKey: stripeIdemKey('plan-swap-saas', [admin.tenant_id, subIdActual, body.tier!, swapToken]) }
+            : {}
+        );
         await adminDb
           .from('suscripciones_saas')
           .update({

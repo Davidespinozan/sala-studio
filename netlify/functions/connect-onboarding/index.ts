@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import { ok, badRequest, unauthorized, forbidden, serverError } from '../_lib/http';
 import { requireEnv, optionalEnv } from '../_lib/env';
 import { getStripe } from '../_lib/stripe';
+import { stripeIdemKey } from '../_lib/stripeIdempotency';
 
 /**
  * POST /connect-onboarding — Flujo 2: el gym activa cobros (Stripe Connect Express).
@@ -78,16 +79,22 @@ export const handler: Handler = async (event) => {
       // podría cobrarle a SALA es la fee de cuenta de Connect (por país; puede ser $0
       // en MX). Standard la elimina pero exige OAuth (Account Links NO funciona en
       // Standard → 500). Si esa fee resulta real y molesta, migrar a Standard+OAuth.
-      const account = await stripe.accounts.create({
-        type: 'express',
-        country,
-        email: authUser.email ?? undefined,
-        metadata: { app: 'sala', tenant_id: admin.tenant_id },
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true }
-        }
-      });
+      const account = await stripe.accounts.create(
+        {
+          type: 'express',
+          country,
+          email: authUser.email ?? undefined,
+          metadata: { app: 'sala', tenant_id: admin.tenant_id },
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true }
+          }
+        },
+        // W6-B: una sola cuenta Connect por tenant. Con la clave estable, un
+        // doble-click (el check de stripe_account_id tiene ventana TOCTOU) no
+        // crea una segunda cuenta Express.
+        { idempotencyKey: stripeIdemKey('connect-account', [admin.tenant_id]) }
+      );
       accountId = account.id;
       await adminDb.from('tenants').update({ stripe_account_id: accountId }).eq('id', admin.tenant_id);
     }

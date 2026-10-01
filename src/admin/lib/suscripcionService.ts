@@ -1,5 +1,6 @@
 import { supabase } from '@shared/lib/supabase';
 import { backendPost } from '@shared/lib/backend';
+import { beginIntent, resolveIntent } from '@shared/lib/intentToken';
 import { precioCentavos, TRIAL_DIAS, type TierSaas, type MonedaSaas } from '@shared/lib/planesSaas';
 
 export interface CheckoutSaasResult {
@@ -26,14 +27,25 @@ export async function iniciarCheckoutSaas(params: {
   ciclo?: 'mensual' | 'anual';
   returnPath?: string;
 }): Promise<CheckoutSaasResult> {
-  const res = await backendPost<CheckoutSaasResult>('suscribir-saas', {
-    tier: params.tier,
-    moneda: params.moneda,
-    ciclo: params.ciclo ?? 'mensual',
-    return_path: params.returnPath
-  });
-  if (res.url) window.location.href = res.url;
-  return res;
+  // W6-B2: la acción "cambiar a <tier>/<moneda>/<ciclo>" es una intención; un
+  // reintento del MISMO cambio reusa el token (no dobla el prorrateo del swap).
+  const ns = `saas-plan:${params.tier}:${params.moneda}:${params.ciclo ?? 'mensual'}`;
+  const idemToken = beginIntent(ns);
+  let respondido = false;
+  try {
+    const res = await backendPost<CheckoutSaasResult>('suscribir-saas', {
+      tier: params.tier,
+      moneda: params.moneda,
+      ciclo: params.ciclo ?? 'mensual',
+      return_path: params.returnPath,
+      idempotency_token: idemToken
+    });
+    respondido = true;
+    if (res.url) window.location.href = res.url;
+    return res;
+  } finally {
+    if (respondido) resolveIntent(ns);
+  }
 }
 
 export interface CancelacionSaasResult {

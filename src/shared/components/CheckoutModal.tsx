@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { backendPost } from '@shared/lib/backend';
+import { beginIntent, resolveIntent } from '@shared/lib/intentToken';
 import { useToast } from '@shared/hooks/useToast';
 
 /**
@@ -41,11 +42,18 @@ export function CheckoutModal({
   useEffect(() => {
     let cancelado = false;
     (async () => {
+      // W6-B2: token de la acción "cambiar/activar este plan". Si el server hace
+      // un swap in-place (prorrateo), el token evita doble prorrateo cuando el
+      // efecto se re-dispara (StrictMode, re-montaje, reintento del mismo plan).
+      const swapNs = `membership:${tierId ?? ''}`;
       try {
         const res = modo === 'tarjeta'
           ? await backendPost<SesionResult>('metodo-pago', { action: 'setup' })
-          : await backendPost<SesionResult>('suscribir-membresia', { tier_id: tierId, embedded: true });
+          : await backendPost<SesionResult>('suscribir-membresia', {
+              tier_id: tierId, embedded: true, idempotency_token: beginIntent(swapNs)
+            });
         if (cancelado) return;
+        if (modo !== 'tarjeta') resolveIntent(swapNs); // respuesta recibida → intención resuelta
         if (res.activated) {
           onSuccess(); // plan gratis → ya quedó activo
           return;

@@ -5,12 +5,14 @@ if (!globalThis.WebSocket) {
   (globalThis as any).WebSocket = ws;
 }
 
+import { createHash } from 'node:crypto';
 import type { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { ok, badRequest, unauthorized, forbidden, serverError } from '../_lib/http';
 import { requireEnv, optionalEnv } from '../_lib/env';
 import { getStripe } from '../_lib/stripe';
 import { getOrCreateSocioCustomer } from '../_lib/connectBilling';
+import { stripeIdemKey, validIntentToken } from '../_lib/stripeIdempotency';
 
 /**
  * POST /comprar-producto — Flujo 2 (Connect): el SOCIO compra de la tienda
@@ -47,6 +49,11 @@ interface Body {
   items?: ItemIn[];
   entrega_tipo?: string;
   entrega_ubicacion?: string;
+  // W6-B2/B3: token estable por INTENTO de compra que genera la app (uno por tap
+  // de "Pagar", en localStorage). Es la identidad de la intención durable
+  // (compra_intento) y la clave de idempotencia de Stripe. REQUERIDO en el cobro
+  // real: sin él no hay recuperación ante fallas ambiguas.
+  idempotency_token?: string;
 }
 
 export const handler: Handler = async (event) => {
@@ -234,9 +241,64 @@ export const handler: Handler = async (event) => {
       ...(itemsStr.length <= 480 ? { items: itemsStr } : {})
     };
 
+    // ── W6-B3: INTENCIÓN DE COMPRA DURABLE (antes de cualquier efecto) ──
+    // El token del cliente es la identidad de la compra. Debe venir y ser válido:
+    // es lo que vuelve el cobro recuperable ante fallas ambiguas.
+    const idemToken = validIntentToken(body.idempotency_token);
+    if (!idemToken) return badRequest('Falta el token de compra');
+
+    // Huella INMUTABLE del carrito (orden canónico): congela qué se está
+    // comprando para esta intención. No incluye entrega (no cambia el monto).
+    const fingerprint = createHash('sha256')
+      .update(JSON.stringify(
+        itemsJson
+          .map((x) => `${x.producto_id}:${x.cantidad}`)
+          .sort()
+      ))
+      .digest('hex');
+
+    // Claim durable ANTES de cobrar. Devuelve el token EFECTIVO (puede adoptar
+    // una intención abierta previa si el token del cliente se perdió) + el estado.
+    let claim: { token: string; estado: string; reuso: boolean; resultado: Record<string, unknown> | null };
+    try {
+      const { data, error } = await admin.rpc('compra_intento_reclamar', {
+        p_tenant: socio.tenant_id, p_usuario: socio.id, p_token: idemToken,
+        p_fingerprint: fingerprint, p_monto: total, p_moneda: currency
+      });
+      if (error) throw new Error((error as { message?: string }).message ?? String(error));
+      claim = data as typeof claim;
+    } catch (e: any) {
+      const msg = e?.message ?? String(e);
+      if (msg.includes('INTENTO_PAYLOAD_DISTINTO')) return badRequest('El carrito cambió; vuelve a intentarlo.');
+      if (msg.includes('INTENTO_DE_OTRO_USUARIO')) return forbidden('Token de compra inválido');
+      throw e; // otros → catch externo (serverError)
+    }
+
+    // Intención YA resuelta → replay del resultado congelado, SIN recobrar.
+    if (claim.estado === 'cobrada') return ok(claim.resultado ?? { paid: true });
+    if (claim.estado === 'fallida') return ok(claim.resultado ?? { paid: false, reason: 'error' });
+
+    // Helper para cerrar la intención con su resultado (idempotente server-side).
+    const resolverIntento = async (estado: 'cobrada' | 'fallida', pi: string | null, resultado: Record<string, unknown>) => {
+      try {
+        await admin.rpc('compra_intento_resolver', {
+          p_tenant: socio.tenant_id, p_token: claim.token, p_estado: estado, p_pi: pi, p_resultado: resultado
+        });
+      } catch (re) {
+        console.error('[comprar-producto] no se pudo resolver la intención', claim.token, re);
+      }
+    };
+
     // Cobro inmediato contra la tarjeta guardada (sin el socio "presente" en
     // Stripe). Si el banco pide 3DS off_session, Stripe lanza y lo tratamos como
-    // 'requiere_autenticacion'.
+    // 'requiere_autenticacion'. La clave de idempotencia se DERIVA del token de la
+    // intención durable: reintentar la misma intención reusa la misma clave →
+    // Stripe nunca crea un segundo PaymentIntent para la compra sin resolver.
+    const piOpts: { stripeAccount: string; idempotencyKey: string } = {
+      stripeAccount: acct,
+      idempotencyKey: stripeIdemKey('tienda-compra', [socio.tenant_id, socio.id, claim.token])
+    };
+
     let intent;
     try {
       intent = await stripe.paymentIntents.create(
@@ -251,19 +313,24 @@ export const handler: Handler = async (event) => {
           metadata: metaVenta,
           ...(feePct > 0 ? { application_fee_amount: Math.round((total * feePct) / 100) } : {})
         },
-        { stripeAccount: acct }
+        piOpts
       );
     } catch (e: any) {
       const code = e?.code || e?.raw?.code;
       if (code === 'authentication_required') {
+        await resolverIntento('fallida', null, { paid: false, reason: 'requiere_autenticacion' });
         return ok({ paid: false, reason: 'requiere_autenticacion' });
       }
       // Tarjeta rechazada / fondos / etc. → mensaje del banco, sin registrar nada.
-      return ok({ paid: false, reason: 'rechazada', mensaje: e?.message ?? 'La tarjeta fue rechazada' });
+      const resp = { paid: false, reason: 'rechazada', mensaje: e?.message ?? 'La tarjeta fue rechazada' };
+      await resolverIntento('fallida', null, resp);
+      return ok(resp);
     }
 
     if (intent.status !== 'succeeded') {
-      return ok({ paid: false, reason: 'no_completado', estado: intent.status });
+      const resp = { paid: false, reason: 'no_completado', estado: intent.status };
+      await resolverIntento('fallida', intent.id, resp);
+      return ok(resp);
     }
 
     // Cobro OK → registrar la venta (Caja + stock + cola de entrega), idempotente
@@ -292,19 +359,33 @@ export const handler: Handler = async (event) => {
         .maybeSingle();
       if (pagoExistente) {
         console.warn('[comprar-producto] rpcErr pero la venta SÍ se registró pi=', intent.id, rpcErr.message);
-        return ok({ paid: true, referencia: intent.id });
+        const resp = { paid: true, referencia: intent.id };
+        await resolverIntento('cobrada', intent.id, resp);
+        return ok(resp);
       }
       try {
-        await stripe.refunds.create({ payment_intent: intent.id }, { stripeAccount: acct });
+        // W6-B: reembolsar un PI concreto es idempotente por su id — reintentar
+        // NUNCA genera un segundo reembolso. (El ciclo económico completo de
+        // reembolsos/disputas es W6-C1; aquí solo la clave de esta llamada.)
+        await stripe.refunds.create(
+          { payment_intent: intent.id },
+          { stripeAccount: acct, idempotencyKey: stripeIdemKey('refund-venta', [intent.id]) }
+        );
       } catch (re) {
         // Reembolso falló: hay que resolverlo a mano. Lo dejamos MUY visible.
+        // La intención queda ABIERTA a propósito: el estado es ambiguo (se cobró
+        // pero no se registró NI reembolsó) → recuperable, no una compra nueva.
         console.error('[comprar-producto] REEMBOLSO FALLIDO pi=', intent.id, re);
         return serverError('Cobramos pero no pudimos completar la venta. Te contactamos para resolverlo.');
       }
-      return ok({ paid: false, reason: motivoRpc(rpcErr.message) });
+      const resp = { paid: false, reason: motivoRpc(rpcErr.message) };
+      await resolverIntento('fallida', intent.id, resp);
+      return ok(resp);
     }
 
-    return ok({ paid: true, ...(result as object) });
+    const respOk = { paid: true, ...(result as object) };
+    await resolverIntento('cobrada', intent.id, respOk);
+    return ok(respOk);
   } catch (err) {
     console.error('[comprar-producto]', err instanceof Error ? err.message : err);
     return serverError('No pudimos completar la compra');

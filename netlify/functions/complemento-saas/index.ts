@@ -9,6 +9,7 @@ import { ok, badRequest, unauthorized, forbidden, serverError } from '../_lib/ht
 import { requireEnv } from '../_lib/env';
 import { getStripe } from '../_lib/stripe';
 import { resolvePriceId } from '../_lib/saasBilling';
+import { stripeIdemKey, validIntentToken } from '../_lib/stripeIdempotency';
 
 /**
  * POST /complemento-saas — activar o cancelar un complemento (hoy: la Tienda).
@@ -33,6 +34,8 @@ type ComplementoId = keyof typeof COMPLEMENTOS;
 interface Body {
   modulo?: string;
   accion?: 'activar' | 'cancelar';
+  /** W6-B2: token de la acción prender/apagar el complemento (lleva prorrateo). */
+  idempotency_token?: string;
 }
 
 // ¿Este renglón de Stripe es el complemento pedido?
@@ -104,10 +107,22 @@ export const handler: Handler = async (event) => {
 
     const itemExistente = sub.items?.data?.find((i) => esDeComplemento(i, modulo));
 
+    // W6-B2: token de la acción (prender/apagar). El pre-check `itemExistente`
+    // ya hace la operación casi auto-idempotente tras éxito; el token cierra la
+    // ventana de concurrencia (doble-tap antes de que la 1ª commitee → doble
+    // prorrateo).
+    const addonToken = validIntentToken(body.idempotency_token);
+
     // ── CANCELAR ────────────────────────────────────────────────────────────
     if (body.accion === 'cancelar') {
       if (!itemExistente) return ok({ ya: true }); // no lo tenía: nada que hacer
-      await stripe.subscriptionItems.del(itemExistente.id, { proration_behavior: 'create_prorations' });
+      await stripe.subscriptionItems.del(
+        itemExistente.id,
+        { proration_behavior: 'create_prorations' },
+        addonToken
+          ? { idempotencyKey: stripeIdemKey('addon-del', [admin.tenant_id, subId, itemExistente.id, addonToken]) }
+          : {}
+      );
       return ok({ cancelado: true }); // el webhook apaga el módulo
     }
 
@@ -129,13 +144,18 @@ export const handler: Handler = async (event) => {
       .eq('activa', true);
     const quantity = Math.max(1, count ?? 1);
 
-    await stripe.subscriptionItems.create({
-      subscription: subId,
-      price: priceId,
-      quantity,
-      // Cobra la parte proporcional de este ciclo contra la tarjeta en archivo.
-      proration_behavior: 'create_prorations'
-    });
+    await stripe.subscriptionItems.create(
+      {
+        subscription: subId,
+        price: priceId,
+        quantity,
+        // Cobra la parte proporcional de este ciclo contra la tarjeta en archivo.
+        proration_behavior: 'create_prorations'
+      },
+      addonToken
+        ? { idempotencyKey: stripeIdemKey('addon-add', [admin.tenant_id, subId, modulo, addonToken]) }
+        : {}
+    );
 
     return ok({ activado: true, sucursales: quantity }); // el webhook prende el módulo
   } catch (e) {
