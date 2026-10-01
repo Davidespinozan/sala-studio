@@ -1,29 +1,25 @@
 import ws from 'ws';
 if (!globalThis.WebSocket) {
-  (globalThis as any).WebSocket = ws;
+  (globalThis as unknown as { WebSocket: unknown }).WebSocket = ws;
 }
 
 import type { Handler } from '@netlify/functions';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { requireEnv } from '../_lib/env';
 import { getStripe, Stripe } from '../_lib/stripe';
 import { mapStripeStatusToEstado, cicloFromInterval } from '../_lib/saasBilling';
+import { reportarErrorServidor } from '../_lib/sentry';
+import { inboxReceive, inboxClaim, inboxFailed } from '../_lib/stripeInbox';
 
 /**
  * POST /stripe-webhook-saas — Flujo 1 (SALA → gyms).
- * Sincroniza suscripciones_saas con el status autoritativo de Stripe.
- * Endpoint SEPARADO del webhook del socio (cada uno con su signing secret).
  *
- * Robustez (portado de healthyspaceclub):
- *  · firma verificada sobre el body CRUDO.
- *  · idempotencia por event.id (insert-or-ignore); ante error se borra el
- *    registro para que el retry de Stripe SÍ reprocese.
- *  · cuenta Stripe COMPARTIDA con HSC → ignora todo lo que no sea app:'sala'.
- *  · guard out-of-order con last_event_at.
- *  · past_due NO baja el acceso (gracia); enciende payment_past_due (dunning).
+ * W6-A2: transporte DURABLE por el inbox (A1). verify (FAIL-CLOSED) → app:'sala'
+ * → receive → claim → dispatcher stripe_procesar_saas (efecto + processed en una
+ * tx: applyIfNewer + módulo + movimientos, preservando cortesía/orden/idempotencia)
+ * → 200, o failed/dead + 500. Sin delete-on-error. Sin ampliar el catálogo.
  */
 
-// v22: current_period_end / trial_end pueden estar en la sub o en el item.
 function epochToISO(epoch: unknown): string | null {
   return typeof epoch === 'number' ? new Date(epoch * 1000).toISOString() : null;
 }
@@ -31,23 +27,14 @@ function periodEndISO(sub: any): string | null {
   const item = sub?.items?.data?.[0];
   return epochToISO(sub?.current_period_end ?? item?.current_period_end ?? null);
 }
-// ¿Este renglón es el complemento Tienda? Se distingue por su lookup_key
-// (sala_tienda_*) o su metadata. Con el add-on, la suscripción tiene DOS
-// renglones y hay que saber cuál es cuál.
 function esTienda(item: any): boolean {
   const p = item?.price;
-  return typeof p?.lookup_key === 'string'
-    ? p.lookup_key.startsWith('sala_tienda')
-    : p?.metadata?.addon === 'tienda';
+  return typeof p?.lookup_key === 'string' ? p.lookup_key.startsWith('sala_tienda') : p?.metadata?.addon === 'tienda';
 }
-
-// El renglón del PLAN, no el del complemento. El precio/monto base tiene que
-// salir de acá, no de data[0], que con la tienda presente podría ser el add-on.
 function itemBase(sub: any): any {
   const items = sub?.items?.data ?? [];
   return items.find((i: any) => !esTienda(i)) ?? items[0] ?? null;
 }
-
 function priceOf(sub: any): { id: string | null; interval: string | null; amount: number | null } {
   const price = itemBase(sub)?.price ?? null;
   return {
@@ -57,223 +44,111 @@ function priceOf(sub: any): { id: string | null; interval: string | null; amount
   };
 }
 
-export const handler: Handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method not allowed' };
-  }
+interface Plan { kind: 'sub' | 'invoice'; objectId: string | null; tenant: string | null; args: Record<string, unknown>; }
 
+function clasificar(ev: Stripe.Event, eventAt: string): Plan | null {
+  const obj = ev.data.object as any;
+  switch (ev.type) {
+    case 'customer.subscription.created':
+    case 'customer.subscription.updated':
+    case 'customer.subscription.deleted': {
+      if (obj.metadata?.app !== 'sala') return null;
+      const tenantId: string | undefined = obj.metadata?.tenant_id;
+      if (!tenantId) return null;
+      const deleted = ev.type === 'customer.subscription.deleted';
+      const { id: priceId, interval, amount } = priceOf(obj);
+      const customerId = typeof obj.customer === 'string' ? obj.customer : obj.customer?.id;
+      const items: any[] = obj?.items?.data ?? [];
+      const tiendaViva = !deleted && ['active', 'trialing', 'past_due'].includes(obj.status) && items.some(esTienda);
+      return {
+        kind: 'sub', objectId: obj.id, tenant: tenantId,
+        args: {
+          tenant_id: tenantId, tier: obj.metadata?.tier, moneda: obj.metadata?.moneda,
+          ciclo: obj.metadata?.ciclo ?? (interval ? cicloFromInterval(interval) : 'mensual'),
+          estado: deleted ? 'cancelada' : mapStripeStatusToEstado(obj.status),
+          stripe_customer_id: customerId, stripe_subscription_id: obj.id, stripe_price_id: priceId,
+          trial_termina: epochToISO(obj.trial_end), periodo_actual_termina: periodEndISO(obj),
+          cancel_at_period_end: deleted ? false : (obj.cancel_at_period_end ?? false),
+          payment_past_due: deleted ? false : obj.status === 'past_due',
+          precio_centavos: typeof amount === 'number' ? amount : null,
+          event_at: eventAt, tienda_viva: tiendaViva
+        }
+      };
+    }
+    case 'invoice.payment_failed':
+    case 'invoice.paid':
+    case 'invoice.payment_succeeded': {
+      const customerId = typeof obj.customer === 'string' ? obj.customer : obj.customer?.id;
+      if (!customerId) return null;
+      const pastDue = ev.type === 'invoice.payment_failed';
+      const pagadoEn = typeof obj.status_transitions?.paid_at === 'number'
+        ? new Date(obj.status_transitions.paid_at * 1000).toISOString() : eventAt;
+      return {
+        kind: 'invoice', objectId: obj.id, tenant: null,
+        args: {
+          stripe_customer_id: customerId, event_at: eventAt, past_due: pastDue,
+          amount_paid: pastDue ? 0 : (typeof obj.amount_paid === 'number' ? obj.amount_paid : 0),
+          moneda: (obj.currency || 'mxn'), referencia_externa: obj.id, pagado_en: pagadoEn,
+          metadata: {
+            stripe_event: ev.id,
+            stripe_subscription: typeof obj.subscription === 'string' ? obj.subscription : null,
+            periodo_inicio: obj.period_start ? new Date(obj.period_start * 1000).toISOString() : null,
+            periodo_fin: obj.period_end ? new Date(obj.period_end * 1000).toISOString() : null,
+            numero_factura: obj.number ?? null
+          }
+        }
+      };
+    }
+    default:
+      return null;
+  }
+}
+
+export const handler: Handler = async (event) => {
+  if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method not allowed' };
+
+  const whSecret = process.env.STRIPE_WEBHOOK_SECRET_SAAS;
+  if (!whSecret) {
+    await reportarErrorServidor('webhook-saas', new Error('STRIPE_WEBHOOK_SECRET_SAAS no configurado'));
+    return { statusCode: 500, body: 'webhook secret no configurado' };
+  }
   const sig = event.headers['stripe-signature'] || event.headers['Stripe-Signature'];
-  const whSecret = requireEnv('STRIPE_WEBHOOK_SECRET_SAAS');
   if (!sig) return { statusCode: 400, body: 'Falta firma' };
 
-  const rawBody = event.isBase64Encoded
-    ? Buffer.from(event.body || '', 'base64').toString('utf8')
-    : (event.body || '');
-
+  const rawBody = event.isBase64Encoded ? Buffer.from(event.body || '', 'base64').toString('utf8') : (event.body || '');
   const stripe = getStripe();
   let stripeEvent: Stripe.Event;
   try {
     stripeEvent = stripe.webhooks.constructEvent(rawBody, sig, whSecret);
   } catch (e) {
-    console.error('[webhook-saas] firma inválida:', e instanceof Error ? e.message : e);
+    await reportarErrorServidor('webhook-saas', e, { fase: 'firma' });
     return { statusCode: 400, body: 'Firma inválida' };
   }
 
   const admin = createClient(requireEnv('VITE_SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), {
     auth: { autoRefreshToken: false, persistSession: false }
   });
-
-  // ── Idempotencia: insert-or-ignore por event.id ──
-  const { data: inserted, error: idemErr } = await admin
-    .from('stripe_webhook_events')
-    .upsert({ id: stripeEvent.id, type: stripeEvent.type }, { onConflict: 'id', ignoreDuplicates: true })
-    .select('id');
-  if (idemErr) {
-    console.error('[webhook-saas] idempotencia falló:', idemErr.message);
-    return { statusCode: 500, body: 'Error de idempotencia' };
-  }
-  if (!inserted || inserted.length === 0) {
-    return { statusCode: 200, body: JSON.stringify({ received: true, duplicate: true }) };
-  }
-
   const eventAt = new Date(stripeEvent.created * 1000).toISOString();
 
+  const plan = clasificar(stripeEvent, eventAt);
+  if (!plan) return { statusCode: 200, body: JSON.stringify({ received: true }) };
+
+  await inboxReceive(admin, {
+    id: stripeEvent.id, flujo: 'saas', type: stripeEvent.type, account: null,
+    tenant: plan.tenant, objectId: plan.objectId, created: eventAt, payload: plan.args
+  });
+  const { claimed } = await inboxClaim(admin, stripeEvent.id);
+  if (!claimed) return { statusCode: 200, body: JSON.stringify({ received: true, duplicate: true }) };
+
   try {
-    switch (stripeEvent.type) {
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-      case 'customer.subscription.deleted': {
-        const sub = stripeEvent.data.object as any;
-        // Cuenta compartida con HSC: solo lo nuestro.
-        if (sub.metadata?.app !== 'sala') break;
-        const tenantId: string | undefined = sub.metadata?.tenant_id;
-        if (!tenantId) break;
-
-        // CORTESÍA: SALA le regala el servicio a este gym. Su fila queda 'activa'
-        // sin Stripe y ningún evento (ni la cancelación de su sub vieja) la toca.
-        const { data: tcfg } = await admin.from('tenants').select('config').eq('id', tenantId).maybeSingle();
-        if ((tcfg?.config as any)?.saas?.cortesia === true) break;
-
-        const deleted = stripeEvent.type === 'customer.subscription.deleted';
-        const { id: priceId, interval, amount } = priceOf(sub);
-        const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer?.id;
-
-        const row: Record<string, unknown> = {
-          tenant_id: tenantId,
-          tier: sub.metadata?.tier,
-          moneda: sub.metadata?.moneda,
-          ciclo: sub.metadata?.ciclo ?? (interval ? cicloFromInterval(interval) : 'mensual'),
-          estado: deleted ? 'cancelada' : mapStripeStatusToEstado(sub.status),
-          stripe_customer_id: customerId,
-          stripe_subscription_id: sub.id,
-          stripe_price_id: priceId,
-          trial_termina: epochToISO(sub.trial_end),
-          periodo_actual_termina: periodEndISO(sub),
-          cancel_at_period_end: deleted ? false : (sub.cancel_at_period_end ?? false),
-          payment_past_due: deleted ? false : sub.status === 'past_due',
-          last_event_at: eventAt
-        };
-        if (typeof amount === 'number') row.precio_centavos = amount;
-
-        await applyIfNewer(admin, tenantId, eventAt, row);
-
-        // Sincronizar el complemento TIENDA: prendido si su renglón está en la
-        // suscripción y esta está viva; apagado si se quitó o se canceló. El
-        // módulo es la fuente de verdad de qué ve el gym en el menú.
-        const items: any[] = sub?.items?.data ?? [];
-        const tiendaViva =
-          !deleted &&
-          ['active', 'trialing', 'past_due'].includes(sub.status) &&
-          items.some((i) => esTienda(i));
-        await sincronizarModulo(admin, tenantId, 'tienda', tiendaViva);
-        break;
-      }
-
-      case 'invoice.payment_failed':
-      case 'invoice.paid':
-      case 'invoice.payment_succeeded': {
-        const inv = stripeEvent.data.object as any;
-        const customerId = typeof inv.customer === 'string' ? inv.customer : inv.customer?.id;
-        if (!customerId) break;
-        // Filtro: ¿es de un tenant de SALA? (su customer está en suscripciones_saas)
-        const { data: sus } = await admin
-          .from('suscripciones_saas')
-          .select('tenant_id, last_event_at')
-          .eq('stripe_customer_id', customerId)
-          .maybeSingle();
-        if (!sus?.tenant_id) break;
-        if (sus.last_event_at && eventAt < sus.last_event_at) break;
-
-        const pastDue = stripeEvent.type === 'invoice.payment_failed';
-        await admin
-          .from('suscripciones_saas')
-          .update({ payment_past_due: pastDue, last_event_at: eventAt })
-          .eq('tenant_id', sus.tenant_id);
-
-        // Registrar el COBRO en el libro contable. Hasta acá el monto llegaba
-        // en el evento y se descartaba: lo que SALA factura existía solo dentro
-        // de Stripe, y no había forma de responder "cuánto cobré este mes".
-        // Solo los pagos exitosos: un cobro fallido no es un movimiento de
-        // dinero, es un cambio de estado (ya cubierto por payment_past_due).
-        if (!pastDue) {
-          const centavos = typeof inv.amount_paid === 'number' ? inv.amount_paid : 0;
-          if (centavos > 0) {
-            // La fecha del pago, no la del webhook: si Stripe reintenta la
-            // entrega dos días después, el ingreso sigue perteneciendo al día
-            // en que se cobró (y por lo tanto al mes correcto).
-            const pagadoEn =
-              typeof inv.status_transitions?.paid_at === 'number'
-                ? new Date(inv.status_transitions.paid_at * 1000).toISOString()
-                : eventAt;
-
-            const { error: errMov } = await admin.from('movimientos_dinero').insert({
-              negocio: 'sala',
-              ocurrido_en: pagadoEn,
-              monto_centavos: centavos,
-              moneda: (inv.currency || 'mxn').toUpperCase(),
-              concepto: 'suscripcion',
-              metodo: 'stripe',
-              // Llave de idempotencia: Stripe reintenta, y sin esto cada
-              // reintento sumaría el ingreso otra vez, en silencio.
-              referencia_externa: inv.id,
-              tenant_id: sus.tenant_id,
-              metadata: {
-                stripe_event: stripeEvent.id,
-                stripe_subscription: typeof inv.subscription === 'string' ? inv.subscription : null,
-                periodo_inicio: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
-                periodo_fin: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
-                numero_factura: inv.number ?? null
-              }
-            });
-
-            // 23505 = ya estaba registrado. Es el caso ESPERADO en un reintento,
-            // no un error: se ignora. Cualquier otro código sí se propaga, para
-            // que Stripe reintente y el cobro no se pierda.
-            if (errMov && errMov.code !== '23505') throw errMov;
-          }
-        }
-        break;
-      }
-
-      default:
-        break; // evento no manejado → 200
-    }
+    const { error } = await admin.rpc('stripe_procesar_saas' as never, {
+      p_event_id: stripeEvent.id, p_kind: plan.kind, p_args: plan.args
+    } as never);
+    if (error) throw new Error((error as { message?: string }).message ?? String(error));
+    return { statusCode: 200, body: JSON.stringify({ received: true }) };
   } catch (e) {
-    console.error('[webhook-saas] error procesando', stripeEvent.type, ':', e instanceof Error ? e.message : e);
-    // Borrar idempotencia → el retry de Stripe reprocesa (si no, saldría como duplicado).
-    await admin.from('stripe_webhook_events').delete().eq('id', stripeEvent.id);
+    const estado = await inboxFailed(admin, stripeEvent.id, e);
+    await reportarErrorServidor('webhook-saas', e, { event: stripeEvent.id, type: stripeEvent.type, estado });
     return { statusCode: 500, body: 'Error de procesamiento' };
   }
-
-  return { statusCode: 200, body: JSON.stringify({ received: true }) };
 };
-
-// Prende o apaga un módulo en `tenants.config.modulos`, PRESERVANDO el resto del
-// config (timezone, tema, reglas…). Read-modify-write: solo escribe si el valor
-// cambió, para no generar writes ni carreras por gusto. La lista blanca de
-// columnas de `tenants` no afecta acá: `config` ya existe y es jsonb.
-async function sincronizarModulo(
-  admin: SupabaseClient,
-  tenantId: string,
-  modulo: string,
-  activo: boolean
-): Promise<void> {
-  const { data } = await admin.from('tenants').select('config').eq('id', tenantId).maybeSingle();
-  const config = (data?.config ?? {}) as Record<string, unknown>;
-  const modulos = { ...((config.modulos ?? {}) as Record<string, unknown>) };
-
-  // Módulo REGALADO: si SALA le comp'eó este módulo al gym (trato de fundador,
-  // cortesía, etc.), vive SIN renglón en Stripe. El webhook nunca debe apagarlo
-  // aunque no encuentre el ítem en la suscripción. `activo` (lo que dicta Stripe)
-  // solo puede PRENDER; apagar queda vetado para un módulo comp.
-  const comps = (config.modulos_comp ?? {}) as Record<string, unknown>;
-  const target = activo || comps[modulo] === true;
-
-  if (modulos[modulo] === target) return; // ya está como debe: no tocar
-  modulos[modulo] = target;
-  const { error } = await admin
-    .from('tenants')
-    .update({ config: { ...config, modulos } })
-    .eq('id', tenantId);
-  if (error) console.error('[webhook-saas] no se pudo sincronizar módulo', modulo, ':', error.message);
-}
-
-// Upsert por tenant_id, respetando el orden de eventos (no piso datos más nuevos).
-async function applyIfNewer(
-  admin: SupabaseClient,
-  tenantId: string,
-  eventAt: string,
-  row: Record<string, unknown>
-): Promise<void> {
-  const { data: existing } = await admin
-    .from('suscripciones_saas')
-    .select('last_event_at')
-    .eq('tenant_id', tenantId)
-    .maybeSingle();
-
-  if (existing?.last_event_at && eventAt < existing.last_event_at) return;
-
-  await admin
-    .from('suscripciones_saas')
-    .upsert(row, { onConflict: 'tenant_id' });
-}
