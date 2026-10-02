@@ -60,12 +60,24 @@ async function recuperarConNuevaTarjeta(stripe: Stripe, session: any, acct?: str
 }
 
 interface Plan {
-  kind: 'activar' | 'estado' | 'venta_online' | 'account' | 'card_recovery';
+  kind: 'activar' | 'estado' | 'venta_online' | 'account' | 'card_recovery'
+      | 'reembolso' | 'disputa' | 'sub_estado';   // W6-C1
   objectId: string | null;
   tenant: string | null;
   args: Record<string, unknown>;
   session?: any;                       // card_recovery
   notify?: { usuarioId: string };      // past_due
+  notifyStaffDisputa?: boolean;        // W6-C1: alerta de contracargo abierto (best-effort)
+}
+
+// W6-C1: estado Stripe de la suscripción → estado canónico que acepta el writer
+// (activa/past_due/cancelada). Estados sin efecto claro (trialing/incomplete)
+// se ignoran: no forzamos un estado dudoso desde subscription.updated.
+function estadoDeSub(s: string): string | null {
+  if (s === 'active') return 'activa';
+  if (s === 'past_due' || s === 'unpaid') return 'past_due';
+  if (s === 'canceled') return 'cancelada';
+  return null;
 }
 
 /** Clasifica el evento y hace los retrieves de Stripe necesarios (lecturas). null = ignorar. */
@@ -150,6 +162,45 @@ async function clasificar(stripe: Stripe, ev: Stripe.Event, acct: string | undef
       return { kind: 'account', objectId: obj.id, tenant: null,
         args: { account_id: obj.id, charges: obj.charges_enabled === true, details: obj.details_submitted === true } };
     }
+
+    // ── W6-C1: REEMBOLSOS ── cada refund individual por refund.id (parciales/
+    //    múltiples). Ownership la resuelve el dispatcher (account→tenant + pago). ──
+    case 'charge.refunded': {
+      const refunds = ((obj.refunds?.data ?? []) as any[])
+        .map((r) => ({ refund_id: r.id, amount: r.amount, moneda: r.currency }))
+        .filter((r) => r.refund_id);
+      if (refunds.length === 0) return null;
+      const pi = typeof obj.payment_intent === 'string' ? obj.payment_intent : obj.payment_intent?.id ?? null;
+      return { kind: 'reembolso', objectId: obj.id, tenant: null,
+        args: { account_id: acct ?? null, charge_id: obj.id, payment_intent: pi, refunds } };
+    }
+
+    // ── W6-C1: DISPUTAS ── created=abierta (+alerta); closed=won/lost. ──
+    case 'charge.dispute.created':
+    case 'charge.dispute.closed': {
+      const pi = typeof obj.payment_intent === 'string' ? obj.payment_intent : obj.payment_intent?.id ?? null;
+      const chg = typeof obj.charge === 'string' ? obj.charge : obj.charge?.id ?? null;
+      const estado = ev.type === 'charge.dispute.created'
+        ? 'abierta'
+        : (obj.status === 'won' ? 'ganada' : obj.status === 'lost' ? 'perdida' : 'abierta');
+      return {
+        kind: 'disputa', objectId: obj.id, tenant: null,
+        args: { account_id: acct ?? null, dispute_id: obj.id, charge_id: chg, payment_intent: pi,
+                estado, amount: obj.amount ?? null, moneda: obj.currency ?? null },
+        notifyStaffDisputa: estado === 'abierta'
+      };
+    }
+
+    // ── W6-C1: subscription.updated ── SOLO estado contractual; NUNCA crea cobro.
+    //    El dinero real del upgrade entra por invoice/payment (arriba). ──
+    case 'customer.subscription.updated': {
+      if (obj.metadata?.app !== 'sala') return null;
+      const nuevo = estadoDeSub(obj.status);
+      if (!nuevo) return null;
+      return { kind: 'sub_estado', objectId: obj.id, tenant: null,
+        args: { stripe_subscription_id: obj.id, nuevo_status: nuevo, event_created: eventCreatedISO, account_id: acct ?? null } };
+    }
+
     default:
       return null;
   }
@@ -167,6 +218,19 @@ async function notificarPastDue(admin: SupabaseClient, usuarioId: string): Promi
     p_tenant_id: socio.tenant_id, p_tipo: 'pago_rechazado', p_titulo: 'Cobro rechazado',
     p_mensaje: `Le falló el cobro a ${socio.nombre ?? socio.email ?? 'un socio'}.`,
     p_metadata: { usuario_id: usuarioId }
+  } as never);
+}
+
+// W6-C1: avisa al staff que se abrió un contracargo. Best-effort (reusa
+// notificar_staff). Resuelve el tenant por la cuenta Connect del evento.
+async function notificarDisputaStaff(admin: SupabaseClient, acct: string | undefined): Promise<void> {
+  if (!acct) return;
+  const { data: tenant } = await admin.from('tenants').select('id').eq('stripe_account_id', acct).maybeSingle();
+  if (!tenant?.id) return;
+  await admin.rpc('notificar_staff' as never, {
+    p_tenant_id: tenant.id, p_tipo: 'contracargo', p_titulo: 'Contracargo abierto',
+    p_mensaje: 'Un socio abrió una disputa de pago en su banco. Revisá el caso en Stripe.',
+    p_metadata: {}
   } as never);
 }
 
@@ -230,6 +294,13 @@ export const handler: Handler = async (event) => {
       if (plan.notify) {
         await notificarPastDue(admin, plan.notify.usuarioId).catch((e) =>
           reportarErrorServidor('webhook-socio', e, { fase: 'notificar', event: stripeEvent.id }));
+      }
+      // W6-C1: alerta de contracargo abierto. Best-effort y DESPUÉS de que el
+      // dispatcher commiteó: un fallo del push NO revierte el estado durable de
+      // la disputa (ya persistida + processed en la tx anterior).
+      if (plan.notifyStaffDisputa) {
+        await notificarDisputaStaff(admin, acct).catch((e) =>
+          reportarErrorServidor('webhook-socio', e, { fase: 'notificar-disputa', event: stripeEvent.id }));
       }
     }
     return OK;
