@@ -32,6 +32,7 @@ import { MiembroNotasInternas } from '../components/miembro/MiembroNotasInternas
 import { GestionarMembresiaModal } from '../components/miembro/GestionarMembresiaModal';
 import { BloquearAccesoModal } from '../components/miembro/BloquearAccesoModal';
 import { EnviarAvisoModal } from '../components/miembro/EnviarAvisoModal';
+import { ReconciliarStripeModal } from '../components/ReconciliarStripeModal';
 import type { Database } from '@shared/types/database';
 
 type Recurso = Pick<Database['public']['Tables']['recursos']['Row'], 'nombre'>;
@@ -109,6 +110,7 @@ export default function MiembroDetalle() {
   // "Editar datos" del hero abre el colapsable y te lleva a él.
   const editarRef = useRef<HTMLDetailsElement>(null);
   const [showAviso, setShowAviso] = useState(false);
+  const [showReconciliar, setShowReconciliar] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -372,6 +374,18 @@ export default function MiembroDetalle() {
       <section style={{ marginBottom: '32px' }}>
         <SectionHeading hint="Recibo por cobro">Pagos y recibos</SectionHeading>
         <HistorialPagosSocio usuarioId={miembro.id} reloadKey={pagosReload} />
+        {/* W6-C2: reconciliación on-demand (solo consulta) de los cobros Stripe del socio. */}
+        <button
+          type="button"
+          className="ek-cta ek-cta--secondary"
+          onClick={() => setShowReconciliar(true)}
+          style={{ marginTop: '12px' }}
+        >
+          Verificar pagos Stripe
+        </button>
+        {showReconciliar && (
+          <ReconciliarStripeModal sujeto="socio" id={miembro.id} onClose={() => setShowReconciliar(false)} />
+        )}
       </section>
 
       <section style={{ marginBottom: '32px' }}>

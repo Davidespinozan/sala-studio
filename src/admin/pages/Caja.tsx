@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, CreditCard, ArrowLeftRight, Gift, Globe, Undo2, Receipt, Pencil } from 'lucide-react';
+import { Banknote, CreditCard, ArrowLeftRight, Gift, Globe, Undo2, Receipt, Pencil, Scale } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
@@ -12,6 +12,7 @@ import { ReciboModal } from '@shared/components/ReciboModal';
 import { CorteTicket, CortePrint, type CorteTicketData } from '@shared/components/CorteTicket';
 import CardMenuDropdown, { type DropdownItem } from '../components/CardMenuDropdown';
 import { PorCobrarCard } from '../components/PorCobrarCard';
+import { ReconciliarStripeModal } from '../components/ReconciliarStripeModal';
 import { useTenantConfigEditor } from '../hooks/useTenantConfigEditor';
 import { imprimirCorte, compartirCorteImagen, conceptoLabel } from '@shared/lib/recibo';
 import { getTenantTimezone, hoyEnTimezone, sumarDias } from '@shared/lib/timezone';
@@ -179,6 +180,9 @@ export default function Caja() {
   const [devolviendo, setDevolviendo] = useState<PagoRow | null>(null);
   const [corrigiendoMetodo, setCorrigiendoMetodo] = useState<PagoRow | null>(null);
   const [reciboId, setReciboId] = useState<string | null>(null);
+  // W6-C2: reconciliación on-demand (solo lectura) de un cobro de Stripe. Solo admin.
+  const [reconciliandoId, setReconciliandoId] = useState<string | null>(null);
+  const esAdmin = usuario?.rol === 'admin';
   const [reload, setReload] = useState(0);
   const [showCorte, setShowCorte] = useState(false);
   const [cortes, setCortes] = useState<CorteRow[]>([]);
@@ -495,6 +499,9 @@ export default function Caja() {
             if (!esReembolso && !esCortesia) acciones.push({ label: 'Recibo', icon: <Receipt size={16} strokeWidth={2.25} />, onClick: () => setReciboId(p.id) });
             if (puedeCorregirMetodo) acciones.push({ label: 'Corregir método', icon: <Pencil size={16} strokeWidth={2.25} />, onClick: () => setCorrigiendoMetodo(p) });
             if (puedeDevolver) acciones.push({ label: 'Devolver', icon: <Undo2 size={16} strokeWidth={2.25} />, onClick: () => setDevolviendo(p), danger: true });
+            // W6-C2: solo cobros online (stripe), solo admin. Consulta, no repara.
+            const puedeReconciliar = esAdmin && !esReembolso && p.metodo === 'stripe';
+            if (puedeReconciliar) acciones.push({ label: 'Reconciliar con Stripe', icon: <Scale size={16} strokeWidth={2.25} />, onClick: () => setReconciliandoId(p.id) });
             return (
               <div
                 key={p.id}
@@ -580,6 +587,17 @@ export default function Caja() {
                       Devolver
                     </button>
                   )}
+                  {puedeReconciliar && (
+                    <button
+                      type="button"
+                      onClick={() => setReconciliandoId(p.id)}
+                      className="ek-cta ek-cta--secondary"
+                      title="Comparar este cobro contra Stripe (solo consulta)"
+                      style={{ minHeight: '36px', padding: '0 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <Scale size={14} /> Reconciliar
+                    </button>
+                  )}
                 </div>
                 {acciones.length > 0 && (
                   <div className="caja-row-kebab" style={{ flexShrink: 0 }}>
@@ -634,6 +652,10 @@ export default function Caja() {
           }}
           onError={(msg) => toast.error(msg)}
         />
+      )}
+
+      {reconciliandoId && (
+        <ReconciliarStripeModal sujeto="pago" id={reconciliandoId} onClose={() => setReconciliandoId(null)} />
       )}
 
       {reciboId && (
