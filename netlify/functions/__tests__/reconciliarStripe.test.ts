@@ -105,6 +105,21 @@ describe('W6-C2 — reconciliar-stripe (read-only, admin, tenant-scoped)', () =>
     noMutations();
   });
 
+  it('sesión con plan + inscripción (misma referencia) → UN solo objeto reconciliado, MATCH', async () => {
+    h.rpc.mockResolvedValueOnce({ data: bundlePago({ pagos: [
+      { id: 'p1', usuario_id: 'u', membresia_id: 'm', concepto: 'plan', monto_centavos: 50000, moneda: 'MXN', metodo: 'stripe', referencia: 'cs_1', revierte_pago_id: null, created_at: '2020-01-01T00:00:00Z' },
+      { id: 'p2', usuario_id: 'u', membresia_id: 'm', concepto: 'inscripcion', monto_centavos: 30000, moneda: 'MXN', metodo: 'stripe', referencia: 'cs_1', revierte_pago_id: null, created_at: '2020-01-01T00:00:00Z' }
+    ] }), error: null });
+    h.csRetrieve.mockResolvedValue({ amount_total: 80000, currency: 'mxn', customer: 'cus_1', created: OLD,
+      payment_intent: { amount: 80000, currency: 'mxn', latest_charge: { id: 'ch_1', amount_refunded: 0, disputed: false } } });
+    const b = JSON.parse((await call({ sujeto: 'pago', id: UUID })).body);
+    expect(b.detalles).toHaveLength(1);              // un objeto Stripe, no dos filas
+    expect(b.detalles[0].pago_ids).toEqual(['p1', 'p2']);
+    expect(b.result).toBe('MATCH');
+    expect(h.csRetrieve).toHaveBeenCalledTimes(1);   // una sola lectura
+    noMutations();
+  });
+
   it('socio con 2 pagos (MATCH + AMOUNT_MISMATCH) → resumen ATTENTION, nunca oculta', async () => {
     h.rpc.mockResolvedValueOnce({ data: bundlePago({ sujeto: 'socio', pagos: [
       { id: 'p1', usuario_id: 'u', membresia_id: 'm', concepto: 'plan', monto_centavos: 50000, moneda: 'MXN', metodo: 'stripe', referencia: 'pi_1', revierte_pago_id: null, created_at: '2020-01-01T00:00:00Z' },

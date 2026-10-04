@@ -125,9 +125,19 @@ export const handler: Handler = async (event) => {
     const stripe = getStripe();
     const nowMs = Date.now();
 
-    // Agrupar en cargos: cada positivo + sus negativos (revierte_pago_id).
+    // Agrupar por OBJETO Stripe: todos los positivos que comparten referencia
+    // (plan + inscripción de una misma sesión) + los negativos que revierten a
+    // cualquiera de ellos. Un positivo sin referencia es su propio grupo.
     const positivos = pagos.filter((p) => p.concepto !== 'reembolso' && p.monto_centavos > 0);
-    const grupos = positivos.map((pos) => [pos, ...pagos.filter((p) => p.revierte_pago_id === pos.id)]);
+    const porObjeto = new Map<string, PagoRow[]>();
+    for (const pos of positivos) {
+      const clave = pos.referencia ? `ref:${pos.referencia}` : `pago:${pos.id}`;
+      porObjeto.set(clave, [...(porObjeto.get(clave) ?? []), pos]);
+    }
+    const grupos = [...porObjeto.values()].map((poss) => {
+      const ids = new Set(poss.map((p) => p.id));
+      return [...poss, ...pagos.filter((p) => p.revierte_pago_id != null && ids.has(p.revierte_pago_id))];
+    });
 
     const detalles: Array<Record<string, unknown>> = [];
     const recons: Recon[] = [];
@@ -155,7 +165,8 @@ export const handler: Handler = async (event) => {
         pago_id: pos.id, referencia: ref, kind: routeReferencia(ref),
         result: r.result, discrepancies: r.discrepancies,
         internal: r.internal, stripe: r.stripe,
-        disputas: disputas.filter((d) => d.pago_id === pos.id),
+        pago_ids: grupo.filter((p) => p.concepto !== 'reembolso').map((p) => p.id),
+        disputas: disputas.filter((d) => d.pago_id != null && grupo.some((p) => p.id === d.pago_id)),
         evidence: { pendingInbox, recent }
       });
     }

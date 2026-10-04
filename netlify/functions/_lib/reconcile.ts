@@ -49,12 +49,16 @@ export function routeReferencia(ref: string | null | undefined): RefKind {
   return 'unknown';
 }
 
-// ── Vista económica INTERNA desde el grupo de cargo (positivo + negativos) ──
+// ── Vista económica INTERNA de UN objeto Stripe (grupo de cargo) ────────────
+// Un mismo objeto (p. ej. una Checkout Session) puede asentarse en VARIOS pagos
+// positivos con la misma referencia (plan + inscripción: el índice único es
+// tenant+referencia+concepto). El bruto interno es la SUMA de esos positivos.
 interface PagoRow { concepto: string; monto_centavos: number; moneda: string; referencia: string | null; revierte_pago_id: string | null; }
 export function internalEconView(group: PagoRow[]): EconView | null {
-  const pos = group.find((p) => p.concepto !== 'reembolso' && p.monto_centavos > 0);
-  if (!pos) return null;
-  const gross = pos.monto_centavos;
+  const positivos = group.filter((p) => p.concepto !== 'reembolso' && p.monto_centavos > 0);
+  if (positivos.length === 0) return null;
+  const pos = positivos[0];
+  const gross = positivos.reduce((s, p) => s + p.monto_centavos, 0);
   let refunded = 0, disputed_lost = 0;
   for (const p of group) {
     if (p.concepto !== 'reembolso' || p.monto_centavos >= 0) continue;

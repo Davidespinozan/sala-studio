@@ -40,6 +40,14 @@ describe('W6-C2 — motor payment-scoped (puro, read-only)', () => {
     expect(one(v, okS(ev(50000, 20000, 30000))).result).toBe('MATCH');
   });
 
+  it('27 plan + inscripción en la MISMA referencia: el bruto interno es la suma → MATCH (sin falso mismatch)', () => {
+    const v = internalEconView([pago('plan', 50000, 'cs_1'), pago('inscripcion', 30000, 'cs_1')]);
+    expect(v?.gross).toBe(80000);
+    expect(one(v, okS(ev(80000))).result).toBe('MATCH');
+    // y si Stripe cobró otra cosa, sí se reporta
+    expect(one(v, okS(ev(50000))).result).toBe('AMOUNT_MISMATCH');
+  });
+
   it('8 missing internal → MISSING_INTERNAL', () => { expect(one(null, okS(ev(50000))).result).toBe('MISSING_INTERNAL'); });
 
   it('9 inaccessible Stripe → NOT_ACCESSIBLE (no MISSING_STRIPE)', () => {
