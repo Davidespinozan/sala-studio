@@ -103,6 +103,11 @@ export const handler: Handler = async (event) => {
       global: { headers: { Authorization: `Bearer ${userToken}`, ...(tenantHdr ? { 'x-tenant-id': tenantHdr } : {}) } },
       auth: { persistSession: false }
     });
+    // Token inválido o vencido → 401 (no 500). Se valida ANTES de consultar nada;
+    // el cuerpo no expone detalle interno de autenticación.
+    const { data: authData, error: authErr } = await asUser.auth.getUser();
+    if (authErr || !authData?.user) return unauthorized('Sesión inválida o vencida');
+
     const { data: bundle, error } = await asUser.rpc('reconciliar_verdad_interna', { p_sujeto: sujeto, p_id: id });
     if (error) {
       const msg = (error as { message?: string }).message ?? String(error);

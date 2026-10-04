@@ -80,6 +80,35 @@ function estadoDeSub(s: string): string | null {
   return null;
 }
 
+/**
+ * W6-C1b: todas las referencias con las que SALA pudo haber asentado un cargo.
+ * La tienda guarda el PaymentIntent (pi_), pero las ALTAS guardan la Checkout
+ * Session (cs_) y las RENOVACIONES la invoice (in_). Un refund/dispute solo trae
+ * charge + payment_intent, así que se resuelven la sesión y la invoice (lecturas).
+ * Si una lectura falla, se propaga → 500 → Stripe reintenta (nunca se pierde la
+ * compensación por un fallo transitorio).
+ */
+async function referenciasDelCargo(
+  stripe: Stripe, acct: string | undefined, chargeId: string | null, pi: string | null, invoiceEnPayload: unknown
+): Promise<string[]> {
+  const refs = new Set<string>();
+  if (chargeId) refs.add(chargeId);
+  if (pi) refs.add(pi);
+  if (typeof invoiceEnPayload === 'string' && invoiceEnPayload) refs.add(invoiceEnPayload);
+  if (pi && acct) {
+    const sa = { stripeAccount: acct };
+    const sesiones = await stripe.checkout.sessions.list({ payment_intent: pi, limit: 1 }, sa);
+    const cs = sesiones.data?.[0]?.id;
+    if (cs) refs.add(cs);
+    const pagosInvoice = await stripe.invoicePayments.list(
+      { payment: { type: 'payment_intent', payment_intent: pi }, limit: 1 }, sa);
+    const inv: any = pagosInvoice.data?.[0]?.invoice;
+    const invId = typeof inv === 'string' ? inv : inv?.id;
+    if (invId) refs.add(invId);
+  }
+  return [...refs];
+}
+
 /** Clasifica el evento y hace los retrieves de Stripe necesarios (lecturas). null = ignorar. */
 async function clasificar(stripe: Stripe, ev: Stripe.Event, acct: string | undefined, eventCreatedISO: string): Promise<Plan | null> {
   const obj = ev.data.object as any;
@@ -167,12 +196,13 @@ async function clasificar(stripe: Stripe, ev: Stripe.Event, acct: string | undef
     //    múltiples). Ownership la resuelve el dispatcher (account→tenant + pago). ──
     case 'charge.refunded': {
       const refunds = ((obj.refunds?.data ?? []) as any[])
-        .map((r) => ({ refund_id: r.id, amount: r.amount, moneda: r.currency }))
+        .map((r) => ({ refund_id: r.id, amount: r.amount, moneda: r.currency, created: r.created ?? null }))
         .filter((r) => r.refund_id);
       if (refunds.length === 0) return null;
       const pi = typeof obj.payment_intent === 'string' ? obj.payment_intent : obj.payment_intent?.id ?? null;
+      const refs = await referenciasDelCargo(stripe, acct, obj.id, pi, obj.invoice);
       return { kind: 'reembolso', objectId: obj.id, tenant: null,
-        args: { account_id: acct ?? null, charge_id: obj.id, payment_intent: pi, refunds } };
+        args: { account_id: acct ?? null, charge_id: obj.id, payment_intent: pi, refs, refunds } };
     }
 
     // ── W6-C1: DISPUTAS ── created=abierta (+alerta); closed=won/lost. ──
@@ -183,9 +213,10 @@ async function clasificar(stripe: Stripe, ev: Stripe.Event, acct: string | undef
       const estado = ev.type === 'charge.dispute.created'
         ? 'abierta'
         : (obj.status === 'won' ? 'ganada' : obj.status === 'lost' ? 'perdida' : 'abierta');
+      const refs = await referenciasDelCargo(stripe, acct, chg, pi, null);
       return {
         kind: 'disputa', objectId: obj.id, tenant: null,
-        args: { account_id: acct ?? null, dispute_id: obj.id, charge_id: chg, payment_intent: pi,
+        args: { account_id: acct ?? null, dispute_id: obj.id, charge_id: chg, payment_intent: pi, refs,
                 estado, amount: obj.amount ?? null, moneda: obj.currency ?? null },
         notifyStaffDisputa: estado === 'abierta'
       };
@@ -287,10 +318,17 @@ export const handler: Handler = async (event) => {
       await recuperarConNuevaTarjeta(stripe, plan.session, acct);
       await inboxProcessed(admin, stripeEvent.id);
     } else {
-      const { error } = await admin.rpc('stripe_procesar_socio' as never, {
+      const { data: despacho, error } = await admin.rpc('stripe_procesar_socio' as never, {
         p_event_id: stripeEvent.id, p_kind: plan.kind, p_args: plan.args
       } as never);
       if (error) throw new Error((error as { message?: string }).message ?? String(error));
+      // W6-C1b: un reembolso/contracargo sin contraparte interna NO se inventa,
+      // pero tampoco se pierde en silencio: queda reportado para revisión.
+      if ((despacho as { sin_pago?: boolean } | null)?.sin_pago === true) {
+        await reportarErrorServidor('webhook-socio',
+          new Error(`${plan.kind} de Stripe sin pago interno que compensar`),
+          { event: stripeEvent.id, type: stripeEvent.type, object: plan.objectId }).catch(() => undefined);
+      }
       if (plan.notify) {
         await notificarPastDue(admin, plan.notify.usuarioId).catch((e) =>
           reportarErrorServidor('webhook-socio', e, { fase: 'notificar', event: stripeEvent.id }));

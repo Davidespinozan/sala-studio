@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const h = vi.hoisted(() => ({
   rpc: vi.fn(),
+  getUser: vi.fn(),
   piRetrieve: vi.fn(), invRetrieve: vi.fn(), csRetrieve: vi.fn(), chRetrieve: vi.fn(), dpList: vi.fn(),
   // mutadores: si C2 llamara alguno, el test falla (deben quedar en 0).
   piCreate: vi.fn(), refundCreate: vi.fn(), subUpdate: vi.fn()
@@ -18,7 +19,7 @@ vi.mock('../_lib/stripe', () => ({
     subscriptions: { update: h.subUpdate }
   })
 }));
-vi.mock('@supabase/supabase-js', () => ({ createClient: () => ({ rpc: h.rpc }) }));
+vi.mock('@supabase/supabase-js', () => ({ createClient: () => ({ rpc: h.rpc, auth: { getUser: h.getUser } }) }));
 
 import { handler } from '../reconciliar-stripe/index';
 
@@ -43,6 +44,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   process.env.VITE_SUPABASE_URL = 'http://x'; process.env.VITE_SUPABASE_ANON_KEY = 'anon';
   h.rpc.mockResolvedValue({ data: bundlePago(), error: null });
+  h.getUser.mockResolvedValue({ data: { user: { id: 'auth_1' } }, error: null });
   h.piRetrieve.mockResolvedValue({ amount: 50000, currency: 'mxn', customer: 'cus_1', created: OLD, latest_charge: { id: 'ch_1', amount_refunded: 0, disputed: false, currency: 'mxn' } });
 });
 
@@ -54,6 +56,25 @@ const noMutations = () => {
 
 describe('W6-C2 — reconciliar-stripe (read-only, admin, tenant-scoped)', () => {
   it('sin token → 401', async () => { expect((await call({ sujeto: 'pago', id: UUID }, false)).statusCode).toBe(401); });
+
+  it('H5: token inválido o vencido → 401 (no 500), sin consultar la RPC ni Stripe', async () => {
+    h.getUser.mockResolvedValueOnce({ data: { user: null }, error: { message: 'invalid JWT: token is expired' } });
+    const res = await call({ sujeto: 'pago', id: UUID });
+    expect(res.statusCode).toBe(401);
+    expect(res.body).not.toMatch(/JWT|expired/i);   // no expone detalle interno de auth
+    expect(h.rpc).not.toHaveBeenCalled();
+    expect(h.piRetrieve).not.toHaveBeenCalled();
+  });
+
+  it('H5: la RPC reporta sin sesión (RECON_NO_AUTH) → 401', async () => {
+    h.rpc.mockResolvedValueOnce({ data: null, error: { message: 'RECON_NO_AUTH' } });
+    expect((await call({ sujeto: 'pago', id: UUID })).statusCode).toBe(401);
+  });
+
+  it('H5: fallo interno no-auth de la RPC → 500 (no se disfraza de 401)', async () => {
+    h.rpc.mockResolvedValueOnce({ data: null, error: { message: 'connection reset' } });
+    expect((await call({ sujeto: 'pago', id: UUID })).statusCode).toBe(500);
+  });
 
   it('sujeto inválido → 400', async () => { expect((await call({ sujeto: 'x', id: UUID })).statusCode).toBe(400); });
 

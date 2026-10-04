@@ -48,6 +48,25 @@ describe('W6-C2 — motor payment-scoped (puro, read-only)', () => {
     expect(one(v, okS(ev(50000))).result).toBe('AMOUNT_MISMATCH');
   });
 
+  it('28 C1b: refund total repartido en dos filas (re_x y re_x#2) → C2 ve MATCH', () => {
+    const v = internalEconView([
+      pago('plan', 50000, 'cs_1'), pago('inscripcion', 30000, 'cs_1'),
+      pago('reembolso', -50000, 're_x', 'plan'), pago('reembolso', -30000, 're_x#2', 'insc')
+    ]);
+    expect(v).toMatchObject({ gross: 80000, refunded: 80000, disputed_lost: 0, net: 0, state: 'refunded' });
+    expect(one(v, okS(ev(80000, 80000))).result).toBe('MATCH');
+  });
+
+  it('29 C1b: refund + contracargo partido (dp_x#2 sigue contando como contracargo) → MATCH', () => {
+    const v = internalEconView([
+      pago('plan', 50000, 'cs_1'), pago('inscripcion', 30000, 'cs_1'),
+      pago('reembolso', -20000, 're_y', 'plan'),
+      pago('reembolso', -30000, 'dp_z', 'plan'), pago('reembolso', -30000, 'dp_z#2', 'insc')
+    ]);
+    expect(v).toMatchObject({ refunded: 20000, disputed_lost: 60000, net: 0 });
+    expect(one(v, okS(ev(80000, 20000, 60000))).result).toBe('MATCH');
+  });
+
   it('8 missing internal → MISSING_INTERNAL', () => { expect(one(null, okS(ev(50000))).result).toBe('MISSING_INTERNAL'); });
 
   it('9 inaccessible Stripe → NOT_ACCESSIBLE (no MISSING_STRIPE)', () => {

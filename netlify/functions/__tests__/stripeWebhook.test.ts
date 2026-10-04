@@ -5,7 +5,9 @@ const h = vi.hoisted(() => ({
   constructEvent: vi.fn(),
   subRetrieve: vi.fn(),
   rpc: vi.fn(),
-  reportar: vi.fn(async () => {})
+  reportar: vi.fn(async () => {}),
+  csList: vi.fn(),
+  invPayList: vi.fn()
 }));
 
 vi.mock('../_lib/stripe', () => ({
@@ -14,7 +16,9 @@ vi.mock('../_lib/stripe', () => ({
     subscriptions: { retrieve: h.subRetrieve, list: vi.fn(), update: vi.fn() },
     setupIntents: { retrieve: vi.fn() },
     customers: { update: vi.fn() },
-    invoices: { retrieve: vi.fn(), pay: vi.fn() }
+    invoices: { retrieve: vi.fn(), pay: vi.fn() },
+    checkout: { sessions: { list: h.csList } },
+    invoicePayments: { list: h.invPayList }
   }),
   Stripe: class {}
 }));
@@ -59,6 +63,8 @@ beforeEach(() => {
   dispatchResult = { data: { ok: true }, error: null };
   notificarResult = () => ({ data: null, error: null });
   wireRpc();
+  h.csList.mockResolvedValue({ data: [] });
+  h.invPayList.mockResolvedValue({ data: [] });
   process.env.STRIPE_WEBHOOK_SECRET_SOCIO = 'whsec_test';
   h.constructEvent.mockImplementation(() => ({ account: 'acct_1' }));
 });
@@ -221,5 +227,65 @@ describe('stripe-webhook (Connect) — pipeline durable', () => {
     expect(disp?.[1]).toMatchObject({ p_kind: 'disputa' });
     expect(h.reportar).toHaveBeenCalled(); // el fallo del push se reportó, no se tragó en silencio
     expect(h.rpc.mock.calls.some((c) => c[0] === '_stripe_inbox_failed')).toBe(false); // no se marcó failed
+  });
+
+  // ── W6-C1b: el cargo se resuelve por TODAS sus referencias (ch_/pi_/cs_/in_) ──
+  it('charge.refunded de una ALTA: manda la Checkout Session (cs_) en refs', async () => {
+    h.csList.mockResolvedValue({ data: [{ id: 'cs_live_1' }] });
+    h.constructEvent.mockImplementation(() => ev({
+      account: 'acct_1', type: 'charge.refunded',
+      data: { object: { id: 'ch_1', payment_intent: 'pi_1', refunds: { data: [{ id: 're_1', amount: 80000, currency: 'mxn', created: 10 }] } } }
+    }));
+    const res = await call();
+    expect(res.statusCode).toBe(200);
+    const args = (h.rpc.mock.calls.find((c) => c[0] === 'stripe_procesar_socio')?.[1] as any).p_args;
+    expect(args.refs).toEqual(expect.arrayContaining(['ch_1', 'pi_1', 'cs_live_1']));
+    expect(args.refunds[0]).toMatchObject({ refund_id: 're_1', created: 10 });
+    expect(h.csList).toHaveBeenCalledWith({ payment_intent: 'pi_1', limit: 1 }, { stripeAccount: 'acct_1' });
+  });
+
+  it('charge.refunded de una RENOVACIÓN: manda la invoice (in_) en refs', async () => {
+    h.invPayList.mockResolvedValue({ data: [{ invoice: 'in_9' }] });
+    h.constructEvent.mockImplementation(() => ev({
+      account: 'acct_1', type: 'charge.refunded',
+      data: { object: { id: 'ch_2', payment_intent: 'pi_2', refunds: { data: [{ id: 're_2', amount: 1000, currency: 'mxn' }] } } }
+    }));
+    await call();
+    const args = (h.rpc.mock.calls.find((c) => c[0] === 'stripe_procesar_socio')?.[1] as any).p_args;
+    expect(args.refs).toEqual(expect.arrayContaining(['ch_2', 'pi_2', 'in_9']));
+  });
+
+  it('disputa: también resuelve cs_ para encontrar el pago de la alta', async () => {
+    h.csList.mockResolvedValue({ data: [{ id: 'cs_live_7' }] });
+    h.constructEvent.mockImplementation(() => ev({
+      account: 'acct_1', type: 'charge.dispute.closed',
+      data: { object: { id: 'dp_7', charge: 'ch_7', payment_intent: 'pi_7', amount: 80000, currency: 'mxn', status: 'lost' } }
+    }));
+    await call();
+    const args = (h.rpc.mock.calls.find((c) => c[0] === 'stripe_procesar_socio')?.[1] as any).p_args;
+    expect(args.refs).toEqual(expect.arrayContaining(['ch_7', 'pi_7', 'cs_live_7']));
+  });
+
+  it('si falla la lectura de referencias → 500 (Stripe reintenta), nada entra al inbox', async () => {
+    h.csList.mockRejectedValue(new Error('stripe caído'));
+    h.constructEvent.mockImplementation(() => ev({
+      account: 'acct_1', type: 'charge.refunded',
+      data: { object: { id: 'ch_3', payment_intent: 'pi_3', refunds: { data: [{ id: 're_3', amount: 1000, currency: 'mxn' }] } } }
+    }));
+    const res = await call();
+    expect(res.statusCode).toBe(500);
+    expect(h.rpc).not.toHaveBeenCalled();
+  });
+
+  it('reembolso sin pago interno (sin_pago) → 200 procesado + reportado, no se pierde en silencio', async () => {
+    dispatchResult = { data: { ok: true, kind: 'reembolso', sin_pago: true }, error: null };
+    h.constructEvent.mockImplementation(() => ev({
+      account: 'acct_1', type: 'charge.refunded',
+      data: { object: { id: 'ch_4', payment_intent: 'pi_4', refunds: { data: [{ id: 're_4', amount: 1000, currency: 'mxn' }] } } }
+    }));
+    const res = await call();
+    expect(res.statusCode).toBe(200);
+    expect(h.reportar).toHaveBeenCalled();
+    expect(h.rpc.mock.calls.some((c) => c[0] === '_stripe_inbox_failed')).toBe(false);
   });
 });
