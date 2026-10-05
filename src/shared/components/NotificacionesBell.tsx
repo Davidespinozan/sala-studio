@@ -1,7 +1,21 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Check, CheckCheck } from 'lucide-react';
-import { useNotificaciones } from '@shared/hooks/useNotificaciones';
+import { useNotificaciones, type Notificacion } from '@shared/hooks/useNotificaciones';
+import { useAuth } from '@shared/hooks/useAuth';
+
+// W6-D: tipos de notificación de dinero que llevan a la ficha del socio
+// afectado. Solo navega si HAY metadata.usuario_id (legacy/ausente → no-op,
+// se queda en marcar-leída como hoy) y si el que mira es admin — recepción
+// comparte esta campana pero no tiene la ruta /admin/miembros, así que para
+// ella (y para cualquier otro rol) el click sigue sin navegar, como antes.
+const TIPOS_CON_FICHA = new Set(['pago_rechazado', 'contracargo', 'refund_exitoso', 'contracargo_resuelto']);
+export function rutaDeFicha(n: Notificacion, esAdmin: boolean): string | null {
+  if (!esAdmin || !TIPOS_CON_FICHA.has(n.tipo)) return null;
+  const usuarioId = n.metadata?.usuario_id;
+  return typeof usuarioId === 'string' && usuarioId ? `/admin/miembros/${usuarioId}` : null;
+}
 
 function tiempoRelativo(iso: string): string {
   const then = new Date(iso).getTime();
@@ -23,6 +37,9 @@ function tiempoRelativo(iso: string): string {
  */
 export default function NotificacionesBell({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
   const { items, noLeidas, isLoading, error, marcarLeida, marcarTodasLeidas } = useNotificaciones();
+  const { usuario } = useAuth();
+  const esAdmin = usuario?.rol === 'admin';
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -174,11 +191,19 @@ export default function NotificacionesBell({ tone = 'light' }: { tone?: 'light' 
             </p>
           ) : (
             <div>
-              {items.map((n) => (
+              {items.map((n) => {
+                const destino = rutaDeFicha(n, esAdmin);
+                return (
                 <button
                   key={n.id}
                   type="button"
-                  onClick={() => { if (!n.leida) void marcarLeida(n.id); }}
+                  onClick={() => {
+                    if (!n.leida) void marcarLeida(n.id);
+                    // Solo navega a una ficha de LECTURA (perfil del socio): nunca
+                    // dispara una reconciliación/verificación automática contra
+                    // Stripe desde un click en la campana.
+                    if (destino) { setOpen(false); navigate(destino); }
+                  }}
                   style={{
                     display: 'flex',
                     width: '100%',
@@ -188,7 +213,7 @@ export default function NotificacionesBell({ tone = 'light' }: { tone?: 'light' 
                     background: n.leida ? 'transparent' : 'var(--ek-mustard-soft)',
                     border: 'none',
                     borderBottom: '0.5px solid var(--ek-line)',
-                    cursor: n.leida ? 'default' : 'pointer'
+                    cursor: n.leida && !destino ? 'default' : 'pointer'
                   }}
                 >
                   <span
@@ -225,7 +250,8 @@ export default function NotificacionesBell({ tone = 'light' }: { tone?: 'light' 
                     <Check size={14} strokeWidth={2.25} style={{ flexShrink: 0, color: 'var(--ek-ink-faint)', marginTop: '3px' }} />
                   )}
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>,

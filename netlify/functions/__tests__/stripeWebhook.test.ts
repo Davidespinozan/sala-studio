@@ -7,7 +7,10 @@ const h = vi.hoisted(() => ({
   rpc: vi.fn(),
   reportar: vi.fn(async () => {}),
   csList: vi.fn(),
-  invPayList: vi.fn()
+  invPayList: vi.fn(),
+  // tabla → fila devuelta por maybeSingle(); default = el comportamiento previo
+  // (solo 'tenants' trae algo, para el push de disputa abierta).
+  fromData: (table: string): unknown => (table === 'tenants' ? { id: 'tenant_1' } : null)
 }));
 
 vi.mock('../_lib/stripe', () => ({
@@ -27,8 +30,7 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({
     rpc: h.rpc,
     from: (table: string) => ({
-      // tenants → {id} para que el push de disputa (resolve por acct) avance.
-      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: table === 'tenants' ? { id: 'tenant_1' } : null }) }) }),
+      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: h.fromData(table) }) }) }),
       insert: async () => ({ error: null })
     })
   })
@@ -62,6 +64,7 @@ beforeEach(() => {
   claimResult = { id: 'evt_1', estado: 'processing' };
   dispatchResult = { data: { ok: true }, error: null };
   notificarResult = () => ({ data: null, error: null });
+  h.fromData = (table: string): unknown => (table === 'tenants' ? { id: 'tenant_1' } : null);
   wireRpc();
   h.csList.mockResolvedValue({ data: [] });
   h.invPayList.mockResolvedValue({ data: [] });
@@ -287,5 +290,78 @@ describe('stripe-webhook (Connect) — pipeline durable', () => {
     expect(res.statusCode).toBe(200);
     expect(h.reportar).toHaveBeenCalled();
     expect(h.rpc.mock.calls.some((c) => c[0] === '_stripe_inbox_failed')).toBe(false);
+  });
+
+  // ── W6-D ─────────────────────────────────────────────────────────────────
+  it('refund NUEVO (compensaciones_nuevas) → notifica al staff', async () => {
+    dispatchResult = { data: { ok: true, kind: 'reembolso', pago_id: 'pago_1', compensaciones_nuevas: [{ refund_id: 're_1', monto_centavos: 20000 }] }, error: null };
+    h.fromData = (table: string) => table === 'pagos' ? { tenant_id: 'tenant_1', usuario_id: 'u1' } : table === 'usuarios' ? { nombre: 'Ana' } : null;
+    h.constructEvent.mockImplementation(() => ev({
+      account: 'acct_1', type: 'charge.refunded',
+      data: { object: { id: 'ch_1', payment_intent: 'pi_1', refunds: { data: [{ id: 're_1', amount: 20000, currency: 'mxn' }] } } }
+    }));
+    const res = await call();
+    expect(res.statusCode).toBe(200);
+    const n = h.rpc.mock.calls.find((c) => c[0] === 'notificar_staff');
+    expect(n?.[1]).toMatchObject({ p_tipo: 'refund_exitoso', p_tenant_id: 'tenant_1', p_metadata: { usuario_id: 'u1', refund_id: 're_1' } });
+  });
+
+  it('replay del mismo refund (compensaciones_nuevas vacío) → NO notifica de nuevo', async () => {
+    dispatchResult = { data: { ok: true, kind: 'reembolso', pago_id: 'pago_1', compensaciones_nuevas: [] }, error: null };
+    h.constructEvent.mockImplementation(() => ev({
+      account: 'acct_1', type: 'charge.refunded',
+      data: { object: { id: 'ch_1', payment_intent: 'pi_1', refunds: { data: [{ id: 're_1', amount: 20000, currency: 'mxn' }] } } }
+    }));
+    const res = await call();
+    expect(res.statusCode).toBe(200);
+    expect(h.rpc.mock.calls.some((c) => c[0] === 'notificar_staff' && (c[1] as any).p_tipo === 'refund_exitoso')).toBe(false);
+  });
+
+  it('disputa_transicion=true + perdida → notifica "contracargo perdido"', async () => {
+    dispatchResult = { data: { ok: true, kind: 'disputa', pago_id: 'pago_1', disputa_transicion: true, estado: 'perdida', dispute_id: 'dp_1' }, error: null };
+    h.fromData = (table: string) => table === 'pagos' ? { tenant_id: 'tenant_1', usuario_id: 'u1' } : table === 'usuarios' ? { nombre: 'Ana' } : null;
+    h.constructEvent.mockImplementation(() => ev({
+      account: 'acct_1', type: 'charge.dispute.closed',
+      data: { object: { id: 'dp_1', charge: 'ch_1', payment_intent: 'pi_1', amount: 50000, currency: 'mxn', status: 'lost' } }
+    }));
+    const res = await call();
+    expect(res.statusCode).toBe(200);
+    const n = h.rpc.mock.calls.find((c) => c[0] === 'notificar_staff' && (c[1] as any).p_tipo === 'contracargo_resuelto');
+    expect(n?.[1]).toMatchObject({ p_metadata: { usuario_id: 'u1', dispute_id: 'dp_1', estado: 'perdida' } });
+  });
+
+  it('disputa_transicion=false (replay del mismo estado) → NO notifica resolución de nuevo', async () => {
+    dispatchResult = { data: { ok: true, kind: 'disputa', pago_id: 'pago_1', disputa_transicion: false, estado: 'perdida', dispute_id: 'dp_1' }, error: null };
+    h.constructEvent.mockImplementation(() => ev({
+      account: 'acct_1', type: 'charge.dispute.closed',
+      data: { object: { id: 'dp_1', charge: 'ch_1', payment_intent: 'pi_1', amount: 50000, currency: 'mxn', status: 'lost' } }
+    }));
+    const res = await call();
+    expect(res.statusCode).toBe(200);
+    expect(h.rpc.mock.calls.some((c) => c[0] === 'notificar_staff' && (c[1] as any).p_tipo === 'contracargo_resuelto')).toBe(false);
+  });
+
+  it('fallo de notificar_staff (refund) NO rompe el procesamiento económico → sigue 200, se reporta', async () => {
+    dispatchResult = { data: { ok: true, kind: 'reembolso', pago_id: 'pago_1', compensaciones_nuevas: [{ refund_id: 're_1', monto_centavos: 20000 }] }, error: null };
+    h.fromData = (table: string) => table === 'pagos' ? { tenant_id: 'tenant_1', usuario_id: 'u1' } : table === 'usuarios' ? { nombre: 'Ana' } : null;
+    notificarResult = () => ({ data: null, error: { message: 'boom' } });
+    h.constructEvent.mockImplementation(() => ev({
+      account: 'acct_1', type: 'charge.refunded',
+      data: { object: { id: 'ch_1', payment_intent: 'pi_1', refunds: { data: [{ id: 're_1', amount: 20000, currency: 'mxn' }] } } }
+    }));
+    const res = await call();
+    expect(res.statusCode).toBe(200); // la compensación YA commiteó en el dispatcher; el aviso es best-effort
+    expect(h.rpc.mock.calls.some((c) => c[0] === '_stripe_inbox_failed')).toBe(false);
+  });
+
+  it('sin pago_id resoluble (datosDelPago falla) → no notifica, no revienta', async () => {
+    dispatchResult = { data: { ok: true, kind: 'reembolso', pago_id: null, compensaciones_nuevas: [{ refund_id: 're_1', monto_centavos: 20000 }] }, error: null };
+    h.constructEvent.mockImplementation(() => ev({
+      account: 'acct_1', type: 'charge.refunded',
+      data: { object: { id: 'ch_1', payment_intent: 'pi_1', refunds: { data: [{ id: 're_1', amount: 20000, currency: 'mxn' }] } } }
+    }));
+    const res = await call();
+    expect(res.statusCode).toBe(200);
+    expect(h.rpc.mock.calls.some((c) => c[0] === 'notificar_staff' && (c[1] as any).p_tipo === 'refund_exitoso')).toBe(false);
   });
 });

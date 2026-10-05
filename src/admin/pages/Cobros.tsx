@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { formatearMoneda } from '@shared/lib/dinero';
 import { supabase } from '@shared/lib/supabase';
@@ -70,6 +70,41 @@ function Fila({ label, value, mono }: { label: string; value: ReactNode; mono?: 
   );
 }
 
+// ── W6-D: salud operativa de Stripe (solo lectura) ───────────────────────────
+// RPC tenant-scoped/admin-gated: el tenant se resuelve DENTRO de la función
+// (get_my_tenant_id()), nunca se manda desde acá. Sin Netlify Function: el
+// cliente ya llega autenticado y la RPC hace todo el gate — agregar un
+// endpoint intermedio solo repetiría esa verificación sin ganar nada.
+interface SaludStripe {
+  eventos_fallidos: number; eventos_dead: number;
+  disputas_abiertas: number; disputas_perdidas: number; disputas_ganadas: number;
+  refunds_count: number; refunds_centavos: number;
+}
+function useSaludStripe(activo: boolean) {
+  const [salud, setSalud] = useState<SaludStripe | null>(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!activo) { setCargando(false); return; }
+    let cancelado = false;
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string, args: Record<string, unknown>
+    ) => Promise<{ data: SaludStripe | null; error: { message: string } | null }>;
+    (async () => {
+      setCargando(true);
+      const { data, error: err } = await rpc('stripe_salud_operador', { p_dias: 30 });
+      if (cancelado) return;
+      if (err) setError('No pudimos cargar la salud de Stripe.');
+      else { setSalud(data); setError(null); }
+      setCargando(false);
+    })();
+    return () => { cancelado = true; };
+  }, [activo]);
+
+  return { salud, cargando, error };
+}
+
 function Bloque({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
     <div
@@ -105,6 +140,7 @@ export default function Cobros() {
   // pagarlo después en la app? Vive en tenants.config.registro.permite_sin_plan.
   const altaSinPlan = altaSinPlanActiva(config);
   const [guardandoAlta, setGuardandoAlta] = useState(false);
+  const { salud, cargando: cargandoSalud, error: errorSalud } = useSaludStripe(conectado);
 
   async function toggleAutoservicio() {
     setGuardandoAuto(true);
@@ -267,6 +303,43 @@ export default function Cobros() {
                   El link a tu panel no está disponible ahora. Reinténtalo en un rato.
                 </p>
               )}
+            </Bloque>
+
+            {/* W6-D: salud operativa — solo lectura, sin repair/replay/retry. */}
+            <Bloque titulo="SALUD DE STRIPE">
+              {cargandoSalud ? (
+                <p style={{ fontSize: '13px', color: 'var(--sala-text-tertiary)', margin: 0 }}>Cargando…</p>
+              ) : errorSalud ? (
+                <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0 }}>{errorSalud}</p>
+              ) : salud && (
+                salud.eventos_fallidos + salud.eventos_dead + salud.disputas_abiertas +
+                salud.disputas_perdidas + salud.disputas_ganadas + salud.refunds_count === 0
+              ) ? (
+                <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', margin: 0 }}>
+                  Sin novedades en los últimos 30 días.
+                </p>
+              ) : salud ? (
+                <>
+                  {(salud.eventos_fallidos > 0 || salud.eventos_dead > 0) && (
+                    <Fila
+                      label="Eventos de Stripe sin procesar"
+                      value={`${salud.eventos_fallidos + salud.eventos_dead}${salud.eventos_dead > 0 ? ' (requieren soporte)' : ''}`}
+                    />
+                  )}
+                  {salud.disputas_abiertas > 0 && <Fila label="Disputas abiertas" value={salud.disputas_abiertas} />}
+                  {salud.disputas_perdidas > 0 && <Fila label="Disputas perdidas (compensadas)" value={salud.disputas_perdidas} />}
+                  {salud.disputas_ganadas > 0 && <Fila label="Disputas ganadas" value={salud.disputas_ganadas} />}
+                  {salud.refunds_count > 0 && (
+                    <Fila
+                      label="Reembolsos aplicados"
+                      value={`${salud.refunds_count} · ${formatearMoneda(salud.refunds_centavos, 'MXN')}`}
+                    />
+                  )}
+                  <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '10px 0 0', lineHeight: 1.5 }}>
+                    Últimos 30 días. El detalle de cada caso está en Caja y en la ficha del socio.
+                  </p>
+                </>
+              ) : null}
             </Bloque>
           </>
         )}

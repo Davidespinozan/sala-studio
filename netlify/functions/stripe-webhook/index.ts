@@ -265,6 +265,52 @@ async function notificarDisputaStaff(admin: SupabaseClient, acct: string | undef
   } as never);
 }
 
+// W6-D: resuelve tenant+socio de un pago interno, para las 2 notificaciones de
+// abajo. Best-effort: sin esto no se notifica, pero nunca se lanza desde acá.
+async function datosDelPago(admin: SupabaseClient, pagoId: string | null | undefined) {
+  if (!pagoId) return null;
+  const { data: pago } = await admin.from('pagos').select('tenant_id, usuario_id').eq('id', pagoId).maybeSingle();
+  if (!pago?.tenant_id) return null;
+  let nombre = 'un socio';
+  if (pago.usuario_id) {
+    const { data: socio } = await admin.from('usuarios').select('nombre, email').eq('id', pago.usuario_id).maybeSingle();
+    nombre = socio?.nombre ?? socio?.email ?? nombre;
+  }
+  return { tenantId: pago.tenant_id as string, usuarioId: pago.usuario_id as string | null, nombre };
+}
+
+// W6-D: avisa al staff que una compensación (refund) se asentó. Best-effort,
+// solo para compensaciones NUEVAS (el dispatcher ya filtra replays/idempotentes
+// — ver compensaciones_nuevas en stripe_procesar_socio), para no duplicar aviso
+// si Stripe reentrega el mismo evento con el refund ya visto.
+async function notificarRefundStaff(admin: SupabaseClient, pagoId: string | null, montoCentavos: number, refundId: string): Promise<void> {
+  const datos = await datosDelPago(admin, pagoId);
+  if (!datos) return;
+  await admin.rpc('notificar_staff' as never, {
+    p_tenant_id: datos.tenantId, p_tipo: 'refund_exitoso', p_titulo: 'Reembolso aplicado',
+    p_mensaje: `Se reembolsaron ${(montoCentavos / 100).toFixed(2)} a ${datos.nombre} (Stripe).`,
+    p_metadata: { usuario_id: datos.usuarioId, pago_id: pagoId, refund_id: refundId, monto_centavos: montoCentavos }
+  } as never);
+}
+
+// W6-D: avisa al staff cómo se resolvió una disputa (perdida=compensó y bajó
+// vigencia si aplicaba; ganada=se cerró sin compensar). Solo en TRANSICIÓN real
+// (disputa_transicion del dispatcher) — un dispute.closed reentregado con el
+// mismo estado no dispara un segundo aviso.
+async function notificarDisputaResueltaStaff(admin: SupabaseClient, pagoId: string | null, estado: 'perdida' | 'ganada', disputeId: string): Promise<void> {
+  const datos = await datosDelPago(admin, pagoId);
+  if (!datos) return;
+  const perdida = estado === 'perdida';
+  await admin.rpc('notificar_staff' as never, {
+    p_tenant_id: datos.tenantId, p_tipo: 'contracargo_resuelto',
+    p_titulo: perdida ? 'Contracargo perdido' : 'Contracargo ganado',
+    p_mensaje: perdida
+      ? `Se perdió el contracargo de ${datos.nombre}: se compensó en la Caja.`
+      : `Se ganó el contracargo de ${datos.nombre}: no hubo compensación.`,
+    p_metadata: { usuario_id: datos.usuarioId, pago_id: pagoId, dispute_id: disputeId, estado }
+  } as never);
+}
+
 const OK: HandlerResponse = { statusCode: 200, body: JSON.stringify({ received: true }) };
 const TIENDA_PERMANENTE = /SIN_STOCK|PRODUCTO_INVALIDO|ENTREGA_INVALIDA|SIN_ITEMS/;
 
@@ -339,6 +385,19 @@ export const handler: Handler = async (event) => {
       if (plan.notifyStaffDisputa) {
         await notificarDisputaStaff(admin, acct).catch((e) =>
           reportarErrorServidor('webhook-socio', e, { fase: 'notificar-disputa', event: stripeEvent.id }));
+      }
+      // W6-D: refund(s) NUEVOS de este evento (ya filtrados de replays por el
+      // dispatcher) → un aviso por refund. Best-effort, después del commit.
+      const d = despacho as { pago_id?: string; compensaciones_nuevas?: Array<{ refund_id: string; monto_centavos: number }>;
+        disputa_transicion?: boolean; estado?: string; dispute_id?: string } | null;
+      for (const c of d?.compensaciones_nuevas ?? []) {
+        await notificarRefundStaff(admin, d?.pago_id ?? null, c.monto_centavos, c.refund_id).catch((e) =>
+          reportarErrorServidor('webhook-socio', e, { fase: 'notificar-refund', event: stripeEvent.id }));
+      }
+      // W6-D: disputa resuelta (transición real a perdida/ganada) → un aviso.
+      if (d?.disputa_transicion && (d.estado === 'perdida' || d.estado === 'ganada')) {
+        await notificarDisputaResueltaStaff(admin, d.pago_id ?? null, d.estado, d.dispute_id ?? '').catch((e) =>
+          reportarErrorServidor('webhook-socio', e, { fase: 'notificar-disputa-resuelta', event: stripeEvent.id }));
       }
     }
     return OK;
