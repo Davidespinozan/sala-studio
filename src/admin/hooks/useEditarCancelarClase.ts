@@ -23,6 +23,7 @@ export interface ClaseRef {
 export function useEditarCancelarClase(ref: ClaseRef) {
   const [updating, setUpdating] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
 
   // cancelar_clase / editar_clase_override no están en los tipos generados → cast.
   const rpc = supabase.rpc.bind(supabase) as unknown as (
@@ -59,5 +60,14 @@ export function useEditarCancelarClase(ref: ClaseRef) {
     return { error: error?.message ?? null };
   }
 
-  return { updateClase, cancelarClase, updating, cancelling };
+  /** Deshace una cancelación puntual: vuelve a abrir el cupo. No restaura las
+   *  reservas que ya se cancelaron (reactivar_clase, no re-cobra créditos). */
+  async function reactivarClase(): Promise<{ error: string | null }> {
+    setReactivating(true);
+    const { error } = await rpc('reactivar_clase', idArgs);
+    setReactivating(false);
+    return { error: error?.message ?? null };
+  }
+
+  return { updateClase, cancelarClase, reactivarClase, updating, cancelling, reactivating };
 }

@@ -43,10 +43,11 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
   const { layout } = useLugaresSala(claseActual.recursoId, claseActual.claseId);
   const [vista, setVista] = useState<'lista' | 'mapa'>('lista');
   const { enEspera, refetch: refetchEspera } = useListaEsperaDeClase(claseActual.claseId);
-  const { cancelarClase, cancelling } = useEditarCancelarClase(claseActual);
+  const { cancelarClase, cancelling, reactivarClase, reactivating } = useEditarCancelarClase(claseActual);
   const [showAgregar, setShowAgregar] = useState(false);
   const [showEditar, setShowEditar] = useState(false);
   const [showCancelarClase, setShowCancelarClase] = useState(false);
+  const [showReactivarClase, setShowReactivarClase] = useState(false);
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [promovingId, setPromovingId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<
@@ -170,6 +171,17 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
     toast.success('Clase cancelada');
     setShowCancelarClase(false);
     onClose();
+  }
+
+  async function handleReactivarClase() {
+    const { error } = await reactivarClase();
+    if (error) {
+      toast.error('No pudimos reactivar la clase. Prueba de nuevo.');
+      return;
+    }
+    toast.success('Clase reactivada: el cupo está abierto de nuevo.');
+    setShowReactivarClase(false);
+    setClaseActual((c) => ({ ...c, status: 'programada' }));
   }
 
   // S4.4: labels precomputadas en la timezone del gym.
@@ -521,6 +533,30 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
             Cancelar clase
           </button>
         )}
+
+        {/* Reactivar clase — deshace una cancelación puntual, solo si está cancelada */}
+        {esCancelada && (
+          <button
+            type="button"
+            onClick={() => setShowReactivarClase(true)}
+            style={{
+              width: '100%',
+              marginTop: '10px',
+              padding: '10px 16px',
+              minHeight: '40px',
+              background: 'transparent',
+              color: 'var(--sala-primary)',
+              border: '1px solid var(--sala-primary)',
+              borderRadius: '12px',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit'
+            }}
+          >
+            Reactivar clase
+          </button>
+        )}
       </div>
 
       {showEditar && (
@@ -545,11 +581,22 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
         isOpen={showCancelarClase}
         variant="danger"
         title="¿Cancelar esta clase?"
-        description={`Se cancelará la clase del ${fechaFmt} a las ${claseActual.horaLabel}. Los ${cuposReservados} inscritos verán el cambio cuando abran la app. Esta acción no se puede deshacer.`}
+        description={`Se cancelará la clase del ${fechaFmt} a las ${claseActual.horaLabel}. Los ${cuposReservados} inscritos verán el cambio cuando abran la app.`}
         confirmLabel={cancelling ? 'Cancelando…' : 'Sí, cancelar clase'}
         cancelLabel="Volver"
         onConfirm={handleCancelarClase}
         onCancel={() => !cancelling && setShowCancelarClase(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={showReactivarClase}
+        variant="info"
+        title="¿Reactivar esta clase?"
+        description={`Se vuelve a abrir el cupo de la clase del ${fechaFmt} a las ${claseActual.horaLabel} para que los socios puedan reservarla. No se restauran las reservas que ya se cancelaron (a esos socios ya se les devolvió el crédito).`}
+        confirmLabel={reactivating ? 'Reactivando…' : 'Sí, reactivar clase'}
+        cancelLabel="Volver"
+        onConfirm={handleReactivarClase}
+        onCancel={() => !reactivating && setShowReactivarClase(false)}
       />
 
       <ConfirmDialog
