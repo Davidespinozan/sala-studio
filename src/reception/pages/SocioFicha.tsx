@@ -37,6 +37,7 @@ import { getTenantTimezone, hoyEnTimezone, fechaEnTz, formatHoraEnTz, diasEntre 
 type ModalAccion =
   | null
   | 'crear_reserva'
+  | 'vender_pase'
   | 'renovar'
   | 'cambiar_plan'
   | 'recargar'
@@ -412,6 +413,10 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           {estado === 'activa' && (
             <>
               <AccionBtn onClick={() => setModalAbierto('renovar')}>Renovar</AccionBtn>
+              {/* Día suelto que su plan no cubre (ej. sábado con plan lun-vie):
+                  cobra un day pass SIN tocar su plan. Antes solo aparecía tras un
+                  rechazo en Crear reserva y recepción terminaba usando "Cambiar plan". */}
+              <AccionBtn onClick={() => setModalAbierto('vender_pase')}>Vender day pass</AccionBtn>
               <AccionBtn onClick={() => setModalAbierto('cambiar_plan')}>Cambiar plan</AccionBtn>
               {esCreditos && <AccionBtn onClick={() => setModalAbierto('recargar')}>Ajustar créditos</AccionBtn>}
               <AccionBtn onClick={() => setModalAbierto('pausar')}>Pausar</AccionBtn>
@@ -614,10 +619,11 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
         )}
       </div>
 
-      {modalAbierto === 'crear_reserva' && (
+      {(modalAbierto === 'crear_reserva' || modalAbierto === 'vender_pase') && (
         <CrearReservaModal
           socioId={socio.id}
           socioNombre={socio.nombre ?? 'el socio'}
+          modo={modalAbierto === 'vender_pase' ? 'pase' : 'reserva'}
           isOpen
           onClose={cerrar}
           onDone={handleDone}

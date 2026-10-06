@@ -11,6 +11,7 @@ interface TierOption {
   precio_centavos: number;
   moneda: string;
   tipo: string;
+  es_pase: boolean;
 }
 
 interface Props {
@@ -26,6 +27,10 @@ interface Props {
 interface SaldoActual {
   creditos: number;
   tipo: string;
+  status: string;
+  fin: string | null;
+  nombre: string;
+  esPase: boolean;
 }
 
 export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, onClose, onDone }: Props) {
@@ -34,6 +39,7 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
   const [tiers, setTiers] = useState<TierOption[]>([]);
   const [saldo, setSaldo] = useState<SaldoActual | null>(null);
   const [aceptaPerdida, setAceptaPerdida] = useState(false);
+  const [aceptaReemplazo, setAceptaReemplazo] = useState(false);
   const [metodo, setMetodo] = useState<MetodoPago | ''>('efectivo');
   // Bloquea "Sin registrar cobro" sin confirmar pago en línea (ver MetodoPagoField).
   const [metodoListo, setMetodoListo] = useState(true);
@@ -45,12 +51,12 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
     (async () => {
       let req = supabase
         .from('tiers')
-        .select('id, nombre, precio_centavos, moneda, tipo')
+        .select('id, nombre, precio_centavos, moneda, tipo, es_pase')
         .eq('activo', true)
         .order('orden', { ascending: true });
       if (tierActualId) req = req.neq('id', tierActualId);
       const { data } = await req;
-      if (!cancelled) setTiers((data ?? []) as TierOption[]);
+      if (!cancelled) setTiers((data ?? []) as unknown as TierOption[]);
     })();
     return () => {
       cancelled = true;
@@ -64,7 +70,7 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
     (async () => {
       const { data } = await supabase
         .from('membresias')
-        .select('creditos_restantes, tier:tiers(tipo)')
+        .select('creditos_restantes, status, periodo_actual_fin, tier:tiers(tipo, nombre, es_pase)')
         .eq('usuario_id', socioId)
         // Incluir 'expirada': el backend (gestionar_membresia_socio) sí la mira y
         // bloquea el cambio si tiene créditos. Si acá NO la miramos, la casilla de
@@ -76,8 +82,20 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
         .maybeSingle();
 
       if (cancelled) return;
-      const row = data as { creditos_restantes: number | null; tier: { tipo: string } | null } | null;
-      setSaldo(row?.tier ? { creditos: row.creditos_restantes ?? 0, tipo: row.tier.tipo } : null);
+      const row = data as {
+        creditos_restantes: number | null;
+        status: string;
+        periodo_actual_fin: string | null;
+        tier: { tipo: string; nombre: string; es_pase: boolean | null } | null;
+      } | null;
+      setSaldo(row?.tier ? {
+        creditos: row.creditos_restantes ?? 0,
+        tipo: row.tier.tipo,
+        status: row.status,
+        fin: row.periodo_actual_fin,
+        nombre: row.tier.nombre,
+        esPase: !!row.tier.es_pase
+      } : null);
     })();
     return () => {
       cancelled = true;
@@ -93,9 +111,17 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
   const clasesQueSePierden =
     tier && saldo && saldo.creditos > 0 && saldo.tipo !== tier.tipo ? saldo.creditos : 0;
 
+  // Plan vigente → Day Pass: REEMPLAZA el plan (caso Miriam/numa, 3-oct: le borró un
+  // Elevate de 3 meses por cobrar un sábado). Para un día suelto existe "Vender day
+  // pass", que cobra sin tocar el plan. Aquí se frena y se pide confirmación explícita.
+  const reemplazaPlanVigente =
+    !!tier?.es_pase && !!saldo && !saldo.esPase && saldo.status !== 'expirada' &&
+    !!saldo.fin && new Date(saldo.fin).getTime() > Date.now();
+
   const puedeConfirmar =
     nuevoTierId.length > 0 &&
     (clasesQueSePierden === 0 || aceptaPerdida) &&
+    (!reemplazaPlanVigente || aceptaReemplazo) &&
     metodoListo;
 
   return (
@@ -127,6 +153,7 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
           onChange={(e) => {
             setNuevoTierId(e.target.value);
             setAceptaPerdida(false);
+            setAceptaReemplazo(false);
           }}
         >
           <option value="" disabled>Elige un plan…</option>
@@ -135,6 +162,55 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
           ))}
         </select>
       </div>
+
+      {reemplazaPlanVigente && saldo && (
+        <div
+          style={{
+            display: 'flex',
+            gap: '10px',
+            padding: '12px 14px',
+            marginBottom: '12px',
+            borderRadius: 'var(--ek-r-card)',
+            border: '1px solid var(--sala-error)',
+            background: 'var(--sala-surface)'
+          }}
+        >
+          <AlertTriangle
+            size={18}
+            strokeWidth={2}
+            style={{ color: 'var(--sala-error)', flexShrink: 0, marginTop: '1px' }}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--sala-error)' }}>
+              Esto le quita su {saldo.nombre} (vigente hasta el{' '}
+              {new Date(saldo.fin as string).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })})
+            </p>
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
+              Su plan se reemplaza por un {tier?.nombre} y pierde los días que le quedan. Si solo
+              quiere venir un día que su plan no cubre, cierra esto y usa <strong>Vender day pass</strong> en
+              su ficha: cobra el día sin tocar su plan.
+            </p>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginTop: '10px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={aceptaReemplazo}
+                onChange={(e) => setAceptaReemplazo(e.target.checked)}
+              />
+              Sí, quiero quitarle su plan y dejarlo solo con el {tier?.nombre}
+            </label>
+          </div>
+        </div>
+      )}
 
       {clasesQueSePierden > 0 && (
         <div

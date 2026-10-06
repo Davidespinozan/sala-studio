@@ -61,6 +61,9 @@ const SENAL_PANEL_RECARGO = '__mostrar_panel_recargo__';
 interface Props {
   socioId: string;
   socioNombre: string;
+  /** 'pase' = se abrió desde "Vender day pass": arranca en el primer día que su
+   *  plan no cubre. El cobro es el mismo en ambos modos. */
+  modo?: 'reserva' | 'pase';
   isOpen: boolean;
   onClose: () => void;
   onDone: () => Promise<void> | void;
@@ -88,6 +91,12 @@ function proximosDias(tz: string, n = 7): { iso: string; label: string }[] {
   return out;
 }
 
+/** Día de la semana (0=domingo, igual que EXTRACT(DOW) del trigger) de una fecha ISO. */
+function diaSemana(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
+}
+
 function stepBtn(disabled: boolean): CSSProperties {
   return {
     width: '34px', height: '34px', borderRadius: '999px',
@@ -98,7 +107,7 @@ function stepBtn(disabled: boolean): CSSProperties {
   };
 }
 
-export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDone }: Props) {
+export function CrearReservaModal({ socioId, socioNombre, modo = 'reserva', isOpen, onClose, onDone }: Props) {
   const toast = useToast();
   const { sucursalId } = useReceptionSucursal();
   const tenant = useTenant();
@@ -203,6 +212,39 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
     return () => { cancelled = true; };
   }, [isOpen, tenant.id]);
 
+  // Días que cubre el plan del socio (tiers.dias_acceso; null = todos). Mismo
+  // criterio que el trigger verificar_dia_acceso_reserva: con esto el cobro del
+  // day pass se ofrece AL ELEGIR la clase, no hasta que la base la rechaza.
+  const [diasPlan, setDiasPlan] = useState<number[] | null>(null);
+  const [diasPlanListo, setDiasPlanListo] = useState(false);
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('membresias')
+        .select('tier:tiers(dias_acceso)')
+        .eq('usuario_id', socioId)
+        .in('status', ['trialing', 'activa', 'past_due', 'congelada'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const da = (data as { tier: { dias_acceso: number[] | null } | null } | null)?.tier?.dias_acceso ?? null;
+      setDiasPlan(da && da.length > 0 ? da : null);
+      setDiasPlanListo(true);
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, socioId]);
+  const fueraDePlan = (iso: string) => !!diasPlan && !diasPlan.includes(diaSemana(iso));
+
+  // "Vender day pass": arrancar en el primer día de la semana que su plan no cubre.
+  useEffect(() => {
+    if (modo !== 'pase' || !diasPlanListo || !diasPlan) return;
+    const primero = dias.find((d) => !diasPlan.includes(diaSemana(d.iso)));
+    if (primero) setFecha(primero.iso);
+  }, [modo, diasPlanListo, diasPlan, dias]);
+
   // Mapa de salón: si la sala de la clase elegida usa lugares, hay que elegir uno.
   // Mismo hook que usa el socio y el mapa de recepción (una sola fuente de verdad).
   const { layout, tomados } = useLugaresSala(elegida?.recurso_id, elegida?.clase_id ?? null);
@@ -225,6 +267,13 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
     const inicio = elegida ? instanteDeClase(elegida.fecha, elegida.hora_inicio, tz).getTime() : null;
     setCheckInYa(!!elegida && elegida.fecha === dias[0].iso && inicio !== null && inicio <= Date.now());
   }, [elegida, dias, tz]);
+  // Clase en un día que su plan no cubre → el panel de cobro aparece de una vez
+  // (antes solo salía después de picar Reservar y recibir DIA_NO_PERMITIDO).
+  useEffect(() => {
+    if (elegida && pases.length > 0 && diasPlan && !diasPlan.includes(diaSemana(elegida.fecha))) {
+      setPasePanel(true);
+    }
+  }, [elegida, pases.length, diasPlan]);
   // La lista de datos de invitados sigue al conteo del stepper.
   useEffect(() => { setInvitadosDetalle((prev) => ajustarInvitados(prev, invitados)); }, [invitados]);
 
@@ -394,8 +443,12 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
   return (
     <AccionModal
       isOpen={isOpen}
-      title="Crear reserva"
-      description={`Inscribes a ${socioNombre} en una clase. Se descuenta su crédito si el plan es por clases.`}
+      title={modo === 'pase' ? 'Vender day pass' : 'Crear reserva'}
+      description={
+        modo === 'pase'
+          ? `Cobras un día suelto a ${socioNombre} para un día que su plan no cubre. Su plan no cambia.`
+          : `Inscribes a ${socioNombre} en una clase. Se descuenta su crédito si el plan es por clases.`
+      }
       variant="info"
       confirmLabel={
         recargoPanel
@@ -414,7 +467,7 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
         recargoPanel
           ? !enviando
           : pasePanel
-            ? !!paseTierId && !cobrando
+            ? !!paseTierId && !cobrando && !faltaLugar
             : !!elegida && !faltaLugar && !enviando && invitadosValidos
       }
       onConfirm={recargoPanel ? () => confirmar(true) : pasePanel ? confirmarPaseDia : () => confirmar(false)}
@@ -463,11 +516,103 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
         </div>
       )}
 
+      {/* Día */}
+      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '14px' }}>
+        {dias.map((d) => {
+          const activo = d.iso === fecha;
+          return (
+            <button
+              key={d.iso}
+              type="button"
+              onClick={() => setFecha(d.iso)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '999px',
+                fontSize: '13px',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                background: activo ? 'var(--grad-primary)' : 'var(--sala-surface)',
+                color: activo ? 'var(--sala-text-on-primary)' : 'var(--sala-text-secondary)',
+                border: `1px solid ${activo ? 'var(--sala-primary)' : 'var(--sala-border)'}`
+              }}
+            >
+              {d.label}
+              {fueraDePlan(d.iso) && (
+                <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: 700, opacity: 0.8 }}>Day pass</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Desde "Vender day pass" con un plan que cubre todos los días: no hay nada que cobrar. */}
+      {modo === 'pase' && diasPlanListo && !diasPlan && (
+        <p style={{ fontSize: '12px', color: 'var(--sala-text-secondary)', margin: '0 0 14px', lineHeight: 1.5 }}>
+          El plan de {socioNombre} cubre todos los días: no necesita day pass, puedes reservarle cualquier clase normal.
+        </p>
+      )}
+
+      {/* Clases del día */}
+      {cargando ? (
+        <div className="ek-skeleton" style={{ height: '140px', borderRadius: '10px' }} />
+      ) : clases.length === 0 ? (
+        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', textAlign: 'center', padding: '18px 0', margin: 0 }}>
+          No hay clases disponibles ese día.
+        </p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '260px', overflowY: 'auto' }}>
+          {clases.map((c) => {
+            const libres = c.cupo_max - c.reservados;
+            const lleno = libres <= 0;
+            const sel = elegida?.clase_id
+              ? elegida.clase_id === c.clase_id
+              : elegida?.horario_recurrente_id === c.horario_recurrente_id && elegida?.fecha === c.fecha;
+            return (
+              <button
+                key={`${c.clase_id ?? c.horario_recurrente_id}-${c.fecha}-${c.hora_inicio}`}
+                type="button"
+                disabled={lleno}
+                onClick={() => setElegida(c)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  textAlign: 'left',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  cursor: lleno ? 'not-allowed' : 'pointer',
+                  opacity: lleno ? 0.45 : 1,
+                  fontFamily: 'inherit',
+                  background: sel ? 'var(--sala-primary-light)' : 'var(--sala-surface)',
+                  border: `1px solid ${sel ? 'var(--sala-primary)' : 'var(--sala-border)'}`
+                }}
+              >
+                <span style={{ fontWeight: 700, fontSize: '13px', minWidth: '52px', fontVariantNumeric: 'tabular-nums' }}>
+                  {c.hora_inicio.slice(0, 5)}
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontWeight: 600, fontSize: '13px' }}>{c.nombre}</span>
+                  <span style={{ display: 'block', fontSize: '11px', color: 'var(--sala-text-tertiary)' }}>
+                    {c.recurso_nombre ?? 'Sala'}
+                    {c.instructor_nombre ? ` · ${c.instructor_nombre}` : ''}
+                  </span>
+                </span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: lleno ? 'var(--sala-error)' : 'var(--sala-text-secondary)' }}>
+                  {lleno ? 'Llena' : `${libres} libre${libres === 1 ? '' : 's'}`}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Day pass: el plan no cubre ese día → cobrar un pase suelto sin tocar el plan */}
       {pasePanel && elegida && (
         <div
           style={{
-            marginBottom: '14px',
+            marginTop: '14px',
             padding: '14px',
             borderRadius: '10px',
             border: '1px solid var(--sala-primary)',
@@ -529,106 +674,6 @@ export function CrearReservaModal({ socioId, socioNombre, isOpen, onClose, onDon
             })}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setPasePanel(false)}
-            style={{
-              marginTop: '12px',
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--sala-text-secondary)',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              textDecoration: 'underline'
-            }}
-          >
-            ← Elegir otra clase
-          </button>
-        </div>
-      )}
-
-      {/* Día */}
-      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '14px' }}>
-        {dias.map((d) => {
-          const activo = d.iso === fecha;
-          return (
-            <button
-              key={d.iso}
-              type="button"
-              onClick={() => setFecha(d.iso)}
-              style={{
-                padding: '8px 14px',
-                borderRadius: '999px',
-                fontSize: '13px',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                background: activo ? 'var(--grad-primary)' : 'var(--sala-surface)',
-                color: activo ? 'var(--sala-text-on-primary)' : 'var(--sala-text-secondary)',
-                border: `1px solid ${activo ? 'var(--sala-primary)' : 'var(--sala-border)'}`
-              }}
-            >
-              {d.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Clases del día */}
-      {cargando ? (
-        <div className="ek-skeleton" style={{ height: '140px', borderRadius: '10px' }} />
-      ) : clases.length === 0 ? (
-        <p style={{ fontSize: '13px', color: 'var(--sala-text-secondary)', textAlign: 'center', padding: '18px 0', margin: 0 }}>
-          No hay clases disponibles ese día.
-        </p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '260px', overflowY: 'auto' }}>
-          {clases.map((c) => {
-            const libres = c.cupo_max - c.reservados;
-            const lleno = libres <= 0;
-            const sel = elegida?.clase_id
-              ? elegida.clase_id === c.clase_id
-              : elegida?.horario_recurrente_id === c.horario_recurrente_id && elegida?.fecha === c.fecha;
-            return (
-              <button
-                key={`${c.clase_id ?? c.horario_recurrente_id}-${c.fecha}-${c.hora_inicio}`}
-                type="button"
-                disabled={lleno}
-                onClick={() => setElegida(c)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  textAlign: 'left',
-                  padding: '10px 12px',
-                  borderRadius: '10px',
-                  cursor: lleno ? 'not-allowed' : 'pointer',
-                  opacity: lleno ? 0.45 : 1,
-                  fontFamily: 'inherit',
-                  background: sel ? 'var(--sala-primary-light)' : 'var(--sala-surface)',
-                  border: `1px solid ${sel ? 'var(--sala-primary)' : 'var(--sala-border)'}`
-                }}
-              >
-                <span style={{ fontWeight: 700, fontSize: '13px', minWidth: '52px', fontVariantNumeric: 'tabular-nums' }}>
-                  {c.hora_inicio.slice(0, 5)}
-                </span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontWeight: 600, fontSize: '13px' }}>{c.nombre}</span>
-                  <span style={{ display: 'block', fontSize: '11px', color: 'var(--sala-text-tertiary)' }}>
-                    {c.recurso_nombre ?? 'Sala'}
-                    {c.instructor_nombre ? ` · ${c.instructor_nombre}` : ''}
-                  </span>
-                </span>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: lleno ? 'var(--sala-error)' : 'var(--sala-text-secondary)' }}>
-                  {lleno ? 'Llena' : `${libres} libre${libres === 1 ? '' : 's'}`}
-                </span>
-              </button>
-            );
-          })}
         </div>
       )}
 
