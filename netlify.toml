@@ -51,8 +51,9 @@
 # vencidas sin expirar en numa). Verificar tras el deploy que cada función diga
 # "Scheduled" en el panel de Netlify.
 
+# Minuto 30 (no 0): así nunca coincide con cron-expirar-membresias (07:00 UTC).
 [functions."cron-no-shows"]
-  schedule = "0 * * * *"
+  schedule = "30 * * * *"
 
 [functions."cron-expirar-membresias"]
   schedule = "0 7 * * *"
