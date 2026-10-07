@@ -26,7 +26,8 @@ import { backendPost } from '@shared/lib/backend';
 import { CheckoutModal } from '@shared/components/CheckoutModal';
 import ContactoGymCTA from '../components/ContactoGymCTA';
 
-type Tier = Database['public']['Tables']['tiers']['Row'];
+// es_prueba aún no está en los tipos generados (select('*') sí lo trae).
+type Tier = Database['public']['Tables']['tiers']['Row'] & { es_prueba?: boolean };
 
 function useStatsDelMes(usuarioId: string | undefined) {
   const [sesionesEsteMes, setSesionesEsteMes] = useState(0);
@@ -732,7 +733,11 @@ function PlanHero({
               </p>
             )}
 
-            {esCreditos && tierActual && (
+            {/* La clase de prueba no se recompra (1 por socio): "Comprar otro
+                paquete" sobre ella la re-activaba gratis. Para seguir, "Cambiar de plan". */}
+            {/* Plan fuera de venta (en_venta=false): quien lo tiene sigue reservando
+                con su saldo, pero no puede volver a comprarlo desde la app. */}
+            {esCreditos && tierActual && !tierActual.es_prueba && tierActual.en_venta !== false && (
               <button
                 type="button"
                 onClick={() => setComprando(true)}
@@ -833,8 +838,16 @@ function PlanActualYOpciones({
 
   const tieneMembresia = !!membresia;
   const esPaquete = (t: Tier) => t.tipo === 'creditos' || t.tipo === 'hibrido';
-  const planesMensuales = tiers.filter((t) => !esPaquete(t));
-  const planesPaquetes = tiers.filter((t) => esPaquete(t));
+  // Solo se ofrece lo que está en venta: un plan con "En venta" apagado (ej. una
+  // cortesía o un descuento personal) sigue funcionando para quien ya lo tiene,
+  // pero no se le muestra a nadie como opción de compra.
+  const enVenta = tiers.filter((t) => t.en_venta !== false);
+  // Quien ya tiene membresía ya no puede tomar la clase de prueba: no se ofrece.
+  const ofrecibles = tieneMembresia
+    ? enVenta.filter((t) => !t.es_prueba || t.id === membresia?.tier_id)
+    : enVenta;
+  const planesMensuales = ofrecibles.filter((t) => !esPaquete(t));
+  const planesPaquetes = ofrecibles.filter((t) => esPaquete(t));
   const hayAmbosTipos = planesMensuales.length > 0 && planesPaquetes.length > 0;
   const vista: VistaPlan =
     vistaPlan === 'paquetes' && planesPaquetes.length > 0
@@ -861,6 +874,16 @@ function PlanActualYOpciones({
       if (res.activated) {
         toast.success(`¡Listo! Tu plan ${tier.nombre} quedó activo.`);
         setTimeout(() => window.location.reload(), 900);
+        return;
+      }
+      if (res.reason === 'no_en_venta') {
+        toast.error('Este plan ya no está a la venta. Elige otro plan o acércate a recepción.');
+        setEnProceso(false);
+        return;
+      }
+      if (res.reason === 'prueba_ya_usada') {
+        toast.error('Ya usaste tu clase de prueba gratis. Elige un paquete o membresía para seguir.');
+        setEnProceso(false);
         return;
       }
       toast.info(`El pago online está en camino. Por ahora, habla con ${tenantNombre} para activar tu plan.`);

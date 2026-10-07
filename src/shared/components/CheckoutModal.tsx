@@ -67,6 +67,12 @@ export function CheckoutModal({
         } else if (res.reason === 'sin_customer') {
           toast.error('Comprá un plan primero para poder guardar una tarjeta.');
           onClose();
+        } else if (res.reason === 'prueba_ya_usada') {
+          toast.error('Ya usaste tu clase de prueba gratis. Elige un paquete o membresía para seguir.');
+          onClose();
+        } else if (res.reason === 'no_en_venta') {
+          toast.error('Este plan ya no está a la venta. Elige otro plan o acércate a recepción.');
+          onClose();
         } else if (res.reason === 'tiene_mensualidad') {
           toast.error('Ya tenés una mensualidad activa. Cancelala antes de comprar un paquete.');
           onClose();

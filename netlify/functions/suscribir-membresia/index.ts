@@ -101,12 +101,30 @@ export const handler: Handler = async (event) => {
     const { data: tier } = await admin
       .from('tiers')
       .select(
-        'id, activo, tenant_id, nombre, precio_centavos, moneda, tipo, periodo, inscripcion_centavos'
+        'id, activo, en_venta, tenant_id, nombre, precio_centavos, moneda, tipo, periodo, inscripcion_centavos, es_prueba'
       )
       .eq('id', body.tier_id)
       .maybeSingle();
     if (!tier || tier.tenant_id !== socio.tenant_id || tier.activo !== true) {
       return badRequest('Plan inválido');
+    }
+    // "En venta" apagado = no se vende desde la app (ni a nuevos ni recompra). Quien
+    // ya lo tiene sigue usándolo; esto solo bloquea un cobro nuevo. Las renovaciones
+    // automáticas de Stripe no pasan por aquí (van por el webhook).
+    if (tier.en_venta === false) {
+      return ok({ activated: false, reason: 'no_en_venta' });
+    }
+
+    // Clase de prueba: 1 por socio de por vida. Sin esto, "Comprar otro paquete"
+    // sobre la prueba ($0) la re-activaba gratis cada vez (+1 clase). El trigger
+    // una_prueba_por_socio también lo bloquea; acá se responde con un motivo claro.
+    if (tier.es_prueba === true) {
+      const { data: usada } = await admin
+        .from('pruebas_usadas')
+        .select('usuario_id')
+        .eq('usuario_id', socio.id)
+        .maybeSingle();
+      if (usada) return ok({ activated: false, reason: 'prueba_ya_usada' });
     }
 
     // Ciclo de cobro de Stripe según el periodo del plan. Antes estaba clavado en
