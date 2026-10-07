@@ -53,6 +53,11 @@ export const ERROR_CODE_MAP: Record<string, string> = {
   CHECK_IN_NO_EXISTE: 'No encontramos ese check-in',
   CHECK_IN_NO_REVERTIBLE: 'Este check-in ya no se puede revertir',
 
+  // Restauración de asistencia (corregir una reserva cancelada/no-show a presente)
+  RESERVA_ESTADO_INVALIDO: 'No se puede marcar asistencia desde el estado actual de esta reserva',
+  SIN_CREDITOS_RESTAURACION: 'El socio no tiene créditos suficientes para restaurar esta asistencia',
+  ENTITLEMENT_NO_RESTAURABLE: 'La membresía original ya no puede recibir este cargo; no se puede restaurar',
+
   // Socio
   SOCIO_NO_EXISTE: 'No encontramos ese socio',
   SOCIO_YA_BLOQUEADO: 'El socio ya estaba bloqueado',
