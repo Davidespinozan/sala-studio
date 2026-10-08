@@ -13,6 +13,8 @@ export interface SocioListItem {
   membresia_tier: string | null;
   status: string;
   sucursal_id: string | null;
+  /** Bloqueo de acceso (por no-shows) vigente si es futuro. */
+  bloqueado_hasta: string | null;
   /** Llegó como invitado (ligado desde reserva_invitados). Para etiquetar "Invitado". */
   es_invitado: boolean;
 }
@@ -55,7 +57,7 @@ export function useSocios(query: string) {
     (async () => {
       const { data, error: queryError } = await supabase
         .from('usuarios')
-        .select('id, nombre, email, telefono, avatar_url, membresia_tier, status, sucursal_id')
+        .select('id, nombre, email, telefono, avatar_url, membresia_tier, status, sucursal_id, bloqueado_hasta')
         .eq('rol', 'miembro')
         .order('nombre', { ascending: true })
         .limit(1000);

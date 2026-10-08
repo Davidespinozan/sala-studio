@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Search, ChevronRight } from 'lucide-react';
 import { EmptyState } from '@shared/components/EmptyState';
 import { useSocios, type SocioListItem } from '../hooks/useSocios';
@@ -73,12 +73,21 @@ export default function Socios() {
   // recepción —que es quien cobra— no tenía cómo encontrarlos.
   const { cargos } = useCargosPendientes();
   const conCargo = useMemo(() => new Set(cargos.map((c) => c.usuario_id)), [cargos]);
-  const [filtro, setFiltro] = useState<'todos' | 'por_cobrar' | 'pendiente_pago'>('todos');
+  // El filtro puede venir en la URL (?filtro=…) desde el apartado Pendientes de Hoy.
+  const [searchParams] = useSearchParams();
+  const [filtro, setFiltro] = useState<Filtro>(() => {
+    const f = searchParams.get('filtro');
+    return f === 'por_cobrar' || f === 'pendiente_pago' || f === 'bloqueados' ? f : 'todos';
+  });
+  const ahora = Date.now();
+  const estaBloqueado = (s: SocioListItem) => !!s.bloqueado_hasta && new Date(s.bloqueado_hasta).getTime() > ahora;
   const nPorCobrar = sociosBase.filter((s) => conCargo.has(s.id)).length;
   const nPendientePago = sociosBase.filter((s) => s.status === 'pendiente_pago').length;
+  const nBloqueados = sociosBase.filter(estaBloqueado).length;
   const socios = useMemo(() => {
     if (filtro === 'por_cobrar') return sociosBase.filter((s) => conCargo.has(s.id));
     if (filtro === 'pendiente_pago') return sociosBase.filter((s) => s.status === 'pendiente_pago');
+    if (filtro === 'bloqueados') return sociosBase.filter((s) => !!s.bloqueado_hasta && new Date(s.bloqueado_hasta).getTime() > Date.now());
     return sociosBase;
   }, [sociosBase, filtro, conCargo]);
   const { sucursalId, sucursales, multisede } = useReceptionSucursal();
@@ -138,7 +147,7 @@ export default function Socios() {
           />
         </div>
 
-        {(nPorCobrar > 0 || nPendientePago > 0 || filtro !== 'todos') && (
+        {(nPorCobrar > 0 || nPendientePago > 0 || nBloqueados > 0 || filtro !== 'todos') && (
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '-6px 0 14px' }}>
             <FiltroChip activo={filtro === 'todos'} onClick={() => setFiltro('todos')}>Todos</FiltroChip>
             <FiltroChip activo={filtro === 'por_cobrar'} onClick={() => setFiltro('por_cobrar')}>
@@ -146,6 +155,9 @@ export default function Socios() {
             </FiltroChip>
             <FiltroChip activo={filtro === 'pendiente_pago'} onClick={() => setFiltro('pendiente_pago')}>
               Pago pendiente ({nPendientePago})
+            </FiltroChip>
+            <FiltroChip activo={filtro === 'bloqueados'} onClick={() => setFiltro('bloqueados')}>
+              Bloqueados ({nBloqueados})
             </FiltroChip>
           </div>
         )}
@@ -174,7 +186,7 @@ export default function Socios() {
           <EmptyState
             icon={Search}
             title={filtro !== 'todos' ? 'Nadie en este filtro' : q.trim() ? 'Sin resultados' : 'Sin socios todavía'}
-            subtitle={filtro !== 'todos' ? 'No hay socios con cobros pendientes aquí.' : q.trim() ? 'Prueba con otro nombre o teléfono.' : 'Los socios aparecen aquí al darlos de alta.'}
+            subtitle={filtro !== 'todos' ? 'No hay socios en este filtro aquí.' : q.trim() ? 'Prueba con otro nombre o teléfono.' : 'Los socios aparecen aquí al darlos de alta.'}
           />
         ) : (
           <>
@@ -242,6 +254,8 @@ function PagBtn({ children, onClick, activo, disabled }: { children: ReactNode; 
     </button>
   );
 }
+
+type Filtro = 'todos' | 'por_cobrar' | 'pendiente_pago' | 'bloqueados';
 
 function FiltroChip({ children, activo, onClick }: { children: ReactNode; activo: boolean; onClick: () => void }) {
   return (

@@ -7,7 +7,8 @@ import { useScannerHID } from '../hooks/useScannerHID';
 import { useHuellaCheckins, type HuellaCheckinData } from '../hooks/useHuellaCheckins';
 import { useLectorEstado } from '../hooks/useLectorEstado';
 import { playCheckInSuccess, playCheckInError } from '../lib/checkInFeedback';
-import { PageHeader } from '@shared/components/PageHeader';
+import CentroPendientes from '@admin/components/CentroPendientes';
+import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
 import { CumpleanosCard } from '@shared/components/CumpleanosCard';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
 import { useAuth } from '@shared/hooks/useAuth';
@@ -37,6 +38,8 @@ type DetailState =
   | { kind: 'error'; message: string };
 
 /** Estado del lector de huella, a la vista de recepción (son quienes lo usan). */
+/** Estado del lector de huella. Vive dentro del hero oscuro: pastilla translúcida
+ *  con el punto de color (verde responde / rojo sin señal). */
 function LectorBadge() {
   const estado = useLectorEstado();
   if (estado === 'sin_lector') return null; // sin lector dado de alta → no estorbar
@@ -48,12 +51,18 @@ function LectorBadge() {
         display: 'inline-flex', alignItems: 'center', gap: '7px',
         padding: '6px 12px', borderRadius: '999px', whiteSpace: 'nowrap',
         fontSize: '12px', fontWeight: 700,
-        background: conectado ? 'var(--ek-success-soft)' : 'var(--ek-danger-soft)',
-        color: conectado ? 'var(--ek-success)' : 'var(--ek-danger)',
-        border: `1px solid ${conectado ? 'var(--ek-success)' : 'var(--ek-danger)'}`
+        background: 'rgba(255, 255, 255, 0.10)',
+        color: '#fff',
+        border: '1px solid rgba(255, 255, 255, 0.18)'
       }}
     >
-      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'currentColor', flexShrink: 0 }} />
+      <span
+        style={{
+          width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0,
+          background: conectado ? '#34d399' : '#f87171',
+          boxShadow: `0 0 0 3px ${conectado ? 'rgba(52,211,153,0.25)' : 'rgba(248,113,113,0.25)'}`
+        }}
+      />
       {conectado ? 'Lector conectado' : 'Lector sin señal'}
     </div>
   );
@@ -104,10 +113,9 @@ export default function Scanner() {
   return (
     <div className="rec-shell">
       <div className="rec-main">
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-          <SaludoHoy />
-          <LectorBadge />
-        </div>
+        <HeroHoy />
+
+        <PendientesSede />
 
         <CumpleanosCard linkBase="/recepcion/socios" />
 
@@ -200,18 +208,32 @@ export default function Scanner() {
   );
 }
 
-/** Cabecera de Hoy: saludo por hora del GYM + nombre de quien atiende + fecha. */
-function SaludoHoy() {
+/** Cabecera de Hoy: mismo hero de marca que el dashboard admin. Saludo por hora
+ *  del GYM + nombre de quien atiende + fecha, y el estado del lector a la derecha. */
+function HeroHoy() {
   const { usuario } = useAuth();
-  const tz = getTenantTimezone(useTenant());
+  const tenant = useTenant();
+  const tz = getTenantTimezone(tenant);
   const saludo = saludoPorHora(tz);
   const nombre = nombreDePila(usuario?.nombre);
   const fecha = formatInTimeZone(new Date(), tz, "EEEE d 'de' MMMM", { locale: es });
   return (
-    <PageHeader
-      eyebrow="RECEPCIÓN · HOY"
-      title={`${saludo.texto}${nombre ? `, ${nombre}` : ''}`}
-      subtitle={fecha.charAt(0).toUpperCase() + fecha.slice(1)}
-    />
+    <div className="adm-hero" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px 16px', flexWrap: 'wrap' }}>
+      <div style={{ minWidth: 0 }}>
+        <p className="adm-hero-eyebrow">Recepción · {fecha}</p>
+        <h1 className="adm-hero-title">Hoy en {tenant.nombre || 'tu gym'}</h1>
+        <p className="adm-hero-subtitle" style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+          {saludo.texto}{nombre ? `, ${nombre}` : ''}
+          <saludo.Icon size={17} strokeWidth={2.25} />
+        </p>
+      </div>
+      <LectorBadge />
+    </div>
   );
+}
+
+/** Apartado "Pendientes" (el mismo del admin) con los conteos de esta sede. */
+function PendientesSede() {
+  const { sucursalId, multisede } = useReceptionSucursal();
+  return <CentroPendientes base="recepcion" sucursalId={multisede ? sucursalId : null} />;
 }

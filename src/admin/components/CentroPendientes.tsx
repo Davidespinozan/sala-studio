@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { usePendientes } from '../hooks/usePendientes';
+import { formatearMoneda } from '@shared/lib/dinero';
 
 interface Item {
   count: number;
@@ -15,18 +16,37 @@ interface Item {
  * Centro de pendientes: inbox operativo del dashboard admin. Muestra lo que
  * requiere atención (pagos pendientes, socios bloqueados, no-shows recientes),
  * cada uno enruta a dónde se resuelve. "Todo al día" si no hay nada.
+ *
+ * Se usa también en "Hoy" de recepción (`base="recepcion"`): mismos conteos,
+ * scopeados a la sede del mostrador, con links a las pantallas de recepción. Los
+ * no-shows de la semana no van ahí (recepción no tiene reportes).
  */
-export default function CentroPendientes() {
-  const { data, isLoading } = usePendientes();
+export default function CentroPendientes({
+  base = 'admin',
+  sucursalId = null
+}: {
+  base?: 'admin' | 'recepcion';
+  sucursalId?: string | null;
+} = {}) {
+  const { data, isLoading } = usePendientes(sucursalId);
+  const esRecepcion = base === 'recepcion';
 
   if (isLoading) return null;
 
   const items: Item[] = [
     {
+      count: data.porCobrar,
+      titulo: 'Por cobrar',
+      desc: `${formatearMoneda(data.porCobrarCentavos)} de planes o pases dejados "pagar al llegar". Se cobran en Caja.`,
+      to: esRecepcion ? '/recepcion/caja' : '/admin/caja',
+      color: 'var(--sala-primary)',
+      bg: 'var(--sala-primary-light)'
+    },
+    {
       count: data.pendientePago,
       titulo: 'Pagos pendientes',
       desc: 'Socios que se registraron y todavía no pagaron.',
-      to: '/admin/miembros?status=pendiente_pago',
+      to: esRecepcion ? '/recepcion/socios?filtro=pendiente_pago' : '/admin/miembros?status=pendiente_pago',
       color: 'var(--ek-danger)',
       bg: 'var(--ek-danger-soft)'
     },
@@ -34,18 +54,22 @@ export default function CentroPendientes() {
       count: data.bloqueados,
       titulo: 'Socios bloqueados',
       desc: 'Acceso bloqueado por no-shows. Revisa si corresponde.',
-      to: '/admin/miembros',
+      to: esRecepcion ? '/recepcion/socios?filtro=bloqueados' : '/admin/miembros',
       color: 'var(--ek-mustard)',
       bg: 'var(--ek-mustard-soft)'
     },
-    {
-      count: data.noShows7d,
-      titulo: 'No-shows (7 días)',
-      desc: 'Reservas no asistidas esta semana.',
-      to: '/admin/reportes',
-      color: 'var(--sala-text-secondary)',
-      bg: 'var(--ek-bg-elevated)'
-    }
+    ...(esRecepcion
+      ? []
+      : [
+          {
+            count: data.noShows7d,
+            titulo: 'No-shows (7 días)',
+            desc: 'Reservas no asistidas esta semana.',
+            to: '/admin/reportes',
+            color: 'var(--sala-text-secondary)',
+            bg: 'var(--ek-bg-elevated)'
+          }
+        ])
   ];
 
   const activos = items.filter((i) => i.count > 0);
