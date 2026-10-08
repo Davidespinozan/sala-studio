@@ -80,7 +80,10 @@ export function useInscritosDeClase(claseId: string | null) {
         nombre: r.usuario?.nombre ?? r.usuario?.email ?? '—',
         email: r.usuario?.email ?? '',
         planSlug: r.usuario?.membresia_tier ?? null,
-        status: r.status as InscritoAdmin['status'],
+        // 'cancelada_admin' (la cancela el staff) se ve igual que 'cancelada'.
+        // Sin esto el modal no tenía etiqueta para ese status y tronaba
+        // ("Algo salió mal") en cualquier clase con una reserva cancelada por admin.
+        status: (r.status === 'cancelada_admin' ? 'cancelada' : r.status) as InscritoAdmin['status'],
         folio: r.folio,
         lugarId: r.lugar_id ?? null,
         invitadosCount: r.invitados_count ?? 0

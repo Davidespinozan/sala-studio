@@ -588,12 +588,13 @@ function ReservaCard({ reserva, tz, mostrarSala, onSelect }: { reserva: ReservaC
   const tier = reserva.usuario?.membresia_tier;
   // lugar_id viene del `*` pero aún no está en los tipos generados → cast.
   const lugar = (reserva as { lugar_id?: string | null }).lugar_id;
-  const disabled = reserva.status === 'cancelada' || reserva.status === 'no_show';
+  const disabled = reserva.status === 'cancelada' || reserva.status === 'cancelada_admin' || reserva.status === 'no_show';
 
   const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
     confirmada: { label: 'PENDIENTE', bg: 'color-mix(in srgb, var(--ek-mustard) 16%, transparent)', color: 'color-mix(in srgb, var(--ek-mustard), black 18%)' },
     completada: { label: 'OK', bg: 'var(--ek-success-soft)', color: 'var(--ek-success)' },
     cancelada: { label: 'CANCELADA', bg: 'var(--ek-danger-soft)', color: 'var(--ek-danger)' },
+    cancelada_admin: { label: 'CANCELADA', bg: 'var(--ek-danger-soft)', color: 'var(--ek-danger)' },
     no_show: { label: 'NO SHOW', bg: 'var(--ek-danger-soft)', color: 'var(--ek-danger)' }
   };
   const status = statusConfig[reserva.status] ?? statusConfig.confirmada;

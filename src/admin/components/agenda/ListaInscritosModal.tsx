@@ -664,7 +664,8 @@ function InscritoRow({
       bg: 'var(--sala-accent-light)'
     }
   };
-  const st = statusConfig[inscrito.status];
+  // Un status que no esté en el mapa no debe tumbar todo el modal.
+  const st = statusConfig[inscrito.status] ?? statusConfig.cancelada;
   // El nombre real del plan. Antes esto traducía los slugs de los planes de
   // EJEMPLO ('pro' → "Ilimitado"), así que un gym con sus propios planes veía
   // "—" en cada persona de la lista.
