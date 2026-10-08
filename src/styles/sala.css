@@ -2734,6 +2734,35 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   }
 
   /* ============================================================================
+     RECEPCIÓN AGENDA — encabezado de cada clase
+     ============================================================================
+     Escritorio: hora · nombre · [cupo + Agregar] en una fila. Celular: hora +
+     nombre arriba; cupo (izq.) y botón (der.) en una segunda fila a lo ancho, en
+     vez de que el cupo y el botón caigan sueltos debajo de la hora.
+     ============================================================================ */
+
+  .rec-clase-head {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px 12px;
+    padding: 12px 14px;
+    background: var(--sala-bg);
+  }
+  .rec-clase-acciones {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  @media (max-width: 560px) {
+    .rec-clase-head { grid-template-columns: 48px minmax(0, 1fr); }
+    .rec-clase-acciones {
+      grid-column: 1 / -1;
+      justify-content: space-between;
+    }
+  }
+
+  /* ============================================================================
      ADMIN AGENDA (S3c Eje 2) — desktop grid / mobile lista toggle
      ============================================================================ */
 

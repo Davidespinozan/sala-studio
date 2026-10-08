@@ -254,18 +254,20 @@ function ClaseCard({ clase, diaLabel, onAgregar }: { clase: ClaseGrupo; diaLabel
 
   let chip: { txt: string; color: string; bg: string };
   if (clase.cancelada) chip = { txt: 'Cancelada', color: 'var(--sala-text-tertiary)', bg: 'var(--sala-bg)' };
+  else if (terminada) chip = { txt: `Terminó · ${activos.length} ${activos.length === 1 ? 'inscrito' : 'inscritos'}`, color: 'var(--sala-text-tertiary)', bg: 'var(--sala-surface)' };
   else if (libres == null) chip = { txt: `${activos.length} ${activos.length === 1 ? 'inscrito' : 'inscritos'}`, color: 'var(--sala-text-secondary)', bg: 'var(--sala-primary-light)' };
   else if (llena) chip = { txt: `Llena · ${clase.cupoMax}/${clase.cupoMax}`, color: 'var(--sala-accent)', bg: 'var(--sala-accent-light)' };
   else chip = { txt: `${libres} ${libres === 1 ? 'libre' : 'libres'} · ${clase.reservados}/${clase.cupoMax}`, color: 'var(--sala-primary)', bg: 'var(--sala-primary-light)' };
 
   return (
     <div style={{ borderRadius: '16px', background: 'var(--sala-surface)', border: '1px solid var(--sala-border)', overflow: 'hidden', opacity: clase.cancelada || terminada ? 0.7 : 1 }}>
-      {/* Encabezado de la clase */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', background: 'var(--sala-bg)', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--sala-text-primary)', fontVariantNumeric: 'tabular-nums', minWidth: '52px' }}>
+      {/* Encabezado de la clase. Grid (.rec-clase-head en sala.css): en escritorio
+          una sola fila; en celular hora+nombre arriba y cupo+botón abajo. */}
+      <div className="rec-clase-head">
+        <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--sala-text-primary)', fontVariantNumeric: 'tabular-nums' }}>
           {clase.hora}
         </span>
-        <div style={{ flex: 1, minWidth: '120px' }}>
+        <div style={{ minWidth: 0 }}>
           <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--sala-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {clase.nombre}
           </p>
@@ -275,20 +277,22 @@ function ClaseCard({ clase, diaLabel, onAgregar }: { clase: ClaseGrupo; diaLabel
             </p>
           )}
         </div>
-        <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: chip.color, background: chip.bg, padding: '4px 10px', borderRadius: '999px', whiteSpace: 'nowrap' }}>
-          {chip.txt}
-        </span>
-        {puedeAgregar && (
-          <button
-            type="button"
-            onClick={onAgregar}
-            className="ek-cta"
-            style={{ fontSize: '12.5px', padding: '6px 12px' }}
-            aria-label={`Agregar socio a ${clase.nombre} ${diaLabel} ${clase.hora}`}
-          >
-            + Agregar socio
-          </button>
-        )}
+        <div className="rec-clase-acciones">
+          <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: chip.color, background: chip.bg, padding: '4px 10px', borderRadius: '999px', whiteSpace: 'nowrap' }}>
+            {chip.txt}
+          </span>
+          {puedeAgregar && (
+            <button
+              type="button"
+              onClick={onAgregar}
+              className="ek-cta ek-cta--secondary"
+              style={{ fontSize: '12.5px', padding: '0 12px', minHeight: '34px', whiteSpace: 'nowrap' }}
+              aria-label={`Agregar socio a ${clase.nombre} ${diaLabel} ${clase.hora}`}
+            >
+              + Agregar
+            </button>
+          )}
+        </div>
       </div>
       {/* Lista de asistentes */}
       {clase.reservas.length > 0 && (

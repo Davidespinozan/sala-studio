@@ -42,7 +42,9 @@ export function ElegirSocioModal({
           />
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '60px' }}>
+        {/* La lista hace scroll por dentro: en celular (hoja inferior) 8 resultados
+            empujaban "Cancelar" fuera de la pantalla. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '60px', maxHeight: '46vh', overflowY: 'auto' }}>
           {q.trim().length < 2 ? (
             <p style={{ fontSize: '13px', color: 'var(--sala-text-tertiary)', margin: '8px 2px' }}>
               Escribe al menos 2 letras del nombre o el teléfono.

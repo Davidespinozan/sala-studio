@@ -33,7 +33,7 @@ export function SeleccionarLugar({
         ▲ Frente
       </div>
 
-      <div style={{ display: 'grid', gap: '6px', gridTemplateColumns: `repeat(${layout.cols}, 1fr)` }}>
+      <div style={{ display: 'grid', gap: '6px', gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))` }}>
         {Array.from({ length: layout.rows }).flatMap((_, y) =>
           Array.from({ length: layout.cols }).map((__, x) => {
             const lugar = lugarEn(x, y);
@@ -53,7 +53,10 @@ export function SeleccionarLugar({
                 aria-label={ocupado ? `Lugar ${lugar.label} ocupado` : `Elegir lugar ${lugar.label}`}
                 aria-pressed={elegido}
                 style={{
-                  aspectRatio: '1', display: 'flex', alignItems: 'center',
+                  // minHeight/minWidth 0: reset.css da min-height 44px a TODO button;
+                  // con aspectRatio 1 eso forzaba 44px de ancho y una sala de 6+
+                  // columnas se salía del modal en celular (360px).
+                  aspectRatio: '1', minHeight: 0, minWidth: 0, padding: 0, display: 'flex', alignItems: 'center',
                   justifyContent: 'center', borderRadius: '10px', fontFamily: 'inherit',
                   fontSize: layout.cols > 8 ? '12px' : '15px', fontWeight: 700, lineHeight: 1,
                   cursor: ocupado ? 'not-allowed' : 'pointer',
