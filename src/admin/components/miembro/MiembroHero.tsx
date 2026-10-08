@@ -51,7 +51,7 @@ const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }>
     bg: 'var(--sala-warning-bg)'
   },
   pendiente_pago: {
-    label: 'Pendiente pago',
+    label: 'Sin plan',
     color: 'var(--sala-warning)',
     bg: 'var(--sala-warning-bg)'
   }
@@ -259,7 +259,7 @@ export function MiembroHero({
           className="ek-cta"
           style={{ padding: '10px 18px', minHeight: '40px', fontSize: '13px' }}
         >
-          Cambiar plan
+          {planNombre ? 'Cambiar plan' : 'Asignar plan'}
         </button>
         <button
           type="button"

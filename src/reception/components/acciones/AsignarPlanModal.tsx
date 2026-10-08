@@ -18,14 +18,16 @@ interface TierOption {
 interface Props {
   socioId: string;
   socioNombre: string;
+  /** Plan preelegido (el que el socio escogió al registrarse y no pagó). */
+  tierInicialId?: string | null;
   isOpen: boolean;
   onClose: () => void;
   onDone: () => Promise<void> | void;
 }
 
-export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone }: Props) {
+export function AsignarPlanModal({ socioId, socioNombre, tierInicialId, isOpen, onClose, onDone }: Props) {
   const [motivo, setMotivo] = useState('');
-  const [tierId, setTierId] = useState('');
+  const [tierId, setTierId] = useState(tierInicialId ?? '');
   const [tiers, setTiers] = useState<TierOption[]>([]);
   const [metodo, setMetodo] = useState<MetodoPago | ''>('efectivo');
   const [pendiente, setPendiente] = useState(false);

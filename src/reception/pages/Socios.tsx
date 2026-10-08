@@ -18,7 +18,7 @@ function estadoBadge(status: string): { label: string; bg: string; color: string
     case 'activo':
       return { label: 'Activo', bg: 'var(--ek-success-soft)', color: 'var(--ek-success)' };
     case 'pendiente_pago':
-      return { label: 'Pendiente', bg: 'color-mix(in srgb, var(--ek-mustard) 16%, transparent)', color: 'color-mix(in srgb, var(--ek-mustard), black 18%)' };
+      return { label: 'Sin plan', bg: 'color-mix(in srgb, var(--ek-mustard) 16%, transparent)', color: 'color-mix(in srgb, var(--ek-mustard), black 18%)' };
     case 'pendiente_onboarding':
       return { label: 'Sin onboarding', bg: 'color-mix(in srgb, var(--ek-mustard) 16%, transparent)', color: 'color-mix(in srgb, var(--ek-mustard), black 18%)' };
     case 'congelado':
@@ -69,7 +69,7 @@ export default function Socios() {
   const [showNuevo, setShowNuevo] = useState(false);
   const { socios: sociosBase, isLoading, error, refetch } = useSocios(q);
   // Filtros de cobro: "Por cobrar" (tiene un cargo pendiente: plan/pase activado
-  // "pagar al llegar") y "Pago pendiente" (se registró en línea y no pagó). Antes
+  // "pagar al llegar") y "Sin plan" (se registró y nunca compró plan). Antes
   // recepción —que es quien cobra— no tenía cómo encontrarlos.
   const { cargos } = useCargosPendientes();
   const conCargo = useMemo(() => new Set(cargos.map((c) => c.usuario_id)), [cargos]);
@@ -154,7 +154,7 @@ export default function Socios() {
               Por cobrar ({nPorCobrar})
             </FiltroChip>
             <FiltroChip activo={filtro === 'pendiente_pago'} onClick={() => setFiltro('pendiente_pago')}>
-              Pago pendiente ({nPendientePago})
+              Sin plan ({nPendientePago})
             </FiltroChip>
             <FiltroChip activo={filtro === 'bloqueados'} onClick={() => setFiltro('bloqueados')}>
               Bloqueados ({nBloqueados})

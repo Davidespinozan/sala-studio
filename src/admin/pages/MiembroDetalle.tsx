@@ -30,6 +30,8 @@ import { MetodoPagoMembresia } from '@shared/components/MetodoPagoMembresia';
 import { MiembroHistorialCambios } from '../components/miembro/MiembroHistorialCambios';
 import { MiembroNotasInternas } from '../components/miembro/MiembroNotasInternas';
 import { GestionarMembresiaModal } from '../components/miembro/GestionarMembresiaModal';
+import { AvisoSinPlan, usePlanElegido } from '@shared/components/AvisoSinPlan';
+import { useTenant } from '@shared/hooks/useTenant';
 import { BloquearAccesoModal } from '../components/miembro/BloquearAccesoModal';
 import { EnviarAvisoModal } from '../components/miembro/EnviarAvisoModal';
 import { ReconciliarStripeModal } from '../components/ReconciliarStripeModal';
@@ -43,6 +45,11 @@ export default function MiembroDetalle() {
   const toast = useToast();
   const { miembro, reservas, isLoading, refetch } = useMiembroDetalle(id);
   const { kpis, isLoading: loadingKpis, refetch: refetchKpis } = useMiembroKPIs(id);
+  const tenant = useTenant();
+  // Socio que se registró y nunca compró plan ('pendiente_pago'): el plan que
+  // eligió al registrarse queda en membresia_tier y se preselecciona al asignar.
+  const sinPlan = miembro?.status === 'pendiente_pago';
+  const planElegido = usePlanElegido(tenant.id, miembro?.membresia_tier, sinPlan);
 
   // Membresía del socio: la ÚLTIMA (cualquier estado), leída de `membresias` —
   // la fuente de verdad, igual que recepción. `usuarios.membresia_tier` se NULLea
@@ -233,6 +240,14 @@ export default function MiembroDetalle() {
           el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }}
       />
+
+      {sinPlan && (
+        <AvisoSinPlan
+          registradoAt={miembro.created_at}
+          planElegido={planElegido}
+          onAsignar={() => setShowCambiarPlan(true)}
+        />
+      )}
 
       <MiembroKPIs kpis={kpis} isLoading={loadingKpis} />
 
@@ -466,6 +481,7 @@ export default function MiembroDetalle() {
         <GestionarMembresiaModal
           usuarioId={miembro.id}
           nombreMiembro={miembro.nombre ?? miembro.email}
+          tierInicialId={sinPlan ? planElegido?.id ?? null : null}
           onClose={() => setShowCambiarPlan(false)}
           onSaved={handleAfterChange}
         />
@@ -601,7 +617,7 @@ function RolBadge({ rol }: { rol: string }) {
 
 const ESTADO_OPCIONES: { value: string; label: string }[] = [
   { value: 'pendiente_onboarding', label: 'Pendiente onboarding' },
-  { value: 'pendiente_pago', label: 'Pendiente pago' },
+  { value: 'pendiente_pago', label: 'Sin plan (registrado, no ha pagado)' },
   { value: 'activo', label: 'Activo' },
   { value: 'suspendido', label: 'Suspendido' },
   { value: 'cancelado', label: 'Cancelado' }

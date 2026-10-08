@@ -44,8 +44,8 @@ export default function CentroPendientes({
     },
     {
       count: data.pendientePago,
-      titulo: 'Pagos pendientes',
-      desc: 'Socios que se registraron y todavía no pagaron.',
+      titulo: 'Registrados sin plan',
+      desc: 'Crearon su cuenta pero no han comprado plan. No deben nada: asígnales uno cuando paguen.',
       to: esRecepcion ? '/recepcion/socios?filtro=pendiente_pago' : '/admin/miembros?status=pendiente_pago',
       color: 'var(--ek-danger)',
       bg: 'var(--ek-danger-soft)'

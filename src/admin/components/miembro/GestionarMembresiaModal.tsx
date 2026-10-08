@@ -20,6 +20,8 @@ import { AvisoCargoPendiente } from '@shared/components/CargoPendienteRow';
 interface Props {
   usuarioId: string;
   nombreMiembro: string;
+  /** Plan preelegido (el que el socio escogió al registrarse y no pagó). */
+  tierInicialId?: string | null;
   onClose: () => void;
   onSaved: () => Promise<void>;
 }
@@ -43,13 +45,14 @@ interface Props {
 export function GestionarMembresiaModal({
   usuarioId,
   nombreMiembro,
+  tierInicialId,
   onClose,
   onSaved
 }: Props) {
   const toast = useToast();
   const { tiers, isLoading: loadingTiers } = useTiersAdmin();
   const { membresia, isLoading: loadingMem } = useMembresiaActual(usuarioId);
-  const [selTierId, setSelTierId] = useState<string>('');
+  const [selTierId, setSelTierId] = useState<string>(tierInicialId ?? '');
   // Cómo se cobró la renovación/cambio: efectivo/transferencia registran el pago
   // en la Caja (por el precio del plan); cortesía activa sin cobrar. Antes esto no
   // existía y el cobro "se gestionaba afuera" → el dinero de una renovación hecha

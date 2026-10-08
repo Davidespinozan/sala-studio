@@ -49,6 +49,9 @@ export interface FichaSocio {
   notas_admin: string | null;
   /** null = socio importado sin login todavía → se le puede "dar acceso". */
   auth_id: string | null;
+  /** Sin plan ('pendiente_pago'): el plan que eligió al registrarse (slug). */
+  membresia_tier: string | null;
+  created_at: string;
 }
 
 export interface SocioFichaData {
@@ -125,7 +128,7 @@ export function useSocioFicha(id: string | undefined) {
     try {
       const { data: socioRow, error: e1 } = await supabase
         .from('usuarios')
-        .select('id, nombre, email, telefono, avatar_url, status, bloqueado_hasta, notas_admin, auth_id')
+        .select('id, nombre, email, telefono, avatar_url, status, bloqueado_hasta, notas_admin, auth_id, membresia_tier, created_at')
         .eq('id', id)
         .maybeSingle();
       if (e1) throw e1;

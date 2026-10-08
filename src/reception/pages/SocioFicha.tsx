@@ -23,6 +23,7 @@ import { HuellaModal } from '../components/acciones/HuellaModal';
 import { Avatar } from '@shared/components/Avatar';
 import { HistorialPagosSocio } from '@shared/components/HistorialPagosSocio';
 import { MovimientosPlan } from '@shared/components/MovimientosPlan';
+import { AvisoSinPlan, usePlanElegido } from '@shared/components/AvisoSinPlan';
 import { MetodoPagoMembresia } from '@shared/components/MetodoPagoMembresia';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData, type FichaHistorialReserva } from '../hooks/useSocioFicha';
 import { useSocioNotas } from '../hooks/useSocioNotas';
@@ -242,6 +243,10 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
   const { huellas, refetch: refetchHuellas } = useHuellasSocio(socio.id);
   const { multas, refetch: refetchMultas } = useMultasSocio(socio.id);
   const { cargos, refetch: refetchCargos } = useCargosPendientes(socio.id);
+  // Se registró y nunca compró plan: aviso claro + "Asignar plan y cobrar" con el
+  // plan que eligió al registrarse ya puesto.
+  const sinPlanRegistrado = socio.status === 'pendiente_pago' && estado === 'sin_plan';
+  const planElegido = usePlanElegido(tenant.id, socio.membresia_tier, sinPlanRegistrado);
   const [pagosReload, setPagosReload] = useState(0);
   const cerrar = () => setModalAbierto(null);
   const handleDone = async () => {
@@ -303,7 +308,15 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
       </div>
 
       {/* ALERTA (según estado / bloqueo) */}
-      <FichaAlerta data={data} />
+      {sinPlanRegistrado && !(socio.bloqueado_hasta && new Date(socio.bloqueado_hasta) > new Date()) ? (
+        <AvisoSinPlan
+          registradoAt={socio.created_at}
+          planElegido={planElegido}
+          onAsignar={() => setModalAbierto('asignar_plan')}
+        />
+      ) : (
+        <FichaAlerta data={data} />
+      )}
 
       {/* ACCIONES DEL SOCIO (gobernanza: bloqueo + contacto) */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
@@ -716,6 +729,7 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           isOpen
           socioId={socio.id}
           socioNombre={socioNombre}
+          tierInicialId={sinPlanRegistrado ? planElegido?.id ?? null : null}
           onClose={cerrar}
           onDone={handleDone}
         />

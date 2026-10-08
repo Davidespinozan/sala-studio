@@ -118,6 +118,8 @@ export function describirPreview(
   preview: MembresiaPreview,
   nuevoTier: TierResumen
 ): { titulo: string; detalle: string; advertencia: string | null } {
+  // null = el plan no tiene duracion_dias (sin vencimiento): antes se imprimía
+  // "vence el null".
   const fecha = preview.nuevoFin
     ? preview.nuevoFin.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
     : null;
@@ -131,7 +133,7 @@ export function describirPreview(
         titulo: 'Alta de membresía',
         detalle:
           nuevoTier.tipo === 'tiempo'
-            ? `Inicia hoy y vence el ${fecha}.`
+            ? fecha ? `Inicia hoy y vence el ${fecha}.` : 'Inicia hoy, sin fecha de vencimiento.'
             : fecha
               ? `Inicia con ${clasesTexto(preview.nuevoSaldo)} disponibles hasta el ${fecha}.`
               : `Inicia con ${clasesTexto(preview.nuevoSaldo)} disponibles.`,
@@ -143,7 +145,7 @@ export function describirPreview(
         titulo: 'Renovación',
         detalle:
           nuevoTier.tipo === 'tiempo'
-            ? `Suma ${nuevoTier.duracion_dias} días al vencimiento actual. Nuevo vencimiento: ${fecha}.`
+            ? fecha ? `Suma ${nuevoTier.duracion_dias} días al vencimiento actual. Nuevo vencimiento: ${fecha}.` : 'Renueva el mismo plan, sin fecha de vencimiento.'
             : fecha
               ? `Saldo nuevo: ${clasesTexto(preview.nuevoSaldo)}. Vence el ${fecha}.`
               : `Suma ${clasesTexto(nuevoTier.clases_incluidas)} al saldo. Saldo nuevo: ${clasesTexto(preview.nuevoSaldo)}.`,
@@ -155,7 +157,7 @@ export function describirPreview(
         titulo: 'Renovación (desde hoy)',
         detalle:
           nuevoTier.tipo === 'tiempo'
-            ? `La membresía estaba vencida. Reinicia hoy y vence el ${fecha}.`
+            ? fecha ? `La membresía estaba vencida. Reinicia hoy y vence el ${fecha}.` : 'La membresía estaba vencida. Reinicia hoy, sin fecha de vencimiento.'
             : fecha
               ? `La membresía estaba vencida. Saldo nuevo: ${clasesTexto(preview.nuevoSaldo)}. Vence el ${fecha}.`
               : `La membresía estaba vencida. Saldo nuevo: ${clasesTexto(preview.nuevoSaldo)}.`,
@@ -167,7 +169,7 @@ export function describirPreview(
         titulo: 'Cambio de plan',
         detalle:
           nuevoTier.tipo === 'tiempo'
-            ? `Cambia a plan por tiempo. Vence el ${fecha}.`
+            ? fecha ? `Cambia a plan por tiempo. Vence el ${fecha}.` : 'Cambia a plan por tiempo, sin fecha de vencimiento.'
             : fecha
               ? `Cambia a plan con clases. Arranca con ${clasesTexto(preview.nuevoSaldo)} hasta el ${fecha}.`
               : `Cambia a plan con clases. Arranca con ${clasesTexto(preview.nuevoSaldo)}.`,

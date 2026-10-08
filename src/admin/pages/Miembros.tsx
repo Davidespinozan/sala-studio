@@ -220,7 +220,7 @@ export default function Miembros() {
           <option value="">Todos los status</option>
           <option value="activo">Activo</option>
           <option value="pendiente_onboarding">Pendiente onboarding</option>
-          <option value="pendiente_pago">Pendiente pago</option>
+          <option value="pendiente_pago">Sin plan (no ha pagado)</option>
           <option value="suspendido">Suspendido</option>
           <option value="cancelado">Cancelado</option>
         </select>
@@ -479,6 +479,13 @@ function MembresiaBadge({ resumen }: { resumen?: ResumenMembresia }) {
   );
 }
 
+// Etiquetas humanas: "pendiente pago" hacía pensar en un cobro con monto; en
+// realidad es alguien registrado que nunca compró plan.
+const STATUS_LABEL: Record<string, string> = {
+  pendiente_pago: 'sin plan',
+  pendiente_onboarding: 'sin onboarding'
+};
+
 function StatusBadge({ status }: { status: string }) {
   const colorMap: Record<string, string> = {
     activo: 'var(--ek-success)',
@@ -497,7 +504,7 @@ function StatusBadge({ status }: { status: string }) {
           background: colorMap[status] ?? 'var(--ek-ink-muted)'
         }}
       />
-      {status.replace(/_/g, ' ')}
+      {STATUS_LABEL[status] ?? status.replace(/_/g, ' ')}
     </span>
   );
 }
