@@ -72,3 +72,9 @@
 # Felicita por cumpleaños (≈9am hora de México = 15:00 UTC).
 [functions."cron-felicitaciones"]
   schedule = "0 15 * * *"
+
+# BLOCK 1C: cierra cancelaciones Stripe diferidas cuya vigencia pagada ya
+# venció (el webhook solo las marca; nada más vuelve a tocarlas sin esto).
+# Minuto 20, cada 4h: no coincide con los demás crons.
+[functions."cron-cerrar-cancelaciones-stripe"]
+  schedule = "20 */4 * * *"

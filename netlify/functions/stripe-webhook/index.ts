@@ -140,7 +140,8 @@ async function clasificar(stripe: Stripe, ev: Stripe.Event, acct: string | undef
     case 'customer.subscription.deleted': {
       if (obj.metadata?.app !== 'sala') return null;
       return { kind: 'estado', objectId: obj.id, tenant: null,
-        args: { stripe_subscription_id: obj.id, nuevo_status: 'cancelada', event_created: eventCreatedISO, account_id: acct ?? null } };
+        args: { stripe_subscription_id: obj.id, nuevo_status: 'cancelada', event_created: eventCreatedISO,
+          account_id: acct ?? null, period_end_fresco: periodEndISO(obj) } };
     }
     case 'invoice.paid':
     case 'invoice.payment_succeeded': {
@@ -229,7 +230,8 @@ async function clasificar(stripe: Stripe, ev: Stripe.Event, acct: string | undef
       const nuevo = estadoDeSub(obj.status);
       if (!nuevo) return null;
       return { kind: 'sub_estado', objectId: obj.id, tenant: null,
-        args: { stripe_subscription_id: obj.id, nuevo_status: nuevo, event_created: eventCreatedISO, account_id: acct ?? null } };
+        args: { stripe_subscription_id: obj.id, nuevo_status: nuevo, event_created: eventCreatedISO,
+          account_id: acct ?? null, period_end_fresco: periodEndISO(obj), cancel_at_period_end: obj.cancel_at_period_end } };
     }
 
     default:
