@@ -353,6 +353,7 @@ export default function GestionTienda() {
       {editando && (
         <ProductoForm
           tenantId={tenant.id}
+          tenantSlug={tenant.slug}
           producto={editando === 'nuevo' ? null : editando}
           onClose={() => setEditando(null)}
           onGuardado={() => { setEditando(null); void cargar(); }}
@@ -382,8 +383,8 @@ export default function GestionTienda() {
   // ── Sub-componentes ───────────────────────────────────────────────────────
 
   function ProductoForm({
-    tenantId, producto, onClose, onGuardado
-  }: { tenantId: string; producto: Producto | null; onClose: () => void; onGuardado: () => void }) {
+    tenantId, tenantSlug, producto, onClose, onGuardado
+  }: { tenantId: string; tenantSlug: string; producto: Producto | null; onClose: () => void; onGuardado: () => void }) {
     const [nombre, setNombre] = useState(producto?.nombre ?? '');
     const [categoria, setCategoria] = useState(producto?.categoria ?? '');
     const [precio, setPrecio] = useState(producto ? String(producto.precio_centavos / 100) : '');
@@ -428,8 +429,8 @@ export default function GestionTienda() {
         <input className="ek-input" type="number" inputMode="decimal" value={costo} onChange={(e) => setCosto(e.target.value)} placeholder="90" />
         <label style={lbl}>Foto <span style={{ color: 'var(--ek-ink-faint)' }}>(opcional)</span></label>
         <ImageUploader
-          bucket="tenant-media"
-          pathPrefix={`${tenantId}/productos`}
+          bucket="estudios"
+          pathPrefix={`${tenantSlug}/productos/foto`}
           currentUrl={fotoUrl || null}
           onUploaded={setFotoUrl}
           onError={(e) => toast.error(e)}
