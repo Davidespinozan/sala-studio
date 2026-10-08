@@ -1,107 +1,49 @@
-import ws from 'ws';
-if (!globalThis.WebSocket) {
-  (globalThis as any).WebSocket = ws;
-}
-
 import type { Handler } from '@netlify/functions';
-import { createClient } from '@supabase/supabase-js';
-import { ok, badRequest, unauthorized, forbidden, serverError } from '../_lib/http';
-import { requireEnv } from '../_lib/env';
-import { getStripe } from '../_lib/stripe';
+import { ok } from '../_lib/http';
+
+export const CODIGO_OBSOLETO = 'CANCELACION_ENDPOINT_OBSOLETO';
 
 /**
- * POST /cancelar-membresia — Flujo 2: el SOCIO cancela su suscripción (mensualidad).
- * Auth: Bearer JWT del socio. Body: { reactivar?: boolean }.
+ * POST /cancelar-membresia — OBSOLETO (BLOCK 2G, contención P1 de BLOCK 2F).
  *
- * cancel_at_period_end en la suscripción de la cuenta conectada (mantiene el
- * acceso hasta el fin del periodo). El webhook (subscription.deleted) marca la
- * membresía 'cancelada' cuando termina. Los PAQUETES no se cancelan (se agotan).
+ * Este endpoint programaba/retiraba `cancel_at_period_end` en Stripe de forma
+ * independiente del mecanismo durable de BLOCK2 (`stripe_operaciones_cancelacion`
+ * + `iniciar_operacion_cancelacion`/`confirmar_operacion_cancelacion`), sin su
+ * índice de exclusión ni su auditoría. El frontend actual ya no lo llama (usa
+ * `cancelacion-stripe`); el único consumidor que podría quedar es un bundle PWA
+ * viejo en caché de algún cliente.
+ *
+ * Por diseño, a partir de BLOCK2G este handler NUNCA llama a Stripe ni toca
+ * `membresias` — ni para programar (reactivar=false/omitido) ni para retirar
+ * (reactivar=true) — sin excepción, sin importar auth/tenant/tipo de membresía.
+ * Se corta ANTES de leer el body, antes de resolver el usuario y antes de
+ * cualquier lectura a Supabase: no hay rama de código que llegue a
+ * `stripe.subscriptions.update`. No se redirige internamente a
+ * `cancelacion-stripe` — ese endpoint exige un contrato de autorización/
+ * operación durable/auditoría (BLOCK2A-2C) que esta ruta vieja nunca tuvo, y
+ * reenviar la solicitud sin pasar por ese contrato reintroduciría el mismo
+ * riesgo que se está conteniendo.
+ *
+ * Contrato de respuesta: SIEMPRE 200 con
+ *   { ok: false, reason: 'stripe_pendiente', codigo: 'CANCELACION_ENDPOINT_OBSOLETO', error }
+ * El único consumidor es el Perfil viejo, que trata cualquier no-2xx como
+ * "No pudimos cancelar. Probá de nuevo." (invita a reintentar en loop). Con
+ * `ok:false` + `reason:'stripe_pendiente'` ese mismo bundle viejo muestra
+ * "Para cancelar tu plan, habla con {gym}" al programar y "No pudimos
+ * reactivarlo. Habla con {gym}" al reactivar — el mensaje correcto sin tocar
+ * el cliente. `codigo` es el identificador estable para logs/clientes nuevos.
+ *
+ * No afecta los RPCs manuales (`recepcion_cancelar_membresia`,
+ * `pausar-membresia`) ni BLOCK1A/1B+1C — ninguno pasa por este archivo.
  */
-
-interface Body {
-  reactivar?: boolean;
-}
-
 export const handler: Handler = async (event) => {
-  if (event.httpMethod !== 'POST') return badRequest('Method not allowed');
-
-  try {
-    const authHeader = event.headers.authorization || event.headers.Authorization;
-    if (!authHeader?.startsWith('Bearer ')) return unauthorized('Falta el token');
-    const userToken = authHeader.slice('Bearer '.length);
-
-    const body: Body = JSON.parse(event.body || '{}');
-    const reactivar = body.reactivar === true;
-
-    const supabaseUrl = requireEnv('VITE_SUPABASE_URL');
-    const anonKey = requireEnv('VITE_SUPABASE_ANON_KEY');
-    const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
-
-    const asUser = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: `Bearer ${userToken}` } }
-    });
-    const { data: { user: authUser }, error: userErr } = await asUser.auth.getUser();
-    if (userErr || !authUser) return unauthorized('Token inválido');
-
-    const { data: socio } = await asUser
-      .from('usuarios')
-      .select('id, tenant_id, rol')
-      .eq('auth_id', authUser.id)
-      .maybeSingle();
-    if (!socio) return forbidden('Sin perfil');
-
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return ok({ ok: false, reason: 'stripe_pendiente' });
-    }
-
-    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-
-    const { data: tenant } = await admin
-      .from('tenants')
-      .select('stripe_account_id')
-      .eq('id', socio.tenant_id)
-      .maybeSingle();
-    const acct = tenant?.stripe_account_id ?? null;
-
-    // Suscripción vigente del socio (la membresía activa con sub de Stripe).
-    const { data: mem } = await admin
-      .from('membresias')
-      .select('id, stripe_subscription_id, periodo_actual_fin')
-      .eq('usuario_id', socio.id)
-      .in('status', ['activa', 'trialing', 'past_due', 'congelada'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const subId = mem?.stripe_subscription_id ?? null;
-    if (!acct || !subId || subId.startsWith('mock_')) {
-      // Sin suscripción de Stripe → es un paquete (se agota) o el demo.
-      return ok({ ok: false, reason: 'sin_suscripcion' });
-    }
-
-    const stripe = getStripe();
-    await stripe.subscriptions.update(subId, { cancel_at_period_end: !reactivar }, { stripeAccount: acct });
-
-    // Espejo en la DB: antes solo se avisaba a Stripe, así que la app no tenía
-    // forma de saber que el plan estaba por cancelarse → no podía mostrar el
-    // aviso ni ofrecer "Reactivar". cancelada_at marca la intención; el status
-    // sigue 'activa' hasta que Stripe cierre el periodo (el socio conserva
-    // acceso hasta cancelada_efectiva_at).
-    await admin
-      .from('membresias')
-      .update(
-        reactivar
-          ? { cancelada_at: null, cancelada_efectiva_at: null }
-          : {
-              cancelada_at: new Date().toISOString(),
-              cancelada_efectiva_at: mem?.periodo_actual_fin ?? null
-            }
-      )
-      .eq('id', mem!.id);
-
-    return ok({ ok: true, cancel_at_period_end: !reactivar });
-  } catch (err) {
-    console.error('[cancelar-membresia]', err instanceof Error ? err.message : err);
-    return serverError('No pudimos actualizar tu suscripción');
-  }
+  // Sin body ni token en el log: solo lo necesario para medir cuántos clientes
+  // viejos siguen llamando y decidir cuándo borrar la ruta.
+  console.warn(`[cancelar-membresia] ${CODIGO_OBSOLETO} method=${event?.httpMethod ?? '?'}`);
+  return ok({
+    ok: false,
+    reason: 'stripe_pendiente',
+    codigo: CODIGO_OBSOLETO,
+    error: `${CODIGO_OBSOLETO}: esta versión de la app ya no puede cancelar ni reactivar tu plan. Actualiza la aplicación o habla con tu gimnasio.`
+  });
 };
