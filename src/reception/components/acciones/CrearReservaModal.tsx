@@ -64,6 +64,10 @@ interface Props {
   /** 'pase' = se abrió desde "Vender day pass": arranca en el primer día que su
    *  plan no cubre. El cobro es el mismo en ambos modos. */
   modo?: 'reserva' | 'pase';
+  /** Abrir con una clase ya elegida (desde la Agenda: "+ Agregar socio"). Se
+   *  identifica como el resto del modelo virtual: claseId si está materializada,
+   *  o horarioId + fecha si todavía es virtual. */
+  claseInicial?: { fecha: string; claseId: string | null; horarioId: string | null };
   isOpen: boolean;
   onClose: () => void;
   onDone: () => Promise<void> | void;
@@ -107,13 +111,16 @@ function stepBtn(disabled: boolean): CSSProperties {
   };
 }
 
-export function CrearReservaModal({ socioId, socioNombre, modo = 'reserva', isOpen, onClose, onDone }: Props) {
+export function CrearReservaModal({ socioId, socioNombre, modo = 'reserva', claseInicial, isOpen, onClose, onDone }: Props) {
   const toast = useToast();
   const { sucursalId } = useReceptionSucursal();
   const tenant = useTenant();
   const tz = getTenantTimezone(tenant);
   const dias = useMemo(() => proximosDias(tz), [tz]);
-  const [fecha, setFecha] = useState(dias[0].iso);
+  const [fecha, setFecha] = useState(claseInicial?.fecha ?? dias[0].iso);
+  useEffect(() => {
+    if (isOpen && claseInicial) setFecha(claseInicial.fecha);
+  }, [isOpen, claseInicial]);
   const [clases, setClases] = useState<ClaseOpcion[]>([]);
   const [cargando, setCargando] = useState(true);
   const [elegida, setElegida] = useState<ClaseOpcion | null>(null);
@@ -162,10 +169,19 @@ export function CrearReservaModal({ socioId, socioNombre, modo = 'reserva', isOp
         return inicio + (c.duracion_minutos ?? 60) * 60_000 >= ahora;
       });
       setClases(rows);
+      // Clase preelegida (Agenda): seleccionarla en cuanto carga su día.
+      if (claseInicial && claseInicial.fecha === fecha) {
+        const match = rows.find((c) =>
+          claseInicial.claseId
+            ? c.clase_id === claseInicial.claseId
+            : c.horario_recurrente_id === claseInicial.horarioId && c.fecha === claseInicial.fecha
+        );
+        if (match) setElegida(match);
+      }
       setCargando(false);
     })();
     return () => { cancelled = true; };
-  }, [isOpen, fecha, sucursalId, toast, dias, tz]);
+  }, [isOpen, fecha, sucursalId, toast, dias, tz, claseInicial]);
 
   // Pases de invitado que le quedan al socio este periodo (alimenta el stepper).
   useEffect(() => {
