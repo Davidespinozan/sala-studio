@@ -77,13 +77,17 @@ export default function Horarios() {
 
   async function handleEliminar() {
     if (!eliminando) return;
-    const { error } = await eliminarHorarioRecurrente(eliminando.id);
+    const { error, clasesConservadas } = await eliminarHorarioRecurrente(eliminando.id);
     if (error) {
       toast.error('No pudimos eliminar el horario. Prueba de nuevo.');
       return;
     }
     setEliminando(null);
-    toast.success('Horario eliminado. Las clases ya programadas se mantienen.');
+    toast.success(
+      clasesConservadas > 0
+        ? `Horario eliminado. ${clasesConservadas === 1 ? 'Se mantiene 1 clase que ya tiene' : `Se mantienen ${clasesConservadas} clases que ya tienen`} reservas.`
+        : 'Horario eliminado.'
+    );
     await refetch();
   }
 

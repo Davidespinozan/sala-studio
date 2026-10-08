@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@shared/lib/supabase', () => ({
-  supabase: { from: vi.fn() }
+  supabase: { from: vi.fn(), rpc: vi.fn() }
 }));
 
 import { supabase } from '@shared/lib/supabase';
@@ -12,39 +12,34 @@ type Mock = ReturnType<typeof vi.fn>;
 describe('eliminarHorarioRecurrente', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('borra de horarios_recurrentes filtrando por id', async () => {
-    const eq = vi.fn().mockResolvedValue({ error: null });
-    const del = vi.fn(() => ({ eq }));
-    (supabase.from as Mock).mockReturnValue({ delete: del });
+  it('borra vía el RPC atómico (no DELETE directo) y devuelve las clases conservadas', async () => {
+    (supabase.rpc as Mock).mockResolvedValue({
+      data: { ok: true, clases_borradas: 3, clases_conservadas: 2 },
+      error: null
+    });
 
     const res = await eliminarHorarioRecurrente('hor-123');
 
-    expect(supabase.from).toHaveBeenCalledWith('horarios_recurrentes');
-    expect(del).toHaveBeenCalledTimes(1);
-    expect(eq).toHaveBeenCalledWith('id', 'hor-123');
-    expect(res.error).toBeNull();
+    expect(supabase.rpc).toHaveBeenCalledWith('eliminar_horario_recurrente', { p_horario_id: 'hor-123' });
+    expect(res).toEqual({ error: null, clasesConservadas: 2 });
   });
 
-  it('NO toca la tabla clases — el delete del horario nunca borra clases', async () => {
-    const eq = vi.fn().mockResolvedValue({ error: null });
-    (supabase.from as Mock).mockReturnValue({ delete: () => ({ eq }) });
+  it('nunca emite un DELETE desde el navegador (ni a clases ni a horarios)', async () => {
+    (supabase.rpc as Mock).mockResolvedValue({ data: { ok: true }, error: null });
 
     await eliminarHorarioRecurrente('hor-123');
 
-    // El borrado de un horario solo opera sobre horarios_recurrentes. Las
-    // clases ya generadas las preserva la FK (ON DELETE SET NULL) del lado
-    // de la base — la app nunca emite un DELETE contra `clases`.
-    const tablasTocadas = (supabase.from as Mock).mock.calls.map((c) => c[0]);
-    expect(tablasTocadas).toEqual(['horarios_recurrentes']);
-    expect(tablasTocadas).not.toContain('clases');
+    // Revisar reservas y borrar en dos llamadas dejaría una ventana donde una
+    // reserva nueva se borraría en cascada (reservas.clase_id ON DELETE CASCADE).
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 
-  it('propaga el mensaje de error de la BD (ej. RLS)', async () => {
-    const eq = vi.fn().mockResolvedValue({ error: { message: 'permission denied' } });
-    (supabase.from as Mock).mockReturnValue({ delete: () => ({ eq }) });
+  it('propaga el mensaje de error de la BD (ej. NO_AUTORIZADO)', async () => {
+    (supabase.rpc as Mock).mockResolvedValue({ data: null, error: { message: 'NO_AUTORIZADO: solo admin' } });
 
     const res = await eliminarHorarioRecurrente('hor-123');
-    expect(res.error).toBe('permission denied');
+    expect(res.error).toBe('NO_AUTORIZADO: solo admin');
+    expect(res.clasesConservadas).toBe(0);
   });
 });
 

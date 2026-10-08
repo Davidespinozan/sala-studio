@@ -164,17 +164,21 @@ export async function reservasQueQuedarianOcultas(
 }
 
 /**
- * Elimina la regla de horario recurrente. Las clases que ya generó NO se
- * tocan: la FK clases.horario_recurrente_id es ON DELETE SET NULL, así que
- * esas clases (y sus reservas) quedan intactas, solo sin vínculo al horario.
- * Al no existir más, ni "generar ahora" ni el cron crean clases nuevas de él.
- * RLS (horarios_rec_admin_all) limita el DELETE al admin del tenant dueño.
+ * Elimina la regla de horario recurrente vía RPC (eliminar_horario_recurrente),
+ * que en una transacción borra también sus clases de hoy en adelante SIN nada
+ * colgado (reservas, lista de espera, invitados). Antes se borraba solo el
+ * horario y esas clases (las editadas a mano) quedaban sueltas por la FK
+ * ON DELETE SET NULL: seguían saliendo en la Agenda aunque el horario ya no
+ * existiera (numa, sábado 6am). Las clases con reservas se conservan.
  */
 export async function eliminarHorarioRecurrente(
   id: string
-): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('horarios_recurrentes').delete().eq('id', id);
-  return { error: error?.message ?? null };
+): Promise<{ error: string | null; clasesConservadas: number }> {
+  const { data, error } = await supabase.rpc('eliminar_horario_recurrente' as never, {
+    p_horario_id: id
+  } as never);
+  const res = data as { clases_conservadas?: number } | null;
+  return { error: error?.message ?? null, clasesConservadas: res?.clases_conservadas ?? 0 };
 }
 
 // generarClasesAhora se eliminó con el modelo virtual: las clases ya no se
