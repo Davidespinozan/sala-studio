@@ -4,6 +4,8 @@ import { AccionModal } from '@shared/components/AccionModal';
 import { useAccionRecepcion } from '../../hooks/useAccionRecepcion';
 import { MetodoPagoField, type MetodoPago } from './MetodoPagoField';
 import { useOperationKey } from '@shared/lib/operationKey';
+import { useCargosPendientes } from '@shared/hooks/useCargosPendientes';
+import { AvisoCargoPendiente } from '@shared/components/CargoPendienteRow';
 
 interface Props {
   socioId: string;
@@ -23,6 +25,18 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
   const { ejecutar } = useAccionRecepcion({ rpcName: 'recepcion_renovar_membresia' });
   // Idempotencia: reintento tras respuesta perdida no vuelve a apilar el período ni recobra.
   const operationKey = useOperationKey([socioId, motivo, metodo]);
+  // Si ya debe algo "Por cobrar", seguramente vino a pagarlo: el aviso lo cobra
+  // ahí y frena la renovación duplicada salvo que marquen "es compra nueva".
+  const { cargos: cargosPendientes } = useCargosPendientes(socioId, isOpen);
+  const [esCompraNueva, setEsCompraNueva] = useState(false);
+  useEffect(() => {
+    if (!isOpen) setEsCompraNueva(false);
+  }, [isOpen]);
+  const pendienteResuelto = cargosPendientes.length === 0 || esCompraNueva;
+  const cobrarPendienteYCerrar = async () => {
+    await onDone();
+    onClose();
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -51,7 +65,7 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
       description={`Renuevas el mismo plan a ${socioNombre}. Refresca el período y los créditos según el tier.`}
       variant="info"
       confirmLabel="Renovar"
-      canConfirm={metodoListo}
+      canConfirm={metodoListo && pendienteResuelto}
       onConfirm={async () => {
         await ejecutar({
           p_usuario_id: socioId,
@@ -65,6 +79,13 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
       }}
       onClose={onClose}
     >
+      <AvisoCargoPendiente
+        cargos={cargosPendientes}
+        esCompraNueva={esCompraNueva}
+        onEsCompraNuevaChange={setEsCompraNueva}
+        onCobrado={cobrarPendienteYCerrar}
+      />
+
       {/* Al renovar NO se cobra inscripción: es una cuota única de alta. */}
       <MetodoPagoField
         value={metodo}

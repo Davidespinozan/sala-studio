@@ -22,26 +22,37 @@ const rpc = supabase.rpc.bind(supabase) as unknown as (
  * socio llega. No aparece si no hay ninguno. Al cobrar, nace el pago real y se
  * refresca la Caja (onCambio).
  */
-export function PorCobrarCard({ tenantId, onCambio }: { tenantId: string; onCambio: () => void }) {
+export function PorCobrarCard({
+  tenantId,
+  sucursalId = null,
+  puedeCancelar = true,
+  onCambio
+}: {
+  tenantId: string;
+  /** Solo los cargos de esta sede (Caja de recepción). null = todos. */
+  sucursalId?: string | null;
+  /** Cancelar un cargo (perdonar la deuda) es del dueño; recepción solo cobra. */
+  puedeCancelar?: boolean;
+  onCambio: () => void;
+}) {
   const toast = useToast();
   const [cargos, setCargos] = useState<Cargo[]>([]);
   const [cargando, setCargando] = useState(true);
 
   const refetch = useCallback(async () => {
-    const from = supabase.from.bind(supabase) as unknown as (t: string) => {
-      select: (s: string) => {
-        eq: (c: string, v: unknown) => {
-          eq: (c: string, v: unknown) => {
-            order: (c: string, o: { ascending: boolean }) => Promise<{ data: unknown[] | null }>;
-          };
-        };
-      };
+    type Builder = {
+      eq: (c: string, v: unknown) => Builder;
+      order: (c: string, o: { ascending: boolean }) => Promise<{ data: unknown[] | null }>;
     };
-    const { data } = await from('cargos_pendientes')
+    const from = supabase.from.bind(supabase) as unknown as (t: string) => {
+      select: (s: string) => Builder;
+    };
+    let q = from('cargos_pendientes')
       .select('id, descripcion, monto_centavos, socio:usuarios!cargos_pendientes_usuario_id_fkey(nombre)')
       .eq('tenant_id', tenantId)
-      .eq('estado', 'pendiente')
-      .order('created_at', { ascending: true });
+      .eq('estado', 'pendiente');
+    if (sucursalId) q = q.eq('sucursal_id', sucursalId);
+    const { data } = await q.order('created_at', { ascending: true });
     setCargos(
       (data ?? []).map((row) => {
         const r = row as { id: string; descripcion: string | null; monto_centavos: number; socio?: { nombre?: string | null } | null };
@@ -49,7 +60,7 @@ export function PorCobrarCard({ tenantId, onCambio }: { tenantId: string; onCamb
       })
     );
     setCargando(false);
-  }, [tenantId]);
+  }, [tenantId, sucursalId]);
 
   useEffect(() => {
     void refetch();
@@ -71,6 +82,7 @@ export function PorCobrarCard({ tenantId, onCambio }: { tenantId: string; onCamb
             key={c.id}
             cargo={c}
             toast={toast}
+            puedeCancelar={puedeCancelar}
             onDone={async () => { await refetch(); onCambio(); }}
           />
         ))}
@@ -82,10 +94,12 @@ export function PorCobrarCard({ tenantId, onCambio }: { tenantId: string; onCamb
 function CargoRow({
   cargo,
   toast,
+  puedeCancelar,
   onDone
 }: {
   cargo: Cargo;
   toast: ReturnType<typeof useToast>;
+  puedeCancelar: boolean;
   onDone: () => Promise<void>;
 }) {
   const [metodo, setMetodo] = useState<'efectivo' | 'tarjeta' | 'transferencia'>('efectivo');
@@ -142,9 +156,11 @@ function CargoRow({
       <button type="button" onClick={cobrar} disabled={busy} className="ek-cta" style={{ fontSize: '13px' }}>
         {busy ? '…' : 'Cobrar'}
       </button>
-      <button type="button" onClick={cancelar} disabled={busy} className="ek-cta ek-cta--secondary" style={{ fontSize: '13px' }}>
-        Cancelar
-      </button>
+      {puedeCancelar && (
+        <button type="button" onClick={cancelar} disabled={busy} className="ek-cta ek-cta--secondary" style={{ fontSize: '13px' }}>
+          Cancelar
+        </button>
+      )}
     </div>
   );
 }

@@ -14,6 +14,8 @@ import {
   type TipoTier
 } from '@admin/lib/membresiaPreview';
 import { useOperationKey } from '@shared/lib/operationKey';
+import { useCargosPendientes } from '@shared/hooks/useCargosPendientes';
+import { AvisoCargoPendiente } from '@shared/components/CargoPendienteRow';
 
 interface Props {
   usuarioId: string;
@@ -54,6 +56,12 @@ export function GestionarMembresiaModal({
   // desde admin no quedaba registrado.
   const [formaPago, setFormaPago] = useState<'efectivo' | 'tarjeta' | 'transferencia' | 'cortesia' | 'pendiente'>('efectivo');
   const [saving, setSaving] = useState(false);
+  // Si ya debe algo "Por cobrar", seguramente vino a pagarlo: el aviso lo cobra
+  // ahí y frena la renovación duplicada (caso Annie / The Core, 7-oct-2026: el
+  // pendiente se "cobró" con otra renovación → +12 clases y +30 días de más).
+  const { cargos: cargosPendientes } = useCargosPendientes(usuarioId);
+  const [esCompraNueva, setEsCompraNueva] = useState(false);
+  const pendienteResuelto = cargosPendientes.length === 0 || esCompraNueva;
   // Baja de membresía (recepcion_cancelar_membresia).
   const [showBaja, setShowBaja] = useState(false);
   const [motivoBaja, setMotivoBaja] = useState('');
@@ -100,7 +108,7 @@ export function GestionarMembresiaModal({
   const opKeyCargo = useOperationKey([usuarioId, selTierId, formaPago, 'cargo']);
 
   async function handleConfirm() {
-    if (!selTierId) return;
+    if (!selTierId || !pendienteResuelto) return;
     setSaving(true);
     const { data, error } = await gestionarMembresiaSocio({
       usuario_id: usuarioId,
@@ -224,6 +232,16 @@ export function GestionarMembresiaModal({
         >
           {nombreMiembro}
         </h3>
+
+        <AvisoCargoPendiente
+          cargos={cargosPendientes}
+          esCompraNueva={esCompraNueva}
+          onEsCompraNuevaChange={setEsCompraNueva}
+          onCobrado={async () => {
+            await onSaved();
+            onClose();
+          }}
+        />
 
         {/* Estado actual */}
         <div
@@ -427,7 +445,7 @@ export function GestionarMembresiaModal({
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={saving || !selTierId}
+            disabled={saving || !selTierId || !pendienteResuelto}
             className="ek-cta"
             style={{ flex: 1 }}
           >

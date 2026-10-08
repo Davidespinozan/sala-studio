@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { CalendarClock, CalendarDays, Users, Settings, ShoppingBag } from 'lucide-react';
+import { CalendarClock, CalendarDays, Users, Settings, ShoppingBag, Wallet } from 'lucide-react';
 import { useReservasHoy } from './hooks/useReservasHoy';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
@@ -24,14 +24,16 @@ const Socios = lazy(() => import('./pages/Socios'));
 const SocioFicha = lazy(() => import('./pages/SocioFicha'));
 const Agenda = lazy(() => import('./pages/Agenda'));
 const Ajustes = lazy(() => import('./pages/Ajustes'));
+const Caja = lazy(() => import('./pages/Caja'));
 
-// Nav de RECEPCIÓN — plana (sin secciones colapsables), 3 destinos.
+// Nav de RECEPCIÓN — plana (sin secciones colapsables).
 const RECEPCION_SECTIONS: AppNavSection[] = [
   {
     items: [
       { to: '/recepcion', label: 'Hoy', icon: <CalendarClock size={18} /> },
       { to: '/recepcion/agenda', label: 'Agenda', icon: <CalendarDays size={18} /> },
       { to: '/recepcion/socios', label: 'Socios', icon: <Users size={18} /> },
+      { to: '/recepcion/caja', label: 'Caja', icon: <Wallet size={18} /> },
       { to: '/recepcion/ajustes', label: 'Ajustes', icon: <Settings size={18} /> }
     ]
   }
@@ -102,6 +104,7 @@ export default function ReceptionLayout() {
                 <Route path="/agenda" element={<Agenda />} />
                 <Route path="/socios" element={<Socios />} />
                 <Route path="/socios/:id" element={<SocioFicha />} />
+                <Route path="/caja" element={<Caja />} />
                 <Route path="/ajustes" element={<Ajustes />} />
                 <Route path="/tienda" element={tieneTienda ? <TiendaRecepcion /> : <Navigate to="/recepcion" replace />} />
               </Routes>

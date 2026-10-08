@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { etiquetaRol } from '@shared/lib/saludo';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '@shared/hooks/useAuth';
@@ -257,6 +258,13 @@ export function AppSidebar({
           >
             {nombreFormat || usuario?.email}
           </p>
+          {/* El ROL de quien está conectado (no el del panel): un admin operando el
+              mostrador se ve como Administrador, una recepcionista como Recepción. */}
+          {etiquetaRol(usuario?.rol) && (
+            <p style={{ fontSize: '11px', margin: '2px 0 0', color: 'rgba(255, 255, 255, 0.55)' }}>
+              {etiquetaRol(usuario?.rol)}
+            </p>
+          )}
         </div>
         <button
           onClick={() => {

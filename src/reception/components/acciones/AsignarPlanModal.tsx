@@ -4,6 +4,8 @@ import { AccionModal } from '@shared/components/AccionModal';
 import { useAccionRecepcion } from '../../hooks/useAccionRecepcion';
 import { MetodoPagoField, type MetodoPago } from './MetodoPagoField';
 import { useOperationKey } from '@shared/lib/operationKey';
+import { useCargosPendientes } from '@shared/hooks/useCargosPendientes';
+import { AvisoCargoPendiente } from '@shared/components/CargoPendienteRow';
 
 interface TierOption {
   id: string;
@@ -30,6 +32,18 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
   // El campo de método reporta si la selección está lista (bloquea "Sin registrar
   // cobro" sin confirmar pago en línea). Default true: mientras no se elija ''.
   const [metodoListo, setMetodoListo] = useState(true);
+  // Si ya debe algo "Por cobrar", seguramente vino a pagarlo: el aviso lo cobra
+  // ahí y frena la renovación duplicada salvo que marquen "es compra nueva".
+  const { cargos: cargosPendientes } = useCargosPendientes(socioId, isOpen);
+  const [esCompraNueva, setEsCompraNueva] = useState(false);
+  useEffect(() => {
+    if (!isOpen) setEsCompraNueva(false);
+  }, [isOpen]);
+  const pendienteResuelto = cargosPendientes.length === 0 || esCompraNueva;
+  const cobrarPendienteYCerrar = async () => {
+    await onDone();
+    onClose();
+  };
   // La inscripción se cobra UNA vez por socio: si ya la pagó, no se vuelve a sumar.
   const [yaPagoInscripcion, setYaPagoInscripcion] = useState(false);
   // Y tampoco se cobra si el socio YA tuvo un plan antes (aunque haya entrado en un
@@ -94,7 +108,8 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
         tierId.length > 0 &&
         // No activar sin ningún registro: o queda pendiente, o el campo de método
         // está listo (método real, o "sin cobro" confirmado como pago en línea).
-        (pendiente || metodoListo)
+        (pendiente || metodoListo) &&
+        pendienteResuelto
       }
       onConfirm={async () => {
         // Una sola llamada ATÓMICA: exentar (si aplica) + asignar/cobrar + dejar
@@ -120,6 +135,13 @@ export function AsignarPlanModal({ socioId, socioNombre, isOpen, onClose, onDone
       }}
       onClose={onClose}
     >
+      <AvisoCargoPendiente
+        cargos={cargosPendientes}
+        esCompraNueva={esCompraNueva}
+        onEsCompraNuevaChange={setEsCompraNueva}
+        onCobrado={cobrarPendienteYCerrar}
+      />
+
       <div className="ek-form-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
         <label className="ek-label" htmlFor="asignar-plan-tier">Plan</label>
         <select

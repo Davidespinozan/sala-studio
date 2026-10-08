@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ChevronRight } from 'lucide-react';
 import { EmptyState } from '@shared/components/EmptyState';
@@ -6,6 +6,7 @@ import { useSocios, type SocioListItem } from '../hooks/useSocios';
 import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
 import { RegistrarSocioModal } from '../components/RegistrarSocioModal';
 import { Avatar } from '@shared/components/Avatar';
+import { useCargosPendientes } from '@shared/hooks/useCargosPendientes';
 
 function capitalizar(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
@@ -66,7 +67,20 @@ function guardarQuery(value: string): void {
 export default function Socios() {
   const [q, setQ] = useState<string>(() => leerQueryGuardada());
   const [showNuevo, setShowNuevo] = useState(false);
-  const { socios, isLoading, error, refetch } = useSocios(q);
+  const { socios: sociosBase, isLoading, error, refetch } = useSocios(q);
+  // Filtros de cobro: "Por cobrar" (tiene un cargo pendiente: plan/pase activado
+  // "pagar al llegar") y "Pago pendiente" (se registró en línea y no pagó). Antes
+  // recepción —que es quien cobra— no tenía cómo encontrarlos.
+  const { cargos } = useCargosPendientes();
+  const conCargo = useMemo(() => new Set(cargos.map((c) => c.usuario_id)), [cargos]);
+  const [filtro, setFiltro] = useState<'todos' | 'por_cobrar' | 'pendiente_pago'>('todos');
+  const nPorCobrar = sociosBase.filter((s) => conCargo.has(s.id)).length;
+  const nPendientePago = sociosBase.filter((s) => s.status === 'pendiente_pago').length;
+  const socios = useMemo(() => {
+    if (filtro === 'por_cobrar') return sociosBase.filter((s) => conCargo.has(s.id));
+    if (filtro === 'pendiente_pago') return sociosBase.filter((s) => s.status === 'pendiente_pago');
+    return sociosBase;
+  }, [sociosBase, filtro, conCargo]);
   const { sucursalId, sucursales, multisede } = useReceptionSucursal();
   // Etiqueta de sede para socios que NO son de este mostrador (solo multisede).
   const sedeDe = (id: string | null): string | null =>
@@ -82,7 +96,7 @@ export default function Socios() {
   // Paginación: recepción recorre TODOS los socios por páginas (no solo A–C).
   const POR_PAGINA = 30;
   const [pagina, setPagina] = useState(1);
-  useEffect(() => { setPagina(1); }, [q]); // nueva búsqueda → volver a la página 1
+  useEffect(() => { setPagina(1); }, [q, filtro]); // nueva búsqueda/filtro → volver a la página 1
   const totalPaginas = Math.max(1, Math.ceil(socios.length / POR_PAGINA));
   const paginaSegura = Math.min(pagina, totalPaginas);
   const visibles = socios.slice((paginaSegura - 1) * POR_PAGINA, paginaSegura * POR_PAGINA);
@@ -124,6 +138,18 @@ export default function Socios() {
           />
         </div>
 
+        {(nPorCobrar > 0 || nPendientePago > 0 || filtro !== 'todos') && (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '-6px 0 14px' }}>
+            <FiltroChip activo={filtro === 'todos'} onClick={() => setFiltro('todos')}>Todos</FiltroChip>
+            <FiltroChip activo={filtro === 'por_cobrar'} onClick={() => setFiltro('por_cobrar')}>
+              Por cobrar ({nPorCobrar})
+            </FiltroChip>
+            <FiltroChip activo={filtro === 'pendiente_pago'} onClick={() => setFiltro('pendiente_pago')}>
+              Pago pendiente ({nPendientePago})
+            </FiltroChip>
+          </div>
+        )}
+
         {!isLoading && !error && socios.length > 0 && (
           <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--sala-text-tertiary)', margin: '0 0 12px 2px' }}>
             {q.trim()
@@ -147,14 +173,14 @@ export default function Socios() {
         ) : socios.length === 0 ? (
           <EmptyState
             icon={Search}
-            title={q.trim() ? 'Sin resultados' : 'Sin socios todavía'}
-            subtitle={q.trim() ? 'Prueba con otro nombre o teléfono.' : 'Los socios aparecen aquí al darlos de alta.'}
+            title={filtro !== 'todos' ? 'Nadie en este filtro' : q.trim() ? 'Sin resultados' : 'Sin socios todavía'}
+            subtitle={filtro !== 'todos' ? 'No hay socios con cobros pendientes aquí.' : q.trim() ? 'Prueba con otro nombre o teléfono.' : 'Los socios aparecen aquí al darlos de alta.'}
           />
         ) : (
           <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {visibles.map((s) => (
-                <SocioRow key={s.id} socio={s} sedeBadge={sedeDe(s.sucursal_id)} />
+                <SocioRow key={s.id} socio={s} sedeBadge={sedeDe(s.sucursal_id)} porCobrar={conCargo.has(s.id)} />
               ))}
             </div>
             <Paginador pagina={paginaSegura} total={totalPaginas} onCambio={setPagina} />
@@ -217,7 +243,25 @@ function PagBtn({ children, onClick, activo, disabled }: { children: ReactNode; 
   );
 }
 
-function SocioRow({ socio, sedeBadge }: { socio: SocioListItem; sedeBadge: string | null }) {
+function FiltroChip({ children, activo, onClick }: { children: ReactNode; activo: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={activo}
+      style={{
+        padding: '6px 12px', borderRadius: '999px', fontSize: '12.5px', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+        border: `1px solid ${activo ? 'var(--sala-primary)' : 'var(--sala-border)'}`,
+        background: activo ? 'var(--grad-primary)' : 'var(--sala-surface)',
+        color: activo ? 'var(--sala-text-on-primary)' : 'var(--sala-text-secondary)'
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SocioRow({ socio, sedeBadge, porCobrar }: { socio: SocioListItem; sedeBadge: string | null; porCobrar: boolean }) {
   const estado = estadoBadge(socio.status);
   return (
     <Link
@@ -251,6 +295,11 @@ function SocioRow({ socio, sedeBadge }: { socio: SocioListItem; sedeBadge: strin
           <span style={{ flexShrink: 0, fontSize: '10px', fontWeight: 800, letterSpacing: '0.05em', borderRadius: '999px', padding: '2px 9px', background: estado.bg, color: estado.color, whiteSpace: 'nowrap' }}>
             {estado.label}
           </span>
+          {porCobrar && (
+            <span style={{ flexShrink: 0, fontSize: '10px', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', borderRadius: '999px', padding: '2px 9px', background: 'var(--sala-accent-light)', color: 'var(--sala-accent)', whiteSpace: 'nowrap' }}>
+              Por cobrar
+            </span>
+          )}
           <span style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
             · {socio.telefono ?? socio.email}
           </span>

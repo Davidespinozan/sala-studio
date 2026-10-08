@@ -10,6 +10,12 @@ import { playCheckInSuccess, playCheckInError } from '../lib/checkInFeedback';
 import { PageHeader } from '@shared/components/PageHeader';
 import { CumpleanosCard } from '@shared/components/CumpleanosCard';
 import { PoweredBySala } from '@shared/components/PoweredBySala';
+import { useAuth } from '@shared/hooks/useAuth';
+import { useTenant } from '@shared/hooks/useTenant';
+import { getTenantTimezone } from '@shared/lib/timezone';
+import { saludoPorHora, nombreDePila } from '@shared/lib/saludo';
+import { formatInTimeZone } from 'date-fns-tz';
+import { es } from 'date-fns/locale';
 
 interface VerifyResponse {
   success: boolean;
@@ -99,7 +105,7 @@ export default function Scanner() {
     <div className="rec-shell">
       <div className="rec-main">
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-          <PageHeader eyebrow="RECEPCIÓN" title="Hoy" />
+          <SaludoHoy />
           <LectorBadge />
         </div>
 
@@ -191,5 +197,21 @@ export default function Scanner() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Cabecera de Hoy: saludo por hora del GYM + nombre de quien atiende + fecha. */
+function SaludoHoy() {
+  const { usuario } = useAuth();
+  const tz = getTenantTimezone(useTenant());
+  const saludo = saludoPorHora(tz);
+  const nombre = nombreDePila(usuario?.nombre);
+  const fecha = formatInTimeZone(new Date(), tz, "EEEE d 'de' MMMM", { locale: es });
+  return (
+    <PageHeader
+      eyebrow="RECEPCIÓN · HOY"
+      title={`${saludo.texto}${nombre ? `, ${nombre}` : ''}`}
+      subtitle={fecha.charAt(0).toUpperCase() + fecha.slice(1)}
+    />
   );
 }

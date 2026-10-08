@@ -13,11 +13,8 @@ import {
 import {
   ArrowRight,
   Ban,
-  CloudSun,
   Eye,
-  Moon,
   PartyPopper,
-  Sun,
   TrendingDown,
   TrendingUp,
   type LucideIcon
@@ -29,6 +26,7 @@ import { useDashboardData, type DashboardData } from '../hooks/useAdminData';
 import { useDineroMes } from '../hooks/useDineroMes';
 import { getTenantTimezone, hoyEnTimezone } from '@shared/lib/timezone';
 import { formatearMoneda } from '@shared/lib/dinero';
+import { saludoPorHora } from '@shared/lib/saludo';
 import { useGymSetup, gymOperativo } from '../hooks/useGymSetup';
 import ChecklistActivacion from '../components/ChecklistActivacion';
 import CentroPendientes from '../components/CentroPendientes';
@@ -47,13 +45,6 @@ function capitalizar(s: string | null | undefined): string {
     .join(' ');
 }
 
-function saludoTiming(d: Date = new Date()): { texto: string; Icon: LucideIcon } {
-  const h = d.getHours();
-  if (h >= 5 && h < 12) return { texto: 'Buenos días', Icon: Sun };
-  if (h >= 12 && h < 19) return { texto: 'Buenas tardes', Icon: CloudSun };
-  return { texto: 'Buenas noches', Icon: Moon };
-}
-
 function nombreMes(d: Date): string {
   return d.toLocaleDateString('es-MX', { month: 'long' });
 }
@@ -70,7 +61,8 @@ export default function AdminDashboard() {
   const { setup } = useGymSetup();
   const [cancelar, setCancelar] = useState<ReservaParaCancelar | null>(null);
 
-  const saludo = saludoTiming();
+  // Hora del GYM, no del navegador (antes usaba getHours() del dispositivo).
+  const saludo = saludoPorHora(getTenantTimezone(tenant));
   const nombre = capitalizar(usuario?.nombre).split(' ')[0] || '';
 
   if (isLoading || !data) {

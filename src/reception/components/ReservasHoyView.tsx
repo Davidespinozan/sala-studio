@@ -4,6 +4,9 @@ import { useTenant } from '@shared/hooks/useTenant';
 import { getTenantTimezone, hoyEnTimezone, sumarDias, diasEntre, formatHoraEnTz } from '@shared/lib/timezone';
 import { useReservasHoy, checkInManual, cobrarMultaReserva, type ReservaConJoin } from '../hooks/useReservasHoy';
 import { useMultasPendientes, type MultaPendienteHoy } from '../hooks/useMultasPendientes';
+import { useCargosPendientes } from '@shared/hooks/useCargosPendientes';
+import { CargoPendienteRow } from '@shared/components/CargoPendienteRow';
+import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
 import { formatearMoneda } from '@shared/lib/dinero';
 import { playCheckInSuccess, playCheckInError } from '../lib/checkInFeedback';
 import { EmptyState } from '@shared/components/EmptyState';
@@ -93,6 +96,14 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(() => leerFechaGuardada(tz));
   const { reservas, isLoading, refetch } = useReservasHoy(fechaSeleccionada);
   const { multas: multasPendientes, totalCentavos: multasTotal, refetch: refetchMultas } = useMultasPendientes();
+  // "Por cobrar" (planes/pases dejados en "Pendiente, pagar al llegar"). Antes solo
+  // salían en la Caja del admin, y recepción —que es quien cobra— no los veía.
+  const { cargos: cargosTenant, refetch: refetchCargos } = useCargosPendientes();
+  const { sucursalId, multisede } = useReceptionSucursal();
+  const cargosPendientes = multisede && sucursalId
+    ? cargosTenant.filter((c) => c.sucursal_id === sucursalId)
+    : cargosTenant;
+  const cargosTotal = cargosPendientes.reduce((acc, c) => acc + c.monto_centavos, 0);
   const [selected, setSelected] = useState<ReservaConJoin | null>(null);
   const [accionReserva, setAccionReserva] = useState<AccionReserva | null>(null);
   const [restoTab, setRestoTab] = useState<'pendientes' | 'asistieron' | 'no_show' | 'canceladas'>('pendientes');
@@ -272,6 +283,37 @@ export function ReservasHoyView({ onManualCheckInSuccess, onModalOpenChange }: P
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {multasPendientes.map((m) => (
               <MultaCard key={m.id} multa={m} tz={tz} onCobrar={cobrarMultaHoy} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Por cobrar — pendientes de pago (plan/pase activado "pagar al llegar").
+          Se cobran aquí: NO renovando el plan (eso duplica clases y vigencia). */}
+      {esHoy && cargosPendientes.length > 0 && (
+        <section style={{ marginBottom: '26px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+            <p className="ek-eyebrow ek-eyebrow--mustard" style={{ margin: 0 }}>POR COBRAR</p>
+            <span
+              style={{
+                fontSize: '11px', fontWeight: 800, color: 'var(--sala-primary)',
+                background: 'color-mix(in srgb, var(--sala-primary) 12%, transparent)',
+                borderRadius: '999px', padding: '2px 9px', lineHeight: 1.4
+              }}
+            >
+              {cargosPendientes.length} · {formatearMoneda(cargosTotal)}
+            </span>
+          </div>
+          <div
+            style={{
+              display: 'flex', flexDirection: 'column', gap: '12px',
+              padding: '14px 16px', borderRadius: '14px',
+              background: 'var(--sala-surface)',
+              border: '1px solid color-mix(in srgb, var(--sala-primary) 28%, var(--sala-border))'
+            }}
+          >
+            {cargosPendientes.map((c) => (
+              <CargoPendienteRow key={c.id} cargo={c} mostrarSocio onCobrado={refetchCargos} />
             ))}
           </div>
         </section>

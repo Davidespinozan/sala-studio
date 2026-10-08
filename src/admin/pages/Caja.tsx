@@ -159,11 +159,30 @@ function rangoISO(fDesde: string, fHasta: string, tz: string): { desde: string; 
 
 interface DatosCorte { razon_social?: string; rfc?: string; telefono?: string; direccion?: string }
 
+/** Caja del ADMIN: la sede la elige el selector de arriba (null = todas). */
 export default function Caja() {
+  const { sucursalFiltro, sucursalActiva } = useSucursal();
+  return <CajaView modo="admin" sucursalFiltro={sucursalFiltro} sucursalNombre={sucursalActiva?.nombre ?? null} />;
+}
+
+interface CajaViewProps {
+  /**
+   * 'recepcion': la misma Caja para el mostrador, siempre de SU sede (los RPC de
+   * corte/corrección ya exigen la sede de la recepcionista). Sin las acciones de
+   * dueño: devolver dinero, reconciliar Stripe, editar datos del ticket y
+   * cancelar cargos pendientes.
+   */
+  modo: 'admin' | 'recepcion';
+  sucursalFiltro: string | null;
+  sucursalNombre: string | null;
+}
+
+export function CajaView({ modo, sucursalFiltro, sucursalNombre }: CajaViewProps) {
   const tenant = useTenant();
   const { usuario } = useAuth();
   const toast = useToast();
-  const { sucursalFiltro, sucursalActiva } = useSucursal();
+  const esRecepcion = modo === 'recepcion';
+  const sucursalActiva = sucursalNombre ? { nombre: sucursalNombre } : null;
   const tz = getTenantTimezone(tenant);
   // Corte sin arqueo (config.caja.corte_simple, por tenant — lo pidió numa):
   // el corte solo asienta el desglose de lo cobrado; sin fondo inicial, sin
@@ -182,7 +201,7 @@ export default function Caja() {
   const [reciboId, setReciboId] = useState<string | null>(null);
   // W6-C2: reconciliación on-demand (solo lectura) de un cobro de Stripe. Solo admin.
   const [reconciliandoId, setReconciliandoId] = useState<string | null>(null);
-  const esAdmin = usuario?.rol === 'admin';
+  const esAdmin = !esRecepcion && usuario?.rol === 'admin';
   const [reload, setReload] = useState(0);
   const [showCorte, setShowCorte] = useState(false);
   const [cortes, setCortes] = useState<CorteRow[]>([]);
@@ -195,10 +214,13 @@ export default function Caja() {
   useEffect(() => {
     let cancel = false;
     (async () => {
-      const { data } = await (supabase as any)
+      let q = (supabase as any)
         .from('cortes_caja')
         .select('id, desde, hasta, efectivo_esperado_centavos, fondo_centavos, efectivo_contado_centavos, diferencia_centavos, notas, resumen, realizado_por:usuarios!cortes_caja_realizado_por_fkey(nombre)')
-        .eq('tenant_id', tenant.id)
+        .eq('tenant_id', tenant.id);
+      // Recepción solo ve los cortes de su sede.
+      if (esRecepcion && sucursalFiltro) q = q.eq('sucursal_id', sucursalFiltro);
+      const { data } = await q
         .order('hasta', { ascending: false })
         .limit(cortesLimit + 1); // uno extra: solo para saber si hay más
       if (cancel) return;
@@ -207,11 +229,12 @@ export default function Caja() {
       setCortes(rows.slice(0, cortesLimit));
     })();
     return () => { cancel = true; };
-  }, [tenant.id, cortesReload, cortesLimit]);
+  }, [tenant.id, cortesReload, cortesLimit, esRecepcion, sucursalFiltro]);
 
   // sucursalFiltro es null en "Todas las sedes" o en un gym de una sola sede:
   // ahí no filtramos (y así no perdemos los cobros online, que llegan sin sede).
-  const filtrarSede = !!sucursalFiltro;
+  // En recepción no se explica: siempre es su sede (va en la barra de arriba).
+  const filtrarSede = !!sucursalFiltro && !esRecepcion;
 
   useEffect(() => {
     let cancelled = false;
@@ -326,7 +349,7 @@ export default function Caja() {
 
   return (
     <div className="adm-page">
-      <p className="ek-eyebrow" style={{ marginBottom: '4px' }}>OPERACIÓN</p>
+      <p className="ek-eyebrow" style={{ marginBottom: '4px' }}>{esRecepcion ? 'RECEPCIÓN' : 'OPERACIÓN'}</p>
       <h1
         style={{
           fontFamily: 'var(--ek-font-display)',
@@ -340,7 +363,9 @@ export default function Caja() {
         Caja
       </h1>
       <p style={{ fontSize: '14px', color: 'var(--ek-ink-muted)', margin: 0, marginBottom: filtrarSede ? '8px' : '20px' }}>
-        El dinero que entró de verdad: cobros de mostrador y online.
+        {esRecepcion
+          ? 'Lo que se cobró en el mostrador. Aquí haces el corte al cerrar tu turno.'
+          : 'El dinero que entró de verdad: cobros de mostrador y online.'}
       </p>
       {filtrarSede && (
         <p style={{ fontSize: '12.5px', color: 'var(--ek-ink-faint)', margin: '0 0 20px' }}>
@@ -394,16 +419,23 @@ export default function Caja() {
         >
           Exportar CSV
         </button>
-        <button type="button" onClick={() => setShowDatos(true)} className="ek-cta ek-cta--secondary" title="Datos que salen en el ticket del corte">
-          Datos del corte
-        </button>
+        {!esRecepcion && (
+          <button type="button" onClick={() => setShowDatos(true)} className="ek-cta ek-cta--secondary" title="Datos que salen en el ticket del corte">
+            Datos del corte
+          </button>
+        )}
         <button type="button" onClick={() => setShowCorte(true)} className="ek-cta">
           Hacer corte
         </button>
         </div>
       </div>
 
-      <PorCobrarCard tenantId={tenant.id} onCambio={() => setReload((r) => r + 1)} />
+      <PorCobrarCard
+        tenantId={tenant.id}
+        sucursalId={esRecepcion ? sucursalFiltro : null}
+        puedeCancelar={!esRecepcion}
+        onCambio={() => setReload((r) => r + 1)}
+      />
 
       {/* Corte: total cobrado + desglose por método */}
       <section
@@ -488,8 +520,9 @@ export default function Caja() {
             // Devolver tiene sentido solo sobre un COBRO que movió dinero y del
             // que quede algo sin devolver.
             const yaDevuelto = devueltoPorPago.get(p.id) ?? 0;
+            // Devolver dinero es decisión del dueño: no se ofrece en recepción.
             const puedeDevolver =
-              !esReembolso && !esCortesia && p.monto_centavos - yaDevuelto > 0;
+              !esRecepcion && !esReembolso && !esCortesia && p.monto_centavos - yaDevuelto > 0;
             // Corregir método: solo pagos de dinero de mostrador (efectivo/tarjeta/
             // transferencia). No aplica a reembolsos, cortesías ni cobros online (stripe).
             const puedeCorregirMetodo =
@@ -728,6 +761,7 @@ export default function Caja() {
       {showCorte && (
         <CorteModal
           sucursalId={sucursalFiltro}
+          guardarHoraTurno={!esRecepcion}
           moneda={moneda}
           tz={tz}
           simple={corteSimple}
@@ -1118,6 +1152,7 @@ function DevolverModal({
 
 function CorteModal({
   sucursalId,
+  guardarHoraTurno,
   moneda,
   tz,
   simple,
@@ -1127,6 +1162,8 @@ function CorteModal({
   onError
 }: {
   sucursalId: string | null;
+  /** Recepción no edita la config del gym: usa la hora del turno sin guardarla. */
+  guardarHoraTurno: boolean;
   moneda: string;
   tz: string;
   /** Corte sin arqueo (config.caja.corte_simple): solo rango + confirmar. */
@@ -1205,7 +1242,7 @@ function CorteModal({
   function elegirTurno(t: 'matutino' | 'vespertino') {
     setTurno(t);
     setTurnoHasta(t === 'vespertino' ? new Date().toISOString() : null);
-    if (horaTurno !== horaGuardada && /^\d{2}:\d{2}$/.test(horaTurno)) {
+    if (guardarHoraTurno && horaTurno !== horaGuardada && /^\d{2}:\d{2}$/.test(horaTurno)) {
       void saveTopLevel({ caja: { ...(cfgTenant?.caja as object ?? {}), turno_corte_hora: horaTurno } });
     }
   }

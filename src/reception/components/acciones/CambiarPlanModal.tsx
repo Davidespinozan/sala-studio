@@ -4,6 +4,8 @@ import { supabase } from '@shared/lib/supabase';
 import { AccionModal } from '@shared/components/AccionModal';
 import { useAccionRecepcion } from '../../hooks/useAccionRecepcion';
 import { MetodoPagoField, type MetodoPago } from './MetodoPagoField';
+import { useCargosPendientes } from '@shared/hooks/useCargosPendientes';
+import { AvisoCargoPendiente } from '@shared/components/CargoPendienteRow';
 
 interface TierOption {
   id: string;
@@ -43,6 +45,18 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
   const [metodo, setMetodo] = useState<MetodoPago | ''>('efectivo');
   // Bloquea "Sin registrar cobro" sin confirmar pago en línea (ver MetodoPagoField).
   const [metodoListo, setMetodoListo] = useState(true);
+  // Si ya debe algo "Por cobrar", seguramente vino a pagarlo: el aviso lo cobra
+  // ahí y frena la renovación duplicada salvo que marquen "es compra nueva".
+  const { cargos: cargosPendientes } = useCargosPendientes(socioId, isOpen);
+  const [esCompraNueva, setEsCompraNueva] = useState(false);
+  useEffect(() => {
+    if (!isOpen) setEsCompraNueva(false);
+  }, [isOpen]);
+  const pendienteResuelto = cargosPendientes.length === 0 || esCompraNueva;
+  const cobrarPendienteYCerrar = async () => {
+    await onDone();
+    onClose();
+  };
   const { ejecutar } = useAccionRecepcion({ rpcName: 'recepcion_cambiar_plan' });
 
   // Tiers activos del tenant (RLS scopea), excluyendo el plan actual.
@@ -122,7 +136,8 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
     nuevoTierId.length > 0 &&
     (clasesQueSePierden === 0 || aceptaPerdida) &&
     (!reemplazaPlanVigente || aceptaReemplazo) &&
-    metodoListo;
+    metodoListo &&
+    pendienteResuelto;
 
   return (
     <AccionModal
@@ -144,6 +159,13 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
       }}
       onClose={onClose}
     >
+      <AvisoCargoPendiente
+        cargos={cargosPendientes}
+        esCompraNueva={esCompraNueva}
+        onEsCompraNuevaChange={setEsCompraNueva}
+        onCobrado={cobrarPendienteYCerrar}
+      />
+
       <div className="ek-form-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
         <label className="ek-label" htmlFor="cambiar-plan-tier">Nuevo plan</label>
         <select

@@ -22,11 +22,14 @@ import { CrearAccesoSocioModal } from '../components/acciones/CrearAccesoSocioMo
 import { HuellaModal } from '../components/acciones/HuellaModal';
 import { Avatar } from '@shared/components/Avatar';
 import { HistorialPagosSocio } from '@shared/components/HistorialPagosSocio';
+import { MovimientosPlan } from '@shared/components/MovimientosPlan';
 import { MetodoPagoMembresia } from '@shared/components/MetodoPagoMembresia';
 import { useSocioFicha, type EstadoMembresia, type SocioFichaData, type FichaHistorialReserva } from '../hooks/useSocioFicha';
 import { useSocioNotas } from '../hooks/useSocioNotas';
 import { useHuellasSocio } from '@shared/hooks/useHuellasSocio';
 import { useMultasSocio, type MultaPendiente } from '../hooks/useMultasSocio';
+import { useCargosPendientes } from '@shared/hooks/useCargosPendientes';
+import { CargoPendienteRow } from '@shared/components/CargoPendienteRow';
 import { cobrarMultaReserva, marcarAsistioReserva } from '../hooks/useReservasHoy';
 import { formatearMoneda } from '@shared/lib/dinero';
 import { whatsappParaSocio } from '@shared/lib/whatsapp';
@@ -238,12 +241,14 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
   const { notas, refetch: refetchNotas } = useSocioNotas(socio.id);
   const { huellas, refetch: refetchHuellas } = useHuellasSocio(socio.id);
   const { multas, refetch: refetchMultas } = useMultasSocio(socio.id);
+  const { cargos, refetch: refetchCargos } = useCargosPendientes(socio.id);
   const [pagosReload, setPagosReload] = useState(0);
   const cerrar = () => setModalAbierto(null);
   const handleDone = async () => {
     if (onAccionDone) await onAccionDone();
     await refetchNotas();
     await refetchHuellas();
+    await refetchCargos();
     // Tras cualquier acción (incluye cobros) refrescamos el historial de pagos:
     // el cobro recién hecho aparece arriba con su botón de Recibo.
     setPagosReload((n) => n + 1);
@@ -329,6 +334,29 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           {huellas.length > 0 ? `Huella (${huellas.length})` : 'Registrar huella'}
         </AccionBtn>
       </div>
+
+      {/* POR COBRAR: plan/pase activado con "pagar al llegar". Se cobra aquí; no
+          renovando (renovar suma otras clases y más días). */}
+      {cargos.length > 0 && (
+        <div
+          className="ek-card ek-card--md"
+          style={{ marginBottom: '12px', border: '1px solid var(--sala-primary)' }}
+        >
+          <span className="ek-eyebrow ek-eyebrow--mustard">POR COBRAR</span>
+          <div style={{ display: 'grid', gap: '10px', marginTop: '10px' }}>
+            {cargos.map((c) => (
+              <CargoPendienteRow
+                key={c.id}
+                cargo={c}
+                onCobrado={async () => {
+                  await refetchCargos();
+                  setPagosReload((n) => n + 1);
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {multas.length > 0 && (
         <div
@@ -584,6 +612,12 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
       <div className="ek-card ek-card--md" style={{ marginBottom: '12px' }}>
         <p className="ek-eyebrow" style={{ marginBottom: '9px' }}>PAGOS</p>
         <HistorialPagosSocio usuarioId={socio.id} reloadKey={pagosReload} />
+      </div>
+
+      {/* MOVIMIENTOS DEL PLAN: altas/renovaciones/reservas/ajustes con quién. */}
+      <div className="ek-card ek-card--md" style={{ marginBottom: '12px' }}>
+        <p className="ek-eyebrow" style={{ marginBottom: '9px' }}>MOVIMIENTOS DEL PLAN</p>
+        <MovimientosPlan usuarioId={socio.id} reloadKey={pagosReload} />
       </div>
 
       {/* NOTAS SOBRE EL SOCIO (con autor + fecha) */}
