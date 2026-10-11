@@ -424,7 +424,8 @@ function HorarioModal({
   // Una clase suele tener varias franjas (5am, 6am, 7am…). El enfoque, la
   // disciplina y la foto son de la CLASE, no de la franja: por default se
   // aplican a todas sus hermanas para que no queden desparejas.
-  const [aplicarATodas, setAplicarATodas] = useState(true);
+  // null = el admin no tocó la casilla → manda el default (ver aplicarATodas).
+  const [aplicarATodasManual, setAplicarATodasManual] = useState<boolean | null>(null);
   const [instructorId, setInstructorId] = useState(horario?.instructor_id ?? '');
   const [cupo, setCupo] = useState(horario?.cupo_max != null ? String(horario.cupo_max) : '');
   const [activo, setActivo] = useState(horario?.activo ?? true);
@@ -447,6 +448,13 @@ function HorarioModal({
           h.nombre === horario.nombre
       )
     : [];
+
+  // Cambiarle el nombre a UNA franja suele ser convertirla en otra clase (el
+  // martes 8:30 deja de ser "POLE FITNESS"), no renombrar la clase entera: ahí
+  // el default se apaga y propagar pasa a ser una decisión explícita. Sin cambio
+  // de nombre sigue encendido (foto/enfoque parejos en todas las franjas).
+  const cambioNombre = horario !== null && nombre.trim() !== horario.nombre;
+  const aplicarATodas = aplicarATodasManual ?? !cambioNombre;
 
   function elegirRecurso(id: string) {
     setRecursoId(id);
@@ -753,16 +761,21 @@ function HorarioModal({
             <input
               type="checkbox"
               checked={aplicarATodas}
-              onChange={(e) => setAplicarATodas(e.target.checked)}
+              onChange={(e) => setAplicarATodasManual(e.target.checked)}
               style={{ marginTop: '2px', accentColor: 'var(--sala-primary)' }}
             />
             <span>
               <span style={{ display: 'block', fontWeight: 600, fontSize: '13px' }}>
-                Aplicar a las otras {hermanas.length} franjas de “{horario!.nombre}”
+                {cambioNombre
+                  ? `Renombrar también los otros ${hermanas.length} horarios de “${horario!.nombre}”`
+                  : `Aplicar a los otros ${hermanas.length} horarios de “${horario!.nombre}”`}
               </span>
               <span style={{ display: 'block', fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '2px', lineHeight: 1.45 }}>
-                El nombre, el enfoque, la disciplina y la foto se copian a todas las horas de esta
-                misma clase. La hora, los días y el cupo de cada franja no se tocan.
+                {cambioNombre
+                  ? 'Apagado: solo este horario cambia de nombre y los demás días y horas quedan como están. ' +
+                    'Enciéndelo si quieres renombrar la clase completa.'
+                  : 'El nombre, el enfoque, la disciplina y la foto se copian a todos los días y horas de esta ' +
+                    'misma clase. La hora, los días y el cupo de cada horario no se tocan.'}
               </span>
             </span>
           </label>
