@@ -28,6 +28,10 @@ interface Props {
   precioCentavos: number;
   /** Inscripción a cobrar AHORA (0 si el plan no cobra o el socio ya la pagó). */
   inscripcionCentavos: number;
+  /** Descuento del socio sobre el plan (nunca sobre la inscripción). 0 = sin descuento. */
+  descuentoCentavos?: number;
+  /** "Estudiante -20%". Se pinta junto al descuento. */
+  descuentoEtiqueta?: string | null;
   moneda?: string;
   /**
    * Reporta si la selección está LISTA para confirmar. "Sin registrar cobro" (value '')
@@ -50,10 +54,12 @@ export function MetodoPagoField({
   onChange,
   precioCentavos,
   inscripcionCentavos,
+  descuentoCentavos = 0,
+  descuentoEtiqueta,
   moneda = 'MXN',
   onListoChange
 }: Props) {
-  const total = precioCentavos + inscripcionCentavos;
+  const total = precioCentavos - descuentoCentavos + inscripcionCentavos;
 
   // "Sin registrar cobro" exige confirmar que el socio ya pagó en línea.
   const [yaPagoOnline, setYaPagoOnline] = useState(false);
@@ -84,7 +90,7 @@ export function MetodoPagoField({
         ))}
       </select>
 
-      {total > 0 && (
+      {(total > 0 || descuentoCentavos > 0) && (
         <div
           style={{
             fontSize: '13px',
@@ -100,6 +106,12 @@ export function MetodoPagoField({
             <span>Plan</span>
             <span>{formatearPrecio(precioCentavos, moneda)}</span>
           </div>
+          {descuentoCentavos > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Descuento{descuentoEtiqueta ? ` · ${descuentoEtiqueta}` : ''}</span>
+              <span>−{formatearPrecio(descuentoCentavos, moneda)}</span>
+            </div>
+          )}
           {inscripcionCentavos > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Inscripción (única vez)</span>

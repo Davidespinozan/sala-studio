@@ -163,8 +163,39 @@ export const handler: Handler = async (event) => {
       return ok({ activated: false, reason: 'cobros_no_activos' });
     }
 
-    // Tier gratis (precio 0): no hay nada que cobrar → activar directo.
-    if (!Number.isInteger(tier.precio_centavos) || tier.precio_centavos <= 0) {
+    // Paquete de clases (creditos/hibrido) → PAGO ÚNICO. Mensualidad (tiempo) →
+    // SUSCRIPCIÓN recurrente. El webhook materializa la membresía en ambos casos.
+    const esPaquete = tier.tipo === 'creditos' || tier.tipo === 'hibrido';
+
+    // Descuento del socio (p. ej. Estudiante -20%). La regla vive en la base
+    // (_precio_plan_para_socio, la misma que cobra recepción): en la app solo
+    // rebaja paquetes de pago único, nunca la inscripción. Las mensualidades van a
+    // precio de lista (el precio de la suscripción queda fijo y seguiría rebajado
+    // aunque el estatus venza). Si la consulta falla se cobra el precio de lista:
+    // se loguea, pero no se bloquea la compra de todos los socios.
+    let precioPaquete: number = tier.precio_centavos;
+    let etiquetaDescuento: string | null = null;
+    if (esPaquete && Number.isInteger(tier.precio_centavos) && tier.precio_centavos > 0) {
+      const { data: precioSocio, error: precioErr } = await admin.rpc('_precio_plan_para_socio', {
+        p_usuario_id: socio.id,
+        p_tier_id: tier.id,
+        p_canal: 'app'
+      });
+      if (precioErr) console.error('[suscribir-membresia] precio con descuento:', precioErr.message);
+      const p = precioSocio as { precio_final_centavos?: number; descuento_centavos?: number; etiqueta?: string | null } | null;
+      if (
+        p && Number.isInteger(p.precio_final_centavos) && Number.isInteger(p.descuento_centavos) &&
+        (p.descuento_centavos as number) > 0 &&
+        (p.precio_final_centavos as number) >= 0 &&
+        (p.precio_final_centavos as number) < tier.precio_centavos
+      ) {
+        precioPaquete = p.precio_final_centavos as number;
+        etiquetaDescuento = p.etiqueta ?? null;
+      }
+    }
+
+    // Tier gratis (precio 0, o descuento del 100%): no hay nada que cobrar → activar directo.
+    if (!Number.isInteger(tier.precio_centavos) || tier.precio_centavos <= 0 || precioPaquete <= 0) {
       const { data: result, error: rpcErr } = await admin.rpc('activar_suscripcion_socio', {
         p_usuario_id: socio.id,
         p_tier_id: body.tier_id
@@ -281,10 +312,6 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    // Paquete de clases (creditos/hibrido) → PAGO ÚNICO. Mensualidad (tiempo) →
-    // SUSCRIPCIÓN recurrente. El webhook materializa la membresía en ambos casos.
-    const esPaquete = tier.tipo === 'creditos' || tier.tipo === 'hibrido';
-
     // Guard: comprar un PAQUETE teniendo una mensualidad viva hijackearía la
     // única fila de membresía (la vuelve paquete) mientras la suscripción sigue
     // facturando (y el próximo invoice.paid la revierte, borrando los créditos).
@@ -327,7 +354,11 @@ export const handler: Handler = async (event) => {
           customer: customerId,
           line_items: [
             {
-              price_data: { currency, product_data: { name: tier.nombre }, unit_amount: tier.precio_centavos },
+              price_data: {
+                currency,
+                product_data: { name: etiquetaDescuento ? `${tier.nombre} · ${etiquetaDescuento}` : tier.nombre },
+                unit_amount: precioPaquete
+              },
               quantity: 1
             },
             ...itemInscripcion
@@ -338,7 +369,7 @@ export const handler: Handler = async (event) => {
             ...(feePct > 0
               ? {
                   application_fee_amount: Math.round(
-                    ((tier.precio_centavos + inscripcionCentavos) * feePct) / 100
+                    ((precioPaquete + inscripcionCentavos) * feePct) / 100
                   )
                 }
               : {})

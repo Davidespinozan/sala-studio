@@ -6,6 +6,7 @@ import { MetodoPagoField, type MetodoPago } from './MetodoPagoField';
 import { useOperationKey } from '@shared/lib/operationKey';
 import { useCargosPendientes } from '@shared/hooks/useCargosPendientes';
 import { AvisoCargoPendiente } from '@shared/components/CargoPendienteRow';
+import { usePreciosPlanes } from '@shared/hooks/usePreciosPlanes';
 
 interface TierOption {
   id: string;
@@ -96,6 +97,10 @@ export function AsignarPlanModal({ socioId, socioNombre, tierInicialId, isOpen, 
   }, [socioId]);
 
   const tier = tiers.find((t) => t.id === tierId);
+  // Descuento vigente del socio (estudiante…): lo calcula la base, igual que el cobro.
+  const { precioDe } = usePreciosPlanes(socioId, 'recepcion', isOpen);
+  const descuentoCentavos = precioDe(tierId)?.descuento_centavos ?? 0;
+  const descuentoEtiqueta = precioDe(tierId)?.etiqueta ?? null;
   const inscripcionACobrar =
     !tier || yaPagoInscripcion || esSocioExistente || exentar ? 0 : (tier.inscripcion_centavos ?? 0);
 
@@ -118,7 +123,10 @@ export function AsignarPlanModal({ socioId, socioNombre, tierInicialId, isOpen, 
         // "por cobrar" ocurren en UNA transacción de Postgres (recepcion_asignar_plan).
         // Si algo falla, no queda estado a medias. Idempotente por operation_key:
         // un reintento tras respuesta perdida converge, no duplica.
-        const cargoMonto = tier ? (tier.precio_centavos ?? 0) + inscripcionACobrar : 0;
+        // El "por cobrar" lleva el mismo descuento que el cobro inmediato.
+        const cargoMonto = tier
+          ? (tier.precio_centavos ?? 0) - descuentoCentavos + inscripcionACobrar
+          : 0;
         const dejarPendiente = pendiente && cargoMonto > 0;
         await ejecutar({
           p_usuario_id: socioId,
@@ -193,6 +201,8 @@ export function AsignarPlanModal({ socioId, socioNombre, tierInicialId, isOpen, 
           onChange={setMetodo}
           precioCentavos={tier.precio_centavos ?? 0}
           inscripcionCentavos={inscripcionACobrar}
+          descuentoCentavos={descuentoCentavos}
+          descuentoEtiqueta={descuentoEtiqueta}
           moneda={tier.moneda}
           onListoChange={setMetodoListo}
         />

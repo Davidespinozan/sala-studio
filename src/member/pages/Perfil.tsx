@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowRight, CalendarCheck, ChevronRight, CreditCard, Fin
 import { Link } from 'react-router-dom';
 import { Avatar } from '@shared/components/Avatar';
 import { useAuth } from '@shared/hooks/useAuth';
+import { usePreciosPlanes, type PrecioPlan } from '@shared/hooks/usePreciosPlanes';
 import { useTenant } from '@shared/hooks/useTenant';
 import { SaludSocioForm, tenantPideSalud } from '@shared/components/SaludSocioForm';
 import { useToast } from '@shared/hooks/useToast';
@@ -213,7 +214,7 @@ export default function Perfil() {
             gestionar: mostrarle "Método de pago" es un botón que no lleva a ningún
             lado. Se muestra si puede pagar membresía online O comprar en la Tienda. */}
         {puedeGuardarTarjeta && <MetodoPago />}
-        <PlanActualYOpciones membresia={membresia} tiers={tiers} tenantNombre={tenant.nombre} puedePagar={cobraOnline} />
+        <PlanActualYOpciones usuarioId={usuario?.id} membresia={membresia} tiers={tiers} tenantNombre={tenant.nombre} puedePagar={cobraOnline} />
         <HistorialPagos />
         {membresia && !membresia.cancelada_at && (
           <CancelarSuscripcion tenantNombre={tenant.nombre} />
@@ -794,11 +795,13 @@ function PlanHero({
 // ============================================================================
 
 function PlanActualYOpciones({
+  usuarioId,
   membresia,
   tiers,
   tenantNombre,
   puedePagar
 }: {
+  usuarioId: string | undefined;
   membresia: ReturnType<typeof useMembresiaActual>['membresia'];
   tiers: Tier[];
   tenantNombre: string;
@@ -813,6 +816,8 @@ function PlanActualYOpciones({
   // Pasar de un paquete con clases restantes a una mensualidad las descarta:
   // que sea una decisión consciente, no una sorpresa.
   const [confirmarPerdida, setConfirmarPerdida] = useState<Tier | null>(null);
+  // Descuento vigente del socio (estudiante…): mismo cálculo que el checkout.
+  const { precioDe } = usePreciosPlanes(usuarioId, 'app', puedePagar);
 
   if (tiers.length === 0) return null;
 
@@ -954,6 +959,7 @@ function PlanActualYOpciones({
                 <PlanOptionCard
                   key={tier.id}
                   tier={tier}
+                  precioSocio={precioDe(tier.id)}
                   esActual={membresia?.tier_id === tier.id}
                   tieneMembresia={tieneMembresia}
                   enProceso={enProceso}
@@ -1029,12 +1035,15 @@ function PlanActualYOpciones({
 
 function PlanOptionCard({
   tier,
+  precioSocio,
   esActual,
   tieneMembresia,
   enProceso,
   onCambiar
 }: {
   tier: Tier;
+  /** Precio de este plan para el socio, con su descuento vigente (si aplica). */
+  precioSocio?: PrecioPlan | null;
   esActual: boolean;
   tieneMembresia: boolean;
   enProceso: boolean;
@@ -1048,6 +1057,7 @@ function PlanOptionCard({
   // Un solo renglón de detalle (el 1er beneficio) en vez de una lista: la fila
   // tiene que quedar compacta y a la misma altura que las demás.
   const detalle = beneficios[0]?.label ?? null;
+  const conDescuento = !!precioSocio && precioSocio.descuento_centavos > 0;
 
   return (
     <div
@@ -1092,11 +1102,21 @@ function PlanOptionCard({
           )}
         </div>
         <p style={{ margin: 0, fontWeight: 700, fontSize: '17px', color: 'var(--sala-text-primary)' }}>
-          {formatearPrecio(tier.precio_centavos, tier.moneda)}
+          {conDescuento && (
+            <span style={{ color: 'var(--sala-text-tertiary)', fontWeight: 500, fontSize: '13px', textDecoration: 'line-through', marginRight: '6px' }}>
+              {formatearPrecio(tier.precio_centavos, tier.moneda)}
+            </span>
+          )}
+          {formatearPrecio(conDescuento ? precioSocio.precio_final_centavos : tier.precio_centavos, tier.moneda)}
           <span style={{ color: 'var(--sala-text-tertiary)', fontWeight: 500, fontSize: '13px' }}>
             {sufijoPeriodoTier(tier)}
           </span>
         </p>
+        {conDescuento && (
+          <p style={{ margin: '2px 0 0', fontSize: '12px', fontWeight: 600, color: 'var(--sala-primary)' }}>
+            {precioSocio.etiqueta}
+          </p>
+        )}
         {detalle && (
           <p
             style={{

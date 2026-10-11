@@ -11,6 +11,7 @@ import { PausarReactivarMembresiaModal } from '../components/acciones/PausarReac
 import { AsignarPlanModal } from '../components/acciones/AsignarPlanModal';
 import { CobrarInscripcionModal } from '../components/acciones/CobrarInscripcionModal';
 import { SaludSocioForm, tenantPideSalud } from '@shared/components/SaludSocioForm';
+import { DescuentoSocio } from '@shared/components/DescuentoSocio';
 import { CancelarMembresiaModal } from '../components/acciones/CancelarMembresiaModal';
 import { BloquearSocioModal } from '../components/acciones/BloquearSocioModal';
 import { DesbloquearSocioModal } from '../components/acciones/DesbloquearSocioModal';
@@ -485,6 +486,17 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           )}
         </div>
       </div>
+
+      {/* DESCUENTO (estudiante…) — no pinta nada si el gym no definió descuentos */}
+      <DescuentoSocio
+        usuarioId={socio.id}
+        marco={(contenido) => (
+          <div className="ek-card ek-card--md" style={{ marginBottom: '12px' }}>
+            <p className="ek-eyebrow" style={{ margin: '0 0 10px' }}>DESCUENTO</p>
+            {contenido}
+          </div>
+        )}
+      />
 
       {/* SALUD Y CONTACTO DE EMERGENCIA — solo si el tenant lo pide */}
       {tenantPideSalud(tenant.config) && (

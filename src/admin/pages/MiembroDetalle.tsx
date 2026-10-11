@@ -27,6 +27,7 @@ import {
 } from '../components/miembro/MiembroHistorial';
 import { HistorialPagosSocio } from '@shared/components/HistorialPagosSocio';
 import { MetodoPagoMembresia } from '@shared/components/MetodoPagoMembresia';
+import { DescuentoSocio } from '@shared/components/DescuentoSocio';
 import { MiembroHistorialCambios } from '../components/miembro/MiembroHistorialCambios';
 import { MiembroNotasInternas } from '../components/miembro/MiembroNotasInternas';
 import { GestionarMembresiaModal } from '../components/miembro/GestionarMembresiaModal';
@@ -402,6 +403,17 @@ export default function MiembroDetalle() {
           <ReconciliarStripeModal sujeto="socio" id={miembro.id} onClose={() => setShowReconciliar(false)} />
         )}
       </section>
+
+      {/* Descuento (estudiante…): no pinta nada si el gym no definió descuentos. */}
+      <DescuentoSocio
+        usuarioId={miembro.id}
+        marco={(contenido) => (
+          <section style={{ marginBottom: '32px' }}>
+            <SectionHeading hint="Se aplica solo al cobrarle un plan">Descuento</SectionHeading>
+            {contenido}
+          </section>
+        )}
+      />
 
       <section style={{ marginBottom: '32px' }}>
         <SectionHeading hint="Quién hizo qué">Historial de cambios</SectionHeading>

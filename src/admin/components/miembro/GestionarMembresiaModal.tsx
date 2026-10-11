@@ -16,6 +16,7 @@ import {
 import { useOperationKey } from '@shared/lib/operationKey';
 import { useCargosPendientes } from '@shared/hooks/useCargosPendientes';
 import { AvisoCargoPendiente } from '@shared/components/CargoPendienteRow';
+import { usePreciosPlanes } from '@shared/hooks/usePreciosPlanes';
 
 interface Props {
   usuarioId: string;
@@ -77,6 +78,11 @@ export function GestionarMembresiaModal({
     [tiersActivos, selTierId]
   );
 
+  // Descuento vigente del socio (estudiante…): lo calcula la base, igual que el cobro.
+  const { precioDe } = usePreciosPlanes(usuarioId);
+  const precioSocio = precioDe(selTierId);
+  const montoACobrar = precioSocio?.precio_final_centavos ?? tierElegido?.precio_centavos ?? 0;
+
   // Preview del efecto del cambio. Recalcula cada vez que cambia la selección.
   const preview = useMemo(() => {
     if (!tierElegido) return null;
@@ -132,14 +138,15 @@ export function GestionarMembresiaModal({
     }
 
     // Pendiente: dejar el cobro "por cobrar" (se cobra en la Caja al llegar).
-    if (formaPago === 'pendiente' && tierElegido && (tierElegido.precio_centavos ?? 0) > 0) {
+    if (formaPago === 'pendiente' && tierElegido && montoACobrar > 0) {
       const rpc = supabase.rpc.bind(supabase) as unknown as (
         name: string,
         args: Record<string, unknown>
       ) => Promise<{ data: unknown; error: { message: string } | null }>;
       const { error: cargoErr } = await rpc('registrar_cargo_pendiente', {
         p_usuario_id: usuarioId,
-        p_monto_centavos: tierElegido.precio_centavos,
+        // Con el descuento del socio ya aplicado, igual que el cobro inmediato.
+        p_monto_centavos: montoACobrar,
         p_concepto: 'plan',
         p_descripcion: tierElegido.nombre,
         p_operation_key: opKeyCargo
@@ -425,6 +432,12 @@ export function GestionarMembresiaModal({
             {formaPago === 'pendiente' && (
               <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px', lineHeight: 1.45 }}>
                 Se activa ya; el cobro queda <strong>“Por cobrar”</strong> en la Caja y se cobra cuando llegue. No cuenta como ingreso ni cortesía hasta entonces.
+              </p>
+            )}
+            {precioSocio && precioSocio.descuento_centavos > 0 && (
+              <p style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--sala-text-primary)', margin: '8px 0 0', lineHeight: 1.45 }}>
+                {precioSocio.etiqueta}: se cobra ${(precioSocio.precio_final_centavos / 100).toLocaleString('es-MX')}{' '}
+                en vez de ${(precioSocio.precio_lista_centavos / 100).toLocaleString('es-MX')}.
               </p>
             )}
             <p style={{ fontSize: '11.5px', color: 'var(--sala-text-tertiary)', margin: '6px 0 0', lineHeight: 1.45 }}>

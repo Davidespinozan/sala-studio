@@ -5,6 +5,8 @@ import { useLandingConfig } from '@shared/hooks/useLandingConfig';
 import { socioPuedePagarEnApp } from '@shared/lib/cobrosDelGym';
 import { autoservicioActivo } from '@shared/lib/cobrosConfig';
 import { formatearPrecioTier, sufijoPeriodoTier } from '@shared/lib/precioTier';
+import { useAuth } from '@shared/hooks/useAuth';
+import { usePreciosPlanes } from '@shared/hooks/usePreciosPlanes';
 import { supabase } from '@shared/lib/supabase';
 import { CheckoutModal } from '@shared/components/CheckoutModal';
 
@@ -44,6 +46,9 @@ export function MembresiaPendiente({
   const cobraOnline = socioPuedePagarEnApp(tenant);
   const autoservicio = autoservicioActivo(tenant.config as Record<string, unknown> | null);
   const sinPlan = !tierSlug;
+  // Descuento vigente del socio (estudiante…): mismo cálculo que el cobro.
+  const { usuario } = useAuth();
+  const { precioDe } = usePreciosPlanes(usuario?.id, cobraOnline ? 'app' : 'recepcion', sinPlan);
 
   const [tierId, setTierId] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -163,7 +168,8 @@ export function MembresiaPendiente({
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--sala-text-primary)' }}>{p.nombre}</div>
                     <div style={{ fontSize: 13, color: 'var(--sala-text-secondary)' }}>
-                      {formatearPrecioTier(p.precio_centavos, p.moneda)}{sufijoPeriodoTier(p)}
+                      {formatearPrecioTier(precioDe(p.id)?.precio_final_centavos ?? p.precio_centavos, p.moneda)}{sufijoPeriodoTier(p)}
+                      {precioDe(p.id)?.etiqueta ? ` · ${precioDe(p.id)?.etiqueta}` : ''}
                     </div>
                   </div>
                   {cobraOnline && (

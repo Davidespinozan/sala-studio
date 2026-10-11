@@ -6,6 +6,7 @@ import { useAccionRecepcion } from '../../hooks/useAccionRecepcion';
 import { MetodoPagoField, type MetodoPago } from './MetodoPagoField';
 import { useCargosPendientes } from '@shared/hooks/useCargosPendientes';
 import { AvisoCargoPendiente } from '@shared/components/CargoPendienteRow';
+import { usePreciosPlanes } from '@shared/hooks/usePreciosPlanes';
 
 interface TierOption {
   id: string;
@@ -117,6 +118,9 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
   }, [socioId, isOpen]);
 
   const tier = tiers.find((t) => t.id === nuevoTierId);
+  // Descuento vigente del socio (estudiante…): lo calcula la base, igual que el cobro.
+  const { precioDe } = usePreciosPlanes(socioId, 'recepcion', isOpen);
+  const precioSocio = precioDe(nuevoTierId);
 
   // La pérdida ocurre al cambiar de TIPO de plan (paquete ↔ mensualidad) teniendo
   // clases sin usar: el socio tiene UNA membresía y las clases sueltas no tienen
@@ -289,6 +293,8 @@ export function CambiarPlanModal({ socioId, socioNombre, tierActualId, isOpen, o
           onChange={setMetodo}
           precioCentavos={tier.precio_centavos ?? 0}
           inscripcionCentavos={0}
+          descuentoCentavos={precioSocio?.descuento_centavos ?? 0}
+          descuentoEtiqueta={precioSocio?.etiqueta}
           moneda={tier.moneda}
           onListoChange={setMetodoListo}
         />

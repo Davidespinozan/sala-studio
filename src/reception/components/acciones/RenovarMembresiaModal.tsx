@@ -6,6 +6,7 @@ import { MetodoPagoField, type MetodoPago } from './MetodoPagoField';
 import { useOperationKey } from '@shared/lib/operationKey';
 import { useCargosPendientes } from '@shared/hooks/useCargosPendientes';
 import { AvisoCargoPendiente } from '@shared/components/CargoPendienteRow';
+import { usePreciosPlanes } from '@shared/hooks/usePreciosPlanes';
 
 interface Props {
   socioId: string;
@@ -21,7 +22,10 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
   // Bloquea "Sin registrar cobro" sin confirmar pago en línea (ver MetodoPagoField).
   const [metodoListo, setMetodoListo] = useState(true);
   // Precio del plan que el socio ya tiene (renovar = mismo tier).
-  const [precio, setPrecio] = useState<{ centavos: number; moneda: string } | null>(null);
+  const [precio, setPrecio] = useState<{ tierId: string; centavos: number; moneda: string } | null>(null);
+  // Descuento vigente del socio (estudiante…): lo calcula la base, igual que el cobro.
+  const { precioDe } = usePreciosPlanes(socioId, 'recepcion', isOpen);
+  const precioSocio = precioDe(precio?.tierId);
   const { ejecutar } = useAccionRecepcion({ rpcName: 'recepcion_renovar_membresia' });
   // Idempotencia: reintento tras respuesta perdida no vuelve a apilar el período ni recobra.
   const operationKey = useOperationKey([socioId, motivo, metodo]);
@@ -43,15 +47,15 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
     (async () => {
       const { data } = await supabase
         .from('membresias')
-        .select('tiers(precio_centavos, moneda)')
+        .select('tiers(id, precio_centavos, moneda)')
         .eq('usuario_id', socioId)
         .in('status', ['activa', 'expirada', 'past_due', 'congelada'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       if (cancelled) return;
-      const t = (data as { tiers?: { precio_centavos: number; moneda: string } | null } | null)?.tiers;
-      setPrecio(t ? { centavos: t.precio_centavos, moneda: t.moneda } : null);
+      const t = (data as { tiers?: { id: string; precio_centavos: number; moneda: string } | null } | null)?.tiers;
+      setPrecio(t ? { tierId: t.id, centavos: t.precio_centavos, moneda: t.moneda } : null);
     })();
     return () => {
       cancelled = true;
@@ -92,6 +96,8 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
         onChange={setMetodo}
         precioCentavos={precio?.centavos ?? 0}
         inscripcionCentavos={0}
+        descuentoCentavos={precioSocio?.descuento_centavos ?? 0}
+        descuentoEtiqueta={precioSocio?.etiqueta}
         moneda={precio?.moneda}
         onListoChange={setMetodoListo}
       />

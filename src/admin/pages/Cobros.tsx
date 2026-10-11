@@ -7,6 +7,7 @@ import { useToast } from '@shared/hooks/useToast';
 import { autoservicioActivo, conAutoservicio } from '@shared/lib/cobrosConfig';
 import { altaSinPlanActiva, conAltaSinPlan } from '@shared/lib/registroConfig';
 import { ActivarCobrosCard } from '../components/ActivarCobrosCard';
+import { DescuentosCard } from '../components/DescuentosCard';
 import type { ConnectEstado } from '../lib/connectService';
 
 /**
@@ -236,6 +237,9 @@ export default function Cobros() {
             </button>
           </div>
         </Bloque>
+
+        {/* Descuentos por socio (estudiantes…): aquí se definen; se otorgan en la ficha. */}
+        <DescuentosCard />
 
         {conectado && (
           <>
