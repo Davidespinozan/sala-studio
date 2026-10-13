@@ -21,6 +21,8 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
   const [metodo, setMetodo] = useState<MetodoPago | ''>('efectivo');
   // Bloquea "Sin registrar cobro" sin confirmar pago en línea (ver MetodoPagoField).
   const [metodoListo, setMetodoListo] = useState(true);
+  // Renueva ya y el cobro queda "Por cobrar" (igual que en Asignar plan).
+  const [pendiente, setPendiente] = useState(false);
   // Precio del plan que el socio ya tiene (renovar = mismo tier).
   const [precio, setPrecio] = useState<{ tierId: string; centavos: number; moneda: string } | null>(null);
   // Descuento vigente del socio (estudiante…): lo calcula la base, igual que el cobro.
@@ -28,14 +30,20 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
   const precioSocio = precioDe(precio?.tierId);
   const { ejecutar } = useAccionRecepcion({ rpcName: 'recepcion_renovar_membresia' });
   // Idempotencia: reintento tras respuesta perdida no vuelve a apilar el período ni recobra.
-  const operationKey = useOperationKey([socioId, motivo, metodo]);
+  const operationKey = useOperationKey([socioId, motivo, metodo, pendiente]);
   // Si ya debe algo "Por cobrar", seguramente vino a pagarlo: el aviso lo cobra
   // ahí y frena la renovación duplicada salvo que marquen "es compra nueva".
   const { cargos: cargosPendientes } = useCargosPendientes(socioId, isOpen);
   const [esCompraNueva, setEsCompraNueva] = useState(false);
   useEffect(() => {
-    if (!isOpen) setEsCompraNueva(false);
+    if (!isOpen) {
+      setEsCompraNueva(false);
+      setPendiente(false);
+    }
   }, [isOpen]);
+  // El "por cobrar" lleva el mismo descuento que el cobro inmediato.
+  const cargoMonto = (precio?.centavos ?? 0) - (precioSocio?.descuento_centavos ?? 0);
+  const dejarPendiente = pendiente && cargoMonto > 0;
   const pendienteResuelto = cargosPendientes.length === 0 || esCompraNueva;
   const cobrarPendienteYCerrar = async () => {
     await onDone();
@@ -69,15 +77,18 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
       description={`Renuevas el mismo plan a ${socioNombre}. Refresca el período y los créditos según el tier.`}
       variant="info"
       confirmLabel="Renovar"
-      canConfirm={metodoListo && pendienteResuelto}
+      canConfirm={(dejarPendiente || metodoListo) && pendienteResuelto}
       onConfirm={async () => {
         await ejecutar({
           p_usuario_id: socioId,
           // Motivo opcional: el método ya dice cómo se pagó. Si no ponen nota, el
           // historial guarda un motivo genérico para no quedar vacío.
           p_motivo: motivo.trim() || 'Renovación',
-          p_metodo_pago: metodo === '' ? null : metodo,
-          p_operation_key: operationKey
+          // Pendiente → se renueva SIN cobro; el cobro queda "por cobrar".
+          p_metodo_pago: dejarPendiente ? null : (metodo === '' ? null : metodo),
+          p_operation_key: operationKey,
+          p_dejar_pendiente: dejarPendiente,
+          p_cargo_monto_centavos: dejarPendiente ? cargoMonto : null
         });
         await onDone();
       }}
@@ -90,7 +101,22 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
         onCobrado={cobrarPendienteYCerrar}
       />
 
+      {cargoMonto > 0 && (
+        <div className="ek-form-field" style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+            <input type="checkbox" checked={pendiente} onChange={(e) => setPendiente(e.target.checked)} />
+            Dejar pendiente (pagar al llegar)
+          </label>
+          {pendiente && (
+            <p style={{ fontSize: '11px', color: 'var(--ek-ink-faint)', marginTop: '6px', lineHeight: 1.45 }}>
+              El plan se renueva ya. El cobro queda <strong>“Por cobrar”</strong> y se cobra en la Caja cuando llegue — no cuenta como ingreso ni como cortesía hasta entonces.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Al renovar NO se cobra inscripción: es una cuota única de alta. */}
+      {!dejarPendiente && (
       <MetodoPagoField
         value={metodo}
         onChange={setMetodo}
@@ -101,6 +127,7 @@ export function RenovarMembresiaModal({ socioId, socioNombre, isOpen, onClose, o
         moneda={precio?.moneda}
         onListoChange={setMetodoListo}
       />
+      )}
 
       {/* Nota libre y OPCIONAL: el método ya dice cómo se pagó. Solo para dejar un
           apunte si hace falta (ajuste, cortesía, etc.). No es un desplegable. */}
