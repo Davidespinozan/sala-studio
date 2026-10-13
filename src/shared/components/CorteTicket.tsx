@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { centavosEnLetras } from '@shared/lib/enLetras';
 
@@ -11,6 +12,8 @@ export interface CorteTicketData {
    *  navegador de quien mira (el dueño en otro huso veía el corte "de 9 a 9"). */
   tz?: string;
   porConcepto: { label: string; centavos: number }[];
+  /** Piezas vendidas por producto en el periodo; se listan bajo "Productos". */
+  productosVendidos?: { nombre: string; cantidad: number }[];
   totalCentavos: number;
   porMetodo: { label: string; centavos: number }[];
   moneda: string;
@@ -76,7 +79,15 @@ export function CorteTicket({ data }: { data: CorteTicketData }) {
       {/* Ventas por concepto */}
       <p style={{ margin: '0 0 6px', fontWeight: 700 }}>Venta total: {money(data.totalCentavos, data.moneda)}</p>
       {data.porConcepto.map((c) => (
-        <Linea key={c.label} k={c.label} v={money(c.centavos, data.moneda)} />
+        <Fragment key={c.label}>
+          <Linea k={c.label} v={money(c.centavos, data.moneda)} />
+          {c.label === 'Productos' && (data.productosVendidos ?? []).map((p) => (
+            <div key={p.nombre} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11.5, color: muted, padding: '1px 0 1px 12px' }}>
+              <span>{p.nombre}</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>× {p.cantidad}</span>
+            </div>
+          ))}
+        </Fragment>
       ))}
 
       <Sep />

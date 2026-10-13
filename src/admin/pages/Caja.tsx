@@ -66,6 +66,29 @@ interface CorteRow {
   realizado_por: { nombre: string | null } | null;
 }
 
+/** Ítems de un grupo de ventas de tienda. El cobro (pagos) no guarda el producto:
+ *  cuelgan de producto_movimientos por pago_id. Devuelve null si la consulta falla. */
+async function itemsDeVentas(pagoIds: string[]): Promise<{ pago_id: string; nombre: string; cantidad: number }[] | null> {
+  const movs: { pago_id: string; cantidad: number; producto_id: string }[] = [];
+  // En tandas: un mes de ventas no cabe en la URL de un solo .in().
+  for (let i = 0; i < pagoIds.length; i += 100) {
+    const { data, error } = await (supabase as any)
+      .from('producto_movimientos')
+      .select('pago_id, cantidad, producto_id')
+      .in('pago_id', pagoIds.slice(i, i + 100))
+      .eq('tipo', 'venta');
+    if (error) { console.error('[Caja] productos', error); return null; }
+    movs.push(...((data as typeof movs) ?? []));
+  }
+  const prodIds = [...new Set(movs.map((m) => m.producto_id))];
+  const nombre: Record<string, string> = {};
+  for (let i = 0; i < prodIds.length; i += 100) {
+    const { data } = await (supabase as any).from('productos').select('id, nombre').in('id', prodIds.slice(i, i + 100));
+    for (const pr of (data as { id: string; nombre: string }[]) ?? []) nombre[pr.id] = pr.nombre;
+  }
+  return movs.map((m) => ({ pago_id: m.pago_id, nombre: nombre[m.producto_id] ?? 'Producto', cantidad: Math.abs(m.cantidad) }));
+}
+
 const METODO_META: Record<Metodo, { label: string; Icon: typeof Banknote }> = {
   efectivo: { label: 'Efectivo', Icon: Banknote },
   tarjeta: { label: 'Tarjeta', Icon: CreditCard },
@@ -274,6 +297,29 @@ export function CajaView({ modo, sucursalFiltro, sucursalNombre }: CajaViewProps
     return { porMetodo, cobrado, devuelto };
   }, [pagos]);
 
+  // Qué se vendió en cada venta de tienda. Va aparte de la consulta de cobros a
+  // propósito: si esto falla, la Caja se sigue viendo (sin el detalle).
+  const [productosPorPago, setProductosPorPago] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const ids = [...new Set(
+      pagos
+        .map((p) => (p.concepto === 'producto' ? p.id : p.concepto === 'reembolso' ? p.revierte_pago_id : null))
+        .filter((id): id is string => !!id)
+    )];
+    if (ids.length === 0) { setProductosPorPago({}); return; }
+    let cancelled = false;
+    (async () => {
+      const items = await itemsDeVentas(ids);
+      if (cancelled || !items) return;
+      const partes: Record<string, string[]> = {};
+      for (const it of items) {
+        (partes[it.pago_id] ??= []).push(`${it.cantidad > 1 ? `${it.cantidad}× ` : ''}${it.nombre}`);
+      }
+      setProductosPorPago(Object.fromEntries(Object.entries(partes).map(([id, l]) => [id, l.join(', ')])));
+    })();
+    return () => { cancelled = true; };
+  }, [pagos]);
+
   // Cuánto se devolvió ya de cada cobro, para no ofrecer devolver de más. Solo
   // cuenta lo del periodo cargado; el tope REAL lo pone la RPC, que mira todo.
   const devueltoPorPago = useMemo(() => {
@@ -322,6 +368,24 @@ export function CajaView({ modo, sucursalFiltro, sucursalNombre }: CajaViewProps
     return { porConcepto, total, porMetodo };
   }
 
+  // Piezas vendidas por producto en el periodo del corte, para el ticket. Mismo
+  // criterio que el renglón "Productos" del desglose: sin cortesías y sin las
+  // ventas canceladas dentro del mismo periodo.
+  async function productosDePeriodo(desde: string | null, hasta: string) {
+    let q = supabase.from('pagos').select('id, concepto, revierte_pago_id')
+      .eq('tenant_id', tenant.id).in('concepto', ['producto', 'reembolso']).neq('metodo', 'cortesia').lt('created_at', hasta);
+    if (desde) q = q.gte('created_at', desde);
+    if (sucursalFiltro) q = q.eq('sucursal_id', sucursalFiltro);
+    const { data } = await q;
+    const rows = (data ?? []) as unknown as { id: string; concepto: string; revierte_pago_id: string | null }[];
+    const canceladas = new Set(rows.map((r) => r.revierte_pago_id).filter(Boolean));
+    const ids = rows.filter((r) => r.concepto === 'producto' && !canceladas.has(r.id)).map((r) => r.id);
+    if (ids.length === 0) return [];
+    const cant: Record<string, number> = {};
+    for (const it of (await itemsDeVentas(ids)) ?? []) cant[it.nombre] = (cant[it.nombre] ?? 0) + it.cantidad;
+    return Object.entries(cant).map(([nombre, cantidad]) => ({ nombre, cantidad })).sort((x, y) => y.cantidad - x.cantidad);
+  }
+
   async function mostrarTicket(c: {
     desde: string | null; hasta: string;
     efectivo_esperado_centavos: number; fondo_centavos: number;
@@ -332,13 +396,14 @@ export function CajaView({ modo, sucursalFiltro, sucursalNombre }: CajaViewProps
     const { porConcepto, total, porMetodo } = c.resumen
       ? { porConcepto: c.resumen.por_concepto, total: c.resumen.total_centavos, porMetodo: c.resumen.por_metodo }
       : await desgloseDePeriodo(c.desde, c.hasta);
+    const productosVendidos = porConcepto.some((x) => x.label === 'Productos') ? await productosDePeriodo(c.desde, c.hasta) : [];
     setTicketData({
       gym: gymHeaderData(),
       sucursalNombre: sucursalActiva?.nombre ?? null,
       recepcion: c.recepcion,
       desde: c.desde, hasta: c.hasta,
       tz,
-      porConcepto, totalCentavos: total, porMetodo, moneda,
+      porConcepto, totalCentavos: total, porMetodo, moneda, productosVendidos,
       // Corte simple: sin cuadre en el ticket (CorteTicket lo omite si contado es null).
       efectivoEsperadoCentavos: corteSimple ? null : c.efectivo_esperado_centavos,
       fondoCentavos: corteSimple ? null : c.fondo_centavos,
@@ -407,6 +472,7 @@ export function CajaView({ modo, sucursalFiltro, sucursalNombre }: CajaViewProps
           onClick={() => exportarCsv(`caja-${rango}`, pagos, [
             { key: 'created_at', label: 'Fecha y hora', valor: (p) => new Date(p.created_at).toLocaleString('es-MX') },
             { key: 'concepto', label: 'Concepto' },
+            { key: 'productos', label: 'Productos', valor: (p) => productosPorPago[p.id] ?? productosPorPago[p.revierte_pago_id ?? ''] ?? '' },
             { key: 'socio', label: 'Socio', valor: (p) => (p as any).socio?.nombre ?? '' },
             { key: 'metodo', label: 'Método', valor: (p) => (p.metodo === 'tarjeta' ? 'Terminal' : p.metodo === 'stripe' ? 'App' : p.metodo) },
             { key: 'monto_centavos', label: 'Monto', valor: (p) => (p.monto_centavos / 100).toFixed(2) },
@@ -515,6 +581,7 @@ export function CajaView({ modo, sucursalFiltro, sucursalNombre }: CajaViewProps
           {pagos.map((p, i) => {
             const meta = METODO_META[p.metodo] ?? METODO_META.efectivo;
             const esReembolso = p.concepto === 'reembolso';
+            const productos = productosPorPago[p.id] ?? productosPorPago[p.revierte_pago_id ?? ''];
             const Icon = esReembolso ? Undo2 : meta.Icon;
             const esCortesia = p.metodo === 'cortesia';
             // Devolver tiene sentido solo sobre un COBRO que movió dinero y del
@@ -564,11 +631,16 @@ export function CajaView({ modo, sucursalFiltro, sucursalNombre }: CajaViewProps
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ margin: 0, fontWeight: 600, fontSize: '14px', color: 'var(--sala-text-primary)' }}>
-                    {p.socio?.nombre ?? 'Socio'}
+                    {p.socio?.nombre ?? (productos ? 'Venta de mostrador' : 'Socio')}
                     <span style={{ color: 'var(--sala-text-tertiary)', fontWeight: 500 }}>
                       {' · '}{conceptoLabel(p.concepto, p.tier?.nombre)}
                     </span>
                   </p>
+                  {productos && (
+                    <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--sala-text-secondary)' }}>
+                      {productos}
+                    </p>
+                  )}
                   <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sala-text-tertiary)' }}>
                     {hora(p.created_at, tz)} · {meta.label}
                     {p.cobrador?.nombre
