@@ -12,7 +12,8 @@ import {
 interface Props {
   clase: Clase;
   excludeUsuarioIds: string[];
-  onAdded: () => void;
+  /** Recibe el clase_id real (si la clase era virtual, el recién materializado). */
+  onAdded: (claseId: string | null) => void;
   onClose: () => void;
 }
 
@@ -56,10 +57,10 @@ export function AgregarMiembroManualSelector({
   }, [query, tenant.id, excludeUsuarioIds]);
 
   async function handleAgregar(m: MiembroBuscable) {
-    // Clase virtual (aún sin materializar): se activa con su primera reserva.
-    // Inscribir manualmente en una virtual lejana es un edge poco común.
-    if (!clase.claseId) {
-      toast.warning('Esta clase todavía no está activa: se materializa cuando alguien reserva. Prueba en una clase de esta semana.');
+    // Clase virtual (nadie ha reservado): la RPC la materializa con horario +
+    // fecha. Solo una clase sin id NI horario (no debería existir) se rechaza.
+    if (!clase.claseId && !clase.horarioId) {
+      toast.error('Esta clase no se puede reservar desde aquí.');
       return;
     }
     // Validar acceso por tier (si la clase tiene tiers_permitidos restringidos)
@@ -71,8 +72,10 @@ export function AgregarMiembroManualSelector({
     }
     setAgregandoId(m.id);
     const conCheckIn = checkInYa && claseEnVentana;
-    const { error, checkInError } = await inscribirMiembroManual({
+    const { error, checkInError, claseId } = await inscribirMiembroManual({
       claseId: clase.claseId,
+      horarioId: clase.horarioId,
+      fecha: clase.fechaISO,
       usuarioId: m.id,
       checkInInmediato: conCheckIn
     });
@@ -100,7 +103,7 @@ export function AgregarMiembroManualSelector({
     }
     setQuery('');
     setResultados([]);
-    onAdded();
+    onAdded(claseId ?? clase.claseId);
   }
 
   return (

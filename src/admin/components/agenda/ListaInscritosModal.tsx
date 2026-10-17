@@ -470,8 +470,14 @@ export function ListaInscritosModal({ clase, onClose }: Props) {
             <AgregarMiembroManualSelector
               clase={claseActual}
               excludeUsuarioIds={inscritosActivos.map((i) => i.usuarioId)}
-              onAdded={async () => {
-                await refetch();
+              onAdded={async (claseId) => {
+                if (claseId && !claseActual.claseId) {
+                  // La clase era virtual y se acaba de materializar: con el id real,
+                  // los hooks de inscritos/espera/mapa se recargan solos.
+                  setClaseActual((c) => ({ ...c, claseId }));
+                } else {
+                  await refetch();
+                }
                 setShowAgregar(false);
               }}
               onClose={() => setShowAgregar(false)}

@@ -274,31 +274,44 @@ export async function promoverManualEspera(
  * con la membresía vencida. Todas esas reglas viven en la RPC, no en la tabla.
  */
 export async function inscribirMiembroManual(params: {
-  claseId: string;
+  /** clase_id real, o null si la clase todavía es virtual (nadie ha reservado). */
+  claseId: string | null;
+  /** Para una clase virtual: la RPC la materializa con horario + fecha, igual
+   *  que "Crear reserva" en recepción. Antes el admin abortaba con un aviso
+   *  ("todavía no está activa") y no se podía inscribir a nadie en una clase vacía. */
+  horarioId?: string | null;
+  fecha?: string | null;
   usuarioId: string;
   /** Walk-in: hacer check-in inmediato tras inscribir (clase de hoy en curso). */
   checkInInmediato?: boolean;
-}): Promise<{ error: string | null; checkInError?: string | null }> {
+}): Promise<{ error: string | null; checkInError?: string | null; claseId?: string | null }> {
   const { data, error } = await supabase.rpc('recepcion_crear_reserva' as never, {
     p_usuario_id: params.usuarioId,
     p_clase_id: params.claseId,
+    p_horario_id: params.claseId ? null : params.horarioId ?? null,
+    p_fecha: params.claseId ? null : params.fecha ?? null,
     p_invitados: 0,
     p_motivo: 'Inscripción manual desde la agenda del admin.'
   } as never);
 
   if (error) return { error: translateActionError(error.message) };
 
+  const res = data as { reserva_id?: string; clase_id?: string } | null;
+  // clase_id de la respuesta: si la clase era virtual, es el id recién materializado
+  // y el modal lo necesita para cargar la lista de inscritos.
+  const claseId = res?.clase_id ?? params.claseId ?? null;
+
   if (params.checkInInmediato) {
-    const reservaId = (data as { reserva_id?: string } | null)?.reserva_id;
+    const reservaId = res?.reserva_id;
     if (reservaId) {
       const { error: errCheckin } = await supabase.rpc('check_in_manual_atomic', {
         p_reserva_id: reservaId,
         p_motivo: 'Walk-in desde la agenda del admin'
       });
       // La reserva ya existe: un check-in fallido se reporta aparte, no la tira.
-      if (errCheckin) return { error: null, checkInError: translateActionError(errCheckin.message) };
+      if (errCheckin) return { error: null, checkInError: translateActionError(errCheckin.message), claseId };
     }
   }
 
-  return { error: null };
+  return { error: null, claseId };
 }
