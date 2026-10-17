@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useMembresiaActual, membresiaEstado, type EstadoMembresia } from '@member/hooks/useMembresiaActual';
+import { useAuth } from '@shared/hooks/useAuth';
+import { useTenant } from '@shared/hooks/useTenant';
+import { socioPuedePagarEnApp } from '@shared/lib/cobrosDelGym';
 import ContactoGymCTA from './ContactoGymCTA';
 
 /**
@@ -19,12 +22,19 @@ import ContactoGymCTA from './ContactoGymCTA';
  */
 export default function EstadoMembresiaBanner() {
   const { membresia, isLoading } = useMembresiaActual();
+  const { usuario } = useAuth();
+  const tenant = useTenant();
   if (isLoading) return null;
 
   const estado = membresiaEstado(membresia);
   if (estado === 'sana') return null;
 
-  const { eyebrow, mensaje, waMensaje } = bannerContenido(estado);
+  // Cuenta recién creada que entró sin pagar (acceso_sin_plan): no "perdió" nada,
+  // le falta activar el paquete. El texto dice cómo, no "contacta al gimnasio".
+  const pendienteSinPlan = estado === 'sin_membresia' && usuario?.status === 'pendiente_pago';
+  const { eyebrow, mensaje, waMensaje } = pendienteSinPlan
+    ? contenidoPendiente(socioPuedePagarEnApp(tenant))
+    : bannerContenido(estado);
 
   // Regla de marca: la UI usa solo primario + acento (+ neutros) — nada de
   // rojo/mostaza. El banner de estado va con el ACENTO del tenant, sin importar
@@ -73,7 +83,7 @@ export default function EstadoMembresiaBanner() {
           {estado === 'sin_membresia' || estado === 'vencida' || estado === 'past_due' ? (
             // Compra/renovación/actualizar pago → Perfil.
             <Link
-              to="/app/perfil"
+              to={pendienteSinPlan ? '/app/perfil?elegir=1' : '/app/perfil'}
               style={{
                 color: 'var(--sala-accent)',
                 fontWeight: 600,
@@ -83,7 +93,7 @@ export default function EstadoMembresiaBanner() {
                 gap: '5px'
               }}
             >
-              {estado === 'vencida' ? 'Renueva tu plan' : estado === 'past_due' ? 'Actualizar mi pago' : 'Elige tu plan'}
+              {pendienteSinPlan ? 'Activar mi paquete' : estado === 'vencida' ? 'Renueva tu plan' : estado === 'past_due' ? 'Actualizar mi pago' : 'Elige tu plan'}
               <ArrowRight size={15} strokeWidth={2.25} />
             </Link>
           ) : (
@@ -93,6 +103,23 @@ export default function EstadoMembresiaBanner() {
       </div>
     </div>
   );
+}
+
+/** Cuenta creada sin plan activo: cómo activar el paquete (según si el gym cobra en la app). */
+export function contenidoPendiente(cobraOnline: boolean): {
+  variant: 'error' | 'warning';
+  eyebrow: string;
+  mensaje: string;
+  waMensaje: string;
+} {
+  return {
+    variant: 'warning',
+    eyebrow: 'Tu cuenta está lista',
+    mensaje: cobraOnline
+      ? 'Para reservar, activa tu paquete: puedes pagarlo aquí en la app o en recepción.'
+      : 'Para reservar, activa tu paquete pagándolo en recepción; ahí te lo dejan listo.',
+    waMensaje: 'Hola, ya creé mi cuenta y quiero activar mi paquete.'
+  };
 }
 
 function bannerContenido(estado: Exclude<EstadoMembresia, 'sana'>): {

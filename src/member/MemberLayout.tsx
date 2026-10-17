@@ -18,6 +18,7 @@ import { PwaInstallBanner } from '@shared/components/PwaInstallBanner';
 import { MemberSucursalProvider } from './providers/MemberSucursalProvider';
 import { SucursalSwitcher } from './components/SucursalSwitcher';
 import { CambiarPasswordGate } from '@shared/components/CambiarPasswordGate';
+import { accesoSinPlanActivo } from '@shared/lib/registroConfig';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Tienda = lazy(() => import('./pages/Tienda'));
@@ -63,7 +64,11 @@ export default function MemberLayout() {
   if (isLoading) return <LoadingScreen />;
   if (!authUser) return <Navigate to="/login" state={{ from: location }} replace />;
   // Pendiente de pago: queda logueado viendo el estado, recepción lo activa.
-  if (usuario && usuario.status === 'pendiente_pago') {
+  // Si el gym lo permite (config.registro.acceso_sin_plan), entra a la app
+  // normal: ve calendario y clases, el banner le dice cómo activar su paquete y
+  // el backend sigue rechazando reservar/check-in sin membresía.
+  const pendienteEntra = usuario?.status === 'pendiente_pago' && accesoSinPlanActivo(tenant.config as Record<string, unknown> | null);
+  if (usuario && usuario.status === 'pendiente_pago' && !pendienteEntra) {
     return (
       <TenantGuard>
         <MembresiaPendiente nombre={usuario.nombre} tierSlug={usuario.membresia_tier} onCerrarSesion={() => signOut()} />
@@ -75,7 +80,7 @@ export default function MemberLayout() {
   // la sesión se limpia; al resolver, authUser=null y caemos en el Navigate a
   // /login de más arriba. NO navegamos a /login acá: haría loop con
   // useRoleRedirect (/login→/app→/login…) mientras `usuario` sigue en cache.
-  if (usuario && usuario.status !== 'activo') {
+  if (usuario && usuario.status !== 'activo' && !pendienteEntra) {
     return <LoadingScreen />;
   }
 

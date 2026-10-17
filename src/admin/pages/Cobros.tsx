@@ -5,7 +5,7 @@ import { supabase } from '@shared/lib/supabase';
 import { useTenant, useTenantRefetch } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
 import { autoservicioActivo, conAutoservicio } from '@shared/lib/cobrosConfig';
-import { altaSinPlanActiva, conAltaSinPlan } from '@shared/lib/registroConfig';
+import { altaSinPlanActiva, conAltaSinPlan, accesoSinPlanActivo, conAccesoSinPlan } from '@shared/lib/registroConfig';
 import { ActivarCobrosCard } from '../components/ActivarCobrosCard';
 import { DescuentosCard } from '../components/DescuentosCard';
 import type { ConnectEstado } from '../lib/connectService';
@@ -141,6 +141,10 @@ export default function Cobros() {
   // pagarlo después en la app? Vive en tenants.config.registro.permite_sin_plan.
   const altaSinPlan = altaSinPlanActiva(config);
   const [guardandoAlta, setGuardandoAlta] = useState(false);
+  // Entrar sin plan: ¿la cuenta pendiente de pago ve la app (calendario, clases)
+  // antes de activar su paquete? Vive en tenants.config.registro.acceso_sin_plan.
+  const accesoSinPlan = accesoSinPlanActivo(config);
+  const [guardandoAcceso, setGuardandoAcceso] = useState(false);
   const { salud, cargando: cargandoSalud, error: errorSalud } = useSaludStripe(conectado);
 
   async function toggleAutoservicio() {
@@ -155,6 +159,17 @@ export default function Cobros() {
     setGuardandoAuto(false);
   }
 
+  async function toggleAccesoSinPlan() {
+    setGuardandoAcceso(true);
+    const next = conAccesoSinPlan(config, !accesoSinPlan);
+    const { error } = await (supabase as any).from('tenants').update({ config: next }).eq('id', tenant.id);
+    if (error) toast.error('No se pudo guardar: ' + error.message);
+    else {
+      toast.success(!accesoSinPlan ? 'Las cuentas sin plan ya pueden entrar a la app' : 'Las cuentas sin plan vuelven a ver solo "elige tu plan"');
+      await refetchTenant();
+    }
+    setGuardandoAcceso(false);
+  }
   async function toggleAltaSinPlan() {
     setGuardandoAlta(true);
     const next = conAltaSinPlan(config, !altaSinPlan);
@@ -234,6 +249,30 @@ export default function Cobros() {
               className={altaSinPlan ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
             >
               {guardandoAlta ? '…' : altaSinPlan ? 'Activado' : 'Desactivado'}
+            </button>
+          </div>
+        </Bloque>
+
+        {/* Entrar sin plan: la cuenta pendiente de pago navega la app; reservar
+            sigue bloqueado por el backend hasta que active su paquete. */}
+        <Bloque titulo="ENTRAR A LA APP SIN PLAN ACTIVO">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--sala-text-primary)' }}>
+                {accesoSinPlan ? 'Ven la app antes de pagar su paquete' : 'Deben pagar su paquete para entrar'}
+              </div>
+              <div style={{ fontSize: '12.5px', color: 'var(--sala-text-secondary)', marginTop: '3px', lineHeight: 1.5 }}>
+                {accesoSinPlan
+                  ? 'Quien se registra entra de una vez: ve calendario, clases y perfil. Al intentar reservar se le pide activar su paquete (en la app o en recepción). Sin paquete activo no puede reservar ni hacer check-in.'
+                  : 'Quien se registra sin pagar se queda en la pantalla "activa tu paquete" y no ve el resto de la app. Actívalo para que entren a ver todo y paguen después.'}
+              </div>
+            </div>
+            <button
+              onClick={toggleAccesoSinPlan}
+              disabled={guardandoAcceso}
+              className={accesoSinPlan ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
+            >
+              {guardandoAcceso ? '…' : accesoSinPlan ? 'Activado' : 'Desactivado'}
             </button>
           </div>
         </Bloque>

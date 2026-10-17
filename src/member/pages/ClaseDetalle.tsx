@@ -838,10 +838,10 @@ export default function ClaseDetalle() {
                 ? 'Necesitas un plan para reservar esta clase.'
                 : 'Tu plan actual no incluye acceso a esta sala.'}{' '}
               <Link
-                to="/app/perfil"
+                to={sinPlan ? '/app/perfil?elegir=1' : '/app/perfil'}
                 style={{ color: 'var(--sala-primary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
               >
-                Ver mi membresía
+                {sinPlan ? 'Elegir un plan' : 'Ver mi membresía'}
                 <ArrowRight size={14} strokeWidth={2.25} />
               </Link>
             </p>

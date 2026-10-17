@@ -242,7 +242,8 @@ export default function EstudioDetalle() {
                 ? 'Necesitas un plan para reservar en esta sala.'
                 : 'Tu plan actual no incluye acceso a esta sala.'}
             </p>
-            <Link to="/app/perfil" className="ek-cta">
+            {/* Sin plan: directo al selector (?elegir=1 lo abre en Perfil). */}
+            <Link to={acceso === 'sin_plan' ? '/app/perfil?elegir=1' : '/app/perfil'} className="ek-cta">
               {acceso === 'sin_plan' ? 'Elegir un plan' : 'Ver mi plan'}
             </Link>
           </div>

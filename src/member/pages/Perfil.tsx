@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { AlertTriangle, ArrowRight, CalendarCheck, ChevronRight, CreditCard, Fingerprint, LifeBuoy, Plus, RotateCcw, X, Receipt } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Avatar } from '@shared/components/Avatar';
 import { useAuth } from '@shared/hooks/useAuth';
 import { usePreciosPlanes, type PrecioPlan } from '@shared/hooks/usePreciosPlanes';
@@ -818,6 +818,20 @@ function PlanActualYOpciones({
   const [confirmarPerdida, setConfirmarPerdida] = useState<Tier | null>(null);
   // Descuento vigente del socio (estudiante…): mismo cálculo que el checkout.
   const { precioDe } = usePreciosPlanes(usuarioId, 'app', puedePagar);
+  // "Activar mi paquete" (banner de cuenta sin plan) llega con ?elegir=1: se abre
+  // el selector de una vez, en la pestaña del paquete que eligió al registrarse.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { usuario } = useAuth();
+  const tierRegistro = usuario?.membresia_tier ?? null;
+  useEffect(() => {
+    if (searchParams.get('elegir') !== '1' || !puedePagar || tiers.length === 0) return;
+    const elegido = tierRegistro ? tiers.find((t) => t.slug === tierRegistro) : undefined;
+    setVistaPlan(elegido && (elegido.tipo === 'creditos' || elegido.tipo === 'hibrido') ? 'paquetes' : 'membresias');
+    setAbierto(true);
+    // Se consume una vez: un refresh o "atrás" no lo vuelve a abrir.
+    setSearchParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, puedePagar, tiers.length]);
 
   if (tiers.length === 0) return null;
 
