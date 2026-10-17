@@ -50,6 +50,13 @@ export const ERROR_CODE_MAP: Record<string, string> = {
 
   // Check-in
   YA_CHECK_IN: 'Este miembro ya hizo check-in',
+  // Ventana del check-in manual (abre 2× la ventana antes de la clase y cierra
+  // 4× después). Sin traducir llegaba el texto crudo del backend con una hora
+  // en la zona del servidor (UTC), que no es la del gym.
+  DEMASIADO_TEMPRANO: 'El check-in de esta clase todavía no abre: se habilita poco antes de que empiece',
+  DEMASIADO_TARDE: 'El check-in de esta clase ya cerró',
+  RESERVA_CANCELADA: 'Esa reserva está cancelada',
+  RESERVA_NO_SHOW: 'Esa reserva ya quedó marcada como inasistencia',
   CHECK_IN_NO_EXISTE: 'No encontramos ese check-in',
   CHECK_IN_NO_REVERTIBLE: 'Este check-in ya no se puede revertir',
 

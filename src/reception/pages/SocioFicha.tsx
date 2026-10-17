@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { UserX } from 'lucide-react';
 import { PageHeader } from '@shared/components/PageHeader';
 import { EmptyState } from '@shared/components/EmptyState';
@@ -9,6 +9,7 @@ import { CambiarPlanModal } from '../components/acciones/CambiarPlanModal';
 import { RecargarCreditosModal } from '../components/acciones/RecargarCreditosModal';
 import { PausarReactivarMembresiaModal } from '../components/acciones/PausarReactivarMembresiaModal';
 import { AsignarPlanModal } from '../components/acciones/AsignarPlanModal';
+import type { WalkinState, ClaseWalkin } from '../components/RegistrarSocioModal';
 import { CobrarInscripcionModal } from '../components/acciones/CobrarInscripcionModal';
 import { SaludSocioForm, tenantPideSalud } from '@shared/components/SaludSocioForm';
 import { DescuentoSocio } from '@shared/components/DescuentoSocio';
@@ -158,6 +159,31 @@ const BADGE: Record<EstadoMembresia, { label: string; dot: string; token: string
 export default function SocioFicha() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading, error, refetch } = useSocioFicha(id);
+  // Cadena del walk-in (alta en mostrador → "Asignar plan ahora"): llega por el
+  // state de navegación. Se consume UNA vez y se limpia del historial, para que
+  // un refresh o un "atrás" no vuelva a abrir el modal.
+  //
+  // OJO: la cadena vive en ESTA página y no en <Ficha/>: cada acción hace refetch,
+  // el hook pone isLoading y la Ficha se desmonta (skeleton) → cualquier estado
+  // adentro se perdería entre "Asignar plan" y "Crear reserva".
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [walkin] = useState<WalkinState | null>(() => {
+    const st = (location.state as { paso?: unknown; clase?: unknown } | null) ?? null;
+    return st?.paso === 'asignar_plan' ? { paso: 'asignar_plan', clase: (st.clase as ClaseWalkin | null) ?? null } : null;
+  });
+  const [pasoWalkin, setPasoWalkin] = useState<PasoWalkin>(walkin ? 'asignar_plan' : null);
+  // Espejo síncrono: los modales llaman onDone y DESPUÉS onClose en el mismo
+  // tick; el onClose leería el paso viejo de su closure si mirara el estado.
+  const pasoRef = useRef<PasoWalkin>(pasoWalkin);
+  const avanzarWalkin = (paso: PasoWalkin) => {
+    pasoRef.current = paso;
+    setPasoWalkin(paso);
+  };
+  useEffect(() => {
+    if (walkin) navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="ek-page">
@@ -189,7 +215,11 @@ export default function SocioFicha() {
             }
           />
         ) : (
-          <Ficha data={data} onAccionDone={refetch} />
+          <Ficha
+            data={data}
+            onAccionDone={refetch}
+            walkin={pasoWalkin ? { paso: pasoWalkin, clase: walkin?.clase ?? null, pasoActual: () => pasoRef.current, avanzar: avanzarWalkin } : null}
+          />
         )}
       </div>
     </div>
@@ -216,14 +246,35 @@ const HIST_STATUS: Record<FichaHistorialReserva['status'], { label: string; colo
   cancelada_admin: { label: 'Cancelada', color: 'var(--sala-text-tertiary)', bg: 'var(--sala-bg)' }
 };
 
-export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDone?: () => Promise<void> | void }) {
+type PasoWalkin = 'asignar_plan' | 'crear_reserva' | null;
+
+/** Cadena del walk-in, controlada por la página (sobrevive al remount de Ficha). */
+interface WalkinCadena {
+  paso: Exclude<PasoWalkin, null>;
+  clase: ClaseWalkin | null;
+  /** Paso vigente en este instante (no el de la closure). */
+  pasoActual: () => PasoWalkin;
+  avanzar: (paso: PasoWalkin) => void;
+}
+
+export function Ficha({
+  data,
+  onAccionDone,
+  walkin = null
+}: {
+  data: SocioFichaData;
+  onAccionDone?: () => Promise<void> | void;
+  /** Cadena del walk-in: abrir "Asignar plan" al llegar y "Crear reserva" al terminar. */
+  walkin?: WalkinCadena | null;
+}) {
   const { socio, membresia, estado, reservas, historial, asistencia, invitadosBolsa } = data;
   const tenant = useTenant();
   const tz = getTenantTimezone(tenant);
   const hoyISO = hoyEnTimezone(tz);
   const badge = BADGE[estado];
   const toast = useToast();
-  const [modalAbierto, setModalAbierto] = useState<ModalAccion>(null);
+  // Walk-in: la Ficha se monta con el modal del paso vigente ya abierto.
+  const [modalAbierto, setModalAbierto] = useState<ModalAccion>(() => walkin?.paso ?? null);
   const [corrigiendo, setCorrigiendo] = useState<string | null>(null);
 
   async function marcarAsistio(reservaId: string) {
@@ -683,9 +734,18 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           socioId={socio.id}
           socioNombre={socio.nombre ?? 'el socio'}
           modo={modalAbierto === 'vender_pase' ? 'pase' : 'reserva'}
+          claseInicial={modalAbierto === 'crear_reserva' && walkin?.paso === 'crear_reserva' ? walkin.clase ?? undefined : undefined}
           isOpen
-          onClose={cerrar}
-          onDone={handleDone}
+          onClose={() => {
+            // Cerrar (con o sin reserva) termina la cadena del walk-in.
+            if (walkin?.pasoActual() === 'crear_reserva') walkin.avanzar(null);
+            cerrar();
+          }}
+          onDone={async () => {
+            // Antes del refetch: la Ficha se remonta y leería el paso para abrir.
+            if (walkin?.pasoActual() === 'crear_reserva') walkin.avanzar(null);
+            await handleDone();
+          }}
         />
       )}
 
@@ -742,8 +802,21 @@ export function Ficha({ data, onAccionDone }: { data: SocioFichaData; onAccionDo
           socioId={socio.id}
           socioNombre={socioNombre}
           tierInicialId={sinPlanRegistrado ? planElegido?.id ?? null : null}
-          onClose={cerrar}
-          onDone={handleDone}
+          onClose={() => {
+            // Canceló sin asignar plan: la cadena termina. (Tras onDone el paso
+            // ya es 'crear_reserva' y este onClose no lo toca.)
+            if (walkin?.pasoActual() === 'asignar_plan') walkin.avanzar(null);
+            cerrar();
+          }}
+          onDone={async () => {
+            // Walk-in: ya tiene plan, lo que sigue es inscribirlo en la clase. Se
+            // avanza ANTES del refetch: la Ficha se remonta con ese modal abierto.
+            if (walkin?.pasoActual() === 'asignar_plan') {
+              walkin.avanzar('crear_reserva');
+              toast.info('Plan asignado. Ahora, su reserva.');
+            }
+            await handleDone();
+          }}
         />
       )}
       {modalAbierto === 'cancelar_membresia' && (

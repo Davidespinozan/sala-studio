@@ -9,6 +9,7 @@ import { useOperationKey } from '@shared/lib/operationKey';
 import { useSucursal } from '../providers/SucursalProvider';
 import { exportarCsv } from '@shared/lib/exportarCsv';
 import { ReciboModal } from '@shared/components/ReciboModal';
+import { ErrorBoundary } from '@shared/components/ErrorBoundary';
 import { CorteTicket, CortePrint, type CorteTicketData } from '@shared/components/CorteTicket';
 import CardMenuDropdown, { type DropdownItem } from '../components/CardMenuDropdown';
 import { PorCobrarCard } from '../components/PorCobrarCard';
@@ -173,11 +174,28 @@ function etiquetaCorte(desde: string | null, hasta: string, tz: string): string 
 }
 
 /** Rango [desde, hasta) en la timezone del GYM: incluye todo el día `fHasta`. */
-function rangoISO(fDesde: string, fHasta: string, tz: string): { desde: string; hasta: string } {
-  return {
-    desde: fromZonedTime(`${fDesde}T00:00:00`, tz).toISOString(),
-    hasta: fromZonedTime(`${sumarDias(fHasta, 1)}T00:00:00`, tz).toISOString()
-  };
+const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+const RE_HORA = /^\d{2}:\d{2}$/;
+
+/** Instante ISO de una fecha+hora en el horario del gym, o null si no parsea.
+ *  Un <input type="date"/"time"> reporta '' mientras el valor está incompleto
+ *  (numa, oct 2026: borrar la hora del turno tumbaba la Caja entera con
+ *  "Invalid time value" porque esto se calculaba sin validar, dentro del render). */
+function instanteSeguro(fecha: string, hora: string, tz: string): string | null {
+  if (!RE_FECHA.test(fecha) || !RE_HORA.test(hora)) return null;
+  try {
+    const d = fromZonedTime(`${fecha}T${hora}:00`, tz);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  } catch {
+    return null;
+  }
+}
+
+function rangoISO(fDesde: string, fHasta: string, tz: string): { desde: string; hasta: string } | null {
+  if (!RE_FECHA.test(fDesde) || !RE_FECHA.test(fHasta) || fHasta < fDesde) return null;
+  const desde = instanteSeguro(fDesde, '00:00', tz);
+  const hasta = instanteSeguro(sumarDias(fHasta, 1), '00:00', tz);
+  return desde && hasta ? { desde, hasta } : null;
 }
 
 interface DatosCorte { razon_social?: string; rfc?: string; telefono?: string; direccion?: string }
@@ -185,7 +203,12 @@ interface DatosCorte { razon_social?: string; rfc?: string; telefono?: string; d
 /** Caja del ADMIN: la sede la elige el selector de arriba (null = todas). */
 export default function Caja() {
   const { sucursalFiltro, sucursalActiva } = useSucursal();
-  return <CajaView modo="admin" sucursalFiltro={sucursalFiltro} sucursalNombre={sucursalActiva?.nombre ?? null} />;
+  // Boundary propio: si algo truena en la Caja, cae solo esta sección (no la app).
+  return (
+    <ErrorBoundary variant="inline" resetKeys={[sucursalFiltro]}>
+      <CajaView modo="admin" sucursalFiltro={sucursalFiltro} sucursalNombre={sucursalActiva?.nombre ?? null} />
+    </ErrorBoundary>
+  );
 }
 
 interface CajaViewProps {
@@ -1264,24 +1287,67 @@ function CorteModal({
   const [horaTurno, setHoraTurno] = useState(horaGuardada);
   useEffect(() => { setHoraTurno(horaGuardada); }, [horaGuardada]);
   const [turno, setTurno] = useState<'matutino' | 'vespertino' | null>(null);
+  // El turno puede ser de HOY o de AYER (el vespertino que no se cerró anoche).
+  // Antes solo existía "hoy": al día siguiente la única salida era "Ayer" día
+  // completo, que se encima con el matutino ya hecho.
+  const [diaTurno, setDiaTurno] = useState<'hoy' | 'ayer'>('hoy');
   // "Ahora" del corte vespertino se congela al elegir el turno (no cada render).
   const [turnoHasta, setTurnoHasta] = useState<string | null>(null);
 
-  // Rango EFECTIVO: por turno (instantes con hora del gym) o por fechas (día completo).
-  const { desde: desdeEf, hasta: hastaEf } = useMemo(() => {
+  // Rango EFECTIVO: por turno (instantes con hora del gym) o por fechas (día
+  // completo). null = aún no hay un rango válido; `motivoInvalido` dice por qué
+  // cuando vale la pena explicárselo a recepción. NUNCA lanza.
+  const { rango, motivoInvalido } = useMemo((): { rango: { desde: string; hasta: string } | null; motivoInvalido: string | null } => {
     if (turno) {
       const hoyD = hoyEnTimezone(tz);
-      const split = fromZonedTime(`${hoyD}T${horaTurno}:00`, tz).toISOString();
-      return turno === 'matutino'
-        ? { desde: fromZonedTime(`${hoyD}T00:00:00`, tz).toISOString(), hasta: split }
-        : { desde: split, hasta: turnoHasta ?? new Date().toISOString() };
+      const diaD = diaTurno === 'ayer' ? sumarDias(hoyD, -1) : hoyD;
+      const split = instanteSeguro(diaD, horaTurno, tz);
+      if (!split) return { rango: null, motivoInvalido: 'Escribe la hora de cambio de turno completa (por ejemplo 12:00).' };
+      const inicioDia = instanteSeguro(diaD, '00:00', tz);
+      if (!inicioDia) return { rango: null, motivoInvalido: null };
+      const ahora = turnoHasta ?? new Date().toISOString();
+      if (turno === 'matutino') {
+        // El matutino cierra cuando se HACE (si es antes de la hora de cambio), no
+        // a la hora de cambio: numa lo hacía a las 09:46 con fin 12:00 y un cobro de
+        // las 10:39 quedaba dentro del rango pero fuera de la foto del ticket.
+        const hasta = diaTurno === 'hoy' && Date.parse(ahora) < Date.parse(split) ? ahora : split;
+        return { rango: { desde: inicioDia, hasta }, motivoInvalido: null };
+      }
+      // Vespertino: arranca donde terminó el matutino de ese día (si existe), si no
+      // a la hora de cambio. Así los dos turnos son contiguos: ningún cobro queda
+      // entre uno y otro. Hoy = hasta ahora; ayer = hasta la medianoche.
+      const finMatutino = cortesPrevios
+        .filter((c) => c.desde !== null && Date.parse(c.desde) === Date.parse(inicioDia) && Date.parse(c.hasta) <= Date.parse(split))
+        .map((c) => Date.parse(c.hasta))
+        .sort((x, y) => y - x)[0];
+      const desde = finMatutino ? new Date(finMatutino).toISOString() : split;
+      const hasta = diaTurno === 'ayer' ? instanteSeguro(hoyD, '00:00', tz) : ahora;
+      if (!hasta) return { rango: null, motivoInvalido: null };
+      if (Date.parse(hasta) <= Date.parse(desde)) {
+        return {
+          rango: null,
+          motivoInvalido: `El turno vespertino de hoy empieza a las ${hora(desde, tz).replace(/^.*?, /, '')}; todavía no hay nada que cortar. Si quieres cerrar el de anoche, elige «Ayer».`
+        };
+      }
+      return { rango: { desde, hasta }, motivoInvalido: null };
     }
-    return rangoISO(fDesde, fHasta, tz);
-  }, [turno, horaTurno, turnoHasta, fDesde, fHasta, tz]);
+    return { rango: rangoISO(fDesde, fHasta, tz), motivoInvalido: null };
+  }, [turno, diaTurno, horaTurno, turnoHasta, fDesde, fHasta, tz, cortesPrevios]);
 
-  const rangoValido = turno
-    ? Date.parse(hastaEf) > Date.parse(desdeEf)
-    : (fDesde !== '' && fHasta !== '' && fHasta >= fDesde);
+  const rangoValido = rango !== null;
+  const desdeEf = rango?.desde ?? '';
+  const hastaEf = rango?.hasta ?? '';
+
+  // Freno a duplicados: el MISMO rango ya tiene un corte (recepción lo confirmó
+  // varias veces porque no vio la confirmación; numa llegó a 8 iguales en 12 min).
+  const yaHecho = useMemo(() => {
+    if (!rango) return false;
+    const sD = Date.parse(rango.desde);
+    const sH = Date.parse(rango.hasta);
+    // Por turno: un corte que ARRANCA en el mismo instante ya es ese turno (el fin
+    // varía porque es "ahora"). Por fechas: mismo rango exacto.
+    return cortesPrevios.some((c) => c.desde !== null && Date.parse(c.desde) === sD && (turno !== null || Date.parse(c.hasta) === sH));
+  }, [rango, cortesPrevios, turno]);
 
   // Aviso (no bloquea): el rango elegido se enclima con un corte ya hecho, así que
   // los mismos cobros contarían en dos cortes. Se compara por timestamp real.
@@ -1311,10 +1377,11 @@ function CorteModal({
   }, [sucursalId, desdeEf, hastaEf, rangoValido]);
 
   // Elegir un turno congela su rango; guarda la hora si numa la cambió.
-  function elegirTurno(t: 'matutino' | 'vespertino') {
+  function elegirTurno(t: 'matutino' | 'vespertino', dia: 'hoy' | 'ayer' = diaTurno) {
     setTurno(t);
-    setTurnoHasta(t === 'vespertino' ? new Date().toISOString() : null);
-    if (guardarHoraTurno && horaTurno !== horaGuardada && /^\d{2}:\d{2}$/.test(horaTurno)) {
+    setDiaTurno(dia);
+    setTurnoHasta(dia === 'hoy' ? new Date().toISOString() : null);
+    if (guardarHoraTurno && horaTurno !== horaGuardada && RE_HORA.test(horaTurno)) {
       void saveTopLevel({ caja: { ...(cfgTenant?.caja as object ?? {}), turno_corte_hora: horaTurno } });
     }
   }
@@ -1327,7 +1394,7 @@ function CorteModal({
   const contadoValido = simple || (contado.trim() !== '' && Number.isFinite(contadoC) && contadoC >= 0);
 
   async function confirmar() {
-    if (!contadoValido || esperado === null || !rangoValido) return;
+    if (!contadoValido || esperado === null || !rangoValido || yaHecho) return;
     setEnviando(true);
     const rpc = supabase.rpc.bind(supabase) as unknown as (
       name: string,
@@ -1344,7 +1411,8 @@ function CorteModal({
       p_notas: null
     });
     setEnviando(false);
-    if (error || !data) { onError('No se pudo hacer el corte. Intenta de nuevo.'); return; }
+    if (error) { onError(translateActionError(error)); return; }
+    if (!data) { onError('No se pudo hacer el corte. Intenta de nuevo.'); return; }
     onHecho(data);
   }
 
@@ -1412,7 +1480,7 @@ function CorteModal({
               value={horaTurno}
               onChange={(e) => setHoraTurno(e.target.value)}
               onBlur={() => {
-                if (/^\d{2}:\d{2}$/.test(horaTurno) && horaTurno !== horaGuardada) {
+                if (guardarHoraTurno && RE_HORA.test(horaTurno) && horaTurno !== horaGuardada) {
                   void saveTopLevel({ caja: { ...(cfgTenant?.caja as object ?? {}), turno_corte_hora: horaTurno } });
                 }
               }}
@@ -1420,10 +1488,31 @@ function CorteModal({
             />
           </label>
         </div>
+        {turno && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontSize: 12.5, color: 'var(--sala-text-secondary)' }}>
+            <span>Turno de</span>
+            {(['hoy', 'ayer'] as const).map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => elegirTurno(turno, d)}
+                className={`ek-cta ${diaTurno === d ? '' : 'ek-cta--secondary'}`}
+                style={{ minHeight: 30, fontSize: 12, padding: '0 12px' }}
+              >
+                {d === 'hoy' ? 'Hoy' : 'Ayer'}
+              </button>
+            ))}
+          </div>
+        )}
         {turno && rangoValido && (
           <p style={{ fontSize: 12, color: 'var(--sala-text-secondary)', margin: '0 0 12px' }}>
             {turno === 'matutino' ? 'Turno matutino' : 'Turno vespertino'}: {hora(desdeEf, tz)} – {hora(hastaEf, tz)}
           </p>
+        )}
+        {motivoInvalido && (
+          <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--sala-surface)', border: '1px solid var(--sala-border)', fontSize: 12.5, lineHeight: 1.45, color: 'var(--sala-text-secondary)' }}>
+            {motivoInvalido}
+          </div>
         )}
 
         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
@@ -1437,7 +1526,12 @@ function CorteModal({
           </label>
         </div>
 
-        {seEnclima && (
+        {yaHecho && (
+          <div style={{ marginBottom: 16, padding: '10px 12px', borderRadius: 10, background: 'var(--sala-surface)', border: '1px solid var(--sala-border)', fontSize: 12.5, lineHeight: 1.45, color: 'var(--sala-text-secondary)' }}>
+            <strong>Este corte ya está hecho.</strong> Lo encuentras en «Últimos cortes» (ahí puedes ver e imprimir su ticket). No hace falta repetirlo.
+          </div>
+        )}
+        {seEnclima && !yaHecho && (
           <div style={{ marginBottom: 16, padding: '10px 12px', borderRadius: 10, background: 'var(--sala-surface)', border: '1px solid var(--sala-border)', fontSize: 12.5, lineHeight: 1.45, color: 'var(--sala-text-secondary)' }}>
             <strong>⚠ Ojo:</strong> este rango se enclima con un corte anterior. Los mismos cobros contarían en los dos cortes. Puedes continuar, pero revisa que no estés cortando lo mismo dos veces.
           </div>
@@ -1478,7 +1572,7 @@ function CorteModal({
           <button type="button" onClick={onClose} disabled={enviando} className="ek-cta ek-cta--secondary" style={{ flex: 1 }}>
             Cancelar
           </button>
-          <button type="button" onClick={confirmar} disabled={!contadoValido || enviando || esperado === null || !rangoValido} className="ek-cta" style={{ flex: 1 }}>
+          <button type="button" onClick={confirmar} disabled={!contadoValido || enviando || esperado === null || !rangoValido || yaHecho} className="ek-cta" style={{ flex: 1 }}>
             {enviando ? 'Guardando…' : 'Confirmar corte'}
           </button>
         </div>

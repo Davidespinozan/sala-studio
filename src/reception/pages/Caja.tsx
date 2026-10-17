@@ -1,4 +1,5 @@
 import { CajaView } from '@admin/pages/Caja';
+import { ErrorBoundary } from '@shared/components/ErrorBoundary';
 import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
 
 /**
@@ -8,5 +9,10 @@ import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
  */
 export default function CajaRecepcion() {
   const { sucursalId, sucursalNombre } = useReceptionSucursal();
-  return <CajaView modo="recepcion" sucursalFiltro={sucursalId} sucursalNombre={sucursalNombre} />;
+  // Boundary propio: si algo truena en la Caja, cae solo esta sección (no la app).
+  return (
+    <ErrorBoundary variant="inline" resetKeys={[sucursalId]}>
+      <CajaView modo="recepcion" sucursalFiltro={sucursalId} sucursalNombre={sucursalNombre} />
+    </ErrorBoundary>
+  );
 }
