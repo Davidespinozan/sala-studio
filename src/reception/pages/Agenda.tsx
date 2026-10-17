@@ -9,6 +9,7 @@ import { useReservasSemana, type ReservaConJoin } from '../hooks/useReservasHoy'
 import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
 import { ElegirSocioModal } from '../components/acciones/ElegirSocioModal';
 import { CrearReservaModal } from '../components/acciones/CrearReservaModal';
+import { RegistrarSocioModal } from '../components/RegistrarSocioModal';
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
   confirmada: { label: 'Confirmada', color: 'var(--sala-primary)', bg: 'var(--sala-primary-light)' },
@@ -90,6 +91,8 @@ export default function Agenda() {
   // "+ Agregar socio": paso 1 elegir socio, paso 2 CrearReservaModal con la clase puesta.
   const [agregarA, setAgregarA] = useState<ClaseGrupo | null>(null);
   const [socioElegido, setSocioElegido] = useState<{ id: string; nombre: string } | null>(null);
+  // Walk-in nuevo desde la clase: alta → (ficha) asignar plan → crear reserva.
+  const [altaDesdeClase, setAltaDesdeClase] = useState<ClaseGrupo | null>(null);
 
   useEffect(() => {
     let cancel = false;
@@ -223,11 +226,20 @@ export default function Agenda() {
         )}
       </div>
 
-      {agregarA && !socioElegido && (
+      {agregarA && !socioElegido && !altaDesdeClase && (
         <ElegirSocioModal
           titulo={`${agregarA.nombre} · ${agregarA.hora}`}
           onClose={() => setAgregarA(null)}
           onElegir={(s) => setSocioElegido({ id: s.id, nombre: s.nombre ?? s.email })}
+          onNuevo={() => setAltaDesdeClase(agregarA)}
+        />
+      )}
+      {altaDesdeClase && (
+        <RegistrarSocioModal
+          isOpen
+          claseWalkin={altaDesdeClase.ref}
+          onClose={() => { setAltaDesdeClase(null); setAgregarA(null); }}
+          onDone={recargar}
         />
       )}
       {agregarA?.ref && socioElegido && (

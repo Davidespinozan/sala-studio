@@ -1,14 +1,28 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { backendPost } from '@shared/lib/backend';
 import { useReceptionSucursal } from '../providers/ReceptionSucursalProvider';
 import { useTenant } from '@shared/hooks/useTenant';
 import { guardarDatosPrivados } from '@shared/lib/datosSocio';
 import { QrChico } from '@shared/components/QrChico';
 
+/** Clase a la que iba el walk-in (desde la Agenda): se arrastra hasta la ficha
+ *  para que, ya con plan, "Crear reserva" abra con esa clase puesta. */
+export type ClaseWalkin = { fecha: string; claseId: string | null; horarioId: string | null };
+
+/** Estado de navegación que la ficha del socio lee para seguir la cadena del
+ *  walk-in: abrir "Asignar plan" al llegar y, al terminar, "Crear reserva". */
+export interface WalkinState {
+  paso: 'asignar_plan';
+  clase?: ClaseWalkin | null;
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   onDone: () => Promise<void> | void;
+  /** Si el alta nace desde una clase de la Agenda, se arrastra hasta la reserva. */
+  claseWalkin?: ClaseWalkin | null;
 }
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -20,9 +34,10 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
  * y lo obliga a cambiarla). Así el gym nunca dicta contraseñas. El PLAN se asigna
  * después desde la ficha.
  */
-export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
+export function RegistrarSocioModal({ isOpen, onClose, onDone, claseWalkin = null }: Props) {
   const { sucursalId, multisede } = useReceptionSucursal();
   const tenant = useTenant();
+  const navigate = useNavigate();
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [telefono, setTelefono] = useState('');
@@ -30,7 +45,7 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
   const [fechaNac, setFechaNac] = useState('');
   const [sexo, setSexo] = useState('');
   const [domicilio, setDomicilio] = useState('');
-  const [creado, setCreado] = useState<{ email: string } | null>(null);
+  const [creado, setCreado] = useState<{ id: string; email: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,7 +81,7 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
       // Ficha del socio (opcional). Best-effort: la ficha YA existe, un fallo acá
       // no debe tumbar el alta (se completa luego desde su ficha).
       await guardarDatosPrivados(res.usuario_id, tenant.id, { fecha_nacimiento: fechaNac, sexo, domicilio });
-      setCreado({ email: res.email });
+      setCreado({ id: res.usuario_id, email: res.email });
       await onDone();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo crear el socio.');
@@ -120,11 +135,31 @@ export function RegistrarSocioModal({ isOpen, onClose, onDone }: Props) {
               </div>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--sala-text-tertiary)', margin: '0 0 16px', lineHeight: 1.45 }}>
-              Para activarle un plan, abre su ficha y usa “Asignar plan”.
+              {claseWalkin
+                ? 'Para inscribirlo en la clase, primero asígnale un plan: la reserva se abre sola después.'
+                : 'Para activarle un plan, sigue con “Asignar plan ahora” o hazlo después desde su ficha.'}
             </p>
-            <button type="button" onClick={onClose} className="ek-cta" style={{ width: '100%' }}>
-              Listo
-            </button>
+            {/* Walk-in: el alta sola no sirve para entrar a clase. Antes había que
+                cerrar, buscar la ficha, Asignar plan y luego Crear reserva (3 pantallas
+                en hora pico). Esto lleva directo a la ficha con "Asignar plan" abierto
+                y, si venía de una clase, encadena "Crear reserva" con esa clase. */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button type="button" onClick={onClose} className="ek-cta ek-cta--secondary" style={{ flex: 1, whiteSpace: 'nowrap' }}>
+                Listo
+              </button>
+              <button
+                type="button"
+                className="ek-cta"
+                style={{ flex: 1, whiteSpace: 'nowrap' }}
+                onClick={() => {
+                  const state: WalkinState = { paso: 'asignar_plan', clase: claseWalkin };
+                  onClose();
+                  navigate(`/recepcion/socios/${creado.id}`, { state });
+                }}
+              >
+                Asignar plan ahora
+              </button>
+            </div>
           </>
         ) : (
           <>

@@ -11,12 +11,15 @@ import { useSocios, type SocioListItem } from '../../hooks/useSocios';
 export function ElegirSocioModal({
   titulo,
   onElegir,
-  onClose
+  onClose,
+  onNuevo
 }: {
   /** Ej. "Yoga · Hoy 7:00". */
   titulo: string;
   onElegir: (socio: SocioListItem) => void;
   onClose: () => void;
+  /** Walk-in que no existe todavía: abre el alta sin salir de la clase. */
+  onNuevo?: () => void;
 }) {
   const [q, setQ] = useState('');
   const { socios, isLoading } = useSocios(q);
@@ -53,7 +56,7 @@ export function ElegirSocioModal({
             <div className="ek-skeleton" style={{ height: '52px', borderRadius: '12px' }} />
           ) : resultados.length === 0 ? (
             <p style={{ fontSize: '13px', color: 'var(--sala-text-tertiary)', margin: '8px 2px' }}>
-              Nadie coincide. Si es nuevo, dalo de alta en Socios.
+              {onNuevo ? 'Nadie coincide. Si es nuevo, dalo de alta aquí abajo.' : 'Nadie coincide. Si es nuevo, dalo de alta en Socios.'}
             </p>
           ) : (
             resultados.map((s) => (
@@ -81,9 +84,16 @@ export function ElegirSocioModal({
           )}
         </div>
 
-        <button type="button" onClick={onClose} className="ek-cta ek-cta--secondary" style={{ width: '100%', marginTop: '14px' }}>
-          Cancelar
-        </button>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+          <button type="button" onClick={onClose} className="ek-cta ek-cta--secondary" style={{ flex: 1, whiteSpace: 'nowrap' }}>
+            Cancelar
+          </button>
+          {onNuevo && (
+            <button type="button" onClick={onNuevo} className="ek-cta ek-cta--secondary" style={{ flex: 1, whiteSpace: 'nowrap' }}>
+              + Nuevo socio
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
