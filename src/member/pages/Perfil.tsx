@@ -901,7 +901,7 @@ function PlanActualYOpciones({
         return;
       }
       if (res.reason === 'prueba_ya_usada') {
-        toast.error('Ya usaste tu clase de prueba gratis. Elige un paquete o membresía para seguir.');
+        toast.error('Ya usaste tu clase de prueba. Elige un paquete o membresía para seguir.');
         setEnProceso(false);
         return;
       }
