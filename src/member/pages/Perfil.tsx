@@ -21,6 +21,7 @@ import { nombreDedo } from '@shared/lib/dedos';
 import { sufijoPeriodoTier } from '@shared/lib/precioTier';
 import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { iniciarCheckout } from '@shared/lib/checkout';
+import { apartarPlanParaRecepcion } from '@shared/lib/elegirPlanRecepcion';
 import { ReciboModal } from '@shared/components/ReciboModal';
 import { conceptoLabel, metodoLabel, montoFmt } from '@shared/lib/recibo';
 import { backendPost } from '@shared/lib/backend';
@@ -821,8 +822,25 @@ function PlanActualYOpciones({
   // "Activar mi paquete" (banner de cuenta sin plan) llega con ?elegir=1: se abre
   // el selector de una vez, en la pestaña del paquete que eligió al registrarse.
   const [searchParams, setSearchParams] = useSearchParams();
-  const { usuario } = useAuth();
+  const { usuario, refetchUsuario } = useAuth();
   const tierRegistro = usuario?.membresia_tier ?? null;
+  // "Pagar en recepción": sin membresía vigente, el socio puede apartar el plan
+  // sin tarjeta; recepción lo ve en su ficha, lo asigna y lo cobra en Caja.
+  const [apartando, setApartando] = useState(false);
+  const apartarEnRecepcion = async (tier: Tier) => {
+    if (apartando || enProceso) return;
+    setApartando(true);
+    try {
+      const res = await apartarPlanParaRecepcion(tier.id);
+      toast.success(`Listo: ${res.tier_nombre} quedó apartado. Págalo en recepción y ahí se activa para reservar.`, 7000);
+      await refetchUsuario();
+      setAbierto(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No pudimos apartar el plan.');
+    } finally {
+      setApartando(false);
+    }
+  };
   useEffect(() => {
     if (searchParams.get('elegir') !== '1' || !puedePagar || tiers.length === 0) return;
     const elegido = tierRegistro ? tiers.find((t) => t.slug === tierRegistro) : undefined;
@@ -958,8 +976,8 @@ function PlanActualYOpciones({
 
             <p style={{ margin: '0 0 16px', fontSize: '13.5px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
               {tieneMembresia
-                ? 'Elegí tu nuevo plan. Pagás de forma segura sin salir de la app.'
-                : 'Elegí un plan para empezar. Pagás de forma segura sin salir de la app.'}
+                ? 'Elige tu nuevo plan. Pagas de forma segura sin salir de la app.'
+                : 'Elige un plan para empezar. Puedes pagarlo aquí con tarjeta o apartarlo y pagarlo en recepción.'}
             </p>
 
             {hayAmbosTipos && (
@@ -978,13 +996,15 @@ function PlanActualYOpciones({
                   tieneMembresia={tieneMembresia}
                   enProceso={enProceso}
                   onCambiar={() => void suscribir(tier)}
+                  onRecepcion={!tieneMembresia ? () => void apartarEnRecepcion(tier) : undefined}
                 />
               ))}
             </div>
 
             <p style={{ margin: '14px 0 0', fontSize: '12px', color: 'var(--sala-text-tertiary)', lineHeight: 1.5 }}>
-              El cobro lo procesa Stripe de forma segura. Si cambiás a mitad de período, el ajuste
-              proporcional cae en tu próximo cobro.
+              {tieneMembresia
+                ? 'El cobro lo procesa Stripe de forma segura. Si cambias a mitad de período, el ajuste proporcional cae en tu próximo cobro.'
+                : 'Con tarjeta, el cobro lo procesa Stripe de forma segura y tu plan queda activo al instante. En recepción, el plan queda apartado y se activa cuando lo pagas ahí.'}
             </p>
           </div>
         </div>
@@ -1053,7 +1073,8 @@ function PlanOptionCard({
   esActual,
   tieneMembresia,
   enProceso,
-  onCambiar
+  onCambiar,
+  onRecepcion
 }: {
   tier: Tier;
   /** Precio de este plan para el socio, con su descuento vigente (si aplica). */
@@ -1062,6 +1083,8 @@ function PlanOptionCard({
   tieneMembresia: boolean;
   enProceso: boolean;
   onCambiar: () => void;
+  /** Sin membresía: apartar el plan y pagarlo en recepción (sin tarjeta). */
+  onRecepcion?: () => void;
 }) {
   const beneficios = Array.isArray(tier.beneficios)
     ? (tier.beneficios as Array<{ label?: string; incluido?: boolean }>).filter(
@@ -1148,23 +1171,35 @@ function PlanOptionCard({
       </div>
 
       {!esActual && (
-        <button
-          type="button"
-          onClick={onCambiar}
-          disabled={enProceso}
-          className="ek-cta ek-lift"
-          style={{
-            padding: '10px 14px',
-            fontSize: '13px',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-            gap: '6px',
-            opacity: enProceso ? 0.6 : 1
-          }}
-        >
-          {enProceso ? 'Procesando…' : tieneMembresia ? 'Elegir este' : 'Suscribirme'}
-          {!enProceso && <ArrowRight size={15} strokeWidth={2.25} />}
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0, alignItems: 'stretch' }}>
+          <button
+            type="button"
+            onClick={onCambiar}
+            disabled={enProceso}
+            className="ek-cta ek-lift"
+            style={{
+              padding: '10px 14px',
+              fontSize: '13px',
+              whiteSpace: 'nowrap',
+              gap: '6px',
+              opacity: enProceso ? 0.6 : 1
+            }}
+          >
+            {enProceso ? 'Procesando…' : tieneMembresia ? 'Elegir este' : onRecepcion ? 'Pagar con tarjeta' : 'Suscribirme'}
+            {!enProceso && <ArrowRight size={15} strokeWidth={2.25} />}
+          </button>
+          {onRecepcion && (
+            <button
+              type="button"
+              onClick={onRecepcion}
+              disabled={enProceso}
+              className="ek-cta ek-cta--secondary"
+              style={{ padding: '8px 12px', fontSize: '12.5px', whiteSpace: 'nowrap', opacity: enProceso ? 0.6 : 1 }}
+            >
+              Pagar en recepción
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

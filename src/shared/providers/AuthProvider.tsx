@@ -14,6 +14,8 @@ interface AuthContextValue {
   usuario: Usuario | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  /** Vuelve a leer la fila de `usuarios` (p. ej. tras apartar un plan). */
+  refetchUsuario: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -21,7 +23,8 @@ const AuthContext = createContext<AuthContextValue>({
   authUser: null,
   usuario: null,
   isLoading: true,
-  signOut: async () => {}
+  signOut: async () => {},
+  refetchUsuario: async () => {}
 });
 
 interface AuthProviderProps {
@@ -113,6 +116,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, []);
 
+  async function refetchUsuario() {
+    const uid = session?.user?.id;
+    if (uid) await hydrateUsuario(uid);
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     setUsuario(null);
@@ -126,7 +134,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         authUser: session?.user ?? null,
         usuario,
         isLoading,
-        signOut
+        signOut,
+        refetchUsuario
       }}
     >
       {children}
