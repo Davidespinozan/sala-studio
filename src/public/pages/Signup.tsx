@@ -8,7 +8,7 @@ import { validarPassword } from '../lib/onboardingLogic';
 import { formatearPrecioTier, sufijoPeriodoTier } from '@shared/lib/precioTier';
 import { socioPuedePagarEnApp } from '@shared/lib/cobrosDelGym';
 import { autoservicioActivo } from '@shared/lib/cobrosConfig';
-import { altaSinPlanActiva } from '@shared/lib/registroConfig';
+import { altaSinPlanActiva, accesoSinPlanActivo } from '@shared/lib/registroConfig';
 import { SaludSocioForm, tenantPideSalud } from '@shared/components/SaludSocioForm';
 
 interface TierRow {
@@ -368,6 +368,10 @@ export default function Signup() {
   // Distinción del mensaje: autoservicio OFF (numa) → "pagas en recepción";
   // autoservicio ON pero Connect en trámite → "coordina el pago con el gym".
   const autoservicio = autoservicioActivo(tenant.config as Record<string, unknown> | null);
+  // Entrar sin pagar (flag del gym): la cuenta entra a la app de una vez y el
+  // paquete se paga después (app o recepción). El cartel y el botón NO pueden
+  // decir "enseguida te pedimos la tarjeta" porque ya no es cierto.
+  const entraSinPagar = accesoSinPlanActivo(tenant.config as Record<string, unknown> | null);
 
   return (
     <div style={{
@@ -516,7 +520,13 @@ export default function Signup() {
           }}
         >
           <p style={{ fontSize: '13px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.5 }}>
-            {cobraOnline && plan.precio_centavos > 0 ? (
+            {entraSinPagar && plan.precio_centavos > 0 ? (
+              <>
+                <strong>Entras de una vez.</strong> Creas tu cuenta y ya puedes ver clases y
+                horarios. Tu plan de {precio} lo pagas cuando quieras{cobraOnline ? ', en la app o en recepción' : ', en recepción'},
+                y en ese momento queda activo para reservar.
+              </>
+            ) : cobraOnline && plan.precio_centavos > 0 ? (
               <>
                 <strong>Pagas al terminar.</strong> Creas tu cuenta y enseguida te pedimos la
                 tarjeta para activar tu plan de {precio}. El cobro lo procesa {tenant.nombre} de
@@ -580,7 +590,9 @@ export default function Signup() {
         >
           {isProcessing
             ? 'Activando tu cuenta…'
-            : `Activar mi plan — ${precio}${sufijo}`
+            : entraSinPagar && plan.precio_centavos > 0
+              ? `Crear mi cuenta — ${plan.nombre}`
+              : `Activar mi plan — ${precio}${sufijo}`
           }
         </button>
 
@@ -604,7 +616,9 @@ export default function Signup() {
           marginTop: '4px',
           lineHeight: 1.5
         }}>
-          El gimnasio coordina el cobro de tu plan contigo.
+          {entraSinPagar && plan.precio_centavos > 0
+            ? 'Sin cargo ahora: pagas tu plan después y ahí se activa.'
+            : 'El gimnasio coordina el cobro de tu plan contigo.'}
         </p>
 
         <p style={{
