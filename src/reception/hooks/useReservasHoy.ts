@@ -178,6 +178,7 @@ function translateError(code: string, fallback: string): string {
     RESERVA_NO_SHOW: 'Esta reserva quedó marcada como inasistencia',
     DEMASIADO_TEMPRANO: 'Todavía es muy temprano para el check-in',
     DEMASIADO_TARDE: 'El check-in ya cerró',
+    PAGO_PENDIENTE: 'Tiene un pago pendiente: cóbralo en «Por cobrar» y vuelve a hacer el check-in',
     SUCURSAL_DIFERENTE: 'Esta reserva es de otra sede',
     NO_AUTORIZADO: 'No tienes permiso para hacer esta acción',
     SIN_MULTA: 'Esta reserva no tiene multa que cobrar',

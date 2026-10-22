@@ -21,7 +21,9 @@ import { nombreDedo } from '@shared/lib/dedos';
 import { sufijoPeriodoTier } from '@shared/lib/precioTier';
 import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { iniciarCheckout } from '@shared/lib/checkout';
-import { apartarPlanParaRecepcion } from '@shared/lib/elegirPlanRecepcion';
+import { apartarPlanParaRecepcion, activarPlanPorCobrar } from '@shared/lib/elegirPlanRecepcion';
+import { porCobrarAutoservicioActivo } from '@shared/lib/cobrosConfig';
+import { formatearMoneda } from '@shared/lib/dinero';
 import { ReciboModal } from '@shared/components/ReciboModal';
 import { conceptoLabel, metodoLabel, montoFmt } from '@shared/lib/recibo';
 import { backendPost } from '@shared/lib/backend';
@@ -110,6 +112,8 @@ export default function Perfil() {
   // ¿El socio puede pagar su MEMBRESÍA desde la app? (Connect listo + autoservicio
   // prendido). numa lo apaga: cobra en recepción, la app es solo para reservar.
   const cobraOnline = socioPuedePagarEnApp(tenant);
+  // "Pagar en recepción" activa el plan (por cobrar) si el gym lo permite.
+  const porCobrarApp = porCobrarAutoservicioActivo(tenant.config as Record<string, unknown> | null);
   // La tarjeta guardada también la usa la Tienda: si el gym vende productos al
   // socio, hay que dejar "Método de pago" aunque las membresías sean solo-recepción.
   const puedeGuardarTarjeta = cobraOnline || ventaSocioActiva(tenant.config as Record<string, unknown> | null);
@@ -200,6 +204,11 @@ export default function Perfil() {
           tiers={tiers}
           tenantNombre={tenant.nombre}
         />
+        {/* SIN PLAN: elegirlo es lo primero que tiene que ver, no quedar debajo de
+            avisos y tarjeta (The Core, 22-oct: "el botón está muy escondido"). */}
+        {!loadingMembresia && !membresia && (
+          <PlanActualYOpciones usuarioId={usuario?.id} membresia={membresia} tiers={tiers} tenantNombre={tenant.nombre} puedePagar={cobraOnline} porCobrar={porCobrarApp} destacado />
+        )}
         {/* Avisos en el teléfono: sin esto, el socio solo se entera si abre la app. */}
         {usuario?.id && (
           <div style={{ marginTop: '20px' }}>
@@ -214,8 +223,11 @@ export default function Perfil() {
         {/* Un gym que cobra 100% en efectivo y sin Tienda no tiene tarjetas que
             gestionar: mostrarle "Método de pago" es un botón que no lleva a ningún
             lado. Se muestra si puede pagar membresía online O comprar en la Tienda. */}
-        {puedeGuardarTarjeta && <MetodoPago />}
-        <PlanActualYOpciones usuarioId={usuario?.id} membresia={membresia} tiers={tiers} tenantNombre={tenant.nombre} puedePagar={cobraOnline} />
+        {/* Sin plan, la tarjeta todavía no sirve de nada: se pide al pagar. */}
+        {puedeGuardarTarjeta && !!membresia && <MetodoPago />}
+        {!!membresia && (
+          <PlanActualYOpciones usuarioId={usuario?.id} membresia={membresia} tiers={tiers} tenantNombre={tenant.nombre} puedePagar={cobraOnline} porCobrar={porCobrarApp} />
+        )}
         <HistorialPagos />
         {membresia && !membresia.cancelada_at && (
           <CancelarSuscripcion tenantNombre={tenant.nombre} />
@@ -800,7 +812,9 @@ function PlanActualYOpciones({
   membresia,
   tiers,
   tenantNombre,
-  puedePagar
+  puedePagar,
+  porCobrar = false,
+  destacado = false
 }: {
   usuarioId: string | undefined;
   membresia: ReturnType<typeof useMembresiaActual>['membresia'];
@@ -809,6 +823,10 @@ function PlanActualYOpciones({
   /** ¿El socio puede pagar/cambiar de plan solo? Si no (gym solo-recepción), el
    *  cambio de plan se coordina con el gym, no hay checkout. */
   puedePagar: boolean;
+  /** "Pagar en recepción" ACTIVA el plan y lo deja por cobrar (reserva ya). */
+  porCobrar?: boolean;
+  /** Sin plan: el botón va arriba del perfil, grande y explicado. */
+  destacado?: boolean;
 }) {
   const toast = useToast();
   const [enProceso, setEnProceso] = useState(false);
@@ -831,6 +849,16 @@ function PlanActualYOpciones({
     if (apartando || enProceso) return;
     setApartando(true);
     try {
+      if (porCobrar) {
+        // Activa de una vez (por cobrar): ya puede reservar; paga al llegar.
+        const res = await activarPlanPorCobrar(tier.id);
+        toast.success(
+          `Listo: ${res.tier_nombre} ya está activo. Ya puedes reservar; pagas ${formatearMoneda(res.monto_centavos)} en recepción al llegar.`,
+          8000
+        );
+        setTimeout(() => window.location.reload(), 1200);
+        return;
+      }
       const res = await apartarPlanParaRecepcion(tier.id);
       toast.success(`Listo: ${res.tier_nombre} quedó apartado. Págalo en recepción y ahí se activa para reservar.`, 7000);
       await refetchUsuario();
@@ -936,6 +964,15 @@ function PlanActualYOpciones({
       {/* Un solo botón. Antes acá se listaban TODAS las tarjetas de planes: el
           perfil quedaba en una pared de opciones donde no se distinguía cuál era
           el tuyo. Elegir plan es una tarea puntual → va en un modal. */}
+      {destacado && (
+        <div className="ek-card" style={{ padding: '16px 18px', marginBottom: '10px' }}>
+          <p className="ek-eyebrow ek-eyebrow--mustard" style={{ marginBottom: '4px' }}>TU PLAN</p>
+          <p style={{ margin: 0, fontSize: '14px', color: 'var(--sala-text-primary)', lineHeight: 1.5 }}>
+            Aún no tienes un plan. Elige uno para reservar: lo pagas aquí con tarjeta
+            {porCobrar ? ' o en recepción al llegar.' : ' o lo apartas y lo pagas en recepción.'}
+          </p>
+        </div>
+      )}
       <button
         type="button"
         onClick={() => {
@@ -977,7 +1014,9 @@ function PlanActualYOpciones({
             <p style={{ margin: '0 0 16px', fontSize: '13.5px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
               {tieneMembresia
                 ? 'Elige tu nuevo plan. Pagas de forma segura sin salir de la app.'
-                : 'Elige un plan para empezar. Puedes pagarlo aquí con tarjeta o apartarlo y pagarlo en recepción.'}
+                : porCobrar
+                  ? 'Elige un plan para empezar. Pagas aquí con tarjeta, o eliges "Pagar en recepción" y reservas de una vez: pagas al llegar.'
+                  : 'Elige un plan para empezar. Puedes pagarlo aquí con tarjeta o apartarlo y pagarlo en recepción.'}
             </p>
 
             {hayAmbosTipos && (
@@ -1004,7 +1043,9 @@ function PlanActualYOpciones({
             <p style={{ margin: '14px 0 0', fontSize: '12px', color: 'var(--sala-text-tertiary)', lineHeight: 1.5 }}>
               {tieneMembresia
                 ? 'El cobro lo procesa Stripe de forma segura. Si cambias a mitad de período, el ajuste proporcional cae en tu próximo cobro.'
-                : 'Con tarjeta, el cobro lo procesa Stripe de forma segura y tu plan queda activo al instante. En recepción, el plan queda apartado y se activa cuando lo pagas ahí.'}
+                : porCobrar
+                  ? 'Con tarjeta, el cobro lo procesa Stripe de forma segura. En recepción, tu plan queda activo de una vez y pagas al llegar: hasta que pagues no podrás entrar a clase.'
+                  : 'Con tarjeta, el cobro lo procesa Stripe de forma segura y tu plan queda activo al instante. En recepción, el plan queda apartado y se activa cuando lo pagas ahí.'}
             </p>
           </div>
         </div>

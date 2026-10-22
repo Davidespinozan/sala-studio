@@ -840,7 +840,7 @@ function MembresiaCard() {
         : 'var(--sala-warning-glow)';
     return (
       <Link
-        to="/app/perfil"
+        to={estado === 'sin_membresia' ? '/app/perfil?elegir=1' : '/app/perfil'}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -940,7 +940,7 @@ export function membresiaCardTexto(
   m: MembresiaActual | null,
   estado: EstadoMembresia
 ): { value: string; problema: boolean } {
-  if (estado === 'sin_membresia') return { value: 'Sin membresía activa', problema: true };
+  if (estado === 'sin_membresia') return { value: 'Sin plan · Elige tu plan', problema: true };
   if (estado === 'congelada') return { value: 'Membresía pausada', problema: true };
   if (estado === 'past_due') return { value: 'Pago pendiente · revisa tu tarjeta', problema: true };
   // m no es null para los estados que siguen

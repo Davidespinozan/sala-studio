@@ -55,6 +55,7 @@ export const ERROR_CODE_MAP: Record<string, string> = {
   // en la zona del servidor (UTC), que no es la del gym.
   DEMASIADO_TEMPRANO: 'El check-in de esta clase todavía no abre: se habilita poco antes de que empiece',
   DEMASIADO_TARDE: 'El check-in de esta clase ya cerró',
+  PAGO_PENDIENTE: 'El socio tiene un pago pendiente: cóbralo en «Por cobrar» (Hoy o su ficha) y vuelve a hacer el check-in',
   RESERVA_CANCELADA: 'Esa reserva está cancelada',
   RESERVA_NO_SHOW: 'Esa reserva ya quedó marcada como inasistencia',
   CHECK_IN_NO_EXISTE: 'No encontramos ese check-in',

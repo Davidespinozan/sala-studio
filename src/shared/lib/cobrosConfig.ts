@@ -29,3 +29,23 @@ export function conAutoservicio(
   const cobros = { ...((base.cobros ?? {}) as Record<string, unknown>), autoservicio: activo };
   return { ...base, cobros };
 }
+// ----------------------------------------------------------------------------
+// PLAN POR COBRAR DESDE LA APP — `tenants.config.cobros.por_cobrar_autoservicio`
+// ¿"Pagar en recepción" en la app ACTIVA el plan de una vez dejándolo por cobrar
+// (la socia reserva ya; el check-in se bloquea hasta que recepción cobre)? Default
+// FALSE: sin esto el botón solo aparta el plan y recepción lo activa al cobrar.
+// Pedido de The Core (22-oct-2026). Backend: socio_activar_plan_por_cobrar.
+// ----------------------------------------------------------------------------
+export function porCobrarAutoservicioActivo(config: Record<string, unknown> | null | undefined): boolean {
+  const cobros = (config?.cobros ?? {}) as Record<string, unknown>;
+  return cobros.por_cobrar_autoservicio === true;
+}
+
+export function conPorCobrarAutoservicio(
+  config: Record<string, unknown> | null | undefined,
+  activo: boolean
+): Record<string, unknown> {
+  const base = config ?? {};
+  const cobros = { ...((base.cobros ?? {}) as Record<string, unknown>), por_cobrar_autoservicio: activo };
+  return { ...base, cobros };
+}

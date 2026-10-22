@@ -4,7 +4,7 @@ import { formatearMoneda } from '@shared/lib/dinero';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant, useTenantRefetch } from '@shared/hooks/useTenant';
 import { useToast } from '@shared/hooks/useToast';
-import { autoservicioActivo, conAutoservicio } from '@shared/lib/cobrosConfig';
+import { autoservicioActivo, conAutoservicio, porCobrarAutoservicioActivo, conPorCobrarAutoservicio } from '@shared/lib/cobrosConfig';
 import { altaSinPlanActiva, conAltaSinPlan, accesoSinPlanActivo, conAccesoSinPlan } from '@shared/lib/registroConfig';
 import { ActivarCobrosCard } from '../components/ActivarCobrosCard';
 import { DescuentosCard } from '../components/DescuentosCard';
@@ -145,6 +145,9 @@ export default function Cobros() {
   // antes de activar su paquete? Vive en tenants.config.registro.acceso_sin_plan.
   const accesoSinPlan = accesoSinPlanActivo(config);
   const [guardandoAcceso, setGuardandoAcceso] = useState(false);
+  // Pagar en recepción desde la app activa el plan (por cobrar) → reserva ya.
+  const porCobrarApp = porCobrarAutoservicioActivo(config);
+  const [guardandoPorCobrar, setGuardandoPorCobrar] = useState(false);
   const { salud, cargando: cargandoSalud, error: errorSalud } = useSaludStripe(conectado);
 
   async function toggleAutoservicio() {
@@ -159,6 +162,17 @@ export default function Cobros() {
     setGuardandoAuto(false);
   }
 
+  async function togglePorCobrarApp() {
+    setGuardandoPorCobrar(true);
+    const next = conPorCobrarAutoservicio(config, !porCobrarApp);
+    const { error } = await (supabase as any).from('tenants').update({ config: next }).eq('id', tenant.id);
+    if (error) toast.error('No se pudo guardar: ' + error.message);
+    else {
+      toast.success(!porCobrarApp ? '"Pagar en recepción" ya activa el plan y lo deja por cobrar' : '"Pagar en recepción" vuelve a solo apartar el plan');
+      await refetchTenant();
+    }
+    setGuardandoPorCobrar(false);
+  }
   async function toggleAccesoSinPlan() {
     setGuardandoAcceso(true);
     const next = conAccesoSinPlan(config, !accesoSinPlan);
@@ -273,6 +287,30 @@ export default function Cobros() {
               className={accesoSinPlan ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
             >
               {guardandoAcceso ? '…' : accesoSinPlan ? 'Activado' : 'Desactivado'}
+            </button>
+          </div>
+        </Bloque>
+
+        {/* Pagar en recepción desde la app: activa el plan y queda "por cobrar";
+            la socia reserva de inmediato y el check-in se bloquea hasta cobrar. */}
+        <Bloque titulo="PAGAR EN RECEPCIÓN DESDE LA APP">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--sala-text-primary)' }}>
+                {porCobrarApp ? 'Activa el plan y queda por cobrar' : 'Solo aparta el plan'}
+              </div>
+              <div style={{ fontSize: '12.5px', color: 'var(--sala-text-secondary)', marginTop: '3px', lineHeight: 1.5 }}>
+                {porCobrarApp
+                  ? 'Al elegir "Pagar en recepción", el plan se activa de una vez y aparece en Caja → Por cobrar. La socia reserva al instante, pero no pasa el check-in (manual, QR ni huella) hasta que recepción cobre.'
+                  : 'Al elegir "Pagar en recepción", el plan solo queda apartado: la socia no puede reservar hasta que recepción lo asigne y cobre. Actívalo para que reserve de inmediato y pague al llegar.'}
+              </div>
+            </div>
+            <button
+              onClick={togglePorCobrarApp}
+              disabled={guardandoPorCobrar}
+              className={porCobrarApp ? 'ek-cta' : 'ek-cta ek-cta--secondary'}
+            >
+              {guardandoPorCobrar ? '…' : porCobrarApp ? 'Activado' : 'Desactivado'}
             </button>
           </div>
         </Bloque>

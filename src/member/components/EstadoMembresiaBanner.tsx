@@ -4,6 +4,8 @@ import { useMembresiaActual, membresiaEstado, type EstadoMembresia } from '@memb
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
 import { socioPuedePagarEnApp } from '@shared/lib/cobrosDelGym';
+import { formatearMoneda } from '@shared/lib/dinero';
+import { useMisCargosPendientes } from '@member/hooks/useMisCargosPendientes';
 import ContactoGymCTA from './ContactoGymCTA';
 
 /**
@@ -24,9 +26,19 @@ export default function EstadoMembresiaBanner() {
   const { membresia, isLoading } = useMembresiaActual();
   const { usuario } = useAuth();
   const tenant = useTenant();
+  const { total: deuda } = useMisCargosPendientes();
   if (isLoading) return null;
 
   const estado = membresiaEstado(membresia);
+  // Plan activo pero por cobrar: puede reservar, NO entrar hasta pagar.
+  if (estado === 'sana' && deuda > 0) {
+    return (
+      <AvisoBanner
+        eyebrow="Pago pendiente"
+        mensaje={`Debes ${formatearMoneda(deuda)} de tu plan. Págalo en recepción al llegar: hasta entonces no podrás hacer check-in.`}
+      />
+    );
+  }
   if (estado === 'sana') return null;
 
   // Cuenta recién creada que entró sin pagar (acceso_sin_plan): no "perdió" nada,
@@ -100,6 +112,28 @@ export default function EstadoMembresiaBanner() {
             <ContactoGymCTA mensaje={waMensaje} label="Escribir al gimnasio" variant="inline" />
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Banner simple (sin CTA): mismo look que el de estado. */
+function AvisoBanner({ eyebrow, mensaje }: { eyebrow: string; mensaje: string }) {
+  return (
+    <div
+      role="status"
+      aria-label={eyebrow}
+      style={{
+        background: 'color-mix(in srgb, var(--sala-accent) 12%, var(--sala-surface))',
+        borderBottom: '1px solid color-mix(in srgb, var(--sala-accent) 32%, transparent)',
+        padding: '12px 20px'
+      }}
+    >
+      <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+        <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--sala-accent)', margin: '0 0 4px' }}>
+          {eyebrow}
+        </p>
+        <p style={{ fontSize: '14px', color: 'var(--sala-text-primary)', margin: 0, lineHeight: 1.45 }}>{mensaje}</p>
       </div>
     </div>
   );

@@ -156,6 +156,7 @@ function translateError(code: string, fallback: string): string {
     MEMBRESIA_VENCIDA: 'Membresía vencida. Pasá al mostrador para renovar o registrar la entrada.',
     MEMBRESIA_CONGELADA: 'Membresía pausada. Pasá al mostrador.',
     SIN_MEMBRESIA: 'Sin membresía activa. Pasá al mostrador.',
+    PAGO_PENDIENTE: 'Pago pendiente. Cóbralo en «Por cobrar» y vuelve a escanear.',
     NO_AUTORIZADO: 'No autorizado',
     QR_INVALIDO: 'QR inválido',
     QR_EXPIRADO: 'QR expirado'
