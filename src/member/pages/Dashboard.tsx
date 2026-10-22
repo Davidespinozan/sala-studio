@@ -1,6 +1,7 @@
+import { useToast } from '@shared/hooks/useToast';
 import { useEffect, useState } from 'react';
 import { Activity, ArrowRight, CalendarCheck, Clock, Heart, Sparkles, type LucideIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams} from 'react-router-dom';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
@@ -242,6 +243,24 @@ function capitalizarNombre(nombre: string | null | undefined): string {
 // ============================================================================
 
 export default function Dashboard() {
+  // Regreso del checkout de Stripe (success_url / cancel_url = /app?compra=…).
+  // Cancelar no cobra nada: se le dice y se le abre el selector para que elija
+  // de nuevo (tarjeta o recepción). Antes volvía al inicio sin explicación.
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const toast = useToast();
+  useEffect(() => {
+    const compra = params.get('compra');
+    if (!compra) return;
+    if (compra === 'cancel') {
+      toast.info('No se hizo ningún cobro. Elige tu plan de nuevo: con tarjeta o para pagar en recepción.', 7000);
+      navigate('/app/perfil?elegir=1', { replace: true });
+    } else if (compra === 'ok') {
+      toast.success('¡Pago recibido! Tu plan se activa en unos segundos.', 6000);
+      navigate('/app', { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
   const { usuario } = useAuth();
   const tenant = useTenant();
   const tz = getTenantTimezone(tenant);

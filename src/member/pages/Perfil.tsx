@@ -845,6 +845,17 @@ function PlanActualYOpciones({
   // "Pagar en recepción": sin membresía vigente, el socio puede apartar el plan
   // sin tarjeta; recepción lo ve en su ficha, lo asigna y lo cobra en Caja.
   const [apartando, setApartando] = useState(false);
+  // "Pagar con tarjeta" redirige a Stripe con el botón en "Procesando…". Si la
+  // socia se arrepiente y vuelve con "atrás", el navegador restaura la página
+  // tal cual (bfcache) y el botón seguía bloqueado: ya no podía elegir "Pagar en
+  // recepción". Al volver, se desbloquea todo.
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) { setEnProceso(false); setApartando(false); }
+    };
+    window.addEventListener('pageshow', onShow);
+    return () => window.removeEventListener('pageshow', onShow);
+  }, []);
   const apartarEnRecepcion = async (tier: Tier) => {
     if (apartando || enProceso) return;
     setApartando(true);
@@ -1033,7 +1044,7 @@ function PlanActualYOpciones({
                   precioSocio={precioDe(tier.id)}
                   esActual={membresia?.tier_id === tier.id}
                   tieneMembresia={tieneMembresia}
-                  enProceso={enProceso}
+                  enProceso={enProceso || apartando}
                   onCambiar={() => void suscribir(tier)}
                   onRecepcion={!tieneMembresia ? () => void apartarEnRecepcion(tier) : undefined}
                 />
