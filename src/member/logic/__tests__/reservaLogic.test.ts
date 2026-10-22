@@ -8,8 +8,7 @@ import {
   formatDateISO,
   traducirErrorRPC,
   mensajeToastCancelacion,
-  type TenantReservaConfig
-} from '../reservaLogic';
+  type TenantReservaConfig, planActivoDelSocio } from '../reservaLogic';
 import type { Database } from '@shared/types/database';
 
 type Recurso = Database['public']['Tables']['recursos']['Row'];
@@ -148,10 +147,24 @@ describe('traducirErrorRPC — gate de membresía (Fase 2A.2)', () => {
       'Tu membresía está pausada. Contacta al gimnasio.'
     );
   });
-  it('SIN_MEMBRESIA → mensaje de sin membresía', () => {
+  it('SIN_MEMBRESIA → mensaje de sin membresía (guía al perfil)', () => {
     expect(traducirErrorRPC('SIN_MEMBRESIA: No tienes una membresía activa')).toBe(
-      'No tienes una membresía activa. Contacta al gimnasio.'
+      'No tienes un plan activo. Elige uno en tu perfil o pregunta en recepción.'
     );
+  });
+  it('USUARIO_INACTIVO con pendiente_pago → "elige un plan", no "contacta al administrador"', () => {
+    expect(traducirErrorRPC('USUARIO_INACTIVO: Tu membresía no está activa (status: pendiente_pago)')).toBe(
+      'Aún no tienes un plan activo. Ve a tu perfil y elige uno para reservar.'
+    );
+    expect(traducirErrorRPC('USUARIO_INACTIVO: Tu membresía no está activa (status: suspendido)')).toBe(
+      'Tu membresía no está activa. Contacta al administrador.'
+    );
+  });
+  it('planActivoDelSocio: el plan ELEGIDO no cuenta si la cuenta no está activa', () => {
+    expect(planActivoDelSocio({ status: 'pendiente_pago', membresia_tier: 'paq-4' })).toBeNull();
+    expect(planActivoDelSocio({ status: 'activo', membresia_tier: 'paq-4' })).toBe('paq-4');
+    expect(planActivoDelSocio({ status: 'activo', membresia_tier: null })).toBeNull();
+    expect(planActivoDelSocio(null)).toBeNull();
   });
   it('códigos preexistentes siguen funcionando (regresión)', () => {
     expect(traducirErrorRPC('CUPO_LLENO: ...')).toBe(

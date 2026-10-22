@@ -24,7 +24,7 @@ import { formatearMoneda } from '@shared/lib/dinero';
 import { guardarInvitados, ajustarInvitados, type InvitadoDetalle } from '@shared/lib/invitados';
 import { useMaxInvitados } from '@member/hooks/useMaxInvitados';
 import { useFavoritos } from '@member/hooks/useFavoritos';
-import { accesoSala, mensajeToastCancelacion, traducirErrorRPC } from '@member/logic/reservaLogic';
+import { accesoSala, mensajeToastCancelacion, traducirErrorRPC, planActivoDelSocio } from '@member/logic/reservaLogic';
 import {
   anotarseEnListaEspera,
   salirDeListaEspera,
@@ -173,7 +173,7 @@ export default function ClaseDetalle() {
     return () => { mounted = false; };
   }, [claseRef, usuario, tenant.id, tz, refreshTick]);
 
-  const tier = usuario?.membresia_tier ?? null;
+  const tier = planActivoDelSocio(usuario);
   const acceso = clase ? accesoSala(clase.tiersPermitidos, tier) : 'sin_plan';
   const puedeAccederTier = acceso === 'ok';
   const sinPlan = acceso === 'sin_plan';

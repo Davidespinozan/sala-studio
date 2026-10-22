@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { estadoCupos, type Clase } from '@member/logic/claseAdapter';
 import { CupoBar } from './CupoBar';
 import { CoachAvatar, SalaImg } from './claseMedia';
@@ -318,6 +318,29 @@ function ActionButton({
       >
         Lista de espera
       </button>
+    );
+  }
+
+  // Sin plan: en vez de un botón muerto, el camino para resolverlo (el selector
+  // de planes en Perfil se abre solo con ?elegir=1).
+  if (!puedeReservar && sinPlan) {
+    return (
+      <Link
+        to="/app/perfil?elegir=1"
+        title="Necesitas un plan para reservar"
+        style={{
+          ...baseStyle,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textDecoration: 'none',
+          background: 'var(--sala-accent-light)',
+          color: 'var(--sala-accent)',
+          borderColor: 'transparent'
+        }}
+      >
+        Elegir un plan
+      </Link>
     );
   }
 

@@ -92,6 +92,20 @@ export function salaPermiteTier(
  */
 export type AccesoSala = 'ok' | 'sin_plan' | 'plan_no_incluye';
 
+/**
+ * Plan con el que el socio puede reservar HOY. `usuarios.membresia_tier` guarda
+ * el plan ELEGIDO (al registrarse o al apartarlo para pagar en recepción), no el
+ * activo: una cuenta 'pendiente_pago' lo tiene lleno sin haber pagado. Antes la
+ * UI lo tomaba como "tiene plan", mostraba Reservar y el servidor respondía
+ * USUARIO_INACTIVO ("contacta al administrador") en vez de "elige un plan".
+ */
+export function planActivoDelSocio(
+  usuario: { status?: string | null; membresia_tier?: string | null } | null | undefined
+): string | null {
+  if (!usuario || usuario.status !== 'activo') return null;
+  return usuario.membresia_tier ?? null;
+}
+
 export function accesoSala(
   permitidos: string[] | null | undefined,
   tier: string | null | undefined
@@ -158,6 +172,10 @@ export function formatHora(d: Date): string {
  * Traduce los códigos de error de los RPC de reservas a mensajes user-friendly.
  */
 export function traducirErrorRPC(message: string): string {
+  // Cuenta creada sin plan (acceso_sin_plan): no es un problema del gym, le falta
+  // elegir/pagar su paquete. El RPC manda el status en el mensaje.
+  if (message.includes('USUARIO_INACTIVO') && message.includes('pendiente_pago'))
+    return 'Aún no tienes un plan activo. Ve a tu perfil y elige uno para reservar.';
   if (message.includes('USUARIO_INACTIVO')) return 'Tu membresía no está activa. Contacta al administrador.';
   if (message.includes('USUARIO_BLOQUEADO')) return 'Tu cuenta tiene una restricción activa.';
   if (message.includes('RECURSO_NO_EXISTE')) return 'Esta sala no está disponible.';
@@ -178,7 +196,7 @@ export function traducirErrorRPC(message: string): string {
   if (message.includes('MEMBRESIA_CONGELADA'))
     return 'Tu membresía está pausada. Contacta al gimnasio.';
   if (message.includes('SIN_MEMBRESIA'))
-    return 'No tienes una membresía activa. Contacta al gimnasio.';
+    return 'No tienes un plan activo. Elige uno en tu perfil o pregunta en recepción.';
   if (message.includes('LIMITE_DIARIO')) {
     const n = message.match(/permite (\d+)/)?.[1];
     return n ? `Tu plan permite ${n} reserva(s) por día. Ya llegaste al tope de hoy.` : 'Ya llegaste al máximo de reservas de hoy con tu plan.';

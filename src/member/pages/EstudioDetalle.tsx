@@ -5,7 +5,7 @@ import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useFavoritos } from '@member/hooks/useFavoritos';
-import { accesoSala } from '@member/logic/reservaLogic';
+import { accesoSala, planActivoDelSocio } from '@member/logic/reservaLogic';
 import type { Database } from '@shared/types/database';
 
 type RecursoDetalle = Database['public']['Tables']['recursos']['Row'];
@@ -66,7 +66,7 @@ export default function EstudioDetalle() {
   // Misma regla que el RPC (_sala_permite_tier): lista vacía = sala ABIERTA.
   // Antes era `includes(tier)`, que con lista vacía da false → a una sala
   // abierta le salía "Plan no incluido" y no había botón Reservar.
-  const acceso = accesoSala(recurso.tiers_permitidos, usuario?.membresia_tier);
+  const acceso = accesoSala(recurso.tiers_permitidos, planActivoDelSocio(usuario));
   const usuarioPuedeUsar = acceso === 'ok';
   const tipoContenido = recurso.tipo_contenido ?? [];
   const equipo = recurso.equipo_incluido ?? [];

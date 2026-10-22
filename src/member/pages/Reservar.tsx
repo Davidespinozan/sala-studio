@@ -18,8 +18,7 @@ import {
   generarFechasReservables,
   mensajeToastCancelacion,
   traducirErrorRPC,
-  type TenantReservaConfig
-} from '@member/logic/reservaLogic';
+  type TenantReservaConfig, planActivoDelSocio } from '@member/logic/reservaLogic';
 import {
   claseFromExpansion,
   type Clase,
@@ -60,7 +59,7 @@ export default function Reservar() {
     };
   }, [tenant.config]);
 
-  const tier = usuario?.membresia_tier ?? null;
+  const tier = planActivoDelSocio(usuario);
   const tz = getTenantTimezone(tenant);
   const { membresia } = useMembresiaActual(usuario?.id);
 
