@@ -21,7 +21,9 @@ import { nombreDedo } from '@shared/lib/dedos';
 import { sufijoPeriodoTier } from '@shared/lib/precioTier';
 import { useMemberSucursal } from '@member/providers/MemberSucursalProvider';
 import { iniciarCheckout } from '@shared/lib/checkout';
-import { apartarPlanParaRecepcion, activarPlanPorCobrar } from '@shared/lib/elegirPlanRecepcion';
+import { apartarPlanParaRecepcion, activarPlanPorCobrar, esPlanPorCobrar } from '@shared/lib/elegirPlanRecepcion';
+import { useMisCargosPendientes } from '@member/hooks/useMisCargosPendientes';
+import { PlanPorCobrarCard } from '@member/components/PlanPorCobrarCard';
 import { porCobrarAutoservicioActivo } from '@shared/lib/cobrosConfig';
 import { formatearMoneda } from '@shared/lib/dinero';
 import { ReciboModal } from '@shared/components/ReciboModal';
@@ -121,6 +123,14 @@ export default function Perfil() {
   const { membresia, isLoading: loadingMembresia } = useMembresiaActual(usuario?.id);
   const { tiers } = useTiersDelTenant();
   const { whatsappUrl } = useLandingConfig();
+  // Plan "por cobrar" (elegido con "Pagar en recepción", sin pagar): no se
+  // ofrece cambiar de plan ni "cancelar suscripción"; se resuelve ese primero
+  // (pagar con tarjeta o cancelarlo). Ver PlanPorCobrarCard.
+  const { cargos: misCargos } = useMisCargosPendientes();
+  const planPorCobrar = esPlanPorCobrar(!!membresia, misCargos);
+  const deudaPlan = misCargos
+    .filter((c) => c.concepto === 'plan' || c.concepto === 'inscripcion')
+    .reduce((s, c) => s + (c.monto_centavos ?? 0), 0);
 
   const miembroDesde = formatearMiembroDesde(usuario?.created_at);
   const ayudaUrl = whatsappUrl('Hola, necesito ayuda con mi cuenta.');
@@ -225,11 +235,19 @@ export default function Perfil() {
             lado. Se muestra si puede pagar membresía online O comprar en la Tienda. */}
         {/* Sin plan, la tarjeta todavía no sirve de nada: se pide al pagar. */}
         {puedeGuardarTarjeta && !!membresia && <MetodoPago />}
-        {!!membresia && (
+        {!!membresia && planPorCobrar && (
+          <PlanPorCobrarCard
+            tierNombre={membresia.tier_nombre}
+            montoCentavos={deudaPlan}
+            cobraOnline={cobraOnline}
+            tenantNombre={tenant.nombre}
+          />
+        )}
+        {!!membresia && !planPorCobrar && (
           <PlanActualYOpciones usuarioId={usuario?.id} membresia={membresia} tiers={tiers} tenantNombre={tenant.nombre} puedePagar={cobraOnline} porCobrar={porCobrarApp} />
         )}
         <HistorialPagos />
-        {membresia && !membresia.cancelada_at && (
+        {membresia && !planPorCobrar && !membresia.cancelada_at && (
           <CancelarSuscripcion tenantNombre={tenant.nombre} />
         )}
         <FaqPlan cobraOnline={cobraOnline} tenantNombre={tenant.nombre} />

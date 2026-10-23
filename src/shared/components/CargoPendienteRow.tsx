@@ -21,16 +21,41 @@ type Metodo = 'efectivo' | 'tarjeta' | 'transferencia';
 export function CargoPendienteRow({
   cargo,
   mostrarSocio = false,
-  onCobrado
+  onCobrado,
+  onCancelado
 }: {
   cargo: CargoPendiente;
   /** En listas de varios socios (Hoy) se muestra el nombre; en la ficha no. */
   mostrarSocio?: boolean;
   onCobrado: () => Promise<void> | void;
+  /** Tras cancelar un plan por cobrar (cae el plan + sus reservas futuras). Si
+   *  no se pasa, se usa onCobrado para refrescar. */
+  onCancelado?: () => Promise<void> | void;
 }) {
   const toast = useToast();
   const [metodo, setMetodo] = useState<Metodo>('efectivo');
   const [busy, setBusy] = useState(false);
+  // Un cargo de PLAN es un plan "por cobrar" (nunca pagado). Cancelarlo cancela
+  // también el plan: antes solo desaparecía el cargo y el socio se quedaba con
+  // el plan activo sin pagar (The Core, 22-oct-2026).
+  const esPlan = cargo.concepto === 'plan';
+
+  async function cancelarPlan() {
+    const quien = cargo.socio_nombre?.trim() || cargo.socio_email || 'este socio';
+    if (!confirm(`¿Cancelar el plan por cobrar de ${quien} (${formatearMoneda(cargo.monto_centavos)})? No se cobrará, su plan queda cancelado y se liberan sus reservas futuras.`)) return;
+    setBusy(true);
+    const { data, error } = await rpc('cancelar_cargo_pendiente', { p_cargo_id: cargo.id, p_motivo: null });
+    if (error) {
+      setBusy(false);
+      toast.error(error.message.replace(/^[A-Z_]+:\s*/, '') || 'No se pudo cancelar');
+      return;
+    }
+    const plan = (data as { plan?: { plan_cancelado?: boolean; reason?: string } } | null)?.plan;
+    if (plan?.plan_cancelado) toast.success('Plan por cobrar cancelado. Sus reservas futuras quedaron liberadas.');
+    else if (plan?.reason === 'tiene_pagos') toast.info('Cargo cancelado. El plan se conservó porque ya tiene pagos registrados.');
+    else toast.success('Cargo cancelado.');
+    await (onCancelado ?? onCobrado)();
+  }
   // Idempotencia: reintento tras respuesta perdida devuelve el mismo pago, no cobra dos veces.
   const operationKey = useOperationKey([cargo.id, metodo]);
 
@@ -78,6 +103,18 @@ export function CargoPendienteRow({
       <button type="button" onClick={cobrar} disabled={busy} className="ek-cta" style={{ fontSize: '13px' }}>
         {busy ? 'Cobrando…' : `Cobrar ${formatearMoneda(cargo.monto_centavos)}`}
       </button>
+      {esPlan && (
+        <button
+          type="button"
+          onClick={cancelarPlan}
+          disabled={busy}
+          className="ek-cta ek-cta--secondary"
+          style={{ fontSize: '13px' }}
+          title="El socio no pagó este plan: se cancela el plan y se liberan sus reservas futuras"
+        >
+          Cancelar plan
+        </button>
+      )}
     </div>
   );
 }

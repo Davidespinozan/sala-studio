@@ -7,6 +7,7 @@ import { useOperationKey } from '@shared/lib/operationKey';
 interface Cargo {
   id: string;
   socio: string;
+  concepto: string;
   descripcion: string | null;
   monto_centavos: number;
 }
@@ -48,15 +49,15 @@ export function PorCobrarCard({
       select: (s: string) => Builder;
     };
     let q = from('cargos_pendientes')
-      .select('id, descripcion, monto_centavos, socio:usuarios!cargos_pendientes_usuario_id_fkey(nombre)')
+      .select('id, concepto, descripcion, monto_centavos, socio:usuarios!cargos_pendientes_usuario_id_fkey(nombre)')
       .eq('tenant_id', tenantId)
       .eq('estado', 'pendiente');
     if (sucursalId) q = q.eq('sucursal_id', sucursalId);
     const { data } = await q.order('created_at', { ascending: true });
     setCargos(
       (data ?? []).map((row) => {
-        const r = row as { id: string; descripcion: string | null; monto_centavos: number; socio?: { nombre?: string | null } | null };
-        return { id: r.id, socio: r.socio?.nombre ?? '—', descripcion: r.descripcion, monto_centavos: r.monto_centavos };
+        const r = row as { id: string; concepto?: string | null; descripcion: string | null; monto_centavos: number; socio?: { nombre?: string | null } | null };
+        return { id: r.id, socio: r.socio?.nombre ?? '—', concepto: r.concepto ?? 'otro', descripcion: r.descripcion, monto_centavos: r.monto_centavos };
       })
     );
     setCargando(false);
@@ -119,16 +120,27 @@ function CargoRow({
     await onDone();
   }
 
+  // Un cargo de PLAN es un plan "por cobrar" (nunca pagado): cancelarlo cancela
+  // también el plan y sus reservas futuras. Antes solo desaparecía el cargo y el
+  // socio se quedaba con el plan activo gratis (The Core, 22-oct-2026).
+  const esPlan = cargo.concepto === 'plan';
+
   async function cancelar() {
-    if (!confirm(`¿Cancelar el cargo de ${formatearMoneda(cargo.monto_centavos)} de ${cargo.socio}? No se cobrará.`)) return;
+    const aviso = esPlan
+      ? `¿Cancelar el plan por cobrar de ${cargo.socio} (${formatearMoneda(cargo.monto_centavos)})? No se cobrará, su plan queda cancelado y se liberan sus reservas futuras.`
+      : `¿Cancelar el cargo de ${formatearMoneda(cargo.monto_centavos)} de ${cargo.socio}? No se cobrará.`;
+    if (!confirm(aviso)) return;
     setBusy(true);
-    const { error } = await rpc('cancelar_cargo_pendiente', { p_cargo_id: cargo.id, p_motivo: null });
+    const { data, error } = await rpc('cancelar_cargo_pendiente', { p_cargo_id: cargo.id, p_motivo: null });
     if (error) {
       setBusy(false);
       toast.error(error.message.replace(/^[A-Z_]+:\s*/, '') || 'No se pudo cancelar');
       return;
     }
-    toast.success('Cargo cancelado.');
+    const plan = (data as { plan?: { plan_cancelado?: boolean; reason?: string } } | null)?.plan;
+    if (esPlan && plan?.plan_cancelado) toast.success('Cargo y plan cancelados. Sus reservas futuras quedaron liberadas.');
+    else if (esPlan && plan?.reason === 'tiene_pagos') toast.info('Cargo cancelado. El plan se conservó porque ya tiene pagos registrados.');
+    else toast.success('Cargo cancelado.');
     await onDone();
   }
 
@@ -156,9 +168,11 @@ function CargoRow({
       <button type="button" onClick={cobrar} disabled={busy} className="ek-cta" style={{ fontSize: '13px' }}>
         {busy ? '…' : 'Cobrar'}
       </button>
-      {puedeCancelar && (
+      {/* Perdonar una deuda es del dueño; cancelar un plan por cobrar (nunca
+          pagado) también lo puede hacer recepción: así no queda un plan gratis. */}
+      {(puedeCancelar || esPlan) && (
         <button type="button" onClick={cancelar} disabled={busy} className="ek-cta ek-cta--secondary" style={{ fontSize: '13px' }}>
-          Cancelar
+          {esPlan ? 'Cancelar plan' : 'Cancelar'}
         </button>
       )}
     </div>

@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 const rpc = vi.fn();
 vi.mock('@shared/lib/supabase', () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
 
-import { apartarPlanParaRecepcion, activarPlanPorCobrar, traducirErrorApartarPlan } from '../elegirPlanRecepcion';
+import { apartarPlanParaRecepcion, activarPlanPorCobrar, traducirErrorApartarPlan, cancelarPlanPorCobrar, traducirErrorCancelarPorCobrar, esPlanPorCobrar } from '../elegirPlanRecepcion';
 
 // "Pagar en recepción" desde la app (The Core, 18-oct-2026): aparta el plan sin
 // tarjeta vía RPC; los códigos del backend llegan en español para el socio.
@@ -38,5 +38,37 @@ describe('activarPlanPorCobrar', () => {
   });
   it('ya debe algo → no apila', () => {
     expect(traducirErrorApartarPlan('CARGO_PENDIENTE_EXISTE: x')).toMatch(/pago pendiente/);
+  });
+});
+
+// Plan "por cobrar" que la socia cancela desde la app (The Core, 22-oct-2026):
+// antes "Cancelar suscripción" decía que un paquete no se cancela y la socia se
+// quedaba con un plan apartado sin salida.
+describe('cancelarPlanPorCobrar', () => {
+  it('llama al RPC sin argumentos y devuelve el resultado', async () => {
+    rpc.mockResolvedValueOnce({ data: { plan_cancelado: true, membresia_id: 'm1', tier_nombre: 'Clase prueba', cargos_cancelados: 1, prueba_liberada: true }, error: null });
+    const res = await cancelarPlanPorCobrar();
+    expect(rpc).toHaveBeenCalledWith('socio_cancelar_plan_por_cobrar');
+    expect(res.prueba_liberada).toBe(true);
+  });
+  it('plan con pagos → mensaje que manda a recepción', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { message: 'PLAN_PAGADO: tu plan ya tiene pagos registrados' } });
+    await expect(cancelarPlanPorCobrar()).rejects.toThrow(/recepción/);
+  });
+  it('códigos conocidos y fallback', () => {
+    expect(traducirErrorCancelarPorCobrar('SIN_PLAN: x')).toMatch(/plan activo/);
+    expect(traducirErrorCancelarPorCobrar('NO_POR_COBRAR: x')).toMatch(/pendiente de pago/);
+    expect(traducirErrorCancelarPorCobrar('function does not exist')).toMatch(/Intenta de nuevo/);
+  });
+});
+
+describe('esPlanPorCobrar', () => {
+  it('membresía + cargo de plan pendiente = por cobrar', () => {
+    expect(esPlanPorCobrar(true, [{ concepto: 'plan' }])).toBe(true);
+  });
+  it('sin membresía, o solo otros cargos (multa, producto), no lo es', () => {
+    expect(esPlanPorCobrar(false, [{ concepto: 'plan' }])).toBe(false);
+    expect(esPlanPorCobrar(true, [{ concepto: 'producto' }])).toBe(false);
+    expect(esPlanPorCobrar(true, [])).toBe(false);
   });
 });

@@ -35,7 +35,11 @@ export default function EstadoMembresiaBanner() {
     return (
       <AvisoBanner
         eyebrow="Pago pendiente"
-        mensaje={`Debes ${formatearMoneda(deuda)} de tu plan. Págalo en recepción al llegar: hasta entonces no podrás hacer check-in.`}
+        mensaje={
+          socioPuedePagarEnApp(tenant)
+            ? `Debes ${formatearMoneda(deuda)} de tu plan. Págalo con tarjeta desde tu perfil o en recepción al llegar: hasta entonces no podrás hacer check-in.`
+            : `Debes ${formatearMoneda(deuda)} de tu plan. Págalo en recepción al llegar: hasta entonces no podrás hacer check-in.`
+        }
       />
     );
   }

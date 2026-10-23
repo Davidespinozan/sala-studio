@@ -61,7 +61,8 @@ async function recuperarConNuevaTarjeta(stripe: Stripe, session: any, acct?: str
 
 interface Plan {
   kind: 'activar' | 'estado' | 'venta_online' | 'account' | 'card_recovery'
-      | 'reembolso' | 'disputa' | 'sub_estado';   // W6-C1
+      | 'reembolso' | 'disputa' | 'sub_estado'    // W6-C1
+      | 'cargo_pendiente';                        // pago con tarjeta de un "por cobrar" (app)
   objectId: string | null;
   tenant: string | null;
   args: Record<string, unknown>;
@@ -117,6 +118,16 @@ async function clasificar(stripe: Stripe, ev: Stripe.Event, acct: string | undef
       if (obj.metadata?.app !== 'sala') return null;
       if (obj.mode === 'setup') {
         return { kind: 'card_recovery', objectId: obj.id, tenant: null, args: { session_id: obj.id }, session: obj };
+      }
+      // "Pagar con tarjeta" un pendiente (plan elegido con "Pagar en recepción"):
+      // no activa nada; asienta el pago contra los cargos que siguen pendientes.
+      if (obj.metadata?.tipo === 'cargo_pendiente') {
+        const piId = typeof obj.payment_intent === 'string' ? obj.payment_intent : obj.payment_intent?.id;
+        const cargoIds = String(obj.metadata?.cargo_ids ?? '').split(',').map((s: string) => s.trim()).filter(Boolean);
+        return {
+          kind: 'cargo_pendiente', objectId: obj.id, tenant: obj.metadata?.tenant_id ?? null,
+          args: { cargo_ids: cargoIds, referencia: piId ?? obj.id, account_id: acct ?? null, usuario_id: obj.metadata?.usuario_id ?? null }
+        };
       }
       const customerId = typeof obj.customer === 'string' ? obj.customer : obj.customer?.id;
       let subId: string | null = null;
@@ -365,6 +376,29 @@ export const handler: Handler = async (event) => {
     if (plan.kind === 'card_recovery') {
       await recuperarConNuevaTarjeta(stripe, plan.session, acct);
       await inboxProcessed(admin, stripeEvent.id);
+    } else if (plan.kind === 'cargo_pendiente') {
+      // Asienta pagos 'stripe' contra los cargos que SIGUEN pendientes y marca
+      // processed en la misma tx. Lo que recepción ya cobró (o se canceló)
+      // mientras la socia pagaba vuelve en reembolsar_centavos: se devuelve.
+      const { data: res, error } = await admin.rpc('stripe_cobrar_cargos_pendientes' as never, {
+        p_event_id: stripeEvent.id, p_cargo_ids: plan.args.cargo_ids,
+        p_referencia: plan.args.referencia, p_account_id: acct ?? null
+      } as never);
+      if (error) throw new Error((error as { message?: string }).message ?? String(error));
+      const r = res as { reembolsar_centavos?: number; no_aplicados?: unknown[] } | null;
+      const reembolsar = Number(r?.reembolsar_centavos ?? 0) || 0;
+      const pi = typeof plan.args.referencia === 'string' ? plan.args.referencia : '';
+      if (reembolsar > 0 && acct && pi.startsWith('pi_')) {
+        try {
+          await stripe.refunds.create({ payment_intent: pi, amount: reembolsar }, { stripeAccount: acct });
+          await reportarErrorServidor('webhook-socio',
+            new Error('pendiente pagado con tarjeta pero ya cobrado/cancelado en mostrador: reembolsado'),
+            { event: stripeEvent.id, payment_intent: pi, reembolsar_centavos: reembolsar, no_aplicados: r?.no_aplicados ?? [] });
+        } catch (e) {
+          await reportarErrorServidor('webhook-socio', e,
+            { fase: 'reembolsar_cargo_pendiente', event: stripeEvent.id, payment_intent: pi, reembolsar_centavos: reembolsar });
+        }
+      }
     } else {
       const { data: despacho, error } = await admin.rpc('stripe_procesar_socio' as never, {
         p_event_id: stripeEvent.id, p_kind: plan.kind, p_args: plan.args

@@ -8,6 +8,8 @@ const h = vi.hoisted(() => ({
   reportar: vi.fn(async () => {}),
   csList: vi.fn(),
   invPayList: vi.fn(),
+  refund: vi.fn(async () => ({ id: 're_1' })),
+  cobrarCargos: vi.fn(async (): Promise<{ data: unknown; error: unknown }> => ({ data: { ok: true, reembolsar_centavos: 0 }, error: null })),
   // tabla → fila devuelta por maybeSingle(); default = el comportamiento previo
   // (solo 'tenants' trae algo, para el push de disputa abierta).
   fromData: (table: string): unknown => (table === 'tenants' ? { id: 'tenant_1' } : null)
@@ -21,7 +23,8 @@ vi.mock('../_lib/stripe', () => ({
     customers: { update: vi.fn() },
     invoices: { retrieve: vi.fn(), pay: vi.fn() },
     checkout: { sessions: { list: h.csList } },
-    invoicePayments: { list: h.invPayList }
+    invoicePayments: { list: h.invPayList },
+    refunds: { create: h.refund }
   }),
   Stripe: class {}
 }));
@@ -47,6 +50,7 @@ function wireRpc() {
     if (fn === '_stripe_inbox_receive') return { data: { nuevo: true, estado: 'received' }, error: null };
     if (fn === '_stripe_inbox_claim') return { data: claimResult, error: null };
     if (fn === 'stripe_procesar_socio') return dispatchResult;
+    if (fn === 'stripe_cobrar_cargos_pendientes') return h.cobrarCargos();
     if (fn === '_stripe_inbox_processed') return { data: true, error: null };
     if (fn === '_stripe_inbox_failed') return { data: 'failed', error: null };
     if (fn === 'notificar_staff') return notificarResult();
@@ -363,5 +367,43 @@ describe('stripe-webhook (Connect) — pipeline durable', () => {
     const res = await call();
     expect(res.statusCode).toBe(200);
     expect(h.rpc.mock.calls.some((c) => c[0] === 'notificar_staff' && (c[1] as any).p_tipo === 'refund_exitoso')).toBe(false);
+  });
+});
+
+// "Pagar con tarjeta" un pendiente (plan elegido con "Pagar en recepción"): el
+// checkout lleva metadata.tipo='cargo_pendiente' y NO pasa por el dispatcher
+// 'activar' (no hay plan que activar: ya está activo, solo se asienta el pago).
+describe('stripe-webhook — cargo pendiente pagado con tarjeta', () => {
+  const sesion = () => ev({
+    account: 'acct_1', type: 'checkout.session.completed',
+    data: { object: { id: 'cs_9', mode: 'payment', payment_intent: 'pi_9', amount_total: 9900,
+      metadata: { app: 'sala', tipo: 'cargo_pendiente', usuario_id: 'u', tenant_id: 'T', cargo_ids: 'c1,c2' } } }
+  });
+
+  it('asienta los cargos vía stripe_cobrar_cargos_pendientes (no activar) y responde 200', async () => {
+    h.constructEvent.mockImplementation(sesion);
+    const res = await call();
+    expect(res.statusCode).toBe(200);
+    expect(h.rpc.mock.calls.some((c) => c[0] === 'stripe_procesar_socio')).toBe(false);
+    const cobro = h.rpc.mock.calls.find((c) => c[0] === 'stripe_cobrar_cargos_pendientes');
+    expect(cobro?.[1]).toMatchObject({ p_event_id: 'evt_1', p_cargo_ids: ['c1', 'c2'], p_referencia: 'pi_9', p_account_id: 'acct_1' });
+    expect(h.refund).not.toHaveBeenCalled();
+  });
+
+  it('si recepción ya había cobrado parte, reembolsa esa parte y lo reporta', async () => {
+    h.cobrarCargos.mockResolvedValueOnce({ data: { ok: true, reembolsar_centavos: 9900, no_aplicados: [{ cargo_id: 'c1', estado: 'cobrado' }] }, error: null });
+    h.constructEvent.mockImplementation(sesion);
+    const res = await call();
+    expect(res.statusCode).toBe(200);
+    expect(h.refund).toHaveBeenCalledWith({ payment_intent: 'pi_9', amount: 9900 }, { stripeAccount: 'acct_1' });
+    expect(h.reportar).toHaveBeenCalled();
+  });
+
+  it('error del RPC → inboxFailed + 500 (Stripe reintenta, nada se pierde)', async () => {
+    h.cobrarCargos.mockResolvedValueOnce({ data: null, error: { message: 'boom' } });
+    h.constructEvent.mockImplementation(sesion);
+    const res = await call();
+    expect(res.statusCode).toBe(500);
+    expect(h.rpc.mock.calls.some((c) => c[0] === '_stripe_inbox_failed')).toBe(true);
   });
 });

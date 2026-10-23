@@ -55,3 +55,41 @@ export function traducirErrorApartarPlan(message: string): string {
   if (code && MENSAJES[code]) return MENSAJES[code];
   return 'No pudimos apartar el plan. Intenta de nuevo o pásate a recepción.';
 }
+
+export interface PlanPorCobrarCancelado {
+  plan_cancelado: boolean;
+  membresia_id: string;
+  tier_nombre: string;
+  cargos_cancelados: number;
+  prueba_liberada: boolean;
+}
+
+/**
+ * El socio cancela su plan "por cobrar" (elegido con "Pagar en recepción" y
+ * nunca pagado). El backend cancela la membresía, libera sus reservas futuras y
+ * cancela el cargo; si era la clase de prueba y no la tomó, puede elegirla otra vez.
+ */
+export async function cancelarPlanPorCobrar(): Promise<PlanPorCobrarCancelado> {
+  const { data, error } = await supabase.rpc('socio_cancelar_plan_por_cobrar' as never);
+  if (error) throw new Error(traducirErrorCancelarPorCobrar(error.message));
+  return data as unknown as PlanPorCobrarCancelado;
+}
+
+const MENSAJES_CANCELAR: Record<string, string> = {
+  SIN_PLAN: 'No tienes un plan activo que cancelar.',
+  PLAN_PAGADO: 'Tu plan ya tiene pagos registrados. Para cancelarlo, habla con recepción.',
+  NO_POR_COBRAR: 'Tu plan no está pendiente de pago. Para cancelarlo, habla con recepción.',
+  NO_AUTH: 'Tu sesión expiró. Vuelve a iniciar sesión.',
+  NO_AUTORIZADO: 'No pudimos cancelar el plan con esta cuenta.'
+};
+
+export function traducirErrorCancelarPorCobrar(message: string): string {
+  const code = message.match(/\b([A-Z][A-Z0-9_]{2,})\b/)?.[1];
+  if (code && MENSAJES_CANCELAR[code]) return MENSAJES_CANCELAR[code];
+  return 'No pudimos cancelar el plan. Intenta de nuevo o habla con recepción.';
+}
+
+/** ¿El plan actual del socio está "por cobrar"? = tiene membresía y un cargo de plan pendiente. */
+export function esPlanPorCobrar(tieneMembresia: boolean, cargos: Array<{ concepto: string }>): boolean {
+  return tieneMembresia && cargos.some((c) => c.concepto === 'plan');
+}

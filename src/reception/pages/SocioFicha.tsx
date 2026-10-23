@@ -417,6 +417,7 @@ export function Ficha({
                   await refetchCargos();
                   setPagosReload((n) => n + 1);
                 }}
+                onCancelado={handleDone}
               />
             ))}
           </div>

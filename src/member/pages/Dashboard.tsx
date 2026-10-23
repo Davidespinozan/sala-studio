@@ -250,6 +250,19 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const toast = useToast();
   useEffect(() => {
+    // Regreso de "Pagar con tarjeta" un pendiente (/app?cargo=…): el webhook
+    // asienta el pago en segundos; cancelar no cobra y el plan sigue por cobrar.
+    const cargo = params.get('cargo');
+    if (cargo === 'ok') {
+      toast.success('¡Pago recibido! Tu pendiente queda liquidado en unos segundos.', 6000);
+      navigate('/app', { replace: true });
+      return;
+    }
+    if (cargo === 'cancel') {
+      toast.info('No se hizo ningún cobro. Puedes pagarlo en recepción al llegar o intentarlo de nuevo desde tu perfil.', 7000);
+      navigate('/app/perfil', { replace: true });
+      return;
+    }
     const compra = params.get('compra');
     if (!compra) return;
     if (compra === 'cancel') {
