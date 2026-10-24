@@ -17,6 +17,11 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- La primera consulta de TenantProvider (resuelve el tenant por slug) paga
+         DNS+TCP+TLS completos porque el navegador recién descubre este dominio
+         cuando el JS de Supabase ya cargó y ejecutó. Con esto arranca en paralelo
+         mientras el JS todavía se descarga (medido: ~352ms esa consulta sola). -->
+    <link rel="preconnect" href="https://omrlbvhbggnrwwzlgxji.supabase.co" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
