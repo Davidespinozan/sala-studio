@@ -142,6 +142,8 @@ interface CachedBrand {
   primary: string;
   accent: string;
   isotipoUrl: string | null;
+  /** Inicial del nombre del tenant — fallback cuando no hay isotipo (ver LoadingScreen). */
+  inicial: string | null;
 }
 
 function brandCacheKey(): string {
@@ -158,22 +160,24 @@ function leerBrandCache(): CachedBrand | null {
     return {
       primary: parsed.primary,
       accent: parsed.accent,
-      isotipoUrl: typeof parsed.isotipoUrl === 'string' ? parsed.isotipoUrl : null
+      isotipoUrl: typeof parsed.isotipoUrl === 'string' ? parsed.isotipoUrl : null,
+      inicial: typeof parsed.inicial === 'string' ? parsed.inicial : null
     };
   } catch {
     return null;
   }
 }
 
-function guardarBrandCache(branding: BrandingColors | null | undefined): void {
+function guardarBrandCache(branding: BrandingColors | null | undefined, nombre: string | null | undefined): void {
   if (typeof window === 'undefined') return;
   const b = (branding ?? {}) as Record<string, unknown>;
   const primary = typeof b.color_primary === 'string' ? b.color_primary : null;
   if (!primary) return; // sin color real que cachear — no pisamos un cache previo bueno con basura.
   const accent = typeof b.color_accent === 'string' ? b.color_accent : primary;
   const isotipoUrl = typeof b.isotipo_url === 'string' ? b.isotipo_url : null;
+  const inicial = typeof nombre === 'string' && nombre.trim() ? nombre.trim()[0].toUpperCase() : null;
   try {
-    window.localStorage.setItem(brandCacheKey(), JSON.stringify({ primary, accent, isotipoUrl }));
+    window.localStorage.setItem(brandCacheKey(), JSON.stringify({ primary, accent, isotipoUrl, inicial }));
   } catch {
     // localStorage lleno/bloqueado (ej. Safari privado) — no es crítico, se ignora.
   }
@@ -656,7 +660,7 @@ export function TenantProvider({ children }: TenantProviderProps) {
         // desde el primer frame (ver cachedBrand arriba). No en marketing: ahí
         // el tenant resuelto es solo un fallback de contexto (healthyspace),
         // nunca la marca a mostrar.
-        if (!esMarketing) guardarBrandCache(data.branding as BrandingColors | null);
+        if (!esMarketing) guardarBrandCache(data.branding as BrandingColors | null, data.nombre);
         setIsLoading(false);
       })
       .catch(async (err) => {
@@ -685,7 +689,8 @@ export function TenantProvider({ children }: TenantProviderProps) {
     // este dispositivo, o nada (marca genérica) en la primera visita — nunca
     // el logo de SALA, para no mezclar su marca con la del tenant.
     const logoSrc = esMarketing ? '/isotipo-sala.png' : cachedBrand?.isotipoUrl ?? null;
-    return <LoadingScreen logoSrc={logoSrc} />;
+    const inicial = esMarketing ? null : cachedBrand?.inicial ?? null;
+    return <LoadingScreen logoSrc={logoSrc} inicial={inicial} />;
   }
 
   if (error || !tenant) {

@@ -8,7 +8,7 @@ import { getTenantTimezone, formatHoraEnTz } from '@shared/lib/timezone';
 import { useModulo } from '@shared/hooks/useModulo';
 import { useToast } from '@shared/hooks/useToast';
 import { accesoRevocado } from '@shared/lib/accountStatus';
-import { LoadingScreen } from '@shared/components/LoadingScreen';
+import { TenantLoadingScreen } from '@shared/components/LoadingScreen';
 import { DemoBanner } from '@shared/components/DemoBanner';
 import { AppShell } from '@shared/components/AppShell';
 import { TenantGuard } from '@shared/components/TenantGuard';
@@ -69,10 +69,10 @@ export default function ReceptionLayout() {
     void signOut();
   }, [authUser, usuario, isLoading, signOut, toast]);
 
-  if (isLoading) return <LoadingScreen />;
+  if (isLoading) return <TenantLoadingScreen />;
   if (!authUser) return <Navigate to="/login" state={{ from: location }} replace />;
-  if (!usuario) return <LoadingScreen />;
-  if (accesoRevocado(usuario.status)) return <LoadingScreen />;
+  if (!usuario) return <TenantLoadingScreen />;
+  if (accesoRevocado(usuario.status)) return <TenantLoadingScreen />;
 
   if (usuario.rol !== 'recepcionista' && usuario.rol !== 'admin') {
     return <Navigate to="/app" replace />;
@@ -98,7 +98,7 @@ export default function ReceptionLayout() {
           <CambiarPasswordGate />
           <main className="adm-main">
             <SedeBar />
-            <Suspense fallback={<LoadingScreen />}>
+            <Suspense fallback={<TenantLoadingScreen />}>
               <Routes>
                 <Route path="/" element={<Scanner />} />
                 <Route path="/agenda" element={<Agenda />} />

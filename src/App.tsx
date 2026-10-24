@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { lazyConRecarga } from '@shared/lib/lazyConRecarga';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { LoadingScreen } from '@shared/components/LoadingScreen';
+import { TenantLoadingScreen } from '@shared/components/LoadingScreen';
 import { ToastProvider } from '@shared/providers/ToastProvider';
 import ConexionBanner from '@shared/components/ConexionBanner';
 import { isMarketingRoot, isTenantFromSubdomain } from '@shared/providers/TenantProvider';
@@ -27,7 +27,7 @@ export default function App() {
   return (
     <ToastProvider>
       <ConexionBanner />
-      <Suspense fallback={<LoadingScreen />}>
+      <Suspense fallback={<TenantLoadingScreen />}>
         <Routes>
           <Route path="/app/*" element={<MemberLayout />} />
           <Route path="/admin/*" element={<AdminLayout />} />

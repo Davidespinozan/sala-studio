@@ -3591,7 +3591,25 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   border-radius: 22%;
   animation: sala-loader-breathe 2.2s var(--ease-premium) infinite;
 }
-/* Sin logo conocido todavía (primera visita de un tenant, sin cache): marca
+/* Sin isotipo cacheado pero sí color+nombre del tenant (caso común: muchos
+   tenants nunca suben un isotipo cuadrado aparte) — misma pieza que el
+   fallback de TenantLogo variant='isotipo' sin url. */
+.sala-loader-badge {
+  width: 46px;
+  height: 46px;
+  border-radius: 22%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sala-primary);
+  color: var(--sala-primary-text);
+  font-family: var(--ek-font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  animation: sala-loader-breathe 2.2s var(--ease-premium) infinite;
+}
+/* Sin logo NI nombre conocidos todavía (primera visita, sin cache): marca
    genérica neutral — nunca el logo de SALA (eso mezclaría marcas). */
 @keyframes sala-loader-bars {
   0%, 100% { height: 10px; opacity: 0.55; }

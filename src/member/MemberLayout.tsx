@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect, useRef } from 'react';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useToast } from '@shared/hooks/useToast';
 import { useTenant } from '@shared/hooks/useTenant';
-import { LoadingScreen } from '@shared/components/LoadingScreen';
+import { TenantLoadingScreen } from '@shared/components/LoadingScreen';
 import { DemoBanner } from '@shared/components/DemoBanner';
 import EstadoMembresiaBanner from './components/EstadoMembresiaBanner';
 import NotificacionesBell from '@shared/components/NotificacionesBell';
@@ -61,7 +61,7 @@ export default function MemberLayout() {
     void signOut();
   }, [authUser, usuario, isLoading, signOut, toast]);
 
-  if (isLoading) return <LoadingScreen />;
+  if (isLoading) return <TenantLoadingScreen />;
   if (!authUser) return <Navigate to="/login" state={{ from: location }} replace />;
   // Pendiente de pago: queda logueado viendo el estado, recepción lo activa.
   // Si el gym lo permite (config.registro.acceso_sin_plan), entra a la app
@@ -81,7 +81,7 @@ export default function MemberLayout() {
   // /login de más arriba. NO navegamos a /login acá: haría loop con
   // useRoleRedirect (/login→/app→/login…) mientras `usuario` sigue en cache.
   if (usuario && usuario.status !== 'activo' && !pendienteEntra) {
-    return <LoadingScreen />;
+    return <TenantLoadingScreen />;
   }
 
   return (
@@ -105,7 +105,7 @@ export default function MemberLayout() {
       <SucursalSwitcher />
 
       <ErrorBoundary variant="inline" resetKeys={[location.pathname]}>
-        <Suspense fallback={<LoadingScreen />}>
+        <Suspense fallback={<TenantLoadingScreen />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/reservar" element={<Reservar />} />

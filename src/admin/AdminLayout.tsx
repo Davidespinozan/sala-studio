@@ -7,7 +7,7 @@ import { SuscripcionBloqueada } from './components/SuscripcionBloqueada';
 import { AvisoSuscripcion } from './components/AvisoSuscripcion';
 import { useTenant } from '@shared/hooks/useTenant';
 import { esTenantDemo } from '@shared/lib/demoAuth';
-import { LoadingScreen } from '@shared/components/LoadingScreen';
+import { TenantLoadingScreen } from '@shared/components/LoadingScreen';
 import { AppShell } from '@shared/components/AppShell';
 import { TenantGuard } from '@shared/components/TenantGuard';
 import { ModoDemoBanner } from '@shared/components/ModoDemoBanner';
@@ -46,7 +46,7 @@ export default function AdminLayout() {
   const tenant = useTenant();
   const { suscripcion, isLoading: subLoading } = useSuscripcion();
 
-  if (isLoading || subLoading) return <LoadingScreen />;
+  if (isLoading || subLoading) return <TenantLoadingScreen />;
 
   // PAYWALL con gracia. El demo se exime; estadoAccesoSaas falla ABIERTO.
   //   'bloqueo' → se reemplaza TODO el panel (ya pasó la gracia).
@@ -70,7 +70,7 @@ export default function AdminLayout() {
         <SucursalSelectorBar />
 
         <main className="adm-main">
-          <Suspense fallback={<LoadingScreen />}>
+          <Suspense fallback={<TenantLoadingScreen />}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/miembros" element={<Miembros />} />

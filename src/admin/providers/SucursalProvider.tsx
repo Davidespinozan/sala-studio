@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useTenant } from '@shared/hooks/useTenant';
-import { LoadingScreen } from '@shared/components/LoadingScreen';
+import { TenantLoadingScreen } from '@shared/components/LoadingScreen';
 import type { Database } from '@shared/types/database';
 
 export type Sucursal = Database['public']['Tables']['sucursales']['Row'];
@@ -138,7 +138,7 @@ export function SucursalProvider({ children }: { children: ReactNode }) {
   );
 
   if (isLoading) {
-    return <LoadingScreen />;
+    return <TenantLoadingScreen />;
   }
 
   const multisede = sucursales.length > 1;

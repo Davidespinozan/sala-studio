@@ -2,7 +2,7 @@ import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { useAuth } from '@shared/hooks/useAuth';
 import { useRoleRedirect } from '@shared/hooks/useRoleRedirect';
-import { LoadingScreen } from '@shared/components/LoadingScreen';
+import { TenantLoadingScreen } from '@shared/components/LoadingScreen';
 import { DemoBanner } from '@shared/components/DemoBanner';
 import { ModoDemoBanner } from '@shared/components/ModoDemoBanner';
 import { BurbujasContacto } from './components/BurbujasContacto';
@@ -83,7 +83,7 @@ export default function PublicLayout() {
         </nav>
       </header>
 
-      <Suspense fallback={<LoadingScreen />}>
+      <Suspense fallback={<TenantLoadingScreen />}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
