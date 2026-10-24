@@ -61,6 +61,8 @@ export interface PlanPorCobrarCancelado {
   membresia_id: string;
   tier_nombre: string;
   cargos_cancelados: number;
+  reservas_liberadas?: number;
+  reservas_en_curso?: number;
   prueba_liberada: boolean;
 }
 

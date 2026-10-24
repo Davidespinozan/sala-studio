@@ -17,6 +17,7 @@ import { useOperationKey } from '@shared/lib/operationKey';
 import { useCargosPendientes } from '@shared/hooks/useCargosPendientes';
 import { AvisoCargoPendiente } from '@shared/components/CargoPendienteRow';
 import { usePreciosPlanes } from '@shared/hooks/usePreciosPlanes';
+import { translateActionError } from '@reception/lib/traducirErrorAccion';
 
 interface Props {
   usuarioId: string;
@@ -133,7 +134,9 @@ export function GestionarMembresiaModal({
     });
     if (error || !data) {
       setSaving(false);
-      toast.error(error ?? 'No pudimos actualizar la membresía.');
+      // El RPC explica el porqué (p. ej. PLAN_POR_COBRAR_PENDIENTE: tiene un plan
+      // por cobrar sin resolver); se muestra traducido, sin el código.
+      toast.error(error ? translateActionError(error) : 'No pudimos actualizar la membresía.');
       return;
     }
 

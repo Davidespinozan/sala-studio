@@ -3,6 +3,7 @@ import { supabase } from '@shared/lib/supabase';
 import { useToast } from '@shared/hooks/useToast';
 import { formatearMoneda } from '@shared/lib/dinero';
 import { useOperationKey } from '@shared/lib/operationKey';
+import { mensajePlanPorCobrarCancelado, type PlanPorCobrarCanceladoResult } from '@shared/lib/mensajePlanPorCobrarCancelado';
 
 interface Cargo {
   id: string;
@@ -137,8 +138,8 @@ function CargoRow({
       toast.error(error.message.replace(/^[A-Z_]+:\s*/, '') || 'No se pudo cancelar');
       return;
     }
-    const plan = (data as { plan?: { plan_cancelado?: boolean; reason?: string } } | null)?.plan;
-    if (esPlan && plan?.plan_cancelado) toast.success('Cargo y plan cancelados. Sus reservas futuras quedaron liberadas.');
+    const plan = (data as { plan?: PlanPorCobrarCanceladoResult } | null)?.plan;
+    if (esPlan && plan?.plan_cancelado) toast.success(mensajePlanPorCobrarCancelado(plan, 'Cargo y plan cancelados.'));
     else if (esPlan && plan?.reason === 'tiene_pagos') toast.info('Cargo cancelado. El plan se conservó porque ya tiene pagos registrados.');
     else toast.success('Cargo cancelado.');
     await onDone();

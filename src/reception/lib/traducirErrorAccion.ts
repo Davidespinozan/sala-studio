@@ -21,6 +21,13 @@ export const ERROR_CODE_MAP: Record<string, string> = {
   CANCELACION_YA_PENDIENTE: 'Ya hay una cancelación programada para esta membresía',
   ROL_INVALIDO: 'Esta acción no está disponible para tu rol',
 
+  // Sin entrada a propósito (el mensaje del RPC ya viene en español y trae el
+  // dato que importa: plan, monto o clases que faltan; translateActionError le
+  // quita el código y lo muestra tal cual):
+  //   PLAN_POR_COBRAR_PENDIENTE — asignar plan con uno por cobrar sin resolver
+  //   SIN_CREDITOS_TRASLADO     — check-in de una clase reservada con un plan
+  //                               por cobrar cancelado y el plan vigente sin saldo
+
   // Reserva
   RESERVA_NO_EXISTE: 'No encontramos esa reserva',
   RESERVA_YA_CANCELADA: 'Esta reserva ya estaba cancelada',
