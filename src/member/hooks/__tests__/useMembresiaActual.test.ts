@@ -13,6 +13,7 @@ function mem(overrides: Partial<MembresiaActual> = {}): MembresiaActual {
     status: 'activa',
     cancelada_at: null,
     cancelada_efectiva_at: null,
+    stripe_subscription_id: null,
     periodo_actual_inicio: '2026-05-13T00:00:00Z',
     periodo_actual_fin: '2026-06-12T00:00:00Z',
     creditos_restantes: null,

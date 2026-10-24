@@ -36,6 +36,10 @@ export interface MembresiaActual {
   cancelada_at: string | null;
   /** Cuándo deja de tener acceso si no reactiva. */
   cancelada_efectiva_at: string | null;
+  /** NOT NULL = la membresía tiene una suscripción real de Stripe (se le
+   *  aplican las reglas de cancelación diferida de BLOCK2). NULL = paquete o
+   *  plan manual — se agota/cancela sin pasar por Stripe. */
+  stripe_subscription_id: string | null;
   /** Vigencia CANÓNICA (W5-A es_membresia_vigente), calculada en el servidor
    *  (v_socio_membresia). NO se rederiva en el front. */
   vigente: boolean;
@@ -111,7 +115,7 @@ export function useMembresiaActual(usuarioId?: string) {
     const { data, error: qerr } = await supabase
       .from('v_socio_membresia')
       .select(
-        'membresia_id, membresia_status, periodo_actual_inicio, periodo_actual_fin, creditos_restantes, tier_id, tier_slug, tier_nombre, tier_tipo, duracion_dias, clases_incluidas, es_pase, tier_acceso_todas_sucursales, sucursal_id, cancelada_at, cancelada_efectiva_at, vigente'
+        'membresia_id, membresia_status, periodo_actual_inicio, periodo_actual_fin, creditos_restantes, tier_id, tier_slug, tier_nombre, tier_tipo, duracion_dias, clases_incluidas, es_pase, tier_acceso_todas_sucursales, sucursal_id, cancelada_at, cancelada_efectiva_at, stripe_subscription_id, vigente'
       )
       .eq('usuario_id', targetId)
       .maybeSingle();
@@ -134,6 +138,7 @@ export function useMembresiaActual(usuarioId?: string) {
       status: data.membresia_status as StatusMembresia,
       cancelada_at: data.cancelada_at ?? null,
       cancelada_efectiva_at: data.cancelada_efectiva_at ?? null,
+      stripe_subscription_id: (data.stripe_subscription_id as string | null) ?? null,
       periodo_actual_inicio: data.periodo_actual_inicio,
       periodo_actual_fin: data.periodo_actual_fin,
       creditos_restantes: data.creditos_restantes,

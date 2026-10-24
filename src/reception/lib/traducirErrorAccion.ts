@@ -14,6 +14,13 @@ export const ERROR_CODE_MAP: Record<string, string> = {
   MEMBRESIA_YA_ACTIVA: 'La membresía ya estaba activa',
   TIER_NO_EXISTE: 'No encontramos ese plan',
 
+  // Cancelación Stripe diferida (BLOCK 2)
+  MEMBRESIA_SIN_STRIPE: 'Esta membresía no tiene suscripción de Stripe — usa "Cancelar membresía" (flujo manual)',
+  MEMBRESIA_TERMINAL: 'Esta membresía ya está cerrada',
+  SIN_CANCELACION_PENDIENTE: 'No hay ninguna cancelación programada para retirar',
+  CANCELACION_YA_PENDIENTE: 'Ya hay una cancelación programada para esta membresía',
+  ROL_INVALIDO: 'Esta acción no está disponible para tu rol',
+
   // Reserva
   RESERVA_NO_EXISTE: 'No encontramos esa reserva',
   RESERVA_YA_CANCELADA: 'Esta reserva ya estaba cancelada',

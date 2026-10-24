@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { AlertTriangle, ArrowRight, CalendarCheck, ChevronRight, CreditCard, Fingerprint, LifeBuoy, Plus, RotateCcw, X, Receipt } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Avatar } from '@shared/components/Avatar';
@@ -29,6 +29,8 @@ import { formatearMoneda } from '@shared/lib/dinero';
 import { ReciboModal } from '@shared/components/ReciboModal';
 import { conceptoLabel, metodoLabel, montoFmt } from '@shared/lib/recibo';
 import { backendPost } from '@shared/lib/backend';
+import { llamarCancelacionStripe, traducirErrorCancelacion } from '@shared/lib/cancelacionStripe';
+import { useOperacionCancelacionVigente, type EstadoOperacionCancelacion } from '@shared/hooks/useOperacionCancelacionVigente';
 import { CheckoutModal } from '@shared/components/CheckoutModal';
 import ContactoGymCTA from '../components/ContactoGymCTA';
 
@@ -120,7 +122,7 @@ export default function Perfil() {
   // socio, hay que dejar "Método de pago" aunque las membresías sean solo-recepción.
   const puedeGuardarTarjeta = cobraOnline || ventaSocioActiva(tenant.config as Record<string, unknown> | null);
   const { sesionesEsteMes } = useStatsDelMes(usuario?.id);
-  const { membresia, isLoading: loadingMembresia } = useMembresiaActual(usuario?.id);
+  const { membresia, isLoading: loadingMembresia, refetch: refetchMembresia } = useMembresiaActual(usuario?.id);
   const { tiers } = useTiersDelTenant();
   const { whatsappUrl } = useLandingConfig();
   // Plan "por cobrar" (elegido con "Pagar en recepción", sin pagar): no se
@@ -131,6 +133,22 @@ export default function Perfil() {
   const deudaPlan = misCargos
     .filter((c) => c.concepto === 'plan' || c.concepto === 'inscripcion')
     .reduce((s, c) => s + (c.monto_centavos ?? 0), 0);
+
+  // Estado de una operación programar/retirar cancelación Stripe (BLOCK2) —
+  // vive en el padre porque tanto AvisosPlan (banner) como CancelarSuscripcion
+  // (la dispara) necesitan verlo sin esperar a un reload. 'error' (no se pudo
+  // consultar) NUNCA se trata como 'ninguna' (sin operación pendiente).
+  const { estado: estadoCancelacion, refetch: refetchEstadoCancelacion } = useOperacionCancelacionVigente(usuario?.id);
+  const estadoCancelacionPrevRef = useRef(estadoCancelacion);
+  useEffect(() => {
+    // Si veníamos de 'en_curso' y ya no lo es, algo se resolvió (el reconciliador
+    // de BLOCK2B, o nuestra propia confirmación) — refrescar la membresía para
+    // que cancelada_at/vigente reflejen el resultado real sin recargar la página.
+    if (estadoCancelacionPrevRef.current === 'en_curso' && estadoCancelacion !== 'en_curso') {
+      refetchMembresia();
+    }
+    estadoCancelacionPrevRef.current = estadoCancelacion;
+  }, [estadoCancelacion, refetchMembresia]);
 
   const miembroDesde = formatearMiembroDesde(usuario?.created_at);
   const ayudaUrl = whatsappUrl('Hola, necesito ayuda con mi cuenta.');
@@ -207,7 +225,14 @@ export default function Perfil() {
         )}
 
         {/* Plan: avisos + hero + método de pago + opciones + historial + cancelar + FAQ */}
-        <AvisosPlan membresia={membresia} tenantNombre={tenant.nombre} />
+        <AvisosPlan
+          membresia={membresia}
+          tenantNombre={tenant.nombre}
+          usuarioId={usuario?.id}
+          refetchMembresia={refetchMembresia}
+          estadoCancelacion={estadoCancelacion}
+          refetchEstadoCancelacion={refetchEstadoCancelacion}
+        />
         <PlanHero
           membresia={membresia}
           loading={loadingMembresia}
@@ -247,8 +272,13 @@ export default function Perfil() {
           <PlanActualYOpciones usuarioId={usuario?.id} membresia={membresia} tiers={tiers} tenantNombre={tenant.nombre} puedePagar={cobraOnline} porCobrar={porCobrarApp} />
         )}
         <HistorialPagos />
-        {membresia && !planPorCobrar && !membresia.cancelada_at && (
-          <CancelarSuscripcion tenantNombre={tenant.nombre} />
+        {membresia && !planPorCobrar && !membresia.cancelada_at && estadoCancelacion === 'ninguna' && (
+          <CancelarSuscripcion
+            usuarioId={usuario?.id}
+            tieneStripe={!!membresia.stripe_subscription_id}
+            refetchMembresia={refetchMembresia}
+            refetchEstadoCancelacion={refetchEstadoCancelacion}
+          />
         )}
         <FaqPlan cobraOnline={cobraOnline} tenantNombre={tenant.nombre} />
 
@@ -487,32 +517,62 @@ function AjusteRow({
  */
 function AvisosPlan({
   membresia,
-  tenantNombre
+  tenantNombre,
+  usuarioId,
+  refetchMembresia,
+  estadoCancelacion,
+  refetchEstadoCancelacion
 }: {
   membresia: ReturnType<typeof useMembresiaActual>['membresia'];
   tenantNombre: string;
+  usuarioId: string | undefined;
+  refetchMembresia: () => Promise<void> | void;
+  estadoCancelacion: EstadoOperacionCancelacion;
+  refetchEstadoCancelacion: () => void;
 }) {
   const toast = useToast();
   const [tarjetaAbierta, setTarjetaAbierta] = useState(false);
   const [reactivando, setReactivando] = useState(false);
+
   if (!membresia) return null;
 
   const pagoVencido = membresia.status === 'past_due';
   const cancelaAlFin = !!membresia.cancelada_at;
-  if (!pagoVencido && !cancelaAlFin) return null;
+  const procesando = estadoCancelacion === 'en_curso';
+  const errorVerificando = estadoCancelacion === 'error';
+  if (!pagoVencido && !cancelaAlFin && !procesando && !errorVerificando) return null;
 
   async function reactivar() {
+    if (!usuarioId) return;
+    // Sin verificación confiable del estado, no se dispara una acción Stripe
+    // más (podría haber una ya en vuelo que no vemos) — forzar reintento.
+    if (errorVerificando) {
+      refetchEstadoCancelacion();
+      return;
+    }
     setReactivando(true);
     try {
-      const res = await backendPost<{ ok?: boolean }>('cancelar-membresia', { reactivar: true });
-      if (res.ok) {
-        toast.success('¡Listo! Tu plan se va a renovar normalmente.');
-        setTimeout(() => window.location.reload(), 900);
+      if (membresia?.stripe_subscription_id) {
+        const res = await llamarCancelacionStripe({ usuarioId, accion: 'retirar' });
+        if (res.estado === 'aplicado') {
+          toast.success('¡Listo! Tu plan se va a renovar normalmente.');
+          await refetchMembresia();
+        } else if (res.estado === 'procesando') {
+          toast.info('Tu solicitud se está procesando — puede tardar unos minutos en reflejarse acá.');
+        } else {
+          toast.error(`No pudimos reactivarlo. Habla con ${tenantNombre}.`);
+        }
+        refetchEstadoCancelacion();
         return;
       }
-      toast.error(`No pudimos reactivarlo. Habla con ${tenantNombre}.`);
-    } catch {
-      toast.error('No pudimos reactivarlo. Probá de nuevo.');
+      // Anomalía: cancelada_at puesto sin stripe_subscription_id no debería
+      // ocurrir (BLOCK2 solo cancela vía Stripe; los paquetes no tienen
+      // cancelada_at). No se llama a NINGÚN endpoint que module Stripe sin una
+      // suscripción real de la que partir — se reporta y se corta acá.
+      console.error('[Perfil] cancelada_at sin stripe_subscription_id — estado inesperado', { usuarioId });
+      toast.error(`Algo no cuadra con tu plan. Contactá a ${tenantNombre} para resolverlo.`);
+    } catch (e) {
+      toast.error(traducirErrorCancelacion(e));
     } finally {
       setReactivando(false);
     }
@@ -553,7 +613,45 @@ function AvisosPlan({
         </div>
       )}
 
-      {cancelaAlFin && (
+      {errorVerificando && (
+        <div
+          className="ek-card"
+          style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', borderColor: 'var(--sala-error)', background: 'var(--sala-error-bg)' }}
+        >
+          <AlertTriangle size={18} style={{ color: 'var(--sala-error)', flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: '14px' }}>No pudimos verificar el estado de tu cancelación</p>
+            <p style={{ margin: '4px 0 10px', fontSize: '13px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
+              Por tu seguridad no vamos a intentar ninguna acción hasta confirmarlo.
+            </p>
+            <button
+              type="button"
+              className="ek-cta ek-cta--secondary"
+              style={{ padding: '9px 16px', fontSize: '13px' }}
+              onClick={() => refetchEstadoCancelacion()}
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {procesando && !errorVerificando && (
+        <div
+          className="ek-card"
+          style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', borderColor: 'var(--sala-border-strong)', background: 'var(--ek-bg-elevated)' }}
+        >
+          <AlertTriangle size={18} style={{ color: 'var(--sala-text-secondary)', flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: '14px' }}>Estamos procesando tu solicitud</p>
+            <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--sala-text-secondary)', lineHeight: 1.5 }}>
+              Puede tardar unos minutos en reflejarse acá. No hace falta que hagas nada más.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {cancelaAlFin && !procesando && !errorVerificando && (
         <div
           className="ek-card"
           style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', borderColor: 'var(--sala-warning)', background: 'var(--sala-warning-bg)' }}
@@ -1449,26 +1547,46 @@ function HistorialPagos() {
 // Cancelar suscripción
 // ============================================================================
 
-function CancelarSuscripcion({ tenantNombre }: { tenantNombre: string }) {
+function CancelarSuscripcion({
+  usuarioId,
+  tieneStripe,
+  refetchMembresia,
+  refetchEstadoCancelacion
+}: {
+  usuarioId: string | undefined;
+  tieneStripe: boolean;
+  refetchMembresia: () => Promise<void> | void;
+  refetchEstadoCancelacion: () => void;
+}) {
   const toast = useToast();
   const [confirmando, setConfirmando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
 
   async function cancelar() {
+    if (!tieneStripe) {
+      // Paquete de clases: no hay nada que "cancelar" en Stripe, se agota solo.
+      toast.info('Tu plan es un paquete de clases — no se cancela, se agota al usar las clases.');
+      setConfirmando(false);
+      return;
+    }
+    if (!usuarioId) return;
     setCancelando(true);
     try {
-      const res = await backendPost<{ ok?: boolean; reason?: string }>('cancelar-membresia', { reactivar: false });
-      if (res.ok) {
+      const res = await llamarCancelacionStripe({ usuarioId, accion: 'programar' });
+      if (res.estado === 'aplicado') {
         toast.success('Listo: tu plan se cancela al final del período ya pagado.');
-      } else if (res.reason === 'sin_suscripcion') {
-        toast.info('Tu plan es un paquete de clases — no se cancela, se agota al usar las clases.');
-      } else if (res.reason === 'stripe_pendiente') {
-        toast.info(`Para cancelar tu plan, habla con ${tenantNombre}.`);
+        await refetchMembresia();
+      } else if (res.estado === 'procesando') {
+        toast.info('Tu solicitud se está procesando — puede tardar unos minutos en reflejarse acá.');
+        await refetchMembresia();
       } else {
         toast.error('No pudimos cancelar. Probá de nuevo.');
       }
-    } catch {
-      toast.error('No pudimos cancelar. Probá de nuevo.');
+      // Pedimos el estado real al server en vez de asumirlo localmente — el
+      // índice único del backend es la autoridad, no un flag optimista acá.
+      refetchEstadoCancelacion();
+    } catch (e) {
+      toast.error(traducirErrorCancelacion(e));
     } finally {
       setCancelando(false);
       setConfirmando(false);

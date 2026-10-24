@@ -1508,6 +1508,7 @@ export type Database = {
           congelada_at: string | null
           cancelada_at: string | null
           cancelada_efectiva_at: string | null
+          stripe_subscription_id: string | null
           sucursal_id: string | null
           metodo_pago: string | null
           vigente: boolean | null

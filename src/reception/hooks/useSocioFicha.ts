@@ -14,6 +14,14 @@ export interface FichaMembresia {
   tierNombre: string | null;
   tierTipo: string | null;          // 'tiempo' | 'creditos' | 'hibrido'
   metodoPago: string | null;        // cómo paga su membresía (editable)
+  /** NOT NULL = el socio (o recepción) programó cancelar: sigue con acceso
+   *  hasta que termine el periodo pagado. */
+  canceladaAt: string | null;
+  /** Cuándo deja de tener acceso si no se retira la cancelación. */
+  canceladaEfectivaAt: string | null;
+  /** NOT NULL = tiene suscripción real de Stripe (aplica BLOCK2: cancelación
+   *  diferida vía Stripe). NULL = paquete/plan manual (flujo RPC existente). */
+  stripeSubscriptionId: string | null;
 }
 
 export interface FichaReserva {
@@ -75,6 +83,9 @@ interface VistaMembresiaRow {
   tier_id: string | null;
   tier_nombre: string | null;
   tier_tipo: string | null;
+  cancelada_at: string | null;
+  cancelada_efectiva_at: string | null;
+  stripe_subscription_id: string | null;
   vigente: boolean | null;
 }
 interface ReservaQueryRow {
@@ -144,7 +155,7 @@ export function useSocioFicha(id: string | undefined) {
       // vigencia del servidor. No "la más reciente de cualquier status" ad-hoc.
       const { data: memData } = await supabase
         .from('v_socio_membresia')
-        .select('membresia_id, membresia_status, periodo_actual_fin, creditos_restantes, metodo_pago, tier_id, tier_nombre, tier_tipo, vigente')
+        .select('membresia_id, membresia_status, periodo_actual_fin, creditos_restantes, metodo_pago, tier_id, tier_nombre, tier_tipo, cancelada_at, cancelada_efectiva_at, stripe_subscription_id, vigente')
         .eq('usuario_id', id)
         .maybeSingle();
       const mem = memData as VistaMembresiaRow | null;
@@ -214,6 +225,9 @@ export function useSocioFicha(id: string | undefined) {
             tierNombre: mem.tier_nombre,
             tierTipo: mem.tier_tipo,
             metodoPago: mem.metodo_pago ?? null,
+            canceladaAt: mem.cancelada_at ?? null,
+            canceladaEfectivaAt: mem.cancelada_efectiva_at ?? null,
+            stripeSubscriptionId: mem.stripe_subscription_id ?? null,
           }
         : null;
 

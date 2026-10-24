@@ -14,6 +14,7 @@ import { CobrarInscripcionModal } from '../components/acciones/CobrarInscripcion
 import { SaludSocioForm, tenantPideSalud } from '@shared/components/SaludSocioForm';
 import { DescuentoSocio } from '@shared/components/DescuentoSocio';
 import { CancelarMembresiaModal } from '../components/acciones/CancelarMembresiaModal';
+import { CancelacionStripeModal } from '../components/acciones/CancelacionStripeModal';
 import { BloquearSocioModal } from '../components/acciones/BloquearSocioModal';
 import { DesbloquearSocioModal } from '../components/acciones/DesbloquearSocioModal';
 import { AgregarNotaModal } from '../components/acciones/AgregarNotaModal';
@@ -39,6 +40,7 @@ import { whatsappParaSocio } from '@shared/lib/whatsapp';
 import { useToast } from '@shared/hooks/useToast';
 import { useTenant } from '@shared/hooks/useTenant';
 import { getTenantTimezone, hoyEnTimezone, fechaEnTz, formatHoraEnTz, diasEntre } from '@shared/lib/timezone';
+import { useOperacionCancelacionVigente, type EstadoOperacionCancelacion } from '@shared/hooks/useOperacionCancelacionVigente';
 
 type ModalAccion =
   | null
@@ -52,6 +54,8 @@ type ModalAccion =
   | 'asignar_plan'
   | 'cobrar_inscripcion'
   | 'cancelar_membresia'
+  | 'cancelar_stripe_programar'
+  | 'cancelar_stripe_retirar'
   | 'bloquear'
   | 'desbloquear'
   | 'agregar_nota'
@@ -276,6 +280,21 @@ export function Ficha({
   // Walk-in: la Ficha se monta con el modal del paso vigente ya abierto.
   const [modalAbierto, setModalAbierto] = useState<ModalAccion>(() => walkin?.paso ?? null);
   const [corrigiendo, setCorrigiendo] = useState<string | null>(null);
+  // Estado de una operación programar/retirar cancelación Stripe (BLOCK2) para
+  // ESTE socio — aparte de `membresia.canceladaAt`, que solo refleja el último
+  // estado YA confirmado, no una solicitud todavía en vuelo. 'error' (no se
+  // pudo consultar) NUNCA se trata como "sin operación pendiente".
+  const { estado: estadoCancelacion, refetch: refetchEstadoCancelacion } = useOperacionCancelacionVigente(socio.id);
+  const estadoCancelacionPrevRef = useRef(estadoCancelacion);
+  useEffect(() => {
+    // Si veníamos de 'en_curso' y ya no lo es, el reconciliador (BLOCK2B) o
+    // nuestra propia confirmación resolvió algo en segundo plano — refrescar
+    // la ficha para que canceladaAt/estado reflejen el resultado real.
+    if (estadoCancelacionPrevRef.current === 'en_curso' && estadoCancelacion !== 'en_curso' && onAccionDone) {
+      void onAccionDone();
+    }
+    estadoCancelacionPrevRef.current = estadoCancelacion;
+  }, [estadoCancelacion, onAccionDone]);
 
   async function marcarAsistio(reservaId: string) {
     setCorrigiendo(reservaId);
@@ -309,9 +328,29 @@ export function Ficha({
     // Tras cualquier acción (incluye cobros) refrescamos el historial de pagos:
     // el cobro recién hecho aparece arriba con su botón de Recibo.
     setPagosReload((n) => n + 1);
+    // Tras programar/retirar una cancelación Stripe, re-chequear si quedó una
+    // operación en curso (ambigua) — no asumir éxito solo porque onDone corrió.
+    refetchEstadoCancelacion();
   };
   const esCreditos = membresia?.tierTipo === 'creditos' || membresia?.tierTipo === 'hibrido';
   const bloqueado = !!socio.bloqueado_hasta && new Date(socio.bloqueado_hasta) > new Date();
+
+  // Botón de cancelar/retirar membresía: Stripe (BLOCK2, vía cancelacion-stripe)
+  // si tiene suscripción real, manual (recepcion_cancelar_membresia, sin cambios)
+  // si no. El manual NO depende de estadoCancelacion (no hay operación Stripe
+  // posible sobre una membresía sin suscripción). Las acciones Stripe se
+  // ocultan mientras hay una operación en curso (evita un doble envío) O
+  // mientras no se pudo verificar si la hay (por seguridad, no se asume que no).
+  function BotonCancelarMembresia() {
+    if (!membresia?.stripeSubscriptionId) {
+      return <AccionBtn onClick={() => setModalAbierto('cancelar_membresia')}>Cancelar membresía</AccionBtn>;
+    }
+    if (estadoCancelacion === 'en_curso' || estadoCancelacion === 'error' || estadoCancelacion === 'cargando') return null;
+    if (membresia.canceladaAt) {
+      return <AccionBtn onClick={() => setModalAbierto('cancelar_stripe_retirar')}>Retirar cancelación</AccionBtn>;
+    }
+    return <AccionBtn onClick={() => setModalAbierto('cancelar_stripe_programar')}>Cancelar membresía</AccionBtn>;
+  }
 
   return (
     <>
@@ -367,7 +406,7 @@ export function Ficha({
           onAsignar={() => setModalAbierto('asignar_plan')}
         />
       ) : (
-        <FichaAlerta data={data} />
+        <FichaAlerta data={data} estadoCancelacion={estadoCancelacion} onReintentarCancelacion={refetchEstadoCancelacion} />
       )}
 
       {/* ACCIONES DEL SOCIO (gobernanza: bloqueo + contacto) */}
@@ -514,14 +553,14 @@ export function Ficha({
               <AccionBtn onClick={() => setModalAbierto('cambiar_plan')}>Cambiar plan</AccionBtn>
               {esCreditos && <AccionBtn onClick={() => setModalAbierto('recargar')}>Ajustar créditos</AccionBtn>}
               <AccionBtn onClick={() => setModalAbierto('pausar')}>Pausar</AccionBtn>
-              <AccionBtn onClick={() => setModalAbierto('cancelar_membresia')}>Cancelar membresía</AccionBtn>
+              <BotonCancelarMembresia />
             </>
           )}
           {estado === 'pausada' && (
             <>
               <AccionBtn onClick={() => setModalAbierto('reactivar')}>Reactivar</AccionBtn>
               <AccionBtn onClick={() => setModalAbierto('cambiar_plan')}>Cambiar plan</AccionBtn>
-              <AccionBtn onClick={() => setModalAbierto('cancelar_membresia')}>Cancelar membresía</AccionBtn>
+              <BotonCancelarMembresia />
             </>
           )}
           {estado === 'vencida' && (
@@ -829,6 +868,16 @@ export function Ficha({
           onDone={handleDone}
         />
       )}
+      {(modalAbierto === 'cancelar_stripe_programar' || modalAbierto === 'cancelar_stripe_retirar') && (
+        <CancelacionStripeModal
+          isOpen
+          socioId={socio.id}
+          socioNombre={socioNombre}
+          modo={modalAbierto === 'cancelar_stripe_programar' ? 'programar' : 'retirar'}
+          onClose={cerrar}
+          onDone={handleDone}
+        />
+      )}
       {modalAbierto === 'bloquear' && (
         <BloquearSocioModal
           isOpen
@@ -909,7 +958,15 @@ export function Ficha({
 }
 
 // ── Alerta contextual ───────────────────────────────────────────────────────
-function FichaAlerta({ data }: { data: SocioFichaData }) {
+function FichaAlerta({
+  data,
+  estadoCancelacion,
+  onReintentarCancelacion
+}: {
+  data: SocioFichaData;
+  estadoCancelacion: EstadoOperacionCancelacion;
+  onReintentarCancelacion: () => void;
+}) {
   const { socio, membresia, estado } = data;
 
   // Bloqueo tiene prioridad (estado operativo crítico).
@@ -940,6 +997,38 @@ function FichaAlerta({ data }: { data: SocioFichaData }) {
     return (
       <Alerta variant="neutral" icon="○">
         <b>Sin membresía activa</b> — asígnale un plan para que pueda reservar.
+      </Alerta>
+    );
+  }
+  // Activa + cancelación Stripe en curso/sin verificar/programada (BLOCK 2):
+  // se avisa antes del "vence pronto" genérico. Solo aplica a membresías con
+  // suscripción Stripe real (una manual nunca tiene una operación de este tipo).
+  const esStripe = !!membresia?.stripeSubscriptionId;
+  if (estado === 'activa' && esStripe && estadoCancelacion === 'error') {
+    return (
+      <Alerta variant="error" icon="⚠">
+        <b>No pudimos verificar si hay una cancelación en curso</b> — por seguridad, las acciones de cancelación están deshabilitadas hasta confirmarlo.{' '}
+        <button
+          type="button"
+          onClick={onReintentarCancelacion}
+          style={{ color: 'inherit', textDecoration: 'underline', background: 'none', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}
+        >
+          Reintentar
+        </button>
+      </Alerta>
+    );
+  }
+  if (estado === 'activa' && esStripe && estadoCancelacion === 'en_curso') {
+    return (
+      <Alerta variant="neutral" icon="⏳">
+        <b>Procesando una solicitud de cancelación</b> — puede tardar unos minutos en reflejarse acá.
+      </Alerta>
+    );
+  }
+  if (estado === 'activa' && membresia?.canceladaAt) {
+    return (
+      <Alerta variant="warning" icon="⚠">
+        <b>Cancelación programada</b> — su plan no se renueva después del {fmtFechaCorta(membresia.canceladaEfectivaAt ?? membresia.periodoFin)}.
       </Alerta>
     );
   }

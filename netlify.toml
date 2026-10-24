@@ -78,3 +78,9 @@
 # Minuto 20, cada 4h: no coincide con los demás crons.
 [functions."cron-cerrar-cancelaciones-stripe"]
   schedule = "20 */4 * * *"
+
+# BLOCK 2B: recupera operaciones de cancelación Stripe (socio/recepción) que
+# quedaron 'en_ejecucion' por un fallo o caída de proceso. Cada 5 min,
+# offset de 2 min desde la hora para no arrancar justo con recordatorios/push.
+[functions."cron-reconciliar-operaciones-cancelacion"]
+  schedule = "2-59/5 * * * *"
