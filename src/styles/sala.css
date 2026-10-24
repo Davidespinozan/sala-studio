@@ -3548,7 +3548,9 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
   justify-content: center;
   gap: 20px;
   overflow: hidden;
-  background: var(--ek-cream);
+  /* OJO: --ek-cream es un alias legado que hoy apunta a --ek-ink (texto
+     oscuro), no a un fondo claro — usar --ek-bg (el fondo real de la app). */
+  background: var(--ek-bg);
 }
 .sala-loader-mark {
   position: relative;

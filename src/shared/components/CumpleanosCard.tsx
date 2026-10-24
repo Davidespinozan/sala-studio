@@ -38,12 +38,15 @@ function etiquetaDia(fecha: string, diasFaltan: number): string {
   if (diasFaltan === 0) return '¡Hoy!';
   if (diasFaltan === 1) return 'Mañana';
   const [y, m, d] = fecha.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('es-MX', {
-    weekday: 'long',
+  // Formato corto ("dom 25 oct"): el largo ("domingo, 25 de octubre") se salía
+  // de la tarjeta en móvil — el nowrap de la etiqueta no dejaba lugar al nombre.
+  const texto = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('es-MX', {
+    weekday: 'short',
     day: 'numeric',
-    month: 'long',
+    month: 'short',
     timeZone: 'UTC'
   });
+  return texto.replace(/\./g, '');
 }
 
 /**
@@ -131,7 +134,11 @@ function Fila({ c, linkBase, destacado = false }: { c: Cumpleanero; linkBase: st
         padding: destacado ? '10px 12px' : '2px 0',
         borderRadius: '10px',
         background: destacado ? 'var(--sala-primary-light)' : 'transparent',
-        textDecoration: 'none'
+        textDecoration: 'none',
+        // Un Link es un item de grid (el contenedor padre es `display:grid`):
+        // sin esto, su min-width default ('auto') deja que el contenido fuerce
+        // el ancho de la fila más allá de la tarjeta en vez de truncar el nombre.
+        minWidth: 0
       }}
     >
       <Avatar src={c.avatarUrl} nombre={c.nombre} size={32} />
@@ -148,7 +155,8 @@ function Fila({ c, linkBase, destacado = false }: { c: Cumpleanero; linkBase: st
           fontSize: '12px',
           fontWeight: destacado ? 700 : 500,
           color: destacado ? 'var(--sala-primary)' : 'var(--ek-ink-muted)',
-          whiteSpace: 'nowrap'
+          whiteSpace: 'nowrap',
+          flexShrink: 0
         }}
       >
         {etiquetaDia(c.fecha, c.diasFaltan)}
