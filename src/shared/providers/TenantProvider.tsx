@@ -131,6 +131,55 @@ interface BrandingColors {
 }
 
 /**
+ * Cache local (por hostname) de lo mínimo para pintar la LoadingScreen con la
+ * marca real del tenant en visitas repetidas, sin esperar al fetch. Solo
+ * colores + isotipo — nunca datos sensibles. Se lee de forma SINCRÓNICA al
+ * montar (antes del primer paint) y se escribe cuando el fetch real confirma
+ * el branding vigente. Si está vacía/corrupta, se ignora — nunca rompe nada,
+ * la app sigue funcionando igual que sin cache (solo pierde el atajo visual).
+ */
+interface CachedBrand {
+  primary: string;
+  accent: string;
+  isotipoUrl: string | null;
+}
+
+function brandCacheKey(): string {
+  return `sala:brand:${typeof window !== 'undefined' ? window.location.hostname : 'ssr'}`;
+}
+
+function leerBrandCache(): CachedBrand | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(brandCacheKey());
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<CachedBrand>;
+    if (typeof parsed.primary !== 'string' || typeof parsed.accent !== 'string') return null;
+    return {
+      primary: parsed.primary,
+      accent: parsed.accent,
+      isotipoUrl: typeof parsed.isotipoUrl === 'string' ? parsed.isotipoUrl : null
+    };
+  } catch {
+    return null;
+  }
+}
+
+function guardarBrandCache(branding: BrandingColors | null | undefined): void {
+  if (typeof window === 'undefined') return;
+  const b = (branding ?? {}) as Record<string, unknown>;
+  const primary = typeof b.color_primary === 'string' ? b.color_primary : null;
+  if (!primary) return; // sin color real que cachear — no pisamos un cache previo bueno con basura.
+  const accent = typeof b.color_accent === 'string' ? b.color_accent : primary;
+  const isotipoUrl = typeof b.isotipo_url === 'string' ? b.isotipo_url : null;
+  try {
+    window.localStorage.setItem(brandCacheKey(), JSON.stringify({ primary, accent, isotipoUrl }));
+  } catch {
+    // localStorage lleno/bloqueado (ej. Safari privado) — no es crítico, se ignora.
+  }
+}
+
+/**
  * Pisa los 6 flags dinámicos del :root con los colores del tenant.
  * Los 20 derivados se recalculan solos vía color-mix().
  * Si algún color es inválido, no pisa nada (queda el default SALA).
@@ -520,6 +569,21 @@ export function TenantProvider({ children }: TenantProviderProps) {
   // mostramos la pantalla de carga en vez de parpadear el error.
   const [recargando, setRecargando] = useState(false);
 
+  // Páginas de marketing de SALA: nunca tenant cacheado (marca SALA fija).
+  const esMarketing = isMarketingRoot() && esRutaMarketing(window.location.pathname);
+
+  // Cache de marca (ver arriba): se lee UNA sola vez al montar, en el
+  // inicializador perezoso de useState — corre en fase de render, ANTES del
+  // primer paint, así que aplicar el color ahí mismo evita el flash "verde
+  // SALA → color del tenant" en una visita repetida. Idempotente (solo pisa
+  // variables CSS), por eso es seguro hacerlo acá y no en un efecto.
+  const [cachedBrand] = useState<CachedBrand | null>(() => {
+    if (esMarketing) return null;
+    const cached = leerBrandCache();
+    if (cached) applyBranding({ color_primary: cached.primary, color_accent: cached.accent });
+    return cached;
+  });
+
   /**
    * Aplica un tenant cargado al estado + branding (colores y, vía el objeto
    * tenant, el logo que renderiza TenantLogo). Reutilizable por carga inicial
@@ -588,6 +652,11 @@ export function TenantProvider({ children }: TenantProviderProps) {
         if (!isMounted) return;
         limpiarFlagAutoRecarga(); // cargó bien → habilita futura auto-recarga
         aplicarTenant(data);
+        // Guarda la marca para que la próxima carga pinte el logo/color real
+        // desde el primer frame (ver cachedBrand arriba). No en marketing: ahí
+        // el tenant resuelto es solo un fallback de contexto (healthyspace),
+        // nunca la marca a mostrar.
+        if (!esMarketing) guardarBrandCache(data.branding as BrandingColors | null);
         setIsLoading(false);
       })
       .catch(async (err) => {
@@ -608,10 +677,15 @@ export function TenantProvider({ children }: TenantProviderProps) {
     return () => {
       isMounted = false;
     };
-  }, [fetchTenant, aplicarTenant]);
+  }, [fetchTenant, aplicarTenant, esMarketing]);
 
   if (isLoading || recargando) {
-    return <LoadingScreen />;
+    // Marketing: el logo de SALA es fijo, siempre conocido (asset estático,
+    // sin fetch). Tenant: el isotipo cacheado si ya hubo una visita previa en
+    // este dispositivo, o nada (marca genérica) en la primera visita — nunca
+    // el logo de SALA, para no mezclar su marca con la del tenant.
+    const logoSrc = esMarketing ? '/isotipo-sala.png' : cachedBrand?.isotipoUrl ?? null;
+    return <LoadingScreen logoSrc={logoSrc} />;
   }
 
   if (error || !tenant) {

@@ -3533,6 +3533,93 @@ button, a, input, select, textarea, .ek-card, .ek-stat-card {
 }
 .sala-fade-up { animation: sala-fade-up 0.7s var(--ease-premium) backwards; }
 
+/* ============================================================================
+   PANTALLA DE CARGA — primer paint mientras se resuelve el tenant (o en SALA,
+   siempre). Solo transform/opacity/mask (GPU), tokens de marca (primario/
+   acento) para que adopte el color del tenant si ya se conoce (cache de
+   LoadingScreen.tsx) o el verde default de SALA si no. Nunca otro color.
+   ============================================================================ */
+.sala-loader {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  overflow: hidden;
+  background: var(--ek-cream);
+}
+.sala-loader-mark {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+@keyframes sala-loader-spin {
+  to { transform: rotate(360deg); }
+}
+.sala-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    var(--sala-accent) 32%,
+    var(--sala-primary) 55%,
+    transparent 72%
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  filter: drop-shadow(0 0 10px var(--sala-accent-glow));
+  animation: sala-loader-spin 1.3s linear infinite;
+}
+@keyframes sala-loader-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.92; }
+  50%      { transform: scale(1.06); opacity: 1; }
+}
+.sala-loader-logo {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  border-radius: 22%;
+  animation: sala-loader-breathe 2.2s var(--ease-premium) infinite;
+}
+/* Sin logo conocido todavía (primera visita de un tenant, sin cache): marca
+   genérica neutral — nunca el logo de SALA (eso mezclaría marcas). */
+@keyframes sala-loader-bars {
+  0%, 100% { height: 10px; opacity: 0.55; }
+  50%      { height: 26px; opacity: 1; }
+}
+.sala-loader-glyph {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+}
+.sala-loader-glyph span {
+  width: 5px;
+  border-radius: 3px;
+  background: linear-gradient(var(--sala-accent), var(--sala-primary));
+  animation: sala-loader-bars 1s ease-in-out infinite;
+}
+.sala-loader-glyph span:nth-child(1) { animation-delay: -0.32s; }
+.sala-loader-glyph span:nth-child(2) { animation-delay: -0.16s; }
+.sala-loader-glyph span:nth-child(3) { animation-delay: 0s; }
+.sala-loader-label {
+  margin: 0;
+  font-family: var(--ek-font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--ek-ink-muted);
+  animation: ek-fade-in 1.2s var(--ease-premium) 0.3s both;
+}
+
 /* Accesibilidad OBLIGATORIA: si el usuario pide menos movimiento, todo off. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
